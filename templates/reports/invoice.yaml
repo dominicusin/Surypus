@@ -1,0 +1,293 @@
+# ============================================================================
+# INVOICE TEMPLATE (Счёт-фактура)
+# ============================================================================
+# Конвертировано из OpenPapyrus в PDF-Slave YAML
+# ============================================================================
+
+meta:
+  title: "Счёт-фактура"
+  author: "Surypus ERP"
+  subject: "Счёт-фактура"
+  keywords: "invoice, счёт, фактура"
+  creator: "Surypus PDF Generator"
+
+page:
+  paper-size: "A4"
+  orientation: "portrait"
+  margin-top: 15
+  margin-bottom: 15
+  margin-left: 15
+  margin-right: 15
+
+header:
+  height: 45
+  elements:
+    - text:
+        x: 0
+        y: 0
+        width: 190
+        height: 10
+        value: "СЧЁТ-ФАКТУРА"
+        font-size: 16
+        font-weight: "bold"
+        text-align: "center"
+    - text:
+        x: 0
+        y: 12
+        width: 190
+        height: 5
+        value: "{{companyName}}"
+        font-size: 10
+        font-weight: "bold"
+        text-align: "center"
+    - text:
+        x: 0
+        y: 18
+        width: 190
+        height: 4
+        value: "{{companyAddress}}"
+        font-size: 8
+        text-align: "center"
+    - text:
+        x: 0
+        y: 24
+        width: 190
+        height: 4
+        value: "ИНН {{companyInn}} КПП {{companyKpp}}"
+        font-size: 8
+        text-align: "center"
+    - text:
+        x: 0
+        y: 30
+        width: 190
+        height: 4
+        value: "№ {{invoiceNumber}} от {{invoiceDate}}"
+        font-size: 9
+        font-weight: "bold"
+        text-align: "center"
+
+page-header:
+  height: 25
+  elements:
+    - text:
+        x: 0
+        y: 0
+        width: 80
+        height: 5
+        value: "Поставщик:"
+        font-size: 8
+        font-weight: "bold"
+    - text:
+        x: 30
+        y: 0
+        width: 160
+        height: 5
+        value: "{{supplierName}}"
+        font-size: 8
+    - text:
+        x: 0
+        y: 6
+        width: 80
+        height: 5
+        value: "Покупатель:"
+        font-size: 8
+        font-weight: "bold"
+    - text:
+        x: 30
+        y: 6
+        width: 160
+        height: 5
+        value: "{{buyerName}}"
+        font-size: 8
+    - text:
+        x: 0
+        y: 12
+        width: 80
+        height: 5
+        value: "Грузоотправитель:"
+        font-size: 8
+        font-weight: "bold"
+    - text:
+        x: 30
+        y: 12
+        width: 160
+        height: 5
+        value: "{{shipperName}}"
+        font-size: 8
+    - text:
+        x: 0
+        y: 18
+        width: 80
+        height: 5
+        value: "Грузополучатель:"
+        font-size: 8
+        font-weight: "bold"
+    - text:
+        x: 30
+        y: 18
+        width: 160
+        height: 5
+        value: "{{consigneeName}}"
+        font-size: 8
+
+body:
+  repeat: true
+  elements:
+    - table:
+        x: 0
+        y: 0
+        width: 190
+        repeat-header: true
+        columns:
+          - width: 10
+            align: "center"
+          - width: 60
+            align: "left"
+          - width: 20
+            align: "center"
+          - width: 20
+            align: "right"
+          - width: 25
+            align: "right"
+          - width: 25
+            align: "right"
+          - width: 30
+            align: "right"
+        rows:
+          - - text: "№"
+              font-weight: "bold"
+              background-color: "#EEEEEE"
+            - text: "Наименование товара"
+              font-weight: "bold"
+              background-color: "#EEEEEE"
+            - text: "Ед."
+              font-weight: "bold"
+              background-color: "#EEEEEE"
+            - text: "Кол-во"
+              font-weight: "bold"
+              background-color: "#EEEEEE"
+            - text: "Цена"
+              font-weight: "bold"
+              background-color: "#EEEEEE"
+            - text: "Сумма"
+              font-weight: "bold"
+              background-color: "#EEEEEE"
+            - text: "Ставка НДС"
+              font-weight: "bold"
+              background-color: "#EEEEEE"
+          - - text: "{{rowNumber}}"
+            - text: "{{productName}}"
+            - text: "{{unit}}"
+            - text: "{{quantity}}"
+            - text: "{{price}}"
+            - text: "{{sum}}"
+            - text: "{{vatRate}}"
+
+footer:
+  height: 60
+  elements:
+    - line:
+        x1: 0
+        y1: 0
+        x2: 190
+        y2: 0
+        stroke-width: 0.5
+    - text:
+        x: 0
+        y: 5
+        width: 100
+        height: 4
+        value: "Всего к оплате:"
+        font-size: 9
+        font-weight: "bold"
+    - text:
+        x: 100
+        y: 5
+        width: 90
+        height: 4
+        value: "{{totalSum}}"
+        font-size: 9
+        font-weight: "bold"
+        text-align: "right"
+    - text:
+        x: 0
+        y: 12
+        width: 100
+        height: 4
+        value: "НДС 20%:"
+        font-size: 8
+    - text:
+        x: 100
+        y: 12
+        width: 90
+        height: 4
+        value: "{{totalVat}}"
+        font-size: 8
+        text-align: "right"
+    - text:
+        x: 0
+        y: 20
+        width: 190
+        height: 4
+        value: "Всего к оплате: {{totalWithVat}}"
+        font-size: 10
+        font-weight: "bold"
+    - text:
+        x: 0
+        y: 30
+        width: 190
+        height: 4
+        value: "{{totalInWords}}"
+        font-size: 8
+        font-style: "italic"
+    - line:
+        x1: 0
+        y1: 40
+        x2: 60
+        y2: 40
+        stroke-width: 0.5
+    - text:
+        x: 0
+        y: 42
+        width: 60
+        height: 4
+        value: "Руководитель"
+        font-size: 7
+    - line:
+        x1: 70
+        y1: 40
+        x2: 130
+        y2: 40
+        stroke-width: 0.5
+    - text:
+        x: 70
+        y: 42
+        width: 60
+        height: 4
+        value: "Главный бухгалтер"
+        font-size: 7
+    - line:
+        x1: 140
+        y1: 40
+        x2: 190
+        y2: 40
+        stroke-width: 0.5
+    - text:
+        x: 140
+        y: 42
+        width: 50
+        height: 4
+        value: "М.П."
+        font-size: 7
+
+page-footer:
+  height: 10
+  elements:
+    - text:
+        x: 0
+        y: 0
+        width: 190
+        height: 4
+        value: "Страница {{pageNumber}} из {{totalPages}}"
+        font-size: 7
+        text-align: "center"

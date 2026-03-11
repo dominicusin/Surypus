@@ -1,0 +1,258 @@
+# ============================================================================
+# BALANCE SHEET (Бухгалтерский баланс)
+# ============================================================================
+
+meta:
+  title: "Бухгалтерский баланс"
+  author: "Surypus ERP"
+  subject: "Форма №1"
+  creator: "Surypus PDF Generator"
+
+page:
+  paper-size: "A4"
+  orientation: "portrait"
+  margin-top: 10
+  margin-bottom: 10
+  margin-left: 15
+  margin-right: 15
+
+header:
+  height: 40
+  elements:
+    - text:
+        x: 0
+        y: 0
+        width: 190
+        height: 8
+        value: "БУХГАЛТЕРСКИЙ БАЛАНС"
+        font-size: 14
+        font-weight: "bold"
+        text-align: "center"
+    - text:
+        x: 0
+        y: 10
+        width: 190
+        height: 4
+        value: "Форма №1 по ОКУД"
+        font-size: 9
+        text-align: "center"
+    - text:
+        x: 0
+        y: 18
+        width: 190
+        height: 4
+        value: "на {{reportDate}}"
+        font-size: 10
+        font-weight: "bold"
+        text-align: "center"
+    - text:
+        x: 0
+        y: 26
+        width: 190
+        height: 4
+        value: "{{companyName}}"
+        font-size: 8
+        text-align: "center"
+    - text:
+        x: 0
+        y: 32
+        width: 190
+        height: 4
+        value: "ОКПО {{okpo}}"
+        font-size: 7
+        text-align: "center"
+
+page-header:
+  height: 10
+  elements:
+    - text:
+        x: 0
+        y: 0
+        width: 190
+        height: 4
+        value: "Организация: {{companyName}}"
+        font-size: 7
+    - text:
+        x: 0
+        y: 5
+        width: 95
+        height: 4
+        value: "Вид деятельности: {{activity}}"
+        font-size: 6
+
+body:
+  repeat: false
+  elements:
+    - table:
+        x: 0
+        y: 0
+        width: 190
+        repeat-header: true
+        columns:
+          - width: 50
+          - width: 70
+          - width: 35
+          - width: 35
+        rows:
+          - - text: "Наименование показателя"
+              font-weight: "bold"
+              background-color: "#CCCCCC"
+            - text: "Код"
+              font-weight: "bold"
+              background-color: "#CCCCCC"
+            - text: "На начало"
+              font-weight: "bold"
+              background-color: "#CCCCCC"
+            - text: "На конец"
+              font-weight: "bold"
+              background-color: "#CCCCCC"
+          # АКТИВ
+          - - text: "АКТИВ"
+              font-weight: "bold"
+            - text: ""
+            - text: ""
+            - text: ""
+          - - text: "I. ВНЕОБОРОТНЫЕ АКТИВЫ"
+              font-weight: "bold"
+            - text: "190"
+            - text: "{{start190}}"
+            - text: "{{end190}}"
+          - - text: "  Нематериальные активы"
+            - text: "1110"
+            - text: "{{start1110}}"
+            - text: "{{end1110}}"
+          - - text: "  Основные средства"
+            - text: "1150"
+            - text: "{{start1150}}"
+            - text: "{{end1150}}"
+          - - text: "  Доходные вложения"
+            - text: "1160"
+            - text: "{{start1160}}"
+            - text: "{{end1160}}"
+          - - text: "  Долгосрочные инвестиции"
+            - text: "1170"
+            - text: "{{start1170}}"
+            - text: "{{end1170}}"
+          - - text: "II. ОБОРОТНЫЕ АКТИВЫ"
+              font-weight: "bold"
+            - text: "1200"
+            - text: "{{start1200}}"
+            - text: "{{end1200}}"
+          - - text: "  Запасы"
+            - text: "1210"
+            - text: "{{start1210}}"
+            - text: "{{end1210}}"
+          - - text: "  Дебиторская задолженность"
+            - text: "1230"
+            - text: "{{start1230}}"
+            - text: "{{end1230}}"
+          - - text: "  Денежные средства"
+            - text: "1250"
+            - text: "{{start1250}}"
+            - text: "{{end1250}}"
+          - - text: "БАЛАНС"
+              font-weight: "bold"
+            - text: "1600"
+            - text: "{{start1600}}"
+            - text: "{{end1600}}"
+          # ПАССИВ
+          - - text: "ПАССИВ"
+              font-weight: "bold"
+            - text: ""
+            - text: ""
+            - text: ""
+          - - text: "III. КАПИТАЛ И РЕЗЕРВЫ"
+              font-weight: "bold"
+            - text: "1300"
+            - text: "{{start1300}}"
+            - text: "{{end1300}}"
+          - - text: "  Уставный капитал"
+            - text: "1310"
+            - text: "{{start1310}}"
+            - text: "{{end1310}}"
+          - - text: "  Нераспределённая прибыль"
+            - text: "1370"
+            - text: "{{start1370}}"
+            - text: "{{end1370}}"
+          - - text: "IV. ДОЛГОСРОЧНЫЕ ОБЯЗАТЕЛЬСТВА"
+              font-weight: "bold"
+            - text: "1400"
+            - text: "{{start1400}}"
+            - text: "{{end1400}}"
+          - - text: "V. КРАТКОСРОЧНЫЕ ОБЯЗАТЕЛЬСТВА"
+              font-weight: "bold"
+            - text: "1500"
+            - text: "{{start1500}}"
+            - text: "{{end1500}}"
+          - - text: "  Кредиторская задолженность"
+            - text: "1520"
+            - text: "{{start1520}}"
+            - text: "{{end1520}}"
+          - - text: "БАЛАНС"
+              font-weight: "bold"
+            - text: "1700"
+            - text: "{{start1700}}"
+            - text: "{{end1700}}"
+
+footer:
+  height: 30
+  elements:
+    - line:
+        x1: 0
+        y1: 0
+        x2: 190
+        y2: 0
+    - text:
+        x: 0
+        y: 5
+        width: 190
+        height: 4
+        value: "Руководитель: {{director}}"
+        font-size: 7
+    - text:
+        x: 100
+        y: 5
+        width: 45
+        height: 4
+        value: "{{directorSign}}"
+        font-size: 7
+    - text:
+        x: 145
+        y: 5
+        width: 45
+        height: 4
+        value: "{{directorDate}}"
+        font-size: 7
+    - text:
+        x: 0
+        y: 12
+        width: 190
+        height: 4
+        value: "Главный бухгалтер: {{chiefAccountant}}"
+        font-size: 7
+    - text:
+        x: 100
+        y: 12
+        width: 45
+        height: 4
+        value: "{{chiefSign}}"
+        font-size: 7
+    - text:
+        x: 145
+        y: 12
+        width: 45
+        height: 4
+        value: "{{chiefDate}}"
+        font-size: 7
+
+page-footer:
+  height: 8
+  elements:
+    - text:
+        x: 0
+        y: 0
+        width: 190
+        height: 4
+        value: "Страница {{pageNumber}}"
+        font-size: 7
+        text-align: "center"

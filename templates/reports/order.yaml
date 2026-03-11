@@ -1,0 +1,220 @@
+# ============================================================================
+# INVOICE (Счёт на оплату)
+# ============================================================================
+
+meta:
+  title: "Счёт на оплату"
+  author: "Surypus ERP"
+  subject: "Счёт на оплату"
+  creator: "Surypus PDF Generator"
+
+page:
+  paper-size: "A4"
+  orientation: "portrait"
+  margin-top: 15
+  margin-bottom: 15
+  margin-left: 15
+  margin-right: 15
+
+header:
+  height: 40
+  elements:
+    - text:
+        x: 0
+        y: 0
+        width: 190
+        height: 10
+        value: "СЧЁТ № {{invoiceNumber}}"
+        font-size: 14
+        font-weight: "bold"
+        text-align: "center"
+    - text:
+        x: 0
+        y: 12
+        width: 190
+        height: 4
+        value: "от {{invoiceDate}} г."
+        font-size: 10
+        text-align: "center"
+    - text:
+        x: 0
+        y: 20
+        width: 190
+        height: 4
+        value: "{{companyName}}"
+        font-size: 9
+        font-weight: "bold"
+        text-align: "center"
+    - text:
+        x: 0
+        y: 26
+        width: 190
+        height: 4
+        value: "ИНН {{companyInn}} | КПП {{companyKpp}}"
+        font-size: 8
+        text-align: "center"
+    - text:
+        x: 0
+        y: 32
+        width: 190
+        height: 4
+        value: "{{companyAddress}}"
+        font-size: 7
+        text-align: "center"
+
+page-header:
+  height: 20
+  elements:
+    - text:
+        x: 0
+        y: 0
+        width: 190
+        height: 4
+        value: "Покупатель: {{buyerName}}"
+        font-size: 8
+    - text:
+        x: 0
+        y: 5
+        width: 190
+        height: 4
+        value: "Адрес: {{buyerAddress}}"
+        font-size: 8
+    - text:
+        x: 0
+        y: 10
+        width: 190
+        height: 4
+        value: "Телефон: {{buyerPhone}} | Email: {{buyerEmail}}"
+        font-size: 8
+
+body:
+  repeat: true
+  elements:
+    - table:
+        x: 0
+        y: 0
+        width: 190
+        repeat-header: true
+        columns:
+          - width: 10
+            align: "center"
+          - width: 80
+            align: "left"
+          - width: 20
+            align: "center"
+          - width: 25
+            align: "right"
+          - width: 25
+            align: "right"
+          - width: 30
+            align: "right"
+        rows:
+          - - text: "№"
+              font-weight: "bold"
+              background-color: "#DDDDDD"
+            - text: "Наименование"
+              font-weight: "bold"
+              background-color: "#DDDDDD"
+            - text: "Ед."
+              font-weight: "bold"
+              background-color: "#DDDDDD"
+            - text: "Кол-во"
+              font-weight: "bold"
+              background-color: "#DDDDDD"
+            - text: "Цена"
+              font-weight: "bold"
+              background-color: "#DDDDDD"
+            - text: "Сумма"
+              font-weight: "bold"
+              background-color: "#DDDDDD"
+          - - text: "{{rowNumber}}"
+            - text: "{{productName}}"
+            - text: "{{unit}}"
+            - text: "{{quantity}}"
+            - text: "{{price}}"
+            - text: "{{sum}}"
+
+footer:
+  height: 45
+  elements:
+    - line:
+        x1: 120
+        y1: 0
+        x2: 190
+        y2: 0
+        stroke-width: 0.5
+    - text:
+        x: 120
+        y: 3
+        width: 70
+        height: 4
+        value: "Итого:"
+        font-size: 9
+        font-weight: "bold"
+    - text:
+        x: 120
+        y: 8
+        width: 70
+        height: 4
+        value: "{{totalSum}}"
+        font-size: 9
+        font-weight: "bold"
+        text-align: "right"
+    - text:
+        x: 120
+        y: 14
+        width: 70
+        height: 4
+        value: "НДС (20%):"
+        font-size: 8
+    - text:
+        x: 120
+        y: 19
+        width: 70
+        height: 4
+        value: "{{totalVat}}"
+        font-size: 8
+        text-align: "right"
+    - line:
+        x1: 120
+        y1: 25
+        x2: 190
+        y2: 25
+        stroke-width: 1
+    - text:
+        x: 120
+        y: 28
+        width: 70
+        height: 5
+        value: "ВСЕГО:"
+        font-size: 10
+        font-weight: "bold"
+    - text:
+        x: 120
+        y: 34
+        width: 70
+        height: 5
+        value: "{{totalWithVat}}"
+        font-size: 10
+        font-weight: "bold"
+        text-align: "right"
+    - text:
+        x: 0
+        y: 42
+        width: 190
+        height: 3
+        value: "Сумма прописью: {{totalInWords}}"
+        font-size: 7
+        font-style: "italic"
+
+page-footer:
+  height: 8
+  elements:
+    - text:
+        x: 0
+        y: 0
+        width: 190
+        height: 4
+        value: "Страница {{pageNumber}}"
+        font-size: 7
+        text-align: "center"

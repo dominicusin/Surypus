@@ -1,0 +1,287 @@
+# ============================================================================
+# GOODS REQUISITION (Товарная накладная / ТОРГ-12)
+# ============================================================================
+
+meta:
+  title: "Товарная накладная ТОРГ-12"
+  author: "Surypus ERP"
+  subject: "Товарная накладная"
+  creator: "Surypus PDF Generator"
+
+page:
+  paper-size: "A4"
+  orientation: "landscape"
+  margin-top: 10
+  margin-bottom: 10
+  margin-left: 10
+  margin-right: 10
+
+header:
+  height: 50
+  elements:
+    - text:
+        x: 0
+        y: 0
+        width: 270
+        height: 8
+        value: "ТОВАРНАЯ НАКЛАДНАЯ"
+        font-size: 14
+        font-weight: "bold"
+        text-align: "center"
+    - text:
+        x: 0
+        y: 10
+        width: 270
+        height: 5
+        value: "ТОРГ-12"
+        font-size: 10
+        text-align: "center"
+    - text:
+        x: 0
+        y: 18
+        width: 270
+        height: 4
+        value: "№ {{documentNumber}} от {{documentDate}}"
+        font-size: 9
+        font-weight: "bold"
+        text-align: "center"
+    - line:
+        x1: 0
+        y1: 28
+        x2: 270
+        y2: 28
+        stroke-width: 0.5
+    - text:
+        x: 0
+        y: 30
+        width: 135
+        height: 4
+        value: "Грузоотправитель:"
+        font-size: 7
+        font-weight: "bold"
+    - text:
+        x: 135
+        y: 30
+        width: 135
+        height: 4
+        value: "Покупатель:"
+        font-size: 7
+        font-weight: "bold"
+    - text:
+        x: 0
+        y: 35
+        width: 135
+        height: 10
+        value: "{{shipperInfo}}"
+        font-size: 7
+    - text:
+        x: 135
+        y: 35
+        width: 135
+        height: 10
+        value: "{{buyerInfo}}"
+        font-size: 7
+
+page-header:
+  height: 12
+  elements:
+    - text:
+        x: 0
+        y: 0
+        width: 270
+        height: 4
+        value: "Основание: {{basis}}"
+        font-size: 8
+
+body:
+  repeat: true
+  elements:
+    - table:
+        x: 0
+        y: 0
+        width: 270
+        repeat-header: true
+        columns:
+          - width: 8
+          - width: 60
+          - width: 20
+          - width: 25
+          - width: 25
+          - width: 25
+          - width: 25
+          - width: 25
+          - width: 27
+          - width: 30
+        rows:
+          - - text: "№"
+              font-size: 6
+              background-color: "#CCCCCC"
+            - text: "Товар"
+              font-size: 6
+              background-color: "#CCCCCC"
+            - text: "Ед.изм"
+              font-size: 6
+              background-color: "#CCCCCC"
+            - text: "Кол-во"
+              font-size: 6
+              background-color: "#CCCCCC"
+            - text: "Цена"
+              font-size: 6
+              background-color: "#CCCCCC"
+            - text: "Сумма"
+              font-size: 6
+              background-color: "#CCCCCC"
+            - text: "НДС%"
+              font-size: 6
+              background-color: "#CCCCCC"
+            - text: "НДС"
+              font-size: 6
+              background-color: "#CCCCCC"
+            - text: "Сумма с НДС"
+              font-size: 6
+              background-color: "#CCCCCC"
+            - text: "ГТД"
+              font-size: 6
+              background-color: "#CCCCCC"
+          - - text: "{{rowNumber}}"
+              font-size: 6
+            - text: "{{productName}}"
+              font-size: 6
+            - text: "{{unit}}"
+              font-size: 6
+            - text: "{{quantity}}"
+              font-size: 6
+            - text: "{{price}}"
+              font-size: 6
+            - text: "{{sum}}"
+              font-size: 6
+            - text: "{{vatRate}}"
+              font-size: 6
+            - text: "{{vatSum}}"
+              font-size: 6
+            - text: "{{total}}"
+              font-size: 6
+            - text: "{{gtd}}"
+              font-size: 6
+
+footer:
+  height: 50
+  elements:
+    - line:
+        x1: 0
+        y1: 0
+        x2: 270
+        y2: 0
+    - text:
+        x: 0
+        y: 3
+        width: 200
+        height: 4
+        value: "Всего отпущено:"
+        font-size: 8
+        font-weight: "bold"
+    - text:
+        x: 200
+        y: 3
+        width: 70
+        height: 4
+        value: "{{totalQuantity}}"
+        font-size: 8
+    - text:
+        x: 0
+        y: 10
+        width: 90
+        height: 4
+        value: "Сумма:"
+        font-size: 7
+    - text:
+        x: 90
+        y: 10
+        width: 60
+        height: 4
+        value: "{{totalSum}}"
+        font-size: 7
+        text-align: "right"
+    - text:
+        x: 150
+        y: 10
+        width: 60
+        height: 4
+        value: "НДС:"
+        font-size: 7
+    - text:
+        x: 210
+        y: 10
+        width: 60
+        height: 4
+        value: "{{totalVat}}"
+        font-size: 7
+        text-align: "right"
+    - text:
+        x: 0
+        y: 18
+        width: 90
+        height: 4
+        value: "Всего с НДС:"
+        font-size: 8
+        font-weight: "bold"
+    - text:
+        x: 90
+        y: 18
+        width: 180
+        height: 4
+        value: "{{totalWithVat}}"
+        font-size: 8
+        font-weight: "bold"
+        text-align: "right"
+    - line:
+        x1: 0
+        y1: 30
+        x2: 80
+        y2: 30
+    - text:
+        x: 0
+        y: 32
+        width: 80
+        height: 3
+        value: "Отпустил"
+        font-size: 6
+        text-align: "center"
+    - line:
+        x1: 100
+        y1: 30
+        x2: 180
+        y2: 30
+    - text:
+        x: 100
+        y: 32
+        width: 80
+        height: 3
+        value: "Получил"
+        font-size: 6
+        text-align: "center"
+    - line:
+        x1: 200
+        y1: 30
+        x2: 270
+        y2: 30
+    - text:
+        x: 200
+        y: 32
+        width: 70
+        height: 3
+        value: "М.П."
+        font-size: 6
+        text-align: "center"
+
+page-footer:
+  height: 8
+  elements:
+    - text:
+        x: 0
+        y: 0
+        width: 270
+        height: 4
+        value: "Страница {{pageNumber}} из {{totalPages}}"
+        font-size: 7
+        text-align: "center"

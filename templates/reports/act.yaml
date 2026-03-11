@@ -1,0 +1,192 @@
+# ============================================================================
+# ACT OF COMPLETED WORKS (Акт выполненных работ / Оказания услуг)
+# ============================================================================
+
+meta:
+  title: "Акт выполненных работ"
+  author: "Surypus ERP"
+  subject: "Акт выполненных работ"
+  creator: "Surypus PDF Generator"
+
+page:
+  paper-size: "A4"
+  orientation: "portrait"
+  margin-top: 15
+  margin-bottom: 15
+  margin-left: 15
+  margin-right: 15
+
+header:
+  height: 35
+  elements:
+    - text:
+        x: 0
+        y: 0
+        width: 190
+        height: 8
+        value: "АКТ № {{actNumber}}"
+        font-size: 14
+        font-weight: "bold"
+        text-align: "center"
+    - text:
+        x: 0
+        y: 10
+        width: 190
+        height: 4
+        value: "выполненных работ (оказанных услуг)"
+        font-size: 10
+        text-align: "center"
+    - text:
+        x: 0
+        y: 16
+        width: 190
+        height: 4
+        value: "от {{actDate}} г."
+        font-size: 9
+        text-align: "center"
+    - text:
+        x: 0
+        y: 24
+        width: 190
+        height: 4
+        value: "Исполнитель: {{executorName}}"
+        font-size: 8
+    - text:
+        x: 0
+        y: 29
+        width: 190
+        height: 4
+        value: "Заказчик: {{customerName}}"
+        font-size: 8
+
+page-header:
+  height: 15
+  elements:
+    - text:
+        x: 0
+        y: 0
+        width: 190
+        height: 4
+        value: "Мы, нижеподписавшиеся, составили настоящий акт о том, что:"
+        font-size: 8
+    - text:
+        x: 0
+        y: 8
+        width: 190
+        height: 4
+        value: "{{workDescription}}"
+        font-size: 8
+
+body:
+  repeat: true
+  elements:
+    - table:
+        x: 0
+        y: 0
+        width: 190
+        repeat-header: true
+        columns:
+          - width: 10
+          - width: 90
+          - width: 30
+          - width: 30
+          - width: 30
+        rows:
+          - - text: "№"
+              font-weight: "bold"
+              background-color: "#DDDDDD"
+            - text: "Наименование работы (услуги)"
+              font-weight: "bold"
+              background-color: "#DDDDDD"
+            - text: "Ед."
+              font-weight: "bold"
+              background-color: "#DDDDDD"
+            - text: "Кол-во"
+              font-weight: "bold"
+              background-color: "#DDDDDD"
+            - text: "Сумма"
+              font-weight: "bold"
+              background-color: "#DDDDDD"
+          - - text: "{{rowNumber}}"
+            - text: "{{workName}}"
+            - text: "{{unit}}"
+            - text: "{{quantity}}"
+            - text: "{{sum}}"
+
+footer:
+  height: 55
+  elements:
+    - text:
+        x: 0
+        y: 0
+        width: 190
+        height: 4
+        value: "Итого выполнено работ (услуг) на сумму: {{totalSum}}"
+        font-size: 9
+        font-weight: "bold"
+    - text:
+        x: 0
+        y: 8
+        width: 190
+        height: 4
+        value: "НДС (20%): {{totalVat}}"
+        font-size: 8
+    - text:
+        x: 0
+        y: 15
+        width: 190
+        height: 4
+        value: "Всего с НДС: {{totalWithVat}}"
+        font-size: 9
+        font-weight: "bold"
+    - text:
+        x: 0
+        y: 24
+        width: 190
+        height: 4
+        value: "Сумма прописью: {{totalInWords}}"
+        font-size: 8
+        font-style: "italic"
+    - text:
+        x: 0
+        y: 35
+        width: 190
+        height: 4
+        value: "Настоящий акт составлен в двух экземплярах."
+        font-size: 8
+    - line:
+        x1: 0
+        y1: 45
+        x2: 80
+        y2: 45
+    - text:
+        x: 0
+        y: 47
+        width: 80
+        height: 3
+        value: "Исполнитель"
+        font-size: 6
+    - line:
+        x1: 110
+        y1: 45
+        x2: 190
+        y2: 45
+    - text:
+        x: 110
+        y: 47
+        width: 80
+        height: 3
+        value: "Заказчик"
+        font-size: 6
+
+page-footer:
+  height: 8
+  elements:
+    - text:
+        x: 0
+        y: 0
+        width: 190
+        height: 4
+        value: "Страница {{pageNumber}}"
+        font-size: 7
+        text-align: "center"

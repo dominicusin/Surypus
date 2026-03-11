@@ -1,0 +1,262 @@
+# ============================================================================
+# PAYROLL SALARY REPORT (Расчётная ведомость)
+# ============================================================================
+
+meta:
+  title: "Расчётная ведомость"
+  author: "Surypus ERP"
+  subject: "Расчёт зарплаты"
+  creator: "Surypus PDF Generator"
+
+page:
+  paper-size: "A4"
+  orientation: "landscape"
+  margin-top: 10
+  margin-bottom: 10
+  margin-left: 10
+  margin-right: 10
+
+header:
+  height: 40
+  elements:
+    - text:
+        x: 0
+        y: 0
+        width: 270
+        height: 8
+        value: "РАСЧЁТНАЯ ВЕДОМОСТЬ"
+        font-size: 14
+        font-weight: "bold"
+        text-align: "center"
+    - text:
+        x: 0
+        y: 10
+        width: 270
+        height: 4
+        value: "за {{period}}"
+        font-size: 10
+        text-align: "center"
+    - text:
+        x: 0
+        y: 18
+        width: 270
+        height: 4
+        value: "{{companyName}}"
+        font-size: 9
+        font-weight: "bold"
+        text-align: "center"
+    - text:
+        x: 0
+        y: 25
+        width: 270
+        height: 4
+        value: "ОКПО: {{okpo}}"
+        font-size: 8
+        text-align: "center"
+
+page-header:
+  height: 8
+  elements:
+    - text:
+        x: 0
+        y: 0
+        width: 270
+        height: 4
+        value: "Цех (отдел): {{department}}"
+        font-size: 8
+
+body:
+  repeat: true
+  elements:
+    - table:
+        x: 0
+        y: 0
+        width: 270
+        repeat-header: true
+        columns:
+          - width: 8
+          - width: 40
+          - width: 25
+          - width: 25
+          - width: 25
+          - width: 25
+          - width: 25
+          - width: 25
+          - width: 25
+          - width: 27
+        rows:
+          - - text: "№"
+              font-size: 6
+              background-color: "#CCCCCC"
+            - text: "Таб.№ / ФИО"
+              font-size: 6
+              background-color: "#CCCCCC"
+            - text: "Отраб.дней"
+              font-size: 6
+              background-color: "#CCCCCC"
+            - text: "Начислено"
+              font-size: 6
+              background-color: "#CCCCCC"
+            - text: "Удержано"
+              font-size: 6
+              background-color: "#CCCCCC"
+            - text: "НДФЛ"
+              font-size: 6
+              background-color: "#CCCCCC"
+            - text: "Страховые"
+              font-size: 6
+              background-color: "#CCCCCC"
+            - text: "Аванс"
+              font-size: 6
+              background-color: "#CCCCCC"
+            - text: "К выплате"
+              font-size: 6
+              background-color: "#CCCCCC"
+            - text: "Подпись"
+              font-size: 6
+              background-color: "#CCCCCC"
+          - - text: "{{rowNumber}}"
+              font-size: 6
+            - text: "{{employeeName}}"
+              font-size: 6
+            - text: "{{workedDays}}"
+              font-size: 6
+            - text: "{{accrued}}"
+              font-size: 6
+            - text: "{{deductions}}"
+              font-size: 6
+            - text: "{{tax}}"
+              font-size: 6
+            - text: "{{insurance}}"
+              font-size: 6
+            - text: "{{advance}}"
+              font-size: 6
+            - text: "{{netPay}}"
+              font-size: 6
+            - text: ""
+              font-size: 6
+
+footer:
+  height: 45
+  elements:
+    - line:
+        x1: 0
+        y1: 0
+        x2: 270
+        y2: 0
+    - text:
+        x: 0
+        y: 3
+        width: 50
+        height: 4
+        value: "Итого:"
+        font-size: 8
+        font-weight: "bold"
+    - text:
+        x: 50
+        y: 3
+        width: 25
+        height: 4
+        value: "{{totalEmployees}}"
+        font-size: 8
+        text-align: "center"
+    - text:
+        x: 75
+        y: 3
+        width: 25
+        height: 4
+        value: "{{totalWorkedDays}}"
+        font-size: 8
+        text-align: "right"
+    - text:
+        x: 100
+        y: 3
+        width: 25
+        height: 4
+        value: "{{totalAccrued}}"
+        font-size: 8
+        text-align: "right"
+    - text:
+        x: 125
+        y: 3
+        width: 25
+        height: 4
+        value: "{{totalDeductions}}"
+        font-size: 8
+        text-align: "right"
+    - text:
+        x: 150
+        y: 3
+        width: 25
+        height: 4
+        value: "{{totalTax}}"
+        font-size: 8
+        text-align: "right"
+    - text:
+        x: 175
+        y: 3
+        width: 25
+        height: 4
+        value: "{{totalInsurance}}"
+        font-size: 8
+        text-align: "right"
+    - text:
+        x: 200
+        y: 3
+        width: 25
+        height: 4
+        value: "{{totalAdvance}}"
+        font-size: 8
+        text-align: "right"
+    - text:
+        x: 225
+        y: 3
+        width: 45
+        height: 4
+        value: "{{totalNetPay}}"
+        font-size: 8
+        font-weight: "bold"
+        text-align: "right"
+    - line:
+        x1: 0
+        y1: 15
+        x2: 100
+        y2: 15
+    - text:
+        x: 0
+        y: 17
+        width: 100
+        height: 4
+        value: "Бухгалтер"
+        font-size: 7
+    - line:
+        x1: 120
+        y1: 15
+        x2: 220
+        y2: 15
+    - text:
+        x: 120
+        y: 17
+        width: 100
+        height: 4
+        value: "Руководитель"
+        font-size: 7
+    - text:
+        x: 0
+        y: 28
+        width: 270
+        height: 4
+        value: "Ведомость составлена: {{preparedDate}}"
+        font-size: 7
+
+page-footer:
+  height: 8
+  elements:
+    - text:
+        x: 0
+        y: 0
+        width: 270
+        height: 4
+        value: "Страница {{pageNumber}} из {{totalPages}}"
+        font-size: 7
+        text-align: "center"
