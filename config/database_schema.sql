@@ -9,7 +9,7 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 CREATE EXTENSION IF NOT EXISTS "hstore";
-CREATE EXTENSION IF NOT EXISTS "jsonb";
+-- jsonb is built-in type
 
 -- ============================================================================
 -- BASE OBJECT SYSTEM (Abstract base class)
@@ -32,7 +32,7 @@ CREATE TABLE object (
     updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_by      BIGINT,
     modified_by     BIGINT
-) INHERITS ();
+);
 
 -- Индексы для базового объекта
 CREATE INDEX idx_object_uuid ON object(uuid);
@@ -42,16 +42,16 @@ CREATE INDEX idx_object_status ON object(status);
 
 -- Методы базового объекта
 CREATE OR REPLACE FUNCTION get_id()
-RETURNS BIGINT AS $$ SELECT NEW.id; $$ LANGUAGE SQL;
+RETURNS BIGINT AS $$ BEGIN RETURN 0; END; $$ LANGUAGE SQL;
 
 CREATE OR REPLACE FUNCTION get_uuid()
-RETURNS UUID AS $$ SELECT NEW.uuid; $$ LANGUAGE SQL;
+RETURNS UUID AS $$ BEGIN RETURN NULL; END; $$ LANGUAGE SQL;
 
 CREATE OR REPLACE FUNCTION get_code()
-RETURNS VARCHAR(50) AS $$ SELECT NEW.code; $$ LANGUAGE SQL;
+RETURNS VARCHAR(50) AS $$ BEGIN RETURN NULL; END; $$ LANGUAGE SQL;
 
 CREATE OR REPLACE FUNCTION get_name()
-RETURNS VARCHAR(200) AS $$ SELECT NEW.name; $$ LANGUAGE SQL;
+RETURNS VARCHAR(200) AS $$ BEGIN RETURN NULL; END; $$ LANGUAGE SQL;
 
 -- Триггер для обновления updated_at
 CREATE OR REPLACE FUNCTION update_timestamp()
