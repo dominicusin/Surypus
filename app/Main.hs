@@ -14,6 +14,7 @@ main = do
     let config = ServerConfig
           { scPort = 8080
           , scHost = "0.0.0.0"
+          , scLogRequests = False
           }
     
     runServer config
