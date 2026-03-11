@@ -2,7 +2,7 @@
 
 ## 1. Цель и мотивация
 
-Модуль Surypus.Person должен эмулировать и расширять функциональность `PPObjPerson` из OpenPapyrus (файлы `Src/PPLib/person.cpp`, `Src/PPLib/v_person.cpp`, `Src/PPLib/objreg.cpp`). `PPObjPerson` ведёт учёт контрагентов, привязаны к регистрам (ИНН/КПП/ОГРН), банковским реквизитам, контактам и разделам CRM/HR. Он заботится о:
+Модуль Surypus.Person должен эмулировать и расширять функциональность `PPObjPerson` из (файлы `Src/PPLib/person.cpp`, `Src/PPLib/v_person.cpp`, `Src/PPLib/objreg.cpp`). `PPObjPerson` ведёт учёт контрагентов, привязаны к регистрам (ИНН/КПП/ОГРН), банковским реквизитам, контактам и разделам CRM/HR. Он заботится о:
 
 - целостности ИНН и КПП;
 - синонимичности записей с записями из разных объектов (`PPObjPersonRelType`, `JobQueue`, `PPObjRegister`);
@@ -49,5 +49,5 @@
 
 ## 6. Источники
 
-- OpenPapyrus: `Src/PPLib/person.cpp`, `Src/PPLib/v_person.cpp`, `Src/PPLib/objreg.cpp`.
+-  `Src/PPLib/person.cpp`, `Src/PPLib/v_person.cpp`, `Src/PPLib/objreg.cpp`.
 - Surypus: `Domain.Person`, `DB.Person`, `APIServer.personsRoutes`, config-схемы.

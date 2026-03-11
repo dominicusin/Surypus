@@ -1,7 +1,7 @@
 -- =================================================================
 -- Personal Card System - Персональные карты
 -- =================================================================
--- Analog: OpenPapyrus pplib/objscard.cpp (PPObjSCard)
+-- Analog:  pplib/objscard.cpp (PPObjSCard)
 
 -- Card Series (серии карт)
 CREATE TABLE IF NOT EXISTS card_series (

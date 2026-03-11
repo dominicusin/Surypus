@@ -1,6 +1,6 @@
 # Module 01 — Document / Bill Core
 
-*Chosen as the first real porting target because `OpenPapyrus/Src/PPLib/BILL.CPP` is the central actor in document management, and Surypus already has a partial Bill/Invoice domain (API, DTOs, schema, invariants) that can be formalized and extended.*
+*Chosen as the first real porting target because `Src/PPLib/BILL.CPP` is the central actor in document management, and Surypus already has a partial Bill/Invoice domain (API, DTOs, schema, invariants) that can be formalized and extended.*
 
 ## 1. OpenPapyrus source analysis
 - `BillCore` encapsulates searches (`SearchByID`), memo storage (`PutItemMemo`/`GetItemMemo`), amount tables (`BillAmountTbl`) and EDI flags (`BillTbl::Rec`).

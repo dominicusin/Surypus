@@ -694,5 +694,5 @@ $$ LANGUAGE plpgsql;
 -- ============================================================================
 
 -- Grant execute permissions to application user
--- GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO openpapyrus_user;
--- GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO openpapyrus_user;
+-- GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO op_user;
+-- GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO op_user;

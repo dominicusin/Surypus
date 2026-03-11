@@ -1,9 +1,8 @@
-# AGENTS.md - OpenPapyrus/Surypus Development Guide
+# AGENTS.md - Surypus Development Guide
 
 ## Project Overview
 
 This repository contains:
-- **OpenPapyrus/** - C++ ERP system (legacy)
 - **Surypus/** - Haskell reimplementation with formal verification (target for new development)
 
 Primary development focus is on the Haskell codebase (Surypus).
@@ -40,14 +39,6 @@ cd Surypus && stack ghc -- -fno-code
 cd Surypus && hlint src/
 ```
 
-### OpenPapyrus (C++)
-
-```bash
-# Build with Makefile
-cd OpenPapyrus/Src && make
-
-# Static analysis with cppcheck
-cppcheck --enable=all --xml OpenPapyrus/Src/pplib 2> cppcheck_report.xml
 ```
 
 ---
@@ -226,7 +217,6 @@ Surypus/
 │   ├── Domain/        -- Domain-specific tests
 │   ├── DB/            -- Integration tests
 │   └── API/           -- API tests
-├── openpapyrus-hs.cabal
 └── stack.yaml
 ```
 

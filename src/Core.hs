@@ -1,4 +1,4 @@
--- | Core module - Main entry point for OpenPapyrus-HS
+-- | Core module - Main entry point 
 -- This is the formally verified ERP system core
 module Core where
 
@@ -8,4 +8,4 @@ version = "0.1.0.0"
 
 -- | System name
 name :: String
-name = "OpenPapyrus-HS"
+name = "Surypus"

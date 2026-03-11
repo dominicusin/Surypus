@@ -1,4 +1,4 @@
--- | Tax Calculation Module - GTaxVect equivalent from OpenPapyrus C++
+-- | Tax Calculation Module - GTaxVect equivalent from  C++
 -- Supports: VAT, Excise, Sales Tax with forward/backward calculation
 module Core.Tax where
 

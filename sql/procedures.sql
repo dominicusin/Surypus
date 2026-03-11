@@ -1,5 +1,5 @@
 -- ============================================================================
--- PostgreSQL Stored Procedures for OpenPapyrus/Surypus
+-- PostgreSQL Stored Procedures for Surypus
 -- ============================================================================
 -- These procedures implement critical business logic in the database
 -- for performance and data integrity

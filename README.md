@@ -1,8 +1,8 @@
-# Surypus / OpenPapyrus-HS
+# Surypus 
 
 **ERP/CRM система нового поколения на Haskell с формальной верификацией**
 
-Современная замена OpenPapyrus с использованием:
+Современная замена  с использованием:
 - **Haskell** - безопасный и производительный backend
 - **LiquidHaskell** - формальная верификация критических алгоритмов
 - **PostgreSQL** - надёжная база данных с хранимыми процедурами
@@ -362,11 +362,9 @@ cabal test
 - `web/js/api.js` - API клиент
 - `web/js/app.js` - приложение
 
-## Миграция с OpenPapyrus
 
-Основные отличия от оригинального OpenPapyrus:
 
-| Компонент | OpenPapyrus | Surypus |
+| Компонент |  | Surypus |
 |-----------|-------------|---------|
 | База данных | Btrieve | PostgreSQL |
 | UI | C++/Qt | Qt/Web |
@@ -377,7 +375,7 @@ cabal test
 
 ### Карта соответствия таблиц
 
-| OpenPapyrus | Surypus |
+|  | Surypus |
 |-------------|---------|
 | Goods2Tbl | goods |
 | PersonTbl | person |

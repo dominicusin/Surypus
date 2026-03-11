@@ -1,7 +1,7 @@
 -- =================================================================
 -- Quotation System - Котировки и прайс-листы
 -- =================================================================
--- Analog: OpenPapyrus pplib/quot.cpp, objquotk.cpp (PPObjQuotKind)
+-- Analog:  pplib/quot.cpp, objquotk.cpp (PPObjQuotKind)
 
 -- Quotation Kind (виды котировок)
 CREATE TABLE IF NOT EXISTS quotation_kind (

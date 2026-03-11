@@ -1,7 +1,7 @@
 -- =================================================================
 -- Operation Kinds Extension - Расширение видов операций
 -- =================================================================
--- Analog: OpenPapyrus pplib/objoprk.cpp, pp.h (PPOprKind2)
+-- Analog:  pplib/objoprk.cpp, pp.h (PPOprKind2)
 -- 
 -- Содержит:
 -- - Полную структуру operation_kinds

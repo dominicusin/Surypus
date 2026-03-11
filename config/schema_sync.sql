@@ -1,7 +1,7 @@
 -- =================================================================
 -- Sync System - Синхронизация данных
 -- =================================================================
--- Analog: OpenPapyrus pplib/objsync.cpp (PPObjSync)
+-- Analog: pplib/objsync.cpp (PPObjSync)
 
 -- Sync Node (узлы синхронизации)
 CREATE TABLE IF NOT EXISTS sync_node (

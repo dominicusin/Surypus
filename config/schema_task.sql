@@ -1,7 +1,7 @@
 -- =================================================================
 -- Task System - Задачи и напоминания
 -- =================================================================
--- Analog: OpenPapyrus pplib/ppjob.cpp (PPObjTask)
+-- Analog:  pplib/ppjob.cpp (PPObjTask)
 
 -- Task (задачи)
 CREATE TABLE IF NOT EXISTS task (

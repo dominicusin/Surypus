@@ -1,7 +1,7 @@
 -- =================================================================
 -- Association System - Связи между объектами
 -- =================================================================
--- Analog: OpenPapyrus pplib/objassoc.cpp (ObjAssoc)
+-- Analog:  pplib/objassoc.cpp (ObjAssoc)
 
 -- Association Type (типы связей)
 CREATE TABLE IF NOT EXISTS assoc_type (

@@ -1,5 +1,5 @@
--- | OpenPapyrus basic types
-module OpenPapyrus.Types where
+-- |  basic types
+module Surypus.Types where
 
 import Data.Int (Int64)
 import Data.Text (Text)

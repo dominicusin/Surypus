@@ -1,7 +1,7 @@
 -- ============================================================================
 -- SURYPUS OBJECT-RELATIONAL DATABASE SCHEMA
 -- ============================================================================
--- Based on OpenPapyrus C++ → Surypus (Haskell) migration
+--  Surypus (Haskell) migration
 -- Uses PostgreSQL OOP features: schemas as classes, table inheritance, roles
 -- ============================================================================
 

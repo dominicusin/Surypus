@@ -1,35 +1,20 @@
 -- | Lot types - Stock lots/batches
 module Core.Inventory.Types.Lot where
 
-import Core.Refined (NonNegDouble)
 import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Time (Day)
 
 -- | Lot - Stock lot (партия товара)
-{-@ data Lot = Lot
-  { lotId :: Int64,
-    lotGoodsId :: Int64,
-    lotLocationId :: Int64,
-    lotQtty :: NonNegDouble,
-    lotCost :: NonNegDouble,
-    lotPrice :: NonNegDouble,
-    lotDate :: Day,
-    lotExpiry :: Maybe Day,
-    lotFlags :: Int,
-    lotSerialNumber :: Maybe Text,
-    lotSupplierId :: Maybe Int64,
-    lotBillId :: Maybe Int64
-  } @-}
 data Lot = Lot
   { lotId :: Int64,
     lotGoodsId :: Int64,
     lotLocationId :: Int64,
-    lotQtty :: Double, -- Quantity in lot
-    lotCost :: Double, -- Cost price
-    lotPrice :: Double, -- Sale price
-    lotDate :: Day, -- Receipt date
-    lotExpiry :: Maybe Day, -- Expiry date
+    lotQtty :: Double,
+    lotCost :: Double,
+    lotPrice :: Double,
+    lotDate :: Day,
+    lotExpiry :: Maybe Day,
     lotFlags :: Int,
     lotSerialNumber :: Maybe Text,
     lotSupplierId :: Maybe Int64,
@@ -39,16 +24,16 @@ data Lot = Lot
 
 -- | Lot status
 data LotStatus
-  = LS_Active -- Active (действующая)
-  | LS_Closed -- Closed (закрыта)
-  | LS_Expired -- Expired (просрочена)
-  | LS_Reserved -- Reserved (зарезервирована)
+  = LS_Active
+  | LS_Closed
+  | LS_Expired
+  | LS_Reserved
   deriving (Show, Eq)
 
--- | Lot flags - corresponds to LOTF_*
+-- | Lot flags
 data LotFlags = LotFlags
-  { lfStrictSerial :: Bool, -- LOTF_STRICTSERIAL (строгий учет серий)
-    lfNegativeOk :: Bool, -- LOTF_NEGATIVE (разрешен отрицательный остаток)
-    lfFifo :: Bool -- LOTF_FIFO (FIFO списание)
+  { lfStrictSerial :: Bool,
+    lfNegativeOk :: Bool,
+    lfFifo :: Bool
   }
   deriving (Show, Eq)

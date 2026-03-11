@@ -1,6 +1,6 @@
 {-@ LIQUID "--no-termination" @-}
 
--- | Temporary cash check accumulator inspired by OpenPapyrus's AddTempCheckAmounts.
+-- | Temporary cash check accumulator inspired by AddTempCheckAmounts.
 module Core.CashSessionTemp
   ( TempCashCheck
   , TempCheckLine

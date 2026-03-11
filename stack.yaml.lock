@@ -5,6 +5,13 @@
 
 packages:
 - completed:
+    hackage: hashtables-1.4.1@sha256:339615e16b705492d10a86aa34b64232a4d32d77939950c87443ce50994183e6,10390
+    pantry-tree:
+      sha256: 87defdb8876d77001d98b5fd1a3c3b9a1b0b3b74049e671fb38eecc0c93d69a6
+      size: 2895
+  original:
+    hackage: hashtables-1.4.1
+- completed:
     hackage: hasql-1.4.5.3@sha256:4f8374bcec50e343616cfe11a768163b9be8603c7211517d668436a7510aee06,6581
     pantry-tree:
       sha256: 202621fa24eff23604c3bc50104881cde5cd7d13e7250ce7610d669a1e21023a
@@ -47,33 +54,12 @@ packages:
   original:
     hackage: text-1.2.5.0
 - completed:
-    hackage: transformers-0.5.6.2@sha256:6c959d14430f4deffb99579ba019de07c3d852a2122b6f449344386c7d75ff1d,3172
-    pantry-tree:
-      sha256: c79246ba7d61392c2f214376fed3c2a05e4b2649b93ec2c849a86493f278ace0
-      size: 2512
-  original:
-    hackage: transformers-0.5.6.2
-- completed:
     hackage: vector-0.13.2.0@sha256:9ac338c8da52d8a37db08434ca4480fef2cea4f9aac240f4f994bb467f5275b4,8804
     pantry-tree:
       sha256: 9bc1265c2469283d87c2ebffeac07fc923fe4a1e99c1cf31fd1890afb002f8a9
       size: 4478
   original:
     hackage: vector-0.13.2.0
-- completed:
-    hackage: Cabal-3.16.1.0@sha256:6d7ee02dc18c7485d597d131356cee25b3b95778746f39b73bca1d2d44b12e11,14028
-    pantry-tree:
-      sha256: f1dccb500fc8ea0a0c27a0ceca13c1b268640fd2179f44c3199341359ec20b0f
-      size: 12139
-  original:
-    hackage: Cabal-3.16.1.0
-- completed:
-    hackage: Cabal-syntax-3.16.1.0@sha256:4c3f63157628d3dc359c2af16ffe683b84a54857694c9d59d5fb7232f4679957,7509
-    pantry-tree:
-      sha256: 98e1a3e96e56316813c62e363dff386a2cdcf70ddb2181c295faa2de903ff869
-      size: 11238
-  original:
-    hackage: Cabal-syntax-3.16.1.0
 - completed:
     hackage: exceptions-0.10.12@sha256:140f5f87c4b82fc77577e3f32141d9bc495a588ea998e915347621169ad82499,2253
     pantry-tree:
@@ -82,12 +68,19 @@ packages:
   original:
     hackage: exceptions-0.10.12
 - completed:
-    hackage: filepath-1.5.5.0@sha256:c6ec08084ffc90838ad36d03c3792be70fa171942a3677ec68e9be8b437754fe,5314
+    hackage: filepath-1.4.301.0@sha256:2c5d05f98759938db45757016ec406ed2c6021cd9018a53fedb76b9d5a8239ea,6128
     pantry-tree:
-      sha256: abb3039d7b4380db4d74db6d0d4e51fd83610ce9b081bb026ed5d9823cc1f000
-      size: 2274
+      sha256: 8f99fd207c99566f18b0e5efe784cb72e6b240dde9ceecbe1a1a11954f6dae89
+      size: 3998
   original:
-    hackage: filepath-1.5.5.0@sha256:c6ec08084ffc90838ad36d03c3792be70fa171942a3677ec68e9be8b437754fe,5314
+    hackage: filepath-1.4.301.0@sha256:2c5d05f98759938db45757016ec406ed2c6021cd9018a53fedb76b9d5a8239ea,6128
+- completed:
+    hackage: Cabal-syntax-3.12.1.0@sha256:6dbb06fb08ff77520947fb4c1ef281c9cea5b8dc7fd9a41ad62273fa916cf4b2,7407
+    pantry-tree:
+      sha256: 62e4b1bbdf7fe7d5259f45811e6fd0131823a10a8ec8c5eaf25370d444ac263a
+      size: 11051
+  original:
+    hackage: Cabal-syntax-3.12.1.0@sha256:6dbb06fb08ff77520947fb4c1ef281c9cea5b8dc7fd9a41ad62273fa916cf4b2,7407
 - completed:
     hackage: mtl-2.3.2@sha256:4d7aedf021355535c2197ce0e631282ae8fa6ec557d2131ceeb045d72d85a925,1939
     pantry-tree:
@@ -235,6 +228,34 @@ packages:
       size: 906
   original:
     hackage: file-io-0.1.6@sha256:5e3466f15993e499db47d79d09c519d6d37c143cfe94fb46dd218bf2f6f3fd39,3550
+- completed:
+    hackage: cabal-doctest-1.0.10@sha256:ebe93d13ffa657e8fa512ecc462ccafd59c497456be4355496914a11db03cb1f,2047
+    pantry-tree:
+      sha256: 48068b7cc064b5ec74ee9bcae5e91c5bf5e07faa163447a2b8f3c1135b7405df
+      size: 335
+  original:
+    hackage: cabal-doctest-1.0.10
+- completed:
+    hackage: entropy-0.4.1.11@sha256:1b9b1a7282ba6d7671e6d7a9be84cc18c40a3a480cef621927a8e4c66ec47913,2935
+    pantry-tree:
+      sha256: 0314feea2035559273d7e2bedfb199042a86f41ec9b014a852ba0bf134f1c52a
+      size: 682
+  original:
+    hackage: entropy-0.4.1.11
+- completed:
+    hackage: unix-2.8.8.0@sha256:0b239653389dbc5f33129d92ef31e44172c53e6ada373d636d89f09d23cc6009,10318
+    pantry-tree:
+      sha256: 5be8a73930be24d4a4bf9a6edc1fe76acdb081369e8c9bcc44525cadd0998f15
+      size: 5945
+  original:
+    hackage: unix-2.8.8.0
+- completed:
+    hackage: Cabal-3.12.1.0@sha256:08be296ddd941b3f9be4bd125fbb3e6857f5c707b8d10464f6f1d30c91ca3e5f,13551
+    pantry-tree:
+      sha256: a509c8164a9682e2cbd080ef8446164fbe11a9c5c0f88b61f41094a8167e6a04
+      size: 11798
+  original:
+    hackage: Cabal-3.12.1.0@sha256:08be296ddd941b3f9be4bd125fbb3e6857f5c707b8d10464f6f1d30c91ca3e5f,13551
 snapshots:
 - completed:
     sha256: 795b7a893148a42f09956611a0fa1139293fe6ef934d053468d8e53e3e013390

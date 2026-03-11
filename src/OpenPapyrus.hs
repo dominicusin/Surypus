@@ -1,11 +1,11 @@
--- | OpenPapyrus - Formally verified ERP system core
-module OpenPapyrus
+-- |  - Formally verified ERP system core
+module Surypus
   ( module Core.Tax,
     module Core.Warehouse,
-    module OpenPapyrus.Types,
+    module Surypus.Types,
   )
 where
 
 import Core.Tax
 import Core.Warehouse
-import OpenPapyrus.Types
+import Surypus.Types

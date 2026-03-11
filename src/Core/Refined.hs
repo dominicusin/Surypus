@@ -5,7 +5,8 @@
 {-@ LIQUID "--reflection" @-}
 
 module Core.Refined
-  ( clampNonNeg
+  ( -- * Functions
+    clampNonNeg
   , clampPercentage
   , isNonNeg
   , combineNonNeg

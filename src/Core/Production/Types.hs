@@ -73,7 +73,7 @@ instance ToJSON TechLine
 instance FromJSON TechLine
 
 {-@ data WorkOrderStatusCode = WO_Draft | WO_Released | WO_InProgress | WO_Completed | WO_Cancelled @-}
-data WorkOrderStatusCode:
+data WorkOrderStatusCode =
     WO_Draft
   | WO_Released
   | WO_InProgress

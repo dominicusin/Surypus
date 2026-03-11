@@ -1,4 +1,4 @@
--- | Person Module - Counterparties (corresponds to PersonCore in OpenPapyrus)
+-- | Person Module - Counterparties (corresponds to PersonCore )
 module Core.Person where
 
 import Data.Int (Int64)

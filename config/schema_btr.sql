@@ -1,6 +1,6 @@
 -- =============================================================================
 -- Surypus - BTR Tables Mapping
--- All 90 tables from OpenPapyrus/base/openpapyrus/sample/*.BTR
+-- All 90 tables from sample/*.BTR
 -- Mapped to PostgreSQL with proper types and relationships
 -- =============================================================================
 
