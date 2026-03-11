@@ -282,3 +282,33 @@ test-suite test
       Domain.Stock
       DB.Accounting
       Domain.Accounting
+      DB.Inventory
+      Domain.Inventory
+      DB.JobQueue
+      Domain.Job
+      DB.Payroll
+      Domain.Payroll
+      DB.Production
+      Domain.Production
+      DB.Cron
+      Domain.ReportJob
+      Domain.ReportSchedule
+      DB.PersonSummary
+      DB.PersonSnapshot
+      DB.HRPayrollSnapshot
+      DB.PersonAddress
+      DB.PersonContact
+      DB.PersonBankAccount
+      Domain.Core
+      Domain.Document
+      DB.Asset
+      Domain.Asset
+      Domain.HR
+      Domain.TechCard
+      DB.TechCard
+      DB.Bill
+      DB.BillLine
+      DB.HRCharge
+      Domain.Bill
+      DB.ReportSchedule
+      DB.User
