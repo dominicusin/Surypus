@@ -1,0 +1,7 @@
+.stack-work/
+*.swp
+*.tar.gz
+vendor/
+node_modules/
+/.factory
+*.log

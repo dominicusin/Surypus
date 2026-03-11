@@ -1,0 +1,73 @@
+# stack.yaml for OpenPapyrus-HS
+resolver: lts-22.30
+
+packages:
+  - .
+  - vendor/hashtables-1.3.1
+  - vendor/semigroupoids-6.0.1
+  - vendor/unix-2.8.8.0
+  - vendor/hashable-1.4.4.0
+
+ghc-options:
+  "$locals": -Wall
+
+allow-newer: true
+allow-newer-deps:
+  - process
+  - file-io
+  - filepath
+  - cabal-doctest
+  - entropy
+  - hasql
+  - postgresql-libpq
+  - vector
+
+flags:
+  unix:
+    os-string: true
+  process:
+    os-string: true
+  file-io:
+    os-string: true
+  directory:
+    os-string: true
+
+extra-deps:
+  - hasql-1.4.5.3
+  - hasql-pool-0.7.2
+  - postgresql-binary-0.12.5
+  - postgresql-libpq-0.10.2.0@sha256:7a31a758c0e9e4e608f0408c28dfb321d6a94811572892b826f66c7a387d1156,2665
+  - postgresql-libpq-configure-0.10.0.1@sha256:177e64ed76c8fab32b7e2b314796660d697422c96e5a4677df72862b26c49f96,1313
+  - text-1.2.5.0
+  - transformers-0.5.6.2
+  - vector-0.13.2.0
+  - Cabal-3.16.1.0
+  - Cabal-syntax-3.16.1.0
+  - exceptions-0.10.12
+  - filepath-1.5.5.0@sha256:c6ec08084ffc90838ad36d03c3792be70fa171942a3677ec68e9be8b437754fe,5314
+  - mtl-2.3.2
+  - parsec-3.1.18.0
+  - process-1.6.27.0
+  - bifunctors-5.6.2
+  - base-orphans-0.9.2
+  - comonad-5.0.8
+  - contravariant-1.5.5
+  - distributive-0.6.2.1
+  - tagged-0.8.8
+  - transformers-compat-0.7.2
+  - unordered-containers-0.2.20
+  - attoparsec-0.14.4
+  - base-compat-0.13.1
+  - base-compat-batteries-0.13.1
+  - charset-0.3.10
+  - http-date-0.0.11
+  - parsers-0.12.11
+  - scientific-0.3.7.0
+  - os-string-2.0.6
+  - directory-1.3.9.0@sha256:ed6784601c6a800d4c1e40efbc9f20cf33ae2f25cac301fc239f9c91947b816b,3307
+  - file-io-0.1.6@sha256:5e3466f15993e499db47d79d09c519d6d37c143cfe94fb46dd218bf2f6f3fd39,3550
+
+nix:
+  enable: false
+
+notify-if-nix-on-path: false

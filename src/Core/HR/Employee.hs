@@ -1,0 +1,41 @@
+-- | Employee types - Staff management
+module Core.HR.Employee where
+
+import Data.Int (Int64)
+import Data.Text (Text)
+import Data.Time (Day)
+
+-- | Employee - Employee record
+data Employee = Employee
+  { empId :: Int64,
+    empPersonId :: Int64, -- Link to Person
+    empPostId :: Int64, -- Position ID
+    empHireDate :: Day,
+    empFireDate :: Maybe Day,
+    empSalary :: Double,
+    empFlags :: EmployeeFlags
+  }
+  deriving (Show, Eq)
+
+-- | Employee flags
+data EmployeeFlags = EmployeeFlags
+  { efActive :: Bool, -- Currently employed
+    efClockedIn :: Bool, -- Currently on shift
+    efManager :: Bool, -- Has manager privileges
+    efLocked :: Bool -- Account locked
+  }
+  deriving (Show, Eq)
+
+-- | Employee status
+data EmployeeStatus = ES_Active | ES_OnLeave | ES_Fired | ES_Retired
+  deriving (Show, Eq, Enum)
+
+-- | Check if employee is active
+isEmployeeActive :: Employee -> Bool
+isEmployeeActive e = empFireDate e == Nothing
+
+-- | Get employee status based on dates
+getEmployeeStatus :: Employee -> Day -> EmployeeStatus
+getEmployeeStatus emp today
+  | isEmployeeActive emp = ES_Active
+  | otherwise = ES_Fired

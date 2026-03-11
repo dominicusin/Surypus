@@ -1,0 +1,6 @@
+-- Add missing core tables manually
+
+-- Goods (already defined in schema_optimized, need to create)
+-- This would need the full schema to be re-run
+
+SELECT 'Missing tables: goods, bill, bill_line, stock, lot, gds_movement, transfer, barcode, tax_invoice, edi_message, egais_mark, inventory_line, price_list_goods, composite_struct, production_order' as status;

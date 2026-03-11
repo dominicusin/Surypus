@@ -1,0 +1,35 @@
+-- | VETIS module - Russian veterinary tracking system
+module Core.VETIS where
+
+import           Data.Int  (Int64)
+import           Data.Text (Text)
+import           Data.Time (Day)
+
+-- | VETIS entity
+data VetisEntity = VetisEntity
+  { veId     :: Int64
+  , veGuid   :: Text  -- UUID
+  , veType   :: VetisType
+  , veName   :: Text
+  , veStatus :: VetisStatus
+  } deriving (Show, Eq)
+
+data VetisType = VT_Producer | VT_Storage | VT_Transport | VT_Recipient
+  deriving (Show, Eq)
+
+data VetisStatus = VS_Active | VS_Archived
+  deriving (Show, Eq)
+
+-- | VETIS movement
+data VetisMovement = VetisMovement
+  { vmId       :: Int64
+  , vmFromGuid :: Text
+  , vmToGuid   :: Text
+  , vmDate     :: Day
+  , vmDocId    :: Int64
+  , vmStatus   :: VetisStatus
+  } deriving (Show, Eq)
+
+-- | Check if VETIS entity is active
+isVetisActive :: VetisEntity -> Bool
+isVetisActive ve = veStatus ve == VS_Active

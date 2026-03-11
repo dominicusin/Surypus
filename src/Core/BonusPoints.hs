@@ -1,0 +1,21 @@
+-- | BonusPoints module - Bonus points
+module Core.BonusPoints where
+
+import           Data.Int  (Int64)
+import           Data.Time (Day)
+
+-- | BonusPoints - Bonus points transaction
+data BonusPoints = BonusPoints
+  { bpId       :: Int64
+  , bpPersonId :: Int64
+  , bpPoints   :: Double
+  , bpType     :: BonusPointsType
+  , bpDate     :: Day
+  } deriving (Show, Eq)
+
+data BonusPointsType = BPT_Accrual | BPT_Burn | BPT_Expired
+  deriving (Show, Eq)
+
+-- | Is accrual
+isAccrual :: BonusPoints -> Bool
+isAccrual bp = bpType bp == BPT_Accrual

@@ -1,0 +1,2 @@
+-- Validator Tables
+CREATE TABLE IF NOT EXISTS validation_rule (id BIGSERIAL PRIMARY KEY, field VARCHAR(64) NOT NULL, vtype VARCHAR(32) NOT NULL, required BOOLEAN DEFAULT FALSE);

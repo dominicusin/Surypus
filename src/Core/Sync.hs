@@ -1,0 +1,30 @@
+-- | Sync module - Data synchronization
+module Core.Sync where
+
+import           Data.Int  (Int64)
+import           Data.Text (Text)
+import           Data.Time (UTCTime)
+
+-- | SyncSession - Sync session
+data SyncSession = SyncSession
+  { ssId       :: Int64
+  , ssDbId     :: Int64
+  , ssStarted  :: UTCTime
+  , ssFinished :: Maybe UTCTime
+  , ssStatus   :: SyncStatus
+  } deriving (Show, Eq)
+
+data SyncStatus = SS_Pending | SS_InProgress | SS_Completed | SS_Failed
+  deriving (Show, Eq)
+
+-- | SyncObject - Synced object
+data SyncObject = SyncObject
+  { soId         :: Int64
+  , soSessionId  :: Int64
+  , soObjectType :: Int64
+  , soObjectId   :: Int64
+  , soAction     :: SyncAction
+  } deriving (Show, Eq)
+
+data SyncAction = SA_Create | SA_Update | SA_Delete
+  deriving (Show, Eq)

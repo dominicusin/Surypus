@@ -1,0 +1,51 @@
+-- | Warehouse module - Stock management
+-- Re-exports inventory types
+module Core.Warehouse
+  ( module Core.Inventory.Types,
+    validateLot,
+    StockMovement (..),
+    calcStockBalance,
+    checkStockAvailable,
+    fifoSelect,
+  )
+where
+
+import Core.Inventory.Types
+import Data.Int (Int64)
+import Data.Text (Text)
+import Data.Time (Day)
+
+-- | Validate lot: quantity >= 0
+validateLot :: Lot -> Bool
+validateLot l = lotQtty l >= 0 && lotCost l >= 0
+
+-- | Stock movement record
+data StockMovement = StockMovement
+  { smDate :: Day,
+    smGoodsId :: Int64,
+    smLocationId :: Int64,
+    smQtty :: Double, -- positive = receipt, negative = issue
+    smCost :: Double,
+    smPrice :: Double,
+    smBillId :: Maybe Int64
+  }
+  deriving (Show, Eq)
+
+-- | Calculate stock balance from movements
+calcStockBalance :: Double -> [StockMovement] -> Double
+calcStockBalance initial movements =
+  initial + sum (map smQtty movements)
+
+-- | Check stock availability
+checkStockAvailable :: Lot -> Double -> Bool
+checkStockAvailable lot required = lotQtty lot >= required
+
+-- | FIFO: select lots for write-off (oldest first)
+fifoSelect :: Double -> [Lot] -> ([(Lot, Double)], [Lot])
+fifoSelect qty lots = go qty lots []
+  where
+    go 0 remaining selected = (selected, remaining)
+    go _ [] selected = (selected, [])
+    go n (l : ls) selected
+      | lotQtty l <= n = go (n - lotQtty l) ls (selected ++ [(l, lotQtty l)])
+      | otherwise = (selected ++ [(l, n)], l {lotQtty = lotQtty l - n} : ls)
