@@ -270,3 +270,15 @@ test-suite test
     , aeson >=2.0
     , containers >=0.6
   default-language: Haskell2010
+      Core.Service
+      DB.Connection
+      Domain.Goods
+      Domain.Types
+      DB.Person
+      Domain.Person
+      DB.Location
+      Domain.Location
+      DB.Stock
+      Domain.Stock
+      DB.Accounting
+      Domain.Accounting

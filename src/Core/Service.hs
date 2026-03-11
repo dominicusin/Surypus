@@ -1,4 +1,3 @@
-{-@ LIQUID "--no-termination" @-}
 {-# LANGUAGE OverloadedStrings #-}
 
 -- | Service command interpreter inspired by ppmain's SrvcCmd state machine.
