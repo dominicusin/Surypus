@@ -12,17 +12,6 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Text.Encoding (encodeUtf8)
 import Hasql.Pool (Pool)
-import Domain.Document.Audit (DocumentAuditPayload(..), defaultDocumentAuditLookahead)
-import Domain.Job (JobRecord(..), JobStatus(..))
-import Domain.ReportJob (ReportRenderPayload(..))
-import Domain.Payroll (PayrollSnapshotPayload(..))
-import Domain.Production (MRPNeed(..))
-import qualified DB.JobQueue as JobQueue
-import qualified DB.PersonSnapshot as PersonSnapshot
-import qualified DB.ReportSchedule as DBReportSchedule
-import qualified DB.HRPayrollSnapshot as HRPayrollSnapshot
-import qualified DB.Production as DBProduction
-import qualified DB.Document.Audit as DBDocumentAudit
 import Surypus.Reports (generateJRXML, getReport)
 
 runJobWorker :: Pool -> Int -> IO ()

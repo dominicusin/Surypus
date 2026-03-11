@@ -11,10 +11,3 @@ module Domain
   , module Domain.Stock
   ) where
 
-import Domain.Bill
-import Domain.Goods
-import Domain.Location
-import Domain.Person
-import Domain.Stock
-import Domain.Types
-import Domain.Core
