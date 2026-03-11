@@ -192,6 +192,8 @@ library
       Surypus.I18n
   other-modules:
       Surypus
+      Surypus.Reports
+      Surypus.JobRunner
   hs-source-dirs:
       src
   build-depends:

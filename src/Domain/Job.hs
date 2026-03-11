@@ -21,7 +21,7 @@ import Data.Time.Clock (UTCTime)
 import GHC.Generics (Generic)
 import qualified Data.Text as T
 
-{-@ type NonEmptyText = {v:Text | v /= \"\"} @-}
+{-@ type NonEmptyText = {v:Text | v /= ""} @-}
 {-@ type PriorityLevel = {v:Int | v >= 1 && v <= 10} @-}
 
 data JobStatus
@@ -87,25 +87,25 @@ instance ToJSON JobRequest
 instance FromJSON JobRequest
 
 jobStatusText :: JobStatus -> Text
-jobStatusText JobPending = \"pending\"
-jobStatusText JobRunning = \"running\"
-jobStatusText JobCompleted = \"completed\"
-jobStatusText JobFailed = \"failed\"
-jobStatusText JobCancelled = \"cancelled\"
+jobStatusText JobPending = "pending"
+jobStatusText JobRunning = "running"
+jobStatusText JobCompleted = "completed"
+jobStatusText JobFailed = "failed"
+jobStatusText JobCancelled = "cancelled"
 
 jobStatusFromText :: Text -> JobStatus
 jobStatusFromText txt =
   case T.toLower txt of
-    \"running\" -> JobRunning
-    \"completed\" -> JobCompleted
-    \"failed\" -> JobFailed
-    \"cancelled\" -> JobCancelled
+    "running" -> JobRunning
+    "completed" -> JobCompleted
+    "failed" -> JobFailed
+    "cancelled" -> JobCancelled
     _ -> JobPending
 
 validateJobRequest :: JobRequest -> Either Text JobRequest
 validateJobRequest jr@JobRequest{..}
-  | T.null (T.strip jrCode) = Left \"job code must not be empty\"
-  | T.null (T.strip jrName) = Left \"job name must not be empty\"
-  | T.null (T.strip jrType) = Left \"job type must not be empty\"
-  | jrPriority < 1 || jrPriority > 10 = Left \"priority must be between 1 and 10\"
+  | T.null (T.strip jrCode) = Left "job code must not be empty"
+  | T.null (T.strip jrName) = Left "job name must not be empty"
+  | T.null (T.strip jrType) = Left "job type must not be empty"
+  | jrPriority < 1 || jrPriority > 10 = Left "priority must be between 1 and 10"
   | otherwise = Right jr
