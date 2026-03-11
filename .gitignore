@@ -1,7 +1,37 @@
+# Stack
 .stack-work/
-*.swp
-*.tar.gz
+dist/
+dist-newstyle/
+*.log
+
+# Build artifacts
+*.o
+*.hi
+*.hc
+*.chi
+*.chs
+Cabal hc-files
+
+# Dependencies
 vendor/
 node_modules/
-/.factory
-*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.factory
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Package manager
+cabal-packages/
+*.tar.gz
+extra-src-files/
+
+# Build
+/build
+/dist
