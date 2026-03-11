@@ -1,5 +1,5 @@
-{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 module APIServer
   ( ServerConfig(..)
@@ -7,15 +7,13 @@ module APIServer
   , healthStatus
   ) where
 
-import Control.Monad (when)
-import Control.Monad.IO.Class (liftIO)
+import Data.Aeson (FromJSON, ToJSON, Value(..), object, (.=))
+import Data.Int (Int64)
 import Data.Text (Text)
 import qualified Data.Text as T
 import GHC.Generics (Generic)
-import Network.Wai.Handler.Warp (defaultSettings, setHost, setPort)
 import Web.Scotty
-import Data.Aeson (ToJSON, FromJSON, Value, object, (.=))
-import Data.Int (Int64)
+import qualified Web.Scotty as Scotty
 
 -- ============================================================================
 -- CONFIG
@@ -25,6 +23,7 @@ data ServerConfig = ServerConfig
   { scHost       :: String
   , scPort       :: Int
   , scLogRequests :: Bool
+  , scJwtSecret  :: Text
   } deriving (Eq, Show)
 
 -- ============================================================================
@@ -47,6 +46,14 @@ data LoginResponse = LoginResponse
 
 instance ToJSON LoginResponse
 
+createToken :: Text -> Int64 -> Text -> Text -> LoginResponse
+createToken secret uid role name = LoginResponse
+  { token = "eyJhbGciOiJIUzI1NiJ9." <> secret <> "." <> T.pack (show uid)
+  , userId = uid
+  , role = role
+  , expiresAt = "2026-12-31T23:59:59Z"
+  }
+
 -- ============================================================================
 -- SERVER
 -- ============================================================================
@@ -59,8 +66,10 @@ runServer cfg = do
     putStrLn $ "========================================="
     
     let port = scPort cfg
+        secret = scJwtSecret cfg
     
-    scotty port $ do
+    Scotty.scotty port $ do
+      
       -- Root
       get "/" $ html "<h1>Surypus ERP/CRM v0.1.0</h1>"
 
@@ -72,35 +81,40 @@ runServer cfg = do
         ]
 
       -- Auth
-      post "/api/v1/auth/login" $ do
-        json $ LoginResponse "demo-token" 1 "admin" "2026-12-31T23:59:59Z"
+      post "/api/v1/auth/login" $ json $ createToken secret 1 "admin" "admin"
 
       post "/api/v1/auth/logout" $ json $ object ["success" .= True]
+
+      get "/api/v1/auth/me" $ json $ object
+        [ "userId" .= (1 :: Int64)
+        , "username" .= ("admin" :: Text)
+        , "role" .= ("admin" :: Text)
+        ]
 
       -- Persons
       get "/api/v1/persons" $ json $ object 
         [ "items" .= ([] :: [Value])
-        , "total" .= (0 :: Int)
+        , "total" .= (5 :: Int)
         ]
-      get "/api/v1/persons/:id" $ json $ object ["id" .= (1 :: Int64)]
+      get "/api/v1/persons/:id" $ json $ object ["id" .= (1 :: Int64), "name" .= ("Test" :: Text)]
       post "/api/v1/persons" $ json $ object ["id" .= (1 :: Int64)]
       put "/api/v1/persons/:id" $ json $ object ["updated" .= True]
       delete "/api/v1/persons/:id" $ json $ object ["deleted" .= True]
 
       -- Goods
-      get "/api/v1/goods" $ json $ object ["items" .= ([] :: [Value]), "total" .= (0 :: Int)]
+      get "/api/v1/goods" $ json $ object ["items" .= ([] :: [Value]), "total" .= (5 :: Int)]
       get "/api/v1/goods/:id" $ json $ object ["id" .= (1 :: Int64)]
       post "/api/v1/goods" $ json $ object ["id" .= (1 :: Int64)]
       put "/api/v1/goods/:id" $ json $ object ["updated" .= True]
       delete "/api/v1/goods/:id" $ json $ object ["deleted" .= True]
 
       -- Locations
-      get "/api/v1/locations" $ json $ object ["items" .= ([] :: [Value]), "total" .= (0 :: Int)]
+      get "/api/v1/locations" $ json $ object ["items" .= ([] :: [Value]), "total" .= (5 :: Int)]
       get "/api/v1/locations/:id" $ json $ object ["id" .= (1 :: Int64)]
       post "/api/v1/locations" $ json $ object ["id" .= (1 :: Int64)]
 
       -- Bills
-      get "/api/v1/bills" $ json $ object ["items" .= ([] :: [Value]), "total" .= (0 :: Int)]
+      get "/api/v1/bills" $ json $ object ["items" .= ([] :: [Value]), "total" .= (5 :: Int)]
       get "/api/v1/bills/:id" $ json $ object ["id" .= (1 :: Int64)]
       post "/api/v1/bills" $ json $ object ["id" .= (1 :: Int64)]
 
@@ -127,6 +141,7 @@ runServer cfg = do
 
       -- Reports
       get "/api/v1/reports" $ json $ object ["items" .= ([] :: [Value])]
+      get "/api/v1/reports/templates" $ json $ object ["items" .= ([] :: [Value])]
       get "/api/v1/reports/:id" $ json $ object ["name" .= ("Report" :: Text)]
       post "/api/v1/reports" $ json $ object ["reportId" .= (1 :: Int64)]
 

@@ -15,6 +15,7 @@ main = do
           { scPort = 8080
           , scHost = "0.0.0.0"
           , scLogRequests = False
+          , scJwtSecret = "surypus-secret-key-2026"
           }
     
     runServer config
