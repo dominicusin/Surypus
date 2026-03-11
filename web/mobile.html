@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1976D2">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Surypus ERP Mobile</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --primary: #1976D2;
+            --primary-dark: #1565C0;
+            --secondary: #FF5722;
+            --background: #F5F5F5;
+            --surface: #FFFFFF;
+            --text: #212121;
+            --text-secondary: #757575;
+            --success: #4CAF50;
+            --warning: #FFC107;
+            --error: #F44336;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--background);
+            color: var(--text);
+            padding-bottom: 70px;
+        }
+        
+        /* Header */
+        .header {
+            background: var(--primary);
+            color: white;
+            padding: 12px 16px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .header h1 { font-size: 18px; }
+        
+        .header-actions { display: flex; gap: 12px; }
+        
+        .header-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            font-size: 18px;
+            cursor: pointer;
+        }
+        
+        /* Stats */
+        .stats-scroll {
+            display: flex;
+            gap: 12px;
+            padding: 16px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .stat-card {
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 16px;
+            min-width: 120px;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .stat-value { font-size: 24px; font-weight: bold; color: var(--primary); }
+        .stat-label { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+        
+        /* Quick Actions */
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            padding: 0 16px;
+        }
+        
+        .quick-action {
+            background: var(--surface);
+            border: none;
+            border-radius: 12px;
+            padding: 16px 8px;
+            text-align: center;
+            cursor: pointer;
+        }
+        
+        .quick-icon { font-size: 24px; display: block; margin-bottom: 4px; }
+        .quick-label { font-size: 10px; color: var(--text-secondary); }
+        
+        /* Menu */
+        .menu-list { padding: 8px 0; }
+        
+        .menu-item {
+            display: flex;
+            align-items: center;
+            padding: 14px 16px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+        }
+        
+        .menu-icon { font-size: 20px; margin-right: 12px; width: 24px; }
+        .menu-text { flex: 1; font-size: 15px; }
+        .menu-badge {
+            background: var(--error);
+            color: white;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+        
+        /* Cards */
+        .card {
+            background: var(--surface);
+            margin: 16px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .card-header {
+            padding: 14px 16px;
+            border-bottom: 1px solid #eee;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .card-body { padding: 0; }
+        
+        /* List Items */
+        .list-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid #f5f5f5;
+        }
+        
+        .list-item:last-child { border-bottom: none; }
+        
+        .item-icon { font-size: 20px; margin-right: 12px; }
+        .item-content { flex: 1; }
+        .item-title { font-size: 14px; font-weight: 500; }
+        .item-subtitle { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+        .item-value { font-size: 14px; font-weight: 600; color: var(--primary); }
+        
+        /* Status */
+        .status { font-size: 11px; padding: 3px 8px; border-radius: 4px; }
+        .status-active { background: #E8F5E9; color: var(--success); }
+        .status-pending { background: #FFF3E0; color: var(--warning); }
+        
+        /* Bottom Nav */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--surface);
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 0;
+            border-top: 1px solid #eee;
+            z-index: 100;
+        }
+        
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 4px 12px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 10px;
+        }
+        
+        .nav-item.active { color: var(--primary); }
+        .nav-icon { font-size: 22px; margin-bottom: 2px; }
+        
+        /* Search */
+        .search-bar {
+            padding: 12px 16px;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 10px 16px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+        
+        /* Tabs */
+        .tabs {
+            display: flex;
+            background: var(--surface);
+            border-bottom: 1px solid #eee;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 14px;
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-secondary);
+            border-bottom: 2px solid transparent;
+        }
+        
+        .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+        
+        /* FAB */
+        .fab {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            font-size: 24px;
+            border: none;
+            box-shadow: 0 4px 12px rgba(25, 118, 210, 0.4);
+            cursor: pointer;
+        }
+        
+        /* Page sections */
+        .page { display: none; }
+        .page.active { display: block; }
+    </style>
+</head>
+<body>
+    <!-- Home Page -->
+    <div id="page-home" class="page active">
+        <header class="header">
+            <h1>🏢 Surypus</h1>
+            <div class="header-actions">
+                <button class="header-btn">🔍</button>
+                <button class="header-btn">🔔</button>
+            </div>
+        </header>
+        
+        <div class="search-bar">
+            <input type="text" class="search-input" placeholder="Поиск...">
+        </div>
+        
+        <div class="stats-scroll">
+            <div class="stat-card">
+                <div class="stat-value">125</div>
+                <div class="stat-label">Контрагенты</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">1,234</div>
+                <div class="stat-label">Товары</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">89</div>
+                <div class="stat-label">Документы</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">12</div>
+                <div class="stat-label">Задачи</div>
+            </div>
+        </div>
+        
+        <div class="quick-actions">
+            <button class="quick-action"><span class="quick-icon">👤</span><span class="quick-label">Контрагент</span></button>
+            <button class="quick-action"><span class="quick-icon">📦</span><span class="quick-label">Товар</span></button>
+            <button class="quick-action"><span class="quick-icon">📋</span><span class="quick-label">Счёт</span></button>
+            <button class="quick-action"><span class="quick-icon">✅</span><span class="quick-label">Задача</span></button>
+        </div>
+        
+        <div class="card" style="margin-top: 16px;">
+            <div class="card-header">Задачи <span class="status status-pending">3</span></div>
+            <div class="card-body">
+                <div class="list-item">
+                    <span class="item-icon">📋</span>
+                    <div class="item-content">
+                        <div class="item-title">Отправить отчёт</div>
+                        <div class="item-subtitle">Приоритет: Высокий</div>
+                    </div>
+                </div>
+                <div class="list-item">
+                    <span class="item-icon">📋</span>
+                    <div class="item-content">
+                        <div class="item-title">Обработать платежи</div>
+                        <div class="item-subtitle">В работе</div>
+                    </div>
+                </div>
+                <div class="list-item">
+                    <span class="item-icon">📋</span>
+                    <div class="item-content">
+                        <div class="item-title">Сформировать накладную</div>
+                        <div class="item-subtitle">Срок: сегодня</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">Последние документы</div>
+            <div class="card-body">
+                <div class="list-item">
+                    <span class="item-icon">📄</span>
+                    <div class="item-content">
+                        <div class="item-title">INV-2026-089</div>
+                        <div class="item-subtitle">ООО ТехноСтрой</div>
+                    </div>
+                    <div class="item-value">50 000 ₽</div>
+                </div>
+                <div class="list-item">
+                    <span class="item-icon">📄</span>
+                    <div class="item-content">
+                        <div class="item-title">INV-2026-088</div>
+                        <div class="item-subtitle">ИП Иванов</div>
+                    </div>
+                    <div class="item-value">25 000 ₽</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Persons Page -->
+    <div id="page-persons" class="page">
+        <header class="header">
+            <button class="header-btn" onclick="showPage('home')">←</button>
+            <h1>Контрагенты</h1>
+            <button class="header-btn">+</button>
+        </header>
+        
+        <div class="search-bar">
+            <input type="text" class="search-input" placeholder="Поиск контрагентов...">
+        </div>
+        
+        <div class="tabs">
+            <div class="tab active">Все</div>
+            <div class="tab">Юр. лица</div>
+            <div class="tab">Физ. лица</div>
+            <div class="tab">ИП</div>
+        </div>
+        
+        <div class="card">
+            <div class="card-body">
+                <div class="list-item">
+                    <span class="item-icon">🏢</span>
+                    <div class="item-content">
+                        <div class="item-title">ООО ТехноСтрой</div>
+                        <div class="item-subtitle">ИНН: 7701234567890</div>
+                    </div>
+                    <span class="status status-active">Активен</span>
+                </div>
+                <div class="list-item">
+                    <span class="item-icon">👤</span>
+                    <div class="item-content">
+                        <div class="item-title">ИП Иванов И.И.</div>
+                        <div class="item-subtitle">ИНН: 7709876543210</div>
+                    </div>
+                    <span class="status status-active">Активен</span>
+                </div>
+                <div class="list-item">
+                    <span class="item-icon">🏢</span>
+                    <div class="item-content">
+                        <div class="item-title">ООО МегаТрейд</div>
+                        <div class="item-subtitle">ИНН: 7705555555555</div>
+                    </div>
+                    <span class="status status-active">Активен</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Goods Page -->
+    <div id="page-goods" class="page">
+        <header class="header">
+            <button class="header-btn" onclick="showPage('home')">←</button>
+            <h1>Товары</h1>
+            <button class="header-btn">+</button>
+        </header>
+        
+        <div class="search-bar">
+            <input type="text" class="search-input" placeholder="Поиск товаров...">
+        </div>
+        
+        <div class="card">
+            <div class="card-body">
+                <div class="list-item">
+                    <span class="item-icon">📦</span>
+                    <div class="item-content">
+                        <div class="item-title">Стройматериалы</div>
+                        <div class="item-subtitle">Остаток: 500 кг</div>
+                    </div>
+                    <div class="item-value">100 ₽</div>
+                </div>
+                <div class="list-item">
+                    <span class="item-icon">🔧</span>
+                    <div class="item-content">
+                        <div class="item-title">Инструменты</div>
+                        <div class="item-subtitle">Остаток: 100 шт</div>
+                    </div>
+                    <div class="item-value">250 ₽</div>
+                </div>
+                <div class="list-item">
+                    <span class="item-icon">📦</span>
+                    <div class="item-content">
+                        <div class="item-title">Крепёж</div>
+                        <div class="item-subtitle">Остаток: 1000 кг</div>
+                    </div>
+                    <div class="item-value">50 ₽</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bills Page -->
+    <div id="page-bills" class="page">
+        <header class="header">
+            <button class="header-btn" onclick="showPage('home')">←</button>
+            <h1>Документы</h1>
+            <button class="header-btn">+</button>
+        </header>
+        
+        <div class="tabs">
+            <div class="tab active">Все</div>
+            <div class="tab">Счета</div>
+            <div class="tab">Накладные</div>
+        </div>
+        
+        <div class="card">
+            <div class="card-body">
+                <div class="list-item">
+                    <span class="item-icon">📄</span>
+                    <div class="item-content">
+                        <div class="item-title">INV-2026-089</div>
+                        <div class="item-subtitle">11.03.2026 • ООО ТехноСтрой</div>
+                    </div>
+                    <div class="item-value">50 000 ₽</div>
+                </div>
+                <div class="list-item">
+                    <span class="item-icon">📄</span>
+                    <div class="item-content">
+                        <div class="item-title">INV-2026-088</div>
+                        <div class="item-subtitle">10.03.2026 • ИП Иванов</div>
+                    </div>
+                    <div class="item-value">25 000 ₽</div>
+                </div>
+                <div class="list-item">
+                    <span class="item-icon">📄</span>
+                    <div class="item-content">
+                        <div class="item-title">INV-2026-087</div>
+                        <div class="item-subtitle">09.03.2026 • ООО МегаТрейд</div>
+                    </div>
+                    <div class="item-value">75 000 ₽</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Profile Page -->
+    <div id="page-profile" class="page">
+        <header class="header">
+            <button class="header-btn" onclick="showPage('home')">←</button>
+            <h1>Профиль</h1>
+        </header>
+        
+        <div style="text-align: center; padding: 40px 20px;">
+            <div style="width: 80px; height: 80px; background: var(--primary); border-radius: 50%; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; font-size: 32px; color: white;">👤</div>
+            <h2 style="margin-bottom: 4px;">Администратор</h2>
+            <p style="color: var(--text-secondary);">admin@surypus.local</p>
+        </div>
+        
+        <div class="card">
+            <div class="menu-list">
+                <div class="menu-item"><span class="menu-icon">⚙️</span><span class="menu-text">Настройки</span></div>
+                <div class="menu-item"><span class="menu-icon">❓</span><span class="menu-text">Справка</span></div>
+                <div class="menu-item"><span class="menu-icon">🚪</span><span class="menu-text">Выход</span></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="#" class="nav-item active" onclick="showPage('home')">
+            <span class="nav-icon">🏠</span>
+            <span>Главная</span>
+        </a>
+        <a href="#" class="nav-item" onclick="showPage('persons')">
+            <span class="nav-icon">👥</span>
+            <span>Контрагенты</span>
+        </a>
+        <a href="#" class="nav-item" onclick="showPage('goods')">
+            <span class="nav-icon">📦</span>
+            <span>Товары</span>
+        </a>
+        <a href="#" class="nav-item" onclick="showPage('bills')">
+            <span class="nav-icon">📋</span>
+            <span>Документы</span>
+        </a>
+        <a href="#" class="nav-item" onclick="showPage('profile')">
+            <span class="nav-icon">👤</span>
+            <span>Профиль</span>
+        </a>
+    </nav>
+    
+    <!-- FAB -->
+    <button class="fab">+</button>
+    
+    <script>
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById('page-' + pageId).classList.add('active');
+            
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            event.target.closest('.nav-item')?.classList.add('active');
+        }
+    </script>
+</body>
+</html>
