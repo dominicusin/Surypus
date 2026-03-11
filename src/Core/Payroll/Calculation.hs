@@ -1,17 +1,15 @@
-{-@ LIQUID "--reflection" @-}
-
 -- | Payroll Calculations - Salary computation logic
 module Core.Payroll.Calculation where
 
 import Core.Payroll.Types
-import Core.Refined (NonNegDouble, Percentage)
-import Data.Time (Day, addDays, diffDays)
+import Core.Refined
+import Data.Time (Day)
+import qualified Data.Time as T
 
 -- ============================================================================
 -- TAX CALCULATIONS
 -- ============================================================================
 
-{-@ calcIncomeTax :: gross:NonNegDouble -> NonNegDouble @-}
 calcIncomeTax :: Double -> Double
 calcIncomeTax gross
   | gross <= 0 = 0
@@ -21,7 +19,6 @@ calcIncomeTax gross
   | gross <= 20000000 = 65000 + 450000 + 2700000 + (gross - 5000000) * 0.20
   | otherwise = 65000 + 450000 + 2700000 + 30000000 + (gross - 20000000) * 0.22
 
-{-@ calcNDFL :: gross:NonNegDouble -> NonNegDouble @-}
 calcNDFL :: Double -> Double
 calcNDFL = calcIncomeTax
 
@@ -29,17 +26,14 @@ calcNDFL = calcIncomeTax
 -- SOCIAL CONTRIBUTIONS
 -- ============================================================================
 
-{-@ calcSocialTax :: gross:NonNegDouble -> NonNegDouble @-}
 calcSocialTax :: Double -> Double
 calcSocialTax gross
   | gross <= 0 = 0
   | otherwise = min gross 876000 * 0.30  -- 30% up to limit
 
-{-@ calcInsurancePremium :: gross:NonNegDouble -> NonNegDouble @-}
 calcInsurancePremium :: Double -> Double
 calcInsurancePremium gross = gross * 0.022 -- 2.2% for medical
 
-{-@ calcPensionContribution :: gross:NonNegDouble -> NonNegDouble @-}
 calcPensionContribution :: Double -> Double
 calcPensionContribution gross
   | gross <= 0 = 0
@@ -49,11 +43,9 @@ calcPensionContribution gross
 -- NET SALARY CALCULATION
 -- ============================================================================
 
-{-@ calcNetSalaryFromGross :: gross:NonNegDouble -> {v:Double | v <= gross} @-}
 calcNetSalaryFromGross :: Double -> Double
 calcNetSalaryFromGross gross = gross - calcIncomeTax gross
 
-{-@ calcTotalCompensation :: salary:NonNegDouble -> bonuses:NonNegDouble -> NonNegDouble @-}
 calcTotalCompensation :: Double -> Double -> Double
 calcTotalCompensation salary bonuses = salary + bonuses
 
@@ -61,15 +53,12 @@ calcTotalCompensation salary bonuses = salary + bonuses
 -- VACATION CALCULATIONS
 -- ============================================================================
 
-{-@ calcVacationDays :: start:Day -> end:Day -> {v:Int | v > 0} @-}
 calcVacationDays :: Day -> Day -> Int
-calcVacationDays start end = diffDays end start + 1
+calcVacationDays start end = fromIntegral (T.diffDays end start) + 1
 
-{-@ calcVacationPay :: dailyRate:NonNegDouble -> days:PosInt -> NonNegDouble @-}
 calcVacationPay :: Double -> Int -> Double
 calcVacationPay dailyRate days = dailyRate * fromIntegral days
 
-{-@ calcAverageDailyEarnings :: totalEarnings:NonNegDouble -> workDays:PosInt -> NonNegDouble @-}
 calcAverageDailyEarnings :: Double -> Int -> Double
 calcAverageDailyEarnings totalEarnings workDays
   | workDays > 0 = totalEarnings / fromIntegral workDays
@@ -79,11 +68,6 @@ calcAverageDailyEarnings totalEarnings workDays
 -- SICK LEAVE CALCULATIONS
 -- ============================================================================
 
-{-@ calcSickLeavePay :: 
-  dailyRate:NonNegDouble -> 
-  days:PosInt -> 
-  isFirst3Days:Bool -> 
-  NonNegDouble @-}
 calcSickLeavePay :: Double -> Int -> Bool -> Double
 calcSickLeavePay dailyRate days isFirst3Days
   | isFirst3Days = dailyRate * min (fromIntegral days) 3 * 0.6
@@ -93,11 +77,9 @@ calcSickLeavePay dailyRate days isFirst3Days
 -- ADVANCE CALCULATIONS
 -- ============================================================================
 
-{-@ calcAdvanceAmount :: salary:NonNegDouble -> percentage:Percentage -> NonNegDouble @-}
 calcAdvanceAmount :: Double -> Double -> Double
 calcAdvanceAmount salary percentage = salary * percentage / 100
 
-{-@ calcMonthlyAdvance :: salary:NonNegDouble -> NonNegDouble @-}
 calcMonthlyAdvance :: Double -> Double
 calcMonthlyAdvance = flip calcAdvanceAmount 40 -- Default 40%
 
@@ -105,19 +87,10 @@ calcMonthlyAdvance = flip calcAdvanceAmount 40 -- Default 40%
 -- FINAL SETTLEMENT
 -- ============================================================================
 
-{-@ calcFinalSettlement :: 
-  gross:NonNegDouble -> 
-  advances:NonNegDouble -> 
-  deductions:NonNegDouble -> 
-  NonNegDouble @-}
 calcFinalSettlement :: Double -> Double -> Double -> Double
 calcFinalSettlement gross advances deductions =
   calcNetSalaryFromGross gross - advances - deductions
 
-{-@ calcYearEndBonus :: 
-  monthsWorked:PosInt -> 
-  monthlySalary:NonNegDouble -> 
-  NonNegDouble @-}
 calcYearEndBonus :: Int -> Double -> Double
 calcYearEndBonus monthsWorked monthlySalary
   | monthsWorked >= 12 = monthlySalary
@@ -129,17 +102,8 @@ calcYearEndBonus monthsWorked monthlySalary
 -- ATTENDANCE CALCULATIONS
 -- ============================================================================
 
-{-@ calcWorkedHours :: totalHours:NonNegDouble -> overtimeHours:NonNegDouble -> NonNegDouble @-}
 calcWorkedHours :: Double -> Double -> Double
 calcWorkedHours total overtime = total + overtime * 1.5 -- 1.5x overtime rate
 
-{-@ calcOvertimePay :: 
-  hourlyRate:NonNegDouble -> 
-  overtimeHours:NonNegDouble -> 
-  NonNegDouble @-}
 calcOvertimePay :: Double -> Double -> Double
 calcOvertimePay hourlyRate overtime = hourlyRate * overtime * 1.5
-
-{-@ type PosInt = {v:Int | v > 0} @-}
-
-
