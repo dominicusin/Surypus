@@ -110,6 +110,7 @@ executable surypus
     , containers >=0.6
     , transformers >=0.5
     , time >=1.8
+    , hasql-pool >=0.7
   default-language: Haskell2010
 executable surypus-job-worker
   main-is: JobWorker.hs

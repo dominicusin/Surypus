@@ -10,9 +10,9 @@ where
 
 import qualified Data.ByteString.Char8 as BS
 import qualified Data.Text as T
-import Hasql.Connection (acquire, release)
 import qualified Hasql.Connection.Settings as Settings
-import Hasql.Pool (Pool, acquire, release, use)
+import qualified Hasql.Pool as Pool
+import qualified Hasql.Pool.Config as PoolConfig
 
 -- | Pool configuration for Hasql-based PostgreSQL connections
 data PoolConfig = PoolConfig
@@ -26,21 +26,24 @@ data PoolConfig = PoolConfig
   deriving (Eq, Show)
 
 -- | Create a Hasql pool given the configuration
-createPool :: PoolConfig -> IO Pool
+createPool :: PoolConfig -> IO Pool.Pool
 createPool cfg = do
   let connSettings =
-        settings
-          (BS.pack $ pcHost cfg)
-          (fromIntegral $ pcPort cfg)
-          (BS.pack $ pcUser cfg)
-          (BS.pack $ pcPassword cfg)
-          (BS.pack $ pcDatabase cfg)
-  acquire (pcConnections cfg) connSettings
+        Settings.hostAndPort (T.pack $ pcHost cfg) (fromIntegral $ pcPort cfg)
+          <> Settings.user (T.pack $ pcUser cfg)
+          <> Settings.password (T.pack $ pcPassword cfg)
+          <> Settings.dbname (T.pack $ pcDatabase cfg)
+  let poolConfig =
+        PoolConfig.settings
+          [ PoolConfig.size (pcConnections cfg),
+            PoolConfig.staticConnectionSettings connSettings
+          ]
+  Pool.acquire poolConfig
 
 -- | Close the pool
-closePool :: Pool -> IO ()
-closePool = release
+closePool :: Pool.Pool -> IO ()
+closePool = Pool.release
 
 -- | Initialize database schema (no-op for now; migrations can be added later)
-initSchema :: Pool -> IO ()
+initSchema :: Pool.Pool -> IO ()
 initSchema _pool = return ()

@@ -150,23 +150,34 @@ calcVATFromInclusive :: Decimal -> Decimal -> Decimal
 calcVATFromInclusive amount rate
   | amount < 0 || rate < 0 = 0
   | rate > 100 = 0
-  | otherwise = roundTo 2 (amount * rate / (100 + rate))
+  | otherwise =
+      -- VAT = inclusive * rate / (1 + rate) where rate is a decimal (0.20 for 20%)
+      -- We need to perform the division manually to avoid the Fractional instance's multiplication by 10000
+      let divisor = unDecimal (fromInteger 1) + unDecimal rate -- 100 + 20 = 120
+       in roundTo 2 (Decimal (div (unDecimal amount * unDecimal rate) divisor))
 
 -- | Calculate price without VAT from inclusive price
 calcPriceWithoutVAT :: Decimal -> Decimal -> Decimal
 calcPriceWithoutVAT inclusive rate
   | inclusive < 0 || rate < 0 = 0
-  | otherwise = roundTo 2 (inclusive * 100 / (100 + rate))
+  | otherwise =
+      -- inclusive / (1 + rate) where rate is a decimal (0.20 for 20%)
+      -- We need to perform the division manually to avoid the Fractional instance's multiplication by 10000
+      let divisor = unDecimal (fromInteger 1) + unDecimal rate -- 100 + 20 = 120
+       in roundTo 2 (Decimal (div (unDecimal inclusive * 100) divisor))
 
 -- | Calculate price with VAT
 calcTaxInclusive :: Decimal -> Decimal -> Decimal
 calcTaxInclusive price rate
   | price < 0 || rate < 0 = 0
-  | otherwise = roundTo 2 (price * (1 + rate / 100))
+  | otherwise =
+      -- price * (1 + rate) where rate is a decimal (0.20 for 20%)
+      let multiplier = unDecimal (fromInteger 1) + unDecimal rate -- 100 + 20 = 120
+       in roundTo 2 (Decimal (div (unDecimal price * multiplier) 100))
 
 -- | Extract VAT from inclusive price (alias)
 extractVAT :: Decimal -> Decimal -> Decimal
-extractVAT = calcVAT
+extractVAT = calcVATFromInclusive
 
 -- | Validate tax rate
 validateTaxRate :: TaxRate -> Bool
@@ -183,10 +194,11 @@ validateTaxEntry e = teVAT e >= 0 && teExcise e >= 0 && teSalesTax e >= 0
 -- | Calculate complete tax vector from amounts and rates
 calcTaxVector :: Decimal -> Decimal -> (Decimal, Decimal, Decimal, Decimal) -> TaxVector
 calcTaxVector amount qty (vatRate, exciseRate, salesTaxRate, propRate) =
-  let vat = calcVAT amount vatRate
-      excise = calcVAT amount exciseRate -- Could be absolute or per-unit
-      stax = calcVAT amount salesTaxRate
-      prop = calcVAT amount propRate
+  -- Convert rates from hundredths of a percent to percentages
+  let vat = calcVAT amount (Decimal (div (unDecimal vatRate) 100))
+      excise = calcVAT amount (Decimal (div (unDecimal exciseRate) 100)) -- Could be absolute or per-unit
+      stax = calcVAT amount (Decimal (div (unDecimal salesTaxRate) 100))
+      prop = calcVAT amount (Decimal (div (unDecimal propRate) 100))
    in TaxVector
         { tvAmount = amount,
           tvQtty = qty,
@@ -226,11 +238,17 @@ validateTaxVector tv =
 calcExcise :: Decimal -> Decimal -> Bool -> Decimal
 calcExcise amount rate isAbsolute
   | isAbsolute = rate -- Absolute amount
-  | otherwise = calcVAT amount rate -- Ad valorem
+  | otherwise =
+      -- Ad valorem: rate is in hundredths of a percent (e.g., Decimal 1000 for 10%)
+      -- Convert to percentage: Decimal 1000 -> Decimal 10
+      let ratePercent = Decimal (div (unDecimal rate) 100)
+       in calcVAT amount ratePercent
 
 -- | Calculate unit excise (per quantity)
 calcUnitExcise :: Decimal -> Decimal -> Decimal
-calcUnitExcise unitRate qty = unitRate * qty
+calcUnitExcise unitRate qty =
+  -- Use the standard Decimal multiplication
+  unitRate * qty
 
 -- ============================================================================
 -- QUICKCHECK PROPERTIES

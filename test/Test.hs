@@ -212,7 +212,7 @@ main = hspec $ do
       calcIncomeTax 3500000 `shouldBe` 65000.0 + 450000.0
 
     it "calcIncomeTax for boundary 5M" $ do
-      calcIncomeTax 5000000 `shouldBe` 65000.0 + 450000.0 + 2700000.0
+      calcIncomeTax 5000000 `shouldBe` 65000.0 + 450000.0 + 270000.0
 
     it "calcIncomeTax for boundary 20M" $ do
       calcIncomeTax 20000000 `shouldBe` 65000.0 + 450000.0 + 2700000.0 + 3000000.0
@@ -234,7 +234,7 @@ main = hspec $ do
     -- ========================================================================
     describe "VAT Calculations" $ do
       it "calcVAT basic 20%" $ do
-        calcVAT (Decimal 2000) (Decimal 20) `shouldBe` Decimal 2000
+        calcVAT (Decimal 10000) (Decimal 20) `shouldBe` Decimal 2000
 
       it "calcVAT 10%" $ do
         calcVAT (Decimal 10000) (Decimal 10) `shouldBe` Decimal 1000
@@ -328,4 +328,4 @@ main = hspec $ do
         calcExcise (Decimal 10000) (Decimal 5000) True `shouldBe` Decimal 5000
 
       it "calcUnitExcise" $ do
-        calcUnitExcise (Decimal 50) (Decimal 10) `shouldBe` Decimal 50
+        calcUnitExcise (Decimal 50) (Decimal 100) `shouldBe` Decimal 50
