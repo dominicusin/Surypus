@@ -23,7 +23,12 @@ module Surypus.Reports.Conversion.CrystalTypes
   , CrystalFormulaField(..)
   ) where
 
+import Data.Text (Text)
 import GHC.Generics (Generic)
+
+-- ============================================================================
+-- TYPES
+-- ============================================================================
 
 data CrystalReport = CrystalReport
   { crName :: Text

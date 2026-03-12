@@ -1,12 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Surypus.JobRunner
-  ( runJobWorker
-  , processPendingJobs
-  ) where
+  ( runJobWorker,
+    processPendingJobs,
+  )
+where
 
 import Control.Concurrent (threadDelay)
-import Control.Monad (forever, unless, void)
+import Control.Monad (forever)
 import Hasql.Pool (Pool)
 
 runJobWorker :: Pool -> Int -> IO ()

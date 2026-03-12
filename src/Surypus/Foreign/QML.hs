@@ -8,13 +8,16 @@
 {-# LANGUAGE RecursiveDo #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Surypus.Foreign.QML where
 
 import Control.Concurrent (forkIO, threadDelay)
 import Control.Monad (forM_, when, void, join)
 import Control.Monad.IO.Class (liftIO, MonadIO)
-import Data.Aeson (FromJSON, ToJSON, Value(..), object, (.=), encode, decode)
+import Data.Aeson (FromJSON, ToJSON, Value(..), object, (.=), encode, decode, genericToJSON, defaultOptions)
+import Data.Aeson.TH (deriveJSON, defaultOptions, fieldLabelModifier)
 import Data.IORef (IORef, newIORef, readIORef, writeIORef, modifyIORef)
 import Data.Maybe (fromMaybe, mapMaybe)
 import Data.Text (Text)
@@ -23,10 +26,12 @@ import qualified Data.Text.IO as TIO
 import qualified Data.Vector as V
 import Data.Time (Day, getCurrentTime, utctDay)
 import Data.Time.Clock (NominalDiffTime, getCurrentTime, diffUTCTime)
+import Data.Int (Int64)
 import Numeric (showFFloat)
 import System.Environment (getEnv, setEnv)
 import System.IO (hPutStrLn, stderr)
 import qualified Control.Exception as Exception
+import GHC.Generics (Generic)
 
 -- ============================================================================
 -- CORE TYPES
@@ -707,16 +712,16 @@ sampleJobs =
 -- ============================================================================
 
 logDebug :: Text -> IO ()
-logDebug msg = logWithLevel LogDebug $ "[DEBUG] " ++ msg
+logDebug msg = logWithLevel LogDebug $ T.concat ["[DEBUG] ", msg]
 
 logInfo :: Text -> IO ()
-logInfo msg = logWithLevel LogInfo $ "[INFO] " ++ msg
+logInfo msg = logWithLevel LogInfo $ T.concat ["[INFO] ", msg]
 
 logWarning :: Text -> IO ()
-logWarning msg = logWithLevel LogWarning $ "[WARN] " ++ msg
+logWarning msg = logWithLevel LogWarning $ T.concat ["[WARN] ", msg]
 
 logError :: Text -> IO ()
-logError msg = logWithLevel LogError $ "[ERROR] " ++ msg
+logError msg = logWithLevel LogError $ T.concat ["[ERROR] ", msg]
 
 logWithLevel :: LogLevel -> Text -> IO ()
 logWithLevel level msg = do
@@ -727,98 +732,13 @@ logWithLevel level msg = do
 -- JSON SERIALIZATION
 -- ============================================================================
 
-instance ToJSON User where
-  toJSON u = object
-    [ "id" .= userId u
-    , "code" .= userCode u
-    , "name" .= userName u
-    , "email" .= userEmail u
-    , "role" .= userRole u
-    , "status" .= show (userStatus u)
-    ]
-
-instance FromJSON User
-
-instance ToJSON Person where
-  toJSON p = object
-    [ "id" .= personId p
-    , "code" .= personCode p
-    , "name" .= personName p
-    , "fullName" .= personFullName p
-    , "inn" .= personInn p
-    , "kpp" .= personKpp p
-    , "type" .= show (personType p)
-    , "status" .= show (personStatus p)
-    , "phone" .= personPhone p
-    , "email" .= personEmail p
-    , "address" .= personAddress p
-    ]
-
-instance FromJSON Person
-
-instance ToJSON Goods where
-  toJSON g = object
-    [ "id" .= goodsId g
-    , "code" .= goodsCode g
-    , "name" .= goodsName g
-    , "unit" .= goodsUnit g
-    , "price" .= goodsPrice g
-    , "quantity" .= goodsQuantity g
-    , "groupId" .= goodsGroupId g
-    , "status" .= show (goodsStatus g)
-    ]
-
-instance FromJSON Goods
-
-instance ToJSON Bill where
-  toJSON b = object
-    [ "id" .= billId b
-    , "number" .= billNumber b
-    , "type" .= show (billType b)
-    , "date" .= show (billDate b)
-    , "total" .= billTotal b
-    , "vatSum" .= billVatSum b
-    , "status" .= show (billStatus b)
-    ]
-
-instance FromJSON Bill
-
-instance ToJSON Employee where
-  toJSON e = object
-    [ "id" .= empId e
-    , "number" .= empNumber e
-    , "firstName" .= empFirstName e
-    , "lastName" .= empLastName e
-    , "position" .= empPosition e
-    , "department" .= empDepartment e
-    , "salary" .= empSalary e
-    , "status" .= show (empStatus e)
-    ]
-
-instance FromJSON Employee
-
-instance ToJSON Job where
-  toJSON j = object
-    [ "id" .= jobId j
-    , "code" .= jobCode j
-    , "name" .= jobName j
-    , "status" .= show (jobStatus j)
-    , "priority" .= jobPriority j
-    ]
-
-instance FromJSON Job
-
-instance ToJSON DashboardStats where
-  toJSON s = object
-    [ "persons" .= statsPersons s
-    , "goods" .= statsGoods s
-    , "bills" .= statsBills s
-    , "jobs" .= statsJobs s
-    , "locations" .= statsLocations s
-    , "employees" .= statsEmployees s
-    ]
-
-instance FromJSON DashboardStats
+$(deriveJSON defaultOptions ''User)
+$(deriveJSON defaultOptions ''Person)
+$(deriveJSON defaultOptions ''Goods)
+$(deriveJSON defaultOptions ''Bill)
+$(deriveJSON defaultOptions ''Employee)
+$(deriveJSON defaultOptions ''Job)
+$(deriveJSON defaultOptions ''DashboardStats)
 
 -- ============================================================================
 -- QML INTEGRATION HELPERS

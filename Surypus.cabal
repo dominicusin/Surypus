@@ -35,165 +35,30 @@ library
       Core.HR
       Core.HR.Types
       Core.Unit
-      Core.Analytics
-      Core.Project
-      Core.Integration
-      Core.Production
-      Core.Asset
-      Core.Transport
-      Core.Barcode
-      Core.Attachment
-      Core.Event
-      Core.Contract
-      Core.JobQueue
-      Core.Backup
-      Core.Report
-      Core.EGAIS
-      Core.VETIS
-      Core.Settings
-      Core.Cache
-      Core.Communication
-      Core.Quotation
-      Core.World
-      Core.Order
-      Core.Transfer
-      Core.Receipt
-      Core.Loyalty
-      Core.Loyalty.Card
-      Core.Loyalty.Bonus
-      Core.Package
-      Core.GiftCard
-      Core.Queue
-      Core.Scale
-      Core.ImportExport
-      Core.Workflow
-      Core.SmartReceipt
-      Core.AccMask
-      Core.Sequence
-      Core.Category
-      Core.Chart
-      Core.Desktop
-      Core.Cron
-      Core.Blockchain
-      Core.API
-      Core.Validator
-      Core.MarketPlace
-      Core.Notification
-      Core.UhttStore
-      Core.EDI
-      Core.StyloQ
-      Core.Filter
-      Core.QCert
-      Core.TagObject
-      Core.Editor
-      Core.Grid
-      Core.Viewer
-      Core.Dialog
-      Core.Menu
-      Core.Component
-      Core.Session
-      Core.Log
-      Core.AccessControl
-      Core.Audit
-      Core.Prediction
-      Core.Task
-      Core.Widget
-      Core.Sync
-      Core.Migration
-      Core.Version
-      Core.Template
-      Core.Webhook
-      Core.LocationEx
-      Core.PriceRule
-      Core.StockOp
-      Core.Bonus
-      Core.Counter
-      Core.ObjectType
-      Core.WarehouseOps
-      Core.Salary
-      Core.AccPlan
-      Core.GoodsLoc
-      Core.BillLine
-      Core.AccTurn2
-      Core.Contact
-      Core.AccSheet2
-      Core.TagValue
-      Core.BillStatusEx
-      Core.GoodsTaxEx
-      Core.OpKindEx
-      Core.LocationEx2
-      Core.PersonEx
-      Core.GoodsEx
-      Core.UnitEx
-      Core.Payment
-      Core.InventoryEx
-      Core.Shipment
-      Core.Return
-      Core.CreditNote
-      Core.DebitNote
-      Core.Invoice
-      Core.Quote
-      Core.Preorder
-      Core.PriceList
-      Core.Discount
-      Core.Agent
-      Core.Terminal
-      Core.CashRegister
-      Core.CashOperation
-      Core.CashSessionTemp
-      Core.Currency
-      Core.ExchangeRate
-      Core.Bank
-      Core.BankAccount
-      Core.PaymentCard
-      Core.TaxInvoice
-      Core.AdvanceInvoice
-      Core.AdvanceBill
-      Core.RetBill
-      Core.GoodsReceipt
-      Core.TechCard
-      Core.TechIssue
-      Core.BillTaxDiffs
-      Core.SheetDiffs
-      Core.AccturnDiffs
-      Core.Article
-      Core.Alert
-      Core.Message
-      Core.Comment
-      Core.File
-      Core.Config
-      Core.ExtCode
-      Core.Tag2
-      Core.Brand
-      Core.Manufacturer
-      Core.Country
-      Core.Region
-      Core.City
-      Core.Address
-      Core.Route
-      Core.Visit
-      Core.Activity
-      Core.Goal
-      Core.BonusPoints
-      Core.Promo
-      Core.Bundle
-      Core.Combo
-      Core.PriceByTime
-      Core.PriceByQtty
-      Core.PriceByAgent
       DAL
       DAL.Types
       DAL.Queries
       DAL.Mutations
+      DB.Connection
       APIServer
       Reports
       Surypus.Z3
       Surypus.Core
       Surypus.I18n
+      Surypus.Types
+      Surypus.Error
+      Surypus.Logging
+      Surypus.Validation
   other-modules:
       Surypus
       Surypus.Reports
       Surypus.JobRunner
+      Core.HR.Employee
+      Core.HR.Position
+      Core.Person.Contact
+      Core.Person.Person
+      Core.Person.Relation
+      Core.Refined
   hs-source-dirs:
       src
   build-depends:
@@ -201,27 +66,32 @@ library
     , text >=1.2
     , time >=1.8
     , bytestring >=0.10
-    , aeson >=1.5
+    , aeson >=2.0
     , base64-bytestring >=0.1
     , scotty >=0.14
     , warp >=3.3
     , wai >=3.2
     , wai-logger >=2.3
-    , hasql >=1.4.5.3
-      , hasql-pool >=0.7
-      , uuid >=1.3
-      , containers >=0.6
-      , hspec >=2.10
-      , QuickCheck >=2.14
-      , cryptonite >=0.30
-      , postgresql-simple >=0.6
-      , resource-pool >=0.3
-      , vector >=0.12
-      , network >=3.1
-      , network-bsd
+    , hasql >=1.6.0.0
+    , hasql-pool >=0.7
+    , uuid >=1.3
+    , containers >=0.6
+    , vector >=0.12
+    , hspec >=2.10
+    , QuickCheck >=2.14
+    , cryptonite >=0.30
+    , postgresql-simple >=0.6
+    , resource-pool >=0.3
+    , network >=3.1
+    , network-bsd
     , os-string >=2.0
     , filepath >=1.4 && <1.6
+    , fast-logger >=3.0
+    , monad-logger >=0.3
+    , wai-extra >=3.1
+
   default-language: Haskell2010
+  ghc-options: -Wall
 -- ============================================================================
 -- EXECUTABLE
 -- ============================================================================
@@ -253,13 +123,19 @@ executable surypus-job-worker
     , text >=1.2
     , time >=1.8
     , containers >=0.6
-    , vector >=0.12
     , transformers >=0.5
+    , vector >=0.12
   default-language: Haskell2010
 test-suite test
   type: exitcode-stdio-1.0
   main-is: Test.hs
   hs-source-dirs: test, src
+  other-modules:
+      Core.Accounting.Account
+      Core.Payroll.Calculation
+      Core.Payroll.Types
+      Core.Refined
+      Surypus.Reports.Conversion.CrystalTypes
   build-depends:
       base >=4.12 && <5
     , Surypus
@@ -271,4 +147,21 @@ test-suite test
     , bytestring >=0.10
     , aeson >=2.0
     , containers >=0.6
+    , vector >=0.12
   default-language: Haskell2010
+
+-- Integration test: pool wiring sanity check
+test-integration-pool
+  type: exitcode-stdio-1.0
+  main-is: PoolSpec.hs
+  hs-source-dirs: test/Integration
+  build-depends:
+      base >=4.12 && <5
+    , Surypus
+    , hasql >=1.6.0.0
+    , hasql-pool >=0.7
+    , text >=1.2
+    , time >=1.8
+    , hspec >=2.10
+  default-language: Haskell2010
+EOF

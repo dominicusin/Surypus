@@ -1,100 +1,86 @@
--- | Database Queries
+{-# LANGUAGE OverloadedStrings #-}
+
 module DAL.Queries where
 
-import           DAL.Types
-import           Data.Int  (Int64)
-import           Data.Text (Text)
+import DAL.Types
+import Data.Int (Int64)
+import Data.Text (Text)
 import qualified Data.Text as T
+import Data.Time (Day)
+import Data.Time.Calendar (fromGregorian)
+import qualified Hasql.Decoders as D
+import qualified Hasql.Encoders as E
+import Hasql.Pool (Pool, use)
+import qualified Hasql.Session as Session
+import Hasql.Statement (preparable)
 
--- | Get all persons
-getPersons :: QueryResult [Person]
-getPersons = QuerySuccess []
+-- Row decoders (example for Person)
+personRowDecoder :: D.Row Person
+personRowDecoder =
+  Person
+    <$> D.column (D.nonNullable D.int8) -- pId
+    <*> D.column (D.nullable D.text) -- pCode
+    <*> D.column (D.nonNullable D.text) -- pName
+    <*> D.column (D.nullable D.text) -- pINN
+    <*> D.column (D.nullable D.text) -- pKPP
+    <*> D.column (D.nonNullable D.int4) -- pPersonType
+    <*> D.column (D.nonNullable D.int4) -- pStatus
 
--- | Get person by ID
-getPersonById :: Int64 -> QueryResult Person
-getPersonById _ = QuerySuccess (Person 0 Nothing (T.pack "Person") Nothing Nothing 0 0)
+getPersons :: Pool -> IO (QueryResult [Person])
+getPersons pool = do
+  let stmt =
+        preparable
+          "SELECT id, code, name, inn, kpp, person_type, status FROM person ORDER BY id"
+          E.noParams
+          (D.rowList personRowDecoder)
+  res <- use pool $ Session.statement () stmt
+  case res of
+    Right rows -> return $ QuerySuccess rows
+    Left err -> return $ QueryError (T.pack $ show err)
 
--- | Get person by code
-getPersonByCode :: Text -> QueryResult Person
-getPersonByCode _ = QuerySuccess (Person 0 Nothing (T.pack "Person") Nothing Nothing 0 0)
+getPersonById :: Pool -> Int64 -> IO (QueryResult Person)
+getPersonById pool pid = do
+  let stmt =
+        preparable
+          "SELECT id, code, name, inn, kpp, person_type, status FROM person WHERE id = $1"
+          (E.param (E.nonNullable E.int8))
+          (D.rowMaybe personRowDecoder)
+  res <- use pool $ Session.statement pid stmt
+  case res of
+    Right (Just p) -> return $ QuerySuccess p
+    Right Nothing -> return $ QueryError "Not Found"
+    Left err -> return $ QueryError (T.pack $ show err)
 
--- | Get all goods
-getGoods :: QueryResult [Goods]
-getGoods = QuerySuccess []
+-- Minimal placeholders for the rest, real implementation to follow in later patches
+getGoods :: Pool -> IO (QueryResult [Goods])
+getGoods _ = return $ QuerySuccess []
 
--- | Get goods by ID
-getGoodsById :: Int64 -> QueryResult Goods
-getGoodsById _ = QuerySuccess (Goods 0 Nothing (T.pack "Goods") Nothing 0 Nothing)
+getGoodsById :: Pool -> Int64 -> IO (QueryResult Goods)
+getGoodsById _ _ = return $ QuerySuccess $ Goods 0 Nothing (T.pack "Not Found") Nothing 0 Nothing
 
--- | Get goods by barcode
-getGoodsByBarcode :: Text -> QueryResult Goods
-getGoodsByBarcode _ = QuerySuccess (Goods 0 Nothing (T.pack "Goods") Nothing 0 Nothing)
+getGoodsByBarcode :: Pool -> Text -> IO (QueryResult Goods)
+getGoodsByBarcode _ _ = return $ QuerySuccess $ Goods 0 Nothing (T.pack "Not Found") Nothing 0 Nothing
 
--- | Search goods
-searchGoods :: Text -> QueryResult [Goods]
-searchGoods _ = QuerySuccess []
+getLocations :: Pool -> IO (QueryResult [Location])
+getLocations _ = return $ QuerySuccess []
 
--- | Get all bills
-getBills :: QueryResult [Bill]
-getBills = QuerySuccess []
+getBills :: Pool -> IO (QueryResult [Bill])
+getBills _ = return $ QuerySuccess []
 
--- | Get bill by ID
-getBillById :: Int64 -> QueryResult Bill
-getBillById _ = QuerySuccess (Bill 0 Nothing 0 0 undefined Nothing Nothing 0 0 0)
+getBillById :: Pool -> Int64 -> IO (QueryResult Bill)
+getBillById _ _ = return $ QuerySuccess $ Bill 0 Nothing 0 0 (fromGregorian 1970 1 1) Nothing Nothing 0 0 0
 
--- | Get bill lines
-getBillLines :: Int64 -> QueryResult [BillLine]
-getBillLines _ = QuerySuccess []
+getStock :: Pool -> Int64 -> Int64 -> IO (QueryResult Stock)
+getStock _ _ _ = return $ QuerySuccess $ Stock 0 0 0 0 0
 
--- | Get all locations
-getLocations :: QueryResult [Location]
-getLocations = QuerySuccess []
+getStockByLocation :: Pool -> Int64 -> IO (QueryResult [Stock])
+getStockByLocation _ _ = return $ QuerySuccess []
 
--- | Get stock by goods and location
-getStock :: Int64 -> Int64 -> QueryResult Stock
-getStock _ _ = QuerySuccess (Stock 0 0 0 0 0)
+getStockByGoods :: Pool -> Int64 -> IO (QueryResult [Stock])
+getStockByGoods _ _ = return $ QuerySuccess []
 
--- | Get stock for location
-getStockByLocation :: Int64 -> QueryResult [Stock]
-getStockByLocation _ = QuerySuccess []
+getUsers :: Pool -> IO (QueryResult [User])
+getUsers _ = return $ QuerySuccess []
 
--- | Get stock for goods
-getStockByGoods :: Int64 -> QueryResult [Stock]
-getStockByGoods _ = QuerySuccess []
-
--- | Get all accounts
-getAccPlans :: QueryResult [AccPlan]
-getAccPlans = QuerySuccess []
-
--- | Get accounting turns
-getAccTurns :: Maybe Int64 -> QueryResult [AccTurn]
-getAccTurns _ = QuerySuccess []
-
--- | Get users
-getUsers :: QueryResult [User]
-getUsers = QuerySuccess []
-
--- | Get orders
-getOrders :: QueryResult [Order]
-getOrders = QuerySuccess []
-
--- | Get payments
-getPayments :: Int64 -> QueryResult [Payment]
-getPayments _ = QuerySuccess []
-
--- | Get dashboard stats
-getDashboardStats :: QueryResult DashboardStats
-getDashboardStats = QuerySuccess DashboardStats
-  { dsRevenueToday = 0
-  , dsOrdersToday = 0
-  , dsGoodsCount = 0
-  , dsClientsCount = 0
-  }
-
--- | Dashboard statistics
-data DashboardStats = DashboardStats
-  { dsRevenueToday :: Double
-  , dsOrdersToday  :: Int
-  , dsGoodsCount   :: Int
-  , dsClientsCount :: Int
-  } deriving (Show, Eq)
+getDashboardStats :: Pool -> IO (QueryResult DashboardStats)
+getDashboardStats _ = return $ QuerySuccess $ DashboardStats 0 0 0 0
