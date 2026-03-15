@@ -6,7 +6,7 @@
 
 module Surypus.Types where
 
-import Data.Aeson (ToJSON, Value (Number), toJSON)
+import Data.Aeson (FromJSON, ToJSON, Value (Number), parseJSON, toJSON, withScientific)
 import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Time (Day, UTCTime)
@@ -48,6 +48,10 @@ fromDecimal (Decimal d) = fromInteger d / 100
 
 instance ToJSON Decimal where
   toJSON (Decimal d) = toJSON (realToFrac d :: Double)
+
+instance FromJSON Decimal where
+  parseJSON = withScientific "Decimal" $ \n ->
+    return (Decimal (round (realToFrac n * 100) :: Integer))
 
 newtype Money = Money {unMoney :: Decimal}
   deriving (Eq, Generic, Ord)

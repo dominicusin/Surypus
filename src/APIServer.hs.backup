@@ -1,0 +1,376 @@
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings #-}
+
+module APIServer
+  ( ServerConfig (..),
+    RateLimitConfig (..),
+    defaultRateLimit,
+    runServer,
+    healthStatus,
+  )
+where
+
+import Control.Monad.IO.Class (liftIO)
+import Data.Aeson (FromJSON, ToJSON, Value (..), object, (.=))
+import Data.Int (Int64)
+import Data.Text (Text)
+import qualified Data.Text as T
+import GHC.Generics (Generic)
+import Hasql.Pool (Pool)
+import Network.Wai (Middleware)
+import System.IO (hFlush, stdout)
+import Web.Scotty
+import qualified Web.Scotty as Scotty
+
+-- ============================================================================
+-- CONFIG
+-- ============================================================================
+
+data ServerConfig = ServerConfig
+  { scHost :: String,
+    scPort :: Int,
+    scLogRequests :: Bool,
+    scJwtSecret :: Text,
+    scRateLimit :: RateLimitConfig,
+    scPool :: Pool
+  }
+
+-- Removing deriving (Eq, Show) since Pool doesn't have these instances
+-- In a real implementation, we might want to wrap Pool or not derive these
+
+data RateLimitConfig = RateLimitConfig
+  { rlcRequests :: Int,
+    rlcSeconds :: Int
+  }
+  deriving (Eq, Show)
+
+defaultRateLimit :: RateLimitConfig
+defaultRateLimit =
+  RateLimitConfig
+    { rlcRequests = 100,
+      rlcSeconds = 60
+    }
+
+-- ============================================================================
+-- MIDDLEWARE
+-- ============================================================================
+
+rateLimitMiddleware :: RateLimitConfig -> Middleware
+rateLimitMiddleware _cfg app req respond = app req respond
+
+securityMiddleware :: Middleware
+securityMiddleware app req respond = app req respond
+
+-- ============================================================================
+-- AUTH TYPES
+-- ============================================================================
+
+data LoginRequest = LoginRequest
+  { lrUsername :: Text,
+    lrPassword :: Text
+  }
+  deriving (Show, Generic)
+
+instance FromJSON LoginRequest
+
+data LoginResponse = LoginResponse
+  { token :: Text,
+    userId :: Int64,
+    role :: Text,
+    expiresAt :: Text
+  }
+  deriving (Show, Generic)
+
+instance ToJSON LoginResponse
+
+data ErrorResponse = ErrorResponse
+  { errorCode :: Int,
+    errorMessage :: Text
+  }
+  deriving (Show, Generic)
+
+instance ToJSON ErrorResponse
+
+-- ============================================================================
+-- HELPERS
+-- ============================================================================
+
+toJSONResult :: (ToJSON a) => QueryResult a -> Value
+toJSONResult (QuerySuccess a) = object ["success" .= True, "data" .= a]
+toJSONResult (QueryError e) = object ["success" .= False, "error" .= e]
+
+-- ============================================================================
+-- SERVER
+-- ============================================================================
+
+runServer :: ServerConfig -> IO ()
+runServer cfg = do
+  putStrLn $ "========================================="
+  putStrLn $ "  Surypus HTTP Server v0.1.0"
+  putStrLn $ "  Host: " ++ scHost cfg ++ ":" ++ show (scPort cfg)
+  putStrLn $ "========================================="
+  putStrLn $ "Starting Scotty server..."
+  hFlush stdout
+
+  let port = scPort cfg
+      pool = scPool cfg
+
+  putStrLn $ "DEBUG: About to call Scotty.scotty on port " ++ show port
+  hFlush stdout
+
+  Control.Exception.catch
+    ( do
+        putStrLn "DEBUG: Inside Scotty block"
+        hFlush stdout
+        Scotty.scotty port $ do
+          putStrLn "DEBUG: Scotty block executing"
+          hFlush stdout
+
+          -- Root
+          get "/" $ do
+            putStrLn "DEBUG: Root handler"
+            hFlush stdout
+            html "<h1>Surypus ERP/CRM v0.1.0</h1>"
+
+          -- Health
+          get "/api/v1/health" $ do
+            putStrLn "DEBUG: Health handler"
+            hFlush stdout
+            json $
+              object
+                [ "status" .= ("healthy" :: String),
+                  "version" .= ("0.1.0" :: String)
+                ]
+
+          -- Auth
+          post "/api/v1/auth/login" $ do
+            putStrLn "DEBUG: Auth login handler"
+            hFlush stdout
+            json $
+              LoginResponse
+                { token = "token-placeholder",
+                  userId = 1,
+                  role = "admin",
+                  expiresAt = "2026-12-31T23:59:59Z"
+                }
+
+          post "/api/v1/auth/logout" $ do
+            putStrLn "DEBUG: Auth logout handler"
+            hFlush stdout
+            json $ object ["success" .= True]
+
+          get "/api/v1/auth/me" $ do
+            putStrLn "DEBUG: Auth me handler"
+            hFlush stdout
+            json $
+              object
+                [ "userId" .= (1 :: Int64),
+                  "username" .= ("admin" :: String),
+                  "role" .= ("admin" :: String)
+                ]
+    )
+    ( \(e :: SomeException) -> do
+        putStrLn $ "EXCEPTION in Scotty.scotty: " ++ show e
+        hFlush stdout
+        throwIO e
+    )
+    ( \(e :: SomeException) -> do
+        putStrLn $ "EXCEPTION in Scotty.scotty: " ++ show e
+        hFlush stdout
+        throwIO e
+    )
+    post
+    "/api/v1/auth/login"
+    $ do
+      json $
+        LoginResponse
+          { token = "token-placeholder",
+            userId = 1,
+            role = "admin",
+            expiresAt = "2026-12-31T23:59:59Z"
+          }
+     post
+     "/api/v1/auth/logout"
+    $ json
+    $ object
+      ["success" .= True]
+      get
+      "/api/v1/auth/me"
+    $ json
+    $ object
+      [ "userId" .= (1 :: Int64),
+        "username" .= ("admin" :: String),
+        "role" .= ("admin" :: String)
+      ]
+      -- Persons
+      get
+      "/api/v1/persons"
+    $ do
+      liftIO $ putStrLn "Persons endpoint called"
+      result <- liftIO $ getPersons pool
+      liftIO $ putStrLn $ "Persons endpoint result: " ++ show result
+      let jsonResult = toJSONResult result
+      liftIO $ putStrLn $ "JSON result: " ++ show jsonResult
+      json jsonResult
+     get
+     "/api/v1/persons/:id"
+    $ do
+      pid <- param "id"
+      result <- liftIO $ getPersonById pool pid
+      json $ toJSONResult result
+
+     -- Goods
+     get
+     "/api/v1/goods"
+    $ do
+      result <- liftIO $ getGoods pool
+      json $ toJSONResult result
+     get
+     "/api/v1/goods/:id"
+    $ do
+      gid <- param "id"
+      result <- liftIO $ getGoodsById pool gid
+      json $ toJSONResult result
+     get
+     "/api/v1/goods/barcode/:code"
+    $ do
+      code <- param "code"
+      result <- liftIO $ getGoodsByBarcode pool code
+      json $ toJSONResult result
+
+     -- Locations
+     get
+     "/api/v1/locations"
+    $ do
+      result <- liftIO $ getLocations pool
+      json $ toJSONResult result
+
+     -- Bills
+     get
+     "/api/v1/bills"
+    $ do
+      result <- liftIO $ getBills pool
+      json $ toJSONResult result
+     get
+     "/api/v1/bills/:id"
+    $ do
+      bid <- param "id"
+      result <- liftIO $ getBillById pool bid
+      json $ toJSONResult result
+
+     -- Stock
+     get
+     "/api/v1/stock"
+    $ do
+      lid <- param "location_id"
+      result <- liftIO $ getStockByLocation pool lid
+      json $ toJSONResult result
+     get
+     "/api/v1/stock/:gid/locations/:lid"
+    $ do
+      gid <- param "gid"
+      lid <- param "lid"
+      result <- liftIO $ getStock pool gid lid
+      json $ toJSONResult result
+     get
+     "/api/v1/stock/goods/:gid"
+    $ do
+      gid <- param "gid"
+      result <- liftIO $ getStockByGoods pool gid
+      json $ toJSONResult result
+
+     -- Users
+     get
+     "/api/v1/users"
+    $ do
+      result <- liftIO $ getUsers pool
+      json $ toJSONResult result
+
+     -- Dashboard
+     get
+     "/api/v1/dashboard"
+    $ do
+      result <- liftIO $ getDashboardStats pool
+      json $ toJSONResult result
+
+     -- Accounting
+     get
+     "/api/v1/accounting"
+    $ json
+    $ object
+      ["accounts" .= ([] :: [Value])]
+      get
+      "/api/v1/accounting/accounts"
+    $ json
+    $ object
+      ["items" .= ([] :: [Value])]
+      get
+      "/api/v1/accounting/accounts/:id"
+    $ json
+    $ object
+      ["code" .= ("01" :: Text)]
+      get
+      "/api/v1/accounting/entries"
+    $ json
+    $ object
+      ["items" .= ([] :: [Value])]
+      -- Payroll
+      get
+      "/api/v1/payroll"
+    $ json
+    $ object
+      ["employees" .= ([] :: [Value])]
+      get
+      "/api/v1/payroll/employees"
+    $ json
+    $ object
+      ["items" .= ([] :: [Value])]
+      get
+      "/api/v1/payroll/employees/:id"
+    $ json
+    $ object
+      ["name" .= ("Employee" :: Text)]
+      get
+      "/api/v1/payroll/salary/:eid/:period"
+    $ json
+    $ object
+      ["gross" .= (50000.0 :: Double)]
+      -- Jobs
+      get
+      "/api/v1/jobs"
+    $ json
+    $ object
+      ["items" .= ([] :: [Value])]
+      get
+      "/api/v1/jobs/pending"
+    $ json
+    $ object
+      ["count" .= (0 :: Int)]
+      post
+      "/api/v1/jobs"
+    $ json
+    $ object
+      ["jobId" .= (1 :: Int64)]
+      -- Reports
+      get
+      "/api/v1/reports"
+    $ json
+    $ object
+      ["items" .= ([] :: [Value])]
+      get
+      "/api/v1/reports/templates"
+    $ json
+    $ object
+      ["items" .= ([] :: [Value])]
+      get
+      "/api/v1/reports/:id"
+    $ json
+    $ object
+      ["name" .= ("Report" :: Text)]
+      post
+      "/api/v1/reports"
+    $ json
+    $ object ["reportId" .= (1 :: Int64)]
+
+healthStatus :: IO Text
+healthStatus = pure "healthy"

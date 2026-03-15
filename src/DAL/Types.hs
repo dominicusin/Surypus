@@ -365,6 +365,59 @@ instance FromJSON GoodsFilter
 defaultGoodsFilter :: GoodsFilter
 defaultGoodsFilter = GoodsFilter Nothing Nothing Nothing
 
+-- | Bill filter
+data BillFilter = BillFilter
+  { bfBillType :: Maybe Int,
+    bfStatus :: Maybe Int,
+    bfPersonId :: Maybe Int64,
+    bfDateFrom :: Maybe Day,
+    bfDateTo :: Maybe Day
+  }
+  deriving (Show, Eq, Generic)
+
+instance FromJSON BillFilter
+
+defaultBillFilter :: BillFilter
+defaultBillFilter = BillFilter Nothing Nothing Nothing Nothing Nothing
+
+-- | Order filter
+data OrderFilter = OrderFilter
+  { ofStatus :: Maybe Int,
+    ofPersonId :: Maybe Int64,
+    ofDateFrom :: Maybe Day,
+    ofDateTo :: Maybe Day
+  }
+  deriving (Show, Eq, Generic)
+
+instance FromJSON OrderFilter
+
+defaultOrderFilter :: OrderFilter
+defaultOrderFilter = OrderFilter Nothing Nothing Nothing Nothing
+
+-- | Sort direction
+data SortDir = Asc | Desc
+  deriving (Show, Eq, Generic)
+
+instance FromJSON SortDir
+
+-- | Sort field for persons
+data PersonSortBy = PersonSortById | PersonSortByName | PersonSortByINN
+  deriving (Show, Eq, Generic)
+
+instance FromJSON PersonSortBy
+
+-- | Sort field for goods
+data GoodsSortBy = GoodsSortById | GoodsSortByName | GoodsSortByCode
+  deriving (Show, Eq, Generic)
+
+instance FromJSON GoodsSortBy
+
+-- | Sort field for bills
+data BillSortBy = BillSortById | BillSortByDate | BillSortByTotal
+  deriving (Show, Eq, Generic)
+
+instance FromJSON BillSortBy
+
 -- | Mutation result type
 data MutationResult = MutationResult
   { mrSuccess :: Bool,
@@ -374,3 +427,47 @@ data MutationResult = MutationResult
   deriving (Show, Eq, Generic)
 
 instance ToJSON MutationResult
+
+-- | Bill input for creation
+data BillInput = BillInput
+  { biCode :: Maybe Text,
+    biType :: Int,
+    biStatus :: Int,
+    biDate :: Day,
+    biPersonId :: Maybe Int64,
+    biLocationId :: Maybe Int64,
+    biTotal :: Decimal,
+    biDiscount :: Decimal,
+    biTax :: Decimal
+  }
+  deriving (Show, Eq, Generic)
+
+instance FromJSON BillInput
+
+-- | Order input for creation
+data OrderInput = OrderInput
+  { oiCode :: Maybe Text,
+    oiName :: Maybe Text,
+    oiDate :: Day,
+    oiPersonId :: Maybe Int64,
+    oiLocationId :: Maybe Int64,
+    oiStatus :: Int,
+    oiTotal :: Decimal,
+    oiDiscount :: Decimal,
+    oiTax :: Decimal
+  }
+  deriving (Show, Eq, Generic)
+
+instance FromJSON OrderInput
+
+-- | Bill line input
+data BillLineInput = BillLineInput
+  { bliGoodsId :: Int64,
+    bliQtty :: Decimal,
+    bliPrice :: Decimal,
+    bliDiscount :: Decimal,
+    bliAmount :: Decimal
+  }
+  deriving (Show, Eq, Generic)
+
+instance FromJSON BillLineInput

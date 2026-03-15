@@ -8,8 +8,8 @@ module DB.Connection
   )
 where
 
-import qualified Data.ByteString.Char8 as BS
 import qualified Data.Text as T
+import Data.Time.Clock (DiffTime, secondsToDiffTime)
 import qualified Hasql.Connection.Settings as Settings
 import qualified Hasql.Pool as Pool
 import qualified Hasql.Pool.Config as PoolConfig
@@ -36,7 +36,8 @@ createPool cfg = do
   let poolConfig =
         PoolConfig.settings
           [ PoolConfig.size (pcConnections cfg),
-            PoolConfig.staticConnectionSettings connSettings
+            PoolConfig.staticConnectionSettings connSettings,
+            PoolConfig.acquisitionTimeout (secondsToDiffTime 5) -- 5 second timeout
           ]
   Pool.acquire poolConfig
 
