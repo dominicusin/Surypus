@@ -72,6 +72,7 @@ library
     , warp >=3.3
     , wai >=3.2
     , wai-logger >=2.3
+    , http-types >=0.12
     , hasql >=1.6.0.0
     , hasql-pool >=0.7
     , uuid >=1.3
@@ -112,6 +113,7 @@ executable surypus
     , time >=1.8
     , hasql-pool >=0.7
   default-language: Haskell2010
+  ghc-options: -threaded
 executable surypus-job-worker
   main-is: JobWorker.hs
   hs-source-dirs: app
@@ -152,7 +154,7 @@ test-suite test
   default-language: Haskell2010
 
 -- Integration test: pool wiring sanity check
-test-integration-pool
+test-suite test-integration-pool
   type: exitcode-stdio-1.0
   main-is: PoolSpec.hs
   hs-source-dirs: test/Integration

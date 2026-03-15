@@ -7,9 +7,12 @@ import DB.Connection (PoolConfig (..), createPool)
 import Data.Text (Text)
 import Hasql.Pool (Pool)
 import System.Environment (lookupEnv)
+import System.IO (hFlush, stdout)
 
 main :: IO ()
 main = do
+  putStrLn "Starting Surypus..."
+  hFlush stdout
   host <- lookupEnv "DB_HOST" >>= return . maybe "localhost" id
   portS <- lookupEnv "DB_PORT" >>= return . maybe "5432" id
   user <- lookupEnv "DB_USER" >>= return . maybe "surypus" id
@@ -25,7 +28,11 @@ main = do
             pcDatabase = database,
             pcConnections = 10
           }
+  putStrLn "Creating pool..."
+  hFlush stdout
   pool <- createPool poolCfg
+  putStrLn "Pool created successfully."
+  hFlush stdout
 
   let config =
         ServerConfig
@@ -37,4 +44,7 @@ main = do
             scPool = pool
           }
 
+  putStrLn "Starting server on port 8080..."
+  hFlush stdout
   runServer config
+  putStrLn "Server stopped."

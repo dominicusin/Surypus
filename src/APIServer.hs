@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module APIServer
   ( ServerConfig (..),
@@ -10,10 +11,10 @@ module APIServer
   )
 where
 
+import Control.Exception (SomeException, catch)
 import Control.Monad.IO.Class (liftIO)
 import DAL.Queries
 import DAL.Types
-import DB.Connection (PoolConfig (..), createPool)
 import Data.Aeson (FromJSON, ToJSON, Value (..), object, (.=))
 import Data.Int (Int64)
 import Data.Text (Text)
@@ -21,6 +22,7 @@ import qualified Data.Text as T
 import GHC.Generics (Generic)
 import Hasql.Pool (Pool)
 import Network.Wai (Middleware)
+import System.IO (hFlush, stdout)
 import Web.Scotty
 import qualified Web.Scotty as Scotty
 
@@ -36,9 +38,6 @@ data ServerConfig = ServerConfig
     scRateLimit :: RateLimitConfig,
     scPool :: Pool
   }
-
--- Removing deriving (Eq, Show) since Pool doesn't have these instances
--- In a real implementation, we might want to wrap Pool or not derive these
 
 data RateLimitConfig = RateLimitConfig
   { rlcRequests :: Int,
@@ -111,6 +110,8 @@ runServer cfg = do
   putStrLn $ "  Surypus HTTP Server v0.1.0"
   putStrLn $ "  Host: " ++ scHost cfg ++ ":" ++ show (scPort cfg)
   putStrLn $ "========================================="
+  putStrLn $ "Starting Scotty server..."
+  hFlush stdout
 
   let port = scPort cfg
       pool = scPool cfg
@@ -123,13 +124,12 @@ runServer cfg = do
     get "/api/v1/health" $
       json $
         object
-          [ "status" .= ("healthy" :: Text),
-            "version" .= ("0.1.0" :: Text)
+          [ "status" .= ("healthy" :: String),
+            "version" .= ("0.1.0" :: String)
           ]
 
     -- Auth
-    post "/api/v1/auth/login" $ do
-      req <- jsonData :: Scotty.ActionM LoginRequest
+    post "/api/v1/auth/login" $
       json $
         LoginResponse
           { token = "token-placeholder",
@@ -138,29 +138,86 @@ runServer cfg = do
             expiresAt = "2026-12-31T23:59:59Z"
           }
 
-    post "/api/v1/auth/logout" $ json $ object ["success" .= True]
+    post "/api/v1/auth/logout" $
+      json $
+        object ["success" .= True]
 
     get "/api/v1/auth/me" $
       json $
         object
           [ "userId" .= (1 :: Int64),
-            "username" .= ("admin" :: Text),
-            "role" .= ("admin" :: Text)
+            "username" .= ("admin" :: String),
+            "role" .= ("admin" :: String)
           ]
 
-    -- Persons
+    -- Persons (with pagination)
     get "/api/v1/persons" $ do
-      result <- liftIO $ getPersons pool
-      json $ toJSONResult result
+      let pagination = Pagination 50 0
+          filter = defaultPersonFilter
+
+      eResult <-
+        liftIO $
+          catch
+            ( do
+                result <- getPersonsPaginated pool filter pagination
+                return (Right result)
+            )
+            (\(e :: SomeException) -> return (Left (T.pack (show e))))
+      case eResult of
+        Left err -> do
+          liftIO $ putStrLn $ "ERROR in /api/v1/persons: " ++ T.unpack err
+          json $ object ["success" .= False, "error" .= err]
+        Right result -> json result
 
     get "/api/v1/persons/:id" $ do
       pid <- param "id"
       result <- liftIO $ getPersonById pool pid
       json $ toJSONResult result
 
-    -- Goods
+    get "/api/v1/persons/search/:query" $ do
+      query <- param "query"
+      result <- liftIO $ searchPersons pool query
+      json $ toJSONResult result
+
+    -- Persons CRUD (TODO: implement with proper hasql encoder)
+    -- post "/api/v1/persons" $ do
+    --   input <- jsonData :: ActionM PersonInput
+    --   result <- liftIO $ createPerson pool input
+    --   json result
+
+    -- put "/api/v1/persons/:id" $ do
+    --   pid <- param "id"
+    --   input <- jsonData :: ActionM PersonInput
+    --   result <- liftIO $ updatePerson pool pid input
+    --   json result
+
+    -- delete "/api/v1/persons/:id" $ do
+    --   pid <- param "id"
+    --   result <- liftIO $ deletePerson pool pid
+    --   json result
+
+    -- Goods (with pagination)
     get "/api/v1/goods" $ do
-      result <- liftIO $ getGoods pool
+      let pagination = Pagination 50 0
+          filter = defaultGoodsFilter
+
+      eResult <-
+        liftIO $
+          catch
+            ( do
+                result <- getGoodsPaginated pool filter pagination
+                return (Right result)
+            )
+            (\(e :: SomeException) -> return (Left (T.pack (show e))))
+      case eResult of
+        Left err -> do
+          liftIO $ putStrLn $ "ERROR in /api/v1/goods: " ++ T.unpack err
+          json $ object ["success" .= False, "error" .= err]
+        Right result -> json result
+
+    get "/api/v1/goods/search/:query" $ do
+      query <- param "query"
+      result <- liftIO $ searchGoods pool query
       json $ toJSONResult result
 
     get "/api/v1/goods/:id" $ do
@@ -173,19 +230,109 @@ runServer cfg = do
       result <- liftIO $ getGoodsByBarcode pool code
       json $ toJSONResult result
 
+    -- Goods CRUD (TODO: implement with proper hasql encoder)
+    -- post "/api/v1/goods" $ do
+    --   input <- jsonData :: ActionM GoodsInput
+    --   result <- liftIO $ createGoods pool input
+    --   json result
+
+    -- put "/api/v1/goods/:id" $ do
+    --   gid <- param "id"
+    --   input <- jsonData :: ActionM GoodsInput
+    --   result <- liftIO $ updateGoods pool gid input
+    --   json result
+
+    -- delete "/api/v1/goods/:id" $ do
+    --   gid <- param "id"
+    --   result <- liftIO $ deleteGoods pool gid
+    --   json result
+
     -- Locations
     get "/api/v1/locations" $ do
       result <- liftIO $ getLocations pool
       json $ toJSONResult result
 
-    -- Bills
+    -- Locations CRUD (TODO: implement with proper hasql encoder)
+    -- post "/api/v1/locations" $ do
+    --   input <- jsonData :: ActionM LocationInput
+    --   result <- liftIO $ createLocation pool input
+    --   json result
+
+    -- put "/api/v1/locations/:id" $ do
+    --   lid <- param "id"
+    --   input <- jsonData :: ActionM LocationInput
+    --   result <- liftIO $ updateLocation pool lid input
+    --   json result
+
+    -- delete "/api/v1/locations/:id" $ do
+    --   lid <- param "id"
+    --   result <- liftIO $ deleteLocation pool lid
+    --   json result
+
+    -- Bills (with pagination)
     get "/api/v1/bills" $ do
-      result <- liftIO $ getBills pool
-      json $ toJSONResult result
+      let pagination = Pagination 50 0
+
+      eResult <-
+        liftIO $
+          catch
+            ( do
+                result <- getBillsPaginated pool pagination
+                return (Right result)
+            )
+            (\(e :: SomeException) -> return (Left (T.pack (show e))))
+      case eResult of
+        Left err -> do
+          liftIO $ putStrLn $ "ERROR in /api/v1/bills: " ++ T.unpack err
+          json $ object ["success" .= False, "error" .= err]
+        Right result -> json result
 
     get "/api/v1/bills/:id" $ do
       bid <- param "id"
       result <- liftIO $ getBillById pool bid
+      json $ toJSONResult result
+
+    -- Orders (with pagination)
+    get "/api/v1/orders" $ do
+      let pagination = Pagination 50 0
+
+      eResult <-
+        liftIO $
+          catch
+            ( do
+                result <- getOrdersPaginated pool pagination
+                return (Right result)
+            )
+            (\(e :: SomeException) -> return (Left (T.pack (show e))))
+      case eResult of
+        Left err -> do
+          liftIO $ putStrLn $ "ERROR in /api/v1/orders: " ++ T.unpack err
+          json $ object ["success" .= False, "error" .= err]
+        Right result -> json result
+
+    get "/api/v1/orders/:id" $ do
+      oid <- param "id"
+      result <- liftIO $ getOrderById pool oid
+      json $ toJSONResult result
+
+    -- Goods Prices
+    get "/api/v1/goods/prices" $ do
+      result <- liftIO $ getGoodsPrices pool
+      json $ toJSONResult result
+
+    get "/api/v1/goods/:id/prices" $ do
+      gid <- param "id"
+      result <- liftIO $ getGoodsPriceByGoods pool gid
+      json $ toJSONResult result
+
+    -- Tax
+    get "/api/v1/taxes" $ do
+      result <- liftIO $ getTaxes pool
+      json $ toJSONResult result
+
+    -- Currency
+    get "/api/v1/currencies" $ do
+      result <- liftIO $ getCurrencies pool
       json $ toJSONResult result
 
     -- Stock
@@ -216,26 +363,65 @@ runServer cfg = do
       json $ toJSONResult result
 
     -- Accounting
-    get "/api/v1/accounting" $ json $ object ["accounts" .= ([] :: [Value])]
-    get "/api/v1/accounting/accounts" $ json $ object ["items" .= ([] :: [Value])]
-    get "/api/v1/accounting/accounts/:id" $ json $ object ["code" .= ("01" :: Text)]
-    get "/api/v1/accounting/entries" $ json $ object ["items" .= ([] :: [Value])]
+    get "/api/v1/accounting" $ do
+      result <- liftIO $ getAccPlans pool
+      json $ toJSONResult result
+
+    get "/api/v1/accounting/accounts" $ do
+      result <- liftIO $ getAccPlans pool
+      json $ toJSONResult result
+
+    get "/api/v1/accounting/accounts/:id" $ do
+      pid <- param "id"
+      result <- liftIO $ getAccPlanById pool pid
+      json $ toJSONResult result
+
+    get "/api/v1/accounting/entries" $ do
+      result <- liftIO $ getAccTurns pool
+      json $ toJSONResult result
 
     -- Payroll
-    get "/api/v1/payroll" $ json $ object ["employees" .= ([] :: [Value])]
-    get "/api/v1/payroll/employees" $ json $ object ["items" .= ([] :: [Value])]
-    get "/api/v1/payroll/employees/:id" $ json $ object ["name" .= ("Employee" :: Text)]
-    get "/api/v1/payroll/salary/:eid/:period" $ json $ object ["gross" .= (50000.0 :: Double)]
+    get "/api/v1/payroll" $ do
+      result <- liftIO $ getEmployees pool
+      json $ toJSONResult result
 
-    -- Jobs
+    get "/api/v1/payroll/employees" $ do
+      result <- liftIO $ getEmployees pool
+      json $ toJSONResult result
+
+    get "/api/v1/payroll/employees/:id" $ do
+      eid <- param "id"
+      result <- liftIO $ getEmployeeById pool eid
+      json $ toJSONResult result
+
+    get "/api/v1/payroll/salary/:eid" $ do
+      eid <- param "eid"
+      result <- liftIO $ getSalaryByEmployee pool eid
+      json $ toJSONResult result
+
+    get "/api/v1/payroll/salaries" $ do
+      result <- liftIO $ getSalaries pool
+      json $ toJSONResult result
+
+    -- Jobs (stub - no jobs table in DB)
     get "/api/v1/jobs" $ json $ object ["items" .= ([] :: [Value])]
     get "/api/v1/jobs/pending" $ json $ object ["count" .= (0 :: Int)]
     post "/api/v1/jobs" $ json $ object ["jobId" .= (1 :: Int64)]
 
     -- Reports
-    get "/api/v1/reports" $ json $ object ["items" .= ([] :: [Value])]
-    get "/api/v1/reports/templates" $ json $ object ["items" .= ([] :: [Value])]
-    get "/api/v1/reports/:id" $ json $ object ["name" .= ("Report" :: Text)]
+    get "/api/v1/reports" $ do
+      result <- liftIO $ getReports pool
+      json $ toJSONResult result
+
+    get "/api/v1/reports/templates" $ do
+      result <- liftIO $ getReports pool
+      json $ toJSONResult result
+
+    get "/api/v1/reports/:id" $ do
+      rid <- param "id"
+      result <- liftIO $ getReportById pool rid
+      json $ toJSONResult result
+
     post "/api/v1/reports" $ json $ object ["reportId" .= (1 :: Int64)]
 
 healthStatus :: IO Text

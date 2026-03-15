@@ -1,14 +1,55 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 -- | Database Types
 module DAL.Types where
 
-import Data.Aeson (Object, ToJSON, toJSON, (.=))
-import Data.Int (Int32, Int64)
+import Data.Aeson (FromJSON, Object, ToJSON, object, toJSON, (.=))
+import Data.Int (Int16, Int32, Int64)
 import Data.Text (Text)
 import Data.Time (Day, UTCTime)
 import GHC.Generics (Generic)
 import Surypus.Types (Decimal (..))
+
+-- ============================================================================
+-- INPUT TYPES (for Create/Update operations)
+-- ============================================================================
+
+data PersonInput = PersonInput
+  { piCode :: Maybe Text,
+    piName :: Text,
+    piINN :: Maybe Text,
+    piKPP :: Maybe Text,
+    piPersonType :: Int16,
+    piStatus :: Int16
+  }
+  deriving (Show, Eq, Generic)
+
+instance FromJSON PersonInput
+
+data GoodsInput = GoodsInput
+  { giCode :: Maybe Text,
+    giName :: Text,
+    giBarcode :: Maybe Text,
+    giUnitId :: Int64,
+    giParentId :: Maybe Int64
+  }
+  deriving (Show, Eq, Generic)
+
+instance FromJSON GoodsInput
+
+data LocationInput = LocationInput
+  { liCode :: Maybe Text,
+    liName :: Text,
+    liType :: Int
+  }
+  deriving (Show, Eq, Generic)
+
+instance FromJSON LocationInput
+
+-- ============================================================================
+-- OUTPUT TYPES
+-- ============================================================================
 
 -- | Person types
 data Person = Person
@@ -17,8 +58,8 @@ data Person = Person
     pName :: Text,
     pINN :: Maybe Text,
     pKPP :: Maybe Text,
-    pPersonType :: Int32,
-    pStatus :: Int32
+    pPersonType :: Int16,
+    pStatus :: Int16
   }
   deriving (Show, Eq, Generic)
 
@@ -129,18 +170,36 @@ data User = User
 
 instance ToJSON User
 
--- | Order types
+-- | Order types (similar to Bill)
 data Order = Order
   { oId :: Int64,
     oCode :: Maybe Text,
+    oName :: Maybe Text,
     oDate :: Day,
     oPersonId :: Maybe Int64,
+    oLocationId :: Maybe Int64,
     oStatus :: Int,
-    oTotal :: Decimal
+    oTotal :: Decimal,
+    oDiscount :: Decimal,
+    oTax :: Decimal
   }
   deriving (Show, Eq, Generic)
 
 instance ToJSON Order
+
+-- | GoodsPrice types
+data GoodsPrice = GoodsPrice
+  { gpId :: Int64,
+    gpGoodsId :: Int64,
+    gpPriceType :: Int,
+    gpPrice :: Decimal,
+    gpMinQtty :: Decimal,
+    gpValidFrom :: Maybe Day,
+    gpValidTo :: Maybe Day
+  }
+  deriving (Show, Eq, Generic)
+
+instance ToJSON GoodsPrice
 
 -- | Payment types
 data Payment = Payment
@@ -155,6 +214,82 @@ data Payment = Payment
 
 instance ToJSON Payment
 
+-- | Salary types
+data Salary = Salary
+  { salId :: Int64,
+    salEmployeeId :: Int64,
+    salPeriod :: Day,
+    salBaseSalary :: Decimal,
+    salBonus :: Decimal,
+    salPenalty :: Decimal,
+    salTax :: Decimal,
+    salNetSalary :: Decimal
+  }
+  deriving (Show, Eq, Generic)
+
+instance ToJSON Salary
+
+-- | Employee types (for payroll)
+data Employee = Employee
+  { empId :: Int64,
+    empCode :: Text,
+    empName :: Text,
+    empEmail :: Maybe Text,
+    empPosition :: Maybe Text,
+    empStatus :: Int
+  }
+  deriving (Show, Eq, Generic)
+
+instance ToJSON Employee
+
+-- | ReportTemplate types
+data ReportTemplate = ReportTemplate
+  { rtId :: Int64,
+    rtCode :: Text,
+    rtName :: Text,
+    rtReportType :: Int,
+    rtJasperFile :: Text,
+    rtOutputFormat :: Text
+  }
+  deriving (Show, Eq, Generic)
+
+instance ToJSON ReportTemplate
+
+-- | Job types
+data Job = Job
+  { jobId :: Int64,
+    jobName :: Text,
+    jobStatus :: Text,
+    jobCreatedAt :: Day
+  }
+  deriving (Show, Eq, Generic)
+
+instance ToJSON Job
+
+-- | Tax types
+data Tax = Tax
+  { taxId :: Int64,
+    taxCode :: Text,
+    taxName :: Text,
+    taxRate :: Decimal
+  }
+  deriving (Show, Eq, Generic)
+
+instance ToJSON Tax
+
+-- | Currency types
+data Currency = Currency
+  { currId :: Int64,
+    currCode :: Text,
+    currName :: Text,
+    currSymbol :: Text,
+    currRateToBase :: Decimal,
+    currIsBase :: Bool
+  }
+  deriving (Show, Eq, Generic)
+
+instance ToJSON Currency
+
 -- | DashboardStats types
 data DashboardStats = DashboardStats
   { dsRevenueToday :: Int,
@@ -168,3 +303,74 @@ instance ToJSON DashboardStats
 
 -- | Result type
 data QueryResult a = QuerySuccess a | QueryError Text deriving (Show, Eq)
+
+instance (ToJSON a) => ToJSON (QueryResult a) where
+  toJSON (QuerySuccess a) = object ["success" .= True, "data" .= a]
+  toJSON (QueryError e) = object ["success" .= False, "error" .= e]
+
+-- | Pagination types
+data Pagination = Pagination
+  { pgLimit :: Int,
+    pgOffset :: Int
+  }
+  deriving (Show, Eq, Generic)
+
+instance FromJSON Pagination
+
+defaultPagination :: Pagination
+defaultPagination = Pagination 50 0
+
+-- | Paginated result type
+data PaginatedResult a = PaginatedResult
+  { prItems :: [a],
+    prTotal :: Int64,
+    prLimit :: Int,
+    prOffset :: Int
+  }
+  deriving (Show, Eq, Generic)
+
+instance (ToJSON a) => ToJSON (PaginatedResult a) where
+  toJSON (PaginatedResult items total limit offset) =
+    object
+      [ "items" .= items,
+        "total" .= total,
+        "limit" .= limit,
+        "offset" .= offset
+      ]
+
+-- | Person filter
+data PersonFilter = PersonFilter
+  { pfName :: Maybe Text,
+    pfINN :: Maybe Text,
+    pfPersonType :: Maybe Int,
+    pfStatus :: Maybe Int
+  }
+  deriving (Show, Eq, Generic)
+
+instance FromJSON PersonFilter
+
+defaultPersonFilter :: PersonFilter
+defaultPersonFilter = PersonFilter Nothing Nothing Nothing Nothing
+
+-- | Goods filter
+data GoodsFilter = GoodsFilter
+  { gfName :: Maybe Text,
+    gfBarcode :: Maybe Text,
+    gfCode :: Maybe Text
+  }
+  deriving (Show, Eq, Generic)
+
+instance FromJSON GoodsFilter
+
+defaultGoodsFilter :: GoodsFilter
+defaultGoodsFilter = GoodsFilter Nothing Nothing Nothing
+
+-- | Mutation result type
+data MutationResult = MutationResult
+  { mrSuccess :: Bool,
+    mrId :: Maybe Int64,
+    mrMessage :: Text
+  }
+  deriving (Show, Eq, Generic)
+
+instance ToJSON MutationResult
