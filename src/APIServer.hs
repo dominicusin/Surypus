@@ -18,6 +18,7 @@ import DAL.Queries
 import DAL.Types
 import Data.Aeson (FromJSON, ToJSON, Value (..), object, (.=))
 import Data.Int (Int64)
+import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import qualified Data.Text as T
 import GHC.Generics (Generic)
