@@ -33,6 +33,8 @@ library
       Core.Payroll.Calculation
       Core.Payroll.Operations
       Core.Tax
+      Core.Currency
+      Core.Currency.Operations
       Core.Invoice
       Core.Invoice.Operations
       Core.Payment
