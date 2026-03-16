@@ -14,6 +14,7 @@ library
       Core.Document
       Core.Document.Types
       Core.Person
+      Core.Person.Operations
       Core.Warehouse
       Core.Inventory
       Core.Inventory.Types
