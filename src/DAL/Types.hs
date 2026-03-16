@@ -109,6 +109,17 @@ data BillLine = BillLine
 
 instance ToJSON BillLine
 
+-- | Unit types (for goods)
+data Unit = Unit
+  { unId :: Int64,
+    unCode :: Text,
+    unName :: Text,
+    unShortName :: Maybe Text
+  }
+  deriving (Show, Eq, Generic)
+
+instance ToJSON Unit
+
 -- | Location types
 data Location = Location
   { lId :: Int64,
@@ -213,6 +224,18 @@ data Payment = Payment
   deriving (Show, Eq, Generic)
 
 instance ToJSON Payment
+
+-- | Payment input
+data PaymentInput = PaymentInput
+  { piBillId :: Int64,
+    piPayDate :: Day,
+    piAmount :: Double,
+    piPayMethod :: Int,
+    piPayStatus :: Int
+  }
+  deriving (Show, Eq, Generic)
+
+instance FromJSON PaymentInput
 
 -- | Salary types
 data Salary = Salary
@@ -418,6 +441,12 @@ data BillSortBy = BillSortById | BillSortByDate | BillSortByTotal
 
 instance FromJSON BillSortBy
 
+-- | Sort field for orders
+data OrderSortBy = OrderSortById | OrderSortByDate | OrderSortByTotal
+  deriving (Show, Eq, Generic)
+
+instance FromJSON OrderSortBy
+
 -- | Mutation result type
 data MutationResult = MutationResult
   { mrSuccess :: Bool,
@@ -506,3 +535,69 @@ data CurrencyInput = CurrencyInput
   deriving (Show, Eq, Generic)
 
 instance FromJSON CurrencyInput
+
+-- ============================================================================
+-- RBAC TYPES
+-- ============================================================================
+
+data EntityType = EntityPersons | EntityGoods | EntityBills | EntityOrders | EntityPrices | EntityReports | EntityAccounting | EntityPayroll
+  deriving (Show, Eq, Generic)
+
+instance ToJSON EntityType
+
+data Permission
+  = PermRead EntityType
+  | PermWrite EntityType
+  | PermExecute EntityType
+  | PermAdmin
+  deriving (Show, Eq, Generic)
+
+instance ToJSON Permission
+
+data Role = Role
+  { rId :: Int64,
+    rName :: Text,
+    rPermissions :: [Permission]
+  }
+  deriving (Show, Eq, Generic)
+
+instance ToJSON Role
+
+data UserWithRole = UserWithRole
+  { uwrUserId :: Int64,
+    uwrLogin :: Text,
+    uwrName :: Maybe Text,
+    uwrRole :: Role
+  }
+  deriving (Show, Eq, Generic)
+
+instance ToJSON UserWithRole
+
+-- ============================================================================
+-- AUDIT LOG TYPES
+-- ============================================================================
+
+data AuditAction
+  = AuditCreate
+  | AuditUpdate
+  | AuditDelete
+  | AuditLogin
+  | AuditLogout
+  | AuditAccess
+  deriving (Show, Eq, Generic)
+
+instance ToJSON AuditAction
+
+data AuditLog = AuditLog
+  { alId :: Int64,
+    alUserId :: Maybe Int64,
+    alAction :: AuditAction,
+    alEntity :: Text,
+    alEntityId :: Maybe Int64,
+    alDetails :: Maybe Text,
+    alTimestamp :: UTCTime,
+    alIP :: Maybe Text
+  }
+  deriving (Show, Eq, Generic)
+
+instance ToJSON AuditLog

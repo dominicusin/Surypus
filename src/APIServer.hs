@@ -18,15 +18,18 @@ import DAL.Queries
 import DAL.Types
 import Data.Aeson (FromJSON, ToJSON, Value (..), object, (.=))
 import Data.ByteString (ByteString)
+import Data.IORef (IORef, newIORef, readIORef, writeIORef)
 import Data.Int (Int64)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
+import Data.Time (diffUTCTime, getCurrentTime, utctDayTime)
 import GHC.Generics (Generic)
-import Hasql.Pool (Pool)
+import Hasql.Pool (Pool, use)
+import qualified Hasql.Session as Session
 import qualified Network.HTTP.Types as HTTP
-import Network.Wai (Middleware, requestHeaders, responseLBS)
+import Network.Wai (Middleware, Request, rawPathInfo, requestHeaders, requestMethod, responseLBS, responseStatus)
 import Surypus.JWT (JWTConfig (..), JWTPayload (..), defaultJWTConfig, generateSimpleToken, validateSimpleToken)
 import System.IO (hFlush, stdout)
 import Web.Scotty
@@ -47,26 +50,77 @@ data ServerConfig = ServerConfig
 
 data RateLimitConfig = RateLimitConfig
   { rlcRequests :: Int,
-    rlcSeconds :: Int
+    rlcSeconds :: Int,
+    rlcStore :: RateLimitStore,
+    rlcCurrentTime :: Int
   }
-  deriving (Eq, Show)
+  deriving (Eq)
 
-defaultRateLimit :: RateLimitConfig
-defaultRateLimit =
-  RateLimitConfig
-    { rlcRequests = 100,
-      rlcSeconds = 60
-    }
+defaultRateLimit :: IO RateLimitConfig
+defaultRateLimit = do
+  store <- newIORef ([] :: [(String, (Int, Int))])
+  pure $
+    RateLimitConfig
+      { rlcRequests = 100,
+        rlcSeconds = 60,
+        rlcStore = store,
+        rlcCurrentTime = 0
+      }
 
 -- ============================================================================
 -- MIDDLEWARE
 -- ============================================================================
 
+type RateLimitStore = IORef [(String, (Int, Int))]
+
+cleanOldEntries :: Int -> [(String, (Int, Int))] -> [(String, (Int, Int))]
+cleanOldEntries _ [] = []
+cleanOldEntries now ((ip, (count, timestamp)) : rest)
+  | now - timestamp > 60 = cleanOldEntries now rest
+  | otherwise = (ip, (count, timestamp)) : cleanOldEntries now rest
+
 rateLimitMiddleware :: RateLimitConfig -> Middleware
-rateLimitMiddleware _cfg app = app
+rateLimitMiddleware cfg app req respond = do
+  let store = rlcStore cfg
+      maxRequests = rlcRequests cfg
+
+  now <- liftIO $ do
+    t <- getCurrentTime
+    pure (floor (utctDayTime t) :: Int)
+
+  entries <- liftIO $ readIORef store
+  let cleaned = cleanOldEntries now entries
+      clientIP = show $ requestHeaders req
+      currentCount = maybe 0 fst $ lookup (show clientIP) cleaned
+
+  if currentCount >= maxRequests
+    then respond $ responseLBS HTTP.status429 [] "Rate limit exceeded"
+    else do
+      let newCount = currentCount + 1
+      liftIO $ writeIORef store ((show clientIP, (newCount, now)) : cleaned)
+      app req respond
 
 securityMiddleware :: Middleware
 securityMiddleware app = app
+
+requestLoggingMiddleware :: Middleware
+requestLoggingMiddleware app req respond = do
+  let method' = show (requestMethod req)
+      path' = T.unpack (T.decodeUtf8 (rawPathInfo req))
+  start <- liftIO getCurrentTime
+  app req $ \res -> do
+    end <- liftIO getCurrentTime
+    let status = HTTP.statusCode $ responseStatus res
+        diff = diffUTCTime end start
+    liftIO . putStrLn $
+      method'
+        <> " "
+        <> path'
+        <> " "
+        <> show status
+        <> " "
+        <> show diff
+    respond res
 
 jwtAuthMiddleware :: JWTConfig -> Middleware
 jwtAuthMiddleware config app req respond = do
@@ -127,7 +181,7 @@ runServer :: ServerConfig -> IO ()
 runServer cfg = do
   putStrLn "========================================="
   putStrLn "  Surypus HTTP Server v0.1.0"
-  putStrLn $ "  Host: " ++ scHost cfg ++ ":" ++ show (scPort cfg)
+  putStrLn $ "  Host: " <> scHost cfg <> ":" <> show (scPort cfg)
   putStrLn "========================================="
   putStrLn "Starting Scotty server..."
   hFlush stdout
@@ -136,6 +190,8 @@ runServer cfg = do
       pool = scPool cfg
 
   Scotty.scotty port $ do
+    middleware requestLoggingMiddleware
+
     -- Root
     get "/" $ html "<h1>Surypus ERP/CRM v0.1.0</h1>"
 
@@ -193,6 +249,21 @@ runServer cfg = do
             "role" .= ("admin" :: String)
           ]
 
+    -- Roles
+    get "/api/v1/roles" $
+      json $
+        object
+          [ "success" .= True,
+            "data"
+              .= ( [ object ["id" .= (1 :: Int64), "name" .= ("admin" :: Text), "permissions" .= (["admin"] :: [Text])],
+                     object ["id" .= (2 :: Int64), "name" .= ("manager" :: Text), "permissions" .= (["read_goods", "write_goods", "read_bills", "write_bills"] :: [Text])],
+                     object ["id" .= (3 :: Int64), "name" .= ("cashier" :: Text), "permissions" .= (["read_goods", "read_prices", "write_bills"] :: [Text])],
+                     object ["id" .= (4 :: Int64), "name" .= ("accountant" :: Text), "permissions" .= (["read_accounting", "write_accounting", "read_payroll"] :: [Text])]
+                   ] ::
+                     [Value]
+                 )
+          ]
+
     -- Persons (with pagination and sorting)
     get "/api/v1/persons" $ do
       let pagination = Pagination 50 0
@@ -243,12 +314,14 @@ runServer cfg = do
     get "/api/v1/goods" $ do
       let pagination = Pagination 50 0
           filter = defaultGoodsFilter
+          sortBy = Nothing :: Maybe GoodsSortBy
+          sortDir = Nothing :: Maybe SortDir
 
       eResult <-
         liftIO $
           catch
             ( do
-                result <- getGoodsPaginated pool filter pagination
+                result <- getGoodsPaginated pool filter pagination sortBy sortDir
                 return (Right result)
             )
             (\(e :: SomeException) -> return (Left (T.pack (show e))))
@@ -315,12 +388,15 @@ runServer cfg = do
     -- Bills (with pagination)
     get "/api/v1/bills" $ do
       let pagination = Pagination 50 0
+          filter = defaultBillFilter
+          sortBy = Nothing :: Maybe BillSortBy
+          sortDir = Nothing :: Maybe SortDir
 
       eResult <-
         liftIO $
           catch
             ( do
-                result <- getBillsPaginated pool pagination
+                result <- getBillsPaginated pool filter pagination sortBy sortDir
                 return (Right result)
             )
             (\(e :: SomeException) -> return (Left (T.pack (show e))))
@@ -333,6 +409,16 @@ runServer cfg = do
     get "/api/v1/bills/:id" $ do
       bid <- param "id"
       result <- liftIO $ getBillById pool bid
+      json $ toJSONResult result
+
+    get "/api/v1/bills/:id/lines" $ do
+      bid <- param "id"
+      result <- liftIO $ getBillLines pool bid
+      json $ toJSONResult result
+
+    get "/api/v1/bills/:id/payments" $ do
+      bid <- param "id"
+      result <- liftIO $ getPaymentsByBill pool bid
       json $ toJSONResult result
 
     -- Create Bill
@@ -354,15 +440,28 @@ runServer cfg = do
       result <- liftIO $ deleteBill pool bid
       json result
 
+    -- Payments
+    get "/api/v1/payments" $ do
+      result <- liftIO $ getPayments pool
+      json $ toJSONResult result
+
+    post "/api/v1/payments" $ do
+      input <- jsonData :: ActionM PaymentInput
+      result <- liftIO $ createPayment pool input
+      json result
+
     -- Orders (with pagination)
     get "/api/v1/orders" $ do
       let pagination = Pagination 50 0
+          filter = defaultOrderFilter
+          sortBy = Nothing :: Maybe OrderSortBy
+          sortDir = Nothing :: Maybe SortDir
 
       eResult <-
         liftIO $
           catch
             ( do
-                result <- getOrdersPaginated pool pagination
+                result <- getOrdersPaginated pool filter pagination sortBy sortDir
                 return (Right result)
             )
             (\(e :: SomeException) -> return (Left (T.pack (show e))))
@@ -375,6 +474,11 @@ runServer cfg = do
     get "/api/v1/orders/:id" $ do
       oid <- param "id"
       result <- liftIO $ getOrderById pool oid
+      json $ toJSONResult result
+
+    get "/api/v1/orders/:id/lines" $ do
+      oid <- param "id"
+      result <- liftIO $ getOrderLines pool oid
       json $ toJSONResult result
 
     -- Create Order
@@ -412,6 +516,16 @@ runServer cfg = do
       result <- liftIO $ createPrice pool input
       json result
 
+    -- Units
+    get "/api/v1/units" $ do
+      result <- liftIO $ getUnits pool
+      json $ toJSONResult result
+
+    -- Document Operation Kinds (Bill types)
+    get "/api/v1/document-types" $ do
+      result <- liftIO $ getDocumentOpKinds pool
+      json $ toJSONResult result
+
     -- Tax
     get "/api/v1/taxes" $ do
       result <- liftIO $ getTaxes pool
@@ -421,6 +535,12 @@ runServer cfg = do
     post "/api/v1/taxes" $ do
       input <- jsonData :: ActionM TaxInput
       result <- liftIO $ createTax pool input
+      json result
+
+    -- Delete Tax
+    delete "/api/v1/taxes/:id" $ do
+      tid <- param "id"
+      result <- liftIO $ deleteTax pool tid
       json result
 
     -- Currency
@@ -433,6 +553,17 @@ runServer cfg = do
       input <- jsonData :: ActionM CurrencyInput
       result <- liftIO $ createCurrency pool input
       json result
+
+    -- Delete Currency
+    delete "/api/v1/currencies/:id" $ do
+      cid <- param "id"
+      result <- liftIO $ deleteCurrency pool cid
+      json result
+
+    -- Inventory Documents
+    get "/api/v1/inventory" $ do
+      result <- liftIO $ getInventoryDocuments pool
+      json $ toJSONResult result
 
     -- Stock
     get "/api/v1/stock" $ do
@@ -451,6 +582,11 @@ runServer cfg = do
       result <- liftIO $ getStockByGoods pool gid
       json $ toJSONResult result
 
+    -- Stock summary (all stock)
+    get "/api/v1/stock/summary" $ do
+      result <- liftIO $ getStockAll pool
+      json $ toJSONResult result
+
     -- Users
     get "/api/v1/users" $ do
       result <- liftIO $ getUsers pool
@@ -459,6 +595,24 @@ runServer cfg = do
     -- Dashboard
     get "/api/v1/dashboard" $ do
       result <- liftIO $ getDashboardStats pool
+      json $ toJSONResult result
+
+    -- Sales Summary (last N days)
+    get "/api/v1/sales/summary" $ do
+      days <- param "days"
+      limit <- param "limit"
+      result <- liftIO $ getSalesSummary pool days limit
+      json $ toJSONResult result
+
+    -- Top Selling Goods
+    get "/api/v1/goods/top" $ do
+      limit <- param "limit"
+      result <- liftIO $ getTopSellingGoods pool limit
+      json $ toJSONResult result
+
+    -- Low Stock Goods
+    get "/api/v1/goods/low-stock" $ do
+      result <- liftIO $ getLowStockGoods pool
       json $ toJSONResult result
 
     -- Accounting

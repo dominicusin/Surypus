@@ -17,8 +17,8 @@
 
 ### API
 - [ ] Add OpenAPI/Swagger documentation
-- [ ] Implement rate limiting middleware
-- [ ] Add request logging and monitoring
+- [x] Implement rate limiting middleware
+- [x] Add request logging and monitoring
 - [ ] Implement API versioning strategy
 - [ ] Add WebSocket support for real-time updates
 
@@ -45,23 +45,34 @@
 
 ## High Priority
 
-- [ ] Add proper parameterized queries instead of string interpolation (security)
-- [ ] Add filter parameters to paginated queries (connect filter types)
-- [ ] Add sorting parameters to paginated queries
-- [ ] Add JWT authentication middleware to protect endpoints
-- [ ] Implement login endpoint with JWT token generation
+- [x] Add proper parameterized queries instead of string interpolation (security)
+- [x] Add filter parameters to paginated queries (connect filter types)
+- [x] Add sorting parameters to paginated queries
+- [x] Add bill lines endpoint (GET /bills/:id/lines)
+- [x] Add order lines endpoint (GET /orders/:id/lines)
+- [x] Add sales summary endpoint (GET /sales/summary)
+- [x] Add inventory documents endpoint (GET /inventory)
+- [x] Implement real dashboard stats from database
+- [x] Add JWT authentication middleware to protect endpoints
+- [x] Implement login endpoint with JWT token generation
+- [x] Add request logging middleware
+- [x] Add payments endpoint (GET /payments, GET /bills/:id/payments)
+- [x] Add units endpoint (GET /units)
+- [x] Add document types endpoint (GET /document-types)
+- [x] Add stock summary endpoint (GET /stock/summary)
+- [x] Add RBAC types and roles endpoint (GET /roles)
 
 ## Medium Priority
 
-- [ ] Add BillLineInput FromJSON instance
-- [ ] Add PUT/DELETE endpoints for bills and orders
-- [ ] Add goods prices CRUD endpoints
-- [ ] Add taxes CRUD endpoints
-- [ ] Add currencies CRUD endpoints
+- [x] Add BillLineInput FromJSON instance
+- [x] Add PUT/DELETE endpoints for bills and orders
+- [x] Add goods prices CRUD endpoints
+- [x] Add taxes CRUD endpoints
+- [x] Add currencies CRUD endpoints
 
 ## Low Priority
 
-- [ ] Run hlint and fix warnings
+- [x] Run hlint and fix warnings
 - [ ] Add hlint to CI pipeline
 - [ ] Add pgformatter for SQL formatting
 

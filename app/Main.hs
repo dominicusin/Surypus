@@ -2,10 +2,9 @@
 
 module Main where
 
-import APIServer (RateLimitConfig (..), ServerConfig (..), defaultRateLimit, runServer)
+import APIServer (ServerConfig (..), defaultRateLimit, runServer)
 import DB.Connection (PoolConfig (..), createPool)
 import Data.Text (Text)
-import Hasql.Pool (Pool)
 import System.Environment (lookupEnv)
 import System.IO (hFlush, stdout)
 
@@ -34,13 +33,15 @@ main = do
   putStrLn "Pool created successfully."
   hFlush stdout
 
+  rateLimitConfig <- defaultRateLimit
+
   let config =
         ServerConfig
           { scHost = "0.0.0.0",
             scPort = 8080,
             scLogRequests = False,
             scJwtSecret = ("surypus-secret-key-2026" :: Text),
-            scRateLimit = defaultRateLimit,
+            scRateLimit = rateLimitConfig,
             scPool = pool
           }
 

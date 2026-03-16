@@ -449,8 +449,31 @@ deleteOrder pool oid = do
     Right _ -> return $ QuerySuccess (MutationResult True (Just oid) (T.pack "Order deleted"))
     Left err -> return $ QueryError (T.pack $ show err)
 
-createPayment :: Pool -> Payment -> IO (QueryResult MutationResult)
-createPayment _ _ = return $ QuerySuccess (MutationResult True (Just 0) (T.pack "Payment stub - not implemented"))
+createPayment :: Pool -> PaymentInput -> IO (QueryResult MutationResult)
+createPayment pool input = do
+  let billIdVal = show (piBillId input)
+      payDateVal = "'" ++ show (piPayDate input) ++ "'"
+      amountVal = show (piAmount input)
+      payMethodVal = show (piPayMethod input)
+      payStatusVal = show (piPayStatus input)
+      sql =
+        T.pack $
+          "INSERT INTO payment (bill_id, pay_date, amount, pay_method, pay_status) VALUES ("
+            ++ billIdVal
+            ++ ", "
+            ++ payDateVal
+            ++ ", "
+            ++ amountVal
+            ++ ", "
+            ++ payMethodVal
+            ++ ", "
+            ++ payStatusVal
+            ++ ") RETURNING id"
+  let stmt = unpreparable sql E.noParams (D.singleRow (D.column (D.nonNullable D.int8)))
+  res <- use pool $ Session.statement () stmt
+  case res of
+    Right pid -> return $ QuerySuccess (MutationResult True (Just pid) (T.pack "Payment created successfully"))
+    Left err -> return $ QueryError (T.pack $ show err)
 
 createUser :: Pool -> User -> IO (QueryResult MutationResult)
 createUser _ _ = return $ QuerySuccess (MutationResult True (Just 0) (T.pack "User stub - not implemented"))
@@ -545,4 +568,22 @@ createCurrency pool input = do
   res <- use pool $ Session.statement () stmt
   case res of
     Right cid -> return $ QuerySuccess (MutationResult True (Just cid) (T.pack "Currency created"))
+    Left err -> return $ QueryError (T.pack $ show err)
+
+deleteTax :: Pool -> Int64 -> IO (QueryResult MutationResult)
+deleteTax pool tid = do
+  let sql = T.pack $ "DELETE FROM tax WHERE id = " ++ show tid ++ " RETURNING id"
+  let stmt = unpreparable sql E.noParams (D.singleRow (D.column (D.nonNullable D.int8)))
+  res <- use pool $ Session.statement () stmt
+  case res of
+    Right _ -> return $ QuerySuccess (MutationResult True Nothing (T.pack "Tax deleted"))
+    Left err -> return $ QueryError (T.pack $ show err)
+
+deleteCurrency :: Pool -> Int64 -> IO (QueryResult MutationResult)
+deleteCurrency pool cid = do
+  let sql = T.pack $ "DELETE FROM currency WHERE id = " ++ show cid ++ " RETURNING id"
+  let stmt = unpreparable sql E.noParams (D.singleRow (D.column (D.nonNullable D.int8)))
+  res <- use pool $ Session.statement () stmt
+  case res of
+    Right _ -> return $ QuerySuccess (MutationResult True Nothing (T.pack "Currency deleted"))
     Left err -> return $ QueryError (T.pack $ show err)

@@ -50,7 +50,11 @@ library
       Surypus.Logging
       Surypus.Validation
       Surypus.JWT
+      Surypus.RBAC
+      Surypus.Refined
+      Surypus.Refined.Predicates
   other-modules:
+      DB
       Surypus
       Surypus.Reports
       Surypus.JobRunner
