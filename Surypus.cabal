@@ -30,6 +30,7 @@ library
       Core.Payroll
       Core.Payroll.Types
       Core.Payroll.Calculation
+      Core.Payroll.Operations
       Core.Tax
       Core.Price
       Core.Commerce
