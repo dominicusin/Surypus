@@ -13,6 +13,7 @@ where
 
 import Control.Exception (SomeException, catch)
 import Control.Monad.IO.Class (liftIO)
+import DAL.Mutations
 import DAL.Queries
 import DAL.Types
 import Data.Aeson (FromJSON, ToJSON, Value (..), object, (.=))
@@ -179,22 +180,22 @@ runServer cfg = do
       result <- liftIO $ searchPersons pool query
       json $ toJSONResult result
 
-    -- Persons CRUD (TODO: implement with proper hasql encoder)
-    -- post "/api/v1/persons" $ do
-    --   input <- jsonData :: ActionM PersonInput
-    --   result <- liftIO $ createPerson pool input
-    --   json result
+    -- Persons CRUD
+    post "/api/v1/persons" $ do
+      input <- jsonData :: ActionM PersonInput
+      result <- liftIO $ createPerson pool input
+      json result
 
-    -- put "/api/v1/persons/:id" $ do
-    --   pid <- param "id"
-    --   input <- jsonData :: ActionM PersonInput
-    --   result <- liftIO $ updatePerson pool pid input
-    --   json result
+    put "/api/v1/persons/:id" $ do
+      pid <- param "id"
+      input <- jsonData :: ActionM PersonInput
+      result <- liftIO $ updatePerson pool pid input
+      json result
 
-    -- delete "/api/v1/persons/:id" $ do
-    --   pid <- param "id"
-    --   result <- liftIO $ deletePerson pool pid
-    --   json result
+    delete "/api/v1/persons/:id" $ do
+      pid <- param "id"
+      result <- liftIO $ deletePerson pool pid
+      json result
 
     -- Goods (with pagination)
     get "/api/v1/goods" $ do
@@ -230,44 +231,44 @@ runServer cfg = do
       result <- liftIO $ getGoodsByBarcode pool code
       json $ toJSONResult result
 
-    -- Goods CRUD (TODO: implement with proper hasql encoder)
-    -- post "/api/v1/goods" $ do
-    --   input <- jsonData :: ActionM GoodsInput
-    --   result <- liftIO $ createGoods pool input
-    --   json result
+    -- Goods CRUD
+    post "/api/v1/goods" $ do
+      input <- jsonData :: ActionM GoodsInput
+      result <- liftIO $ createGoods pool input
+      json result
 
-    -- put "/api/v1/goods/:id" $ do
-    --   gid <- param "id"
-    --   input <- jsonData :: ActionM GoodsInput
-    --   result <- liftIO $ updateGoods pool gid input
-    --   json result
+    put "/api/v1/goods/:id" $ do
+      gid <- param "id"
+      input <- jsonData :: ActionM GoodsInput
+      result <- liftIO $ updateGoods pool gid input
+      json result
 
-    -- delete "/api/v1/goods/:id" $ do
-    --   gid <- param "id"
-    --   result <- liftIO $ deleteGoods pool gid
-    --   json result
+    delete "/api/v1/goods/:id" $ do
+      gid <- param "id"
+      result <- liftIO $ deleteGoods pool gid
+      json result
 
     -- Locations
     get "/api/v1/locations" $ do
       result <- liftIO $ getLocations pool
       json $ toJSONResult result
 
-    -- Locations CRUD (TODO: implement with proper hasql encoder)
-    -- post "/api/v1/locations" $ do
-    --   input <- jsonData :: ActionM LocationInput
-    --   result <- liftIO $ createLocation pool input
-    --   json result
+    -- Locations CRUD
+    post "/api/v1/locations" $ do
+      input <- jsonData :: ActionM LocationInput
+      result <- liftIO $ createLocation pool input
+      json result
 
-    -- put "/api/v1/locations/:id" $ do
-    --   lid <- param "id"
-    --   input <- jsonData :: ActionM LocationInput
-    --   result <- liftIO $ updateLocation pool lid input
-    --   json result
+    put "/api/v1/locations/:id" $ do
+      lid <- param "id"
+      input <- jsonData :: ActionM LocationInput
+      result <- liftIO $ updateLocation pool lid input
+      json result
 
-    -- delete "/api/v1/locations/:id" $ do
-    --   lid <- param "id"
-    --   result <- liftIO $ deleteLocation pool lid
-    --   json result
+    delete "/api/v1/locations/:id" $ do
+      lid <- param "id"
+      result <- liftIO $ deleteLocation pool lid
+      json result
 
     -- Bills (with pagination)
     get "/api/v1/bills" $ do
@@ -292,6 +293,12 @@ runServer cfg = do
       result <- liftIO $ getBillById pool bid
       json $ toJSONResult result
 
+    -- Create Bill
+    post "/api/v1/bills" $ do
+      input <- jsonData :: ActionM BillInput
+      result <- liftIO $ createBill pool input
+      json result
+
     -- Orders (with pagination)
     get "/api/v1/orders" $ do
       let pagination = Pagination 50 0
@@ -314,6 +321,12 @@ runServer cfg = do
       oid <- param "id"
       result <- liftIO $ getOrderById pool oid
       json $ toJSONResult result
+
+    -- Create Order
+    post "/api/v1/orders" $ do
+      input <- jsonData :: ActionM OrderInput
+      result <- liftIO $ createOrder pool input
+      json result
 
     -- Goods Prices
     get "/api/v1/goods/prices" $ do
