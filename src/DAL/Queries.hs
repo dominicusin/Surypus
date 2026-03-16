@@ -5,6 +5,7 @@ module DAL.Queries where
 
 import DAL.Types
 import Data.Int (Int64)
+import Data.Maybe (fromJust, isJust)
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Hasql.Decoders as D
@@ -540,14 +541,22 @@ getCurrencies pool = do
 -- ============================================================================
 
 getPersonsPaginated :: Pool -> PersonFilter -> Pagination -> IO (QueryResult (PaginatedResult Person))
-getPersonsPaginated pool _ p = do
+getPersonsPaginated pool f p = do
   let limitVal = pgLimit p
       offsetVal = pgOffset p
-      sql = T.pack $ "SELECT id, code::text, name::text, inn::text, kpp::text, person_type, status FROM persons.person ORDER BY id LIMIT " ++ show limitVal ++ " OFFSET " ++ show offsetVal
+      whereClause = buildPersonFilter f
+      sql =
+        T.pack $
+          "SELECT id, code::text, name::text, inn::text, kpp::text, person_type, status FROM persons.person"
+            ++ T.unpack whereClause
+            ++ " ORDER BY id LIMIT "
+            ++ show limitVal
+            ++ " OFFSET "
+            ++ show offsetVal
 
   let countStmt =
         unpreparable
-          "SELECT COUNT(*) FROM persons.person"
+          (T.pack $ "SELECT COUNT(*) FROM persons.person" ++ T.unpack whereClause)
           E.noParams
           (D.singleRow (D.column (D.nonNullable D.int8)))
   countRes <- use pool $ Session.statement () countStmt
@@ -560,6 +569,17 @@ getPersonsPaginated pool _ p = do
   case res of
     Right rows -> return $ QuerySuccess (PaginatedResult rows total (pgLimit p) (pgOffset p))
     Left err -> return $ QueryError (T.pack $ show err)
+
+buildPersonFilter :: PersonFilter -> Text
+buildPersonFilter f =
+  let conditions =
+        filter (not . null) $
+          [ if isJust (pfName f) then " name ILIKE '%' || '" ++ T.unpack (fromJust (pfName f)) ++ "' || '%'" else "",
+            if isJust (pfINN f) then " inn = '" ++ T.unpack (fromJust (pfINN f)) ++ "'" else "",
+            if isJust (pfPersonType f) then " person_type = " ++ show (fromJust (pfPersonType f)) else "",
+            if isJust (pfStatus f) then " status = " ++ show (fromJust (pfStatus f)) else ""
+          ]
+   in if null conditions then "" else T.pack $ " WHERE " ++ unwords conditions
 
 getGoodsPaginated :: Pool -> GoodsFilter -> Pagination -> IO (QueryResult (PaginatedResult Goods))
 getGoodsPaginated pool _ p = do
