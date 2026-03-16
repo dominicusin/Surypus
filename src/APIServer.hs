@@ -139,6 +139,30 @@ runServer cfg = do
     -- Root
     get "/" $ html "<h1>Surypus ERP/CRM v0.1.0</h1>"
 
+    -- Login
+    post "/api/v1/login" $ do
+      input <- jsonData :: ActionM LoginRequest
+      let username = lrUsername input
+          password = lrPassword input
+      if password == "admin123" || password == "demo"
+        then do
+          let payload = JWTPayload 1 username "admin"
+              tokenConfig = defaultJWTConfig
+          token <- liftIO $ generateSimpleToken tokenConfig payload
+          json $
+            object
+              [ "success" .= True,
+                "token" .= token,
+                "userId" .= (1 :: Int),
+                "role" .= ("admin" :: Text)
+              ]
+        else do
+          json $
+            object
+              [ "success" .= False,
+                "error" .= ("Invalid credentials" :: Text)
+              ]
+
     -- Health
     get "/api/v1/health" $
       json $

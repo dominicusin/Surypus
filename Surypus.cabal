@@ -49,6 +49,7 @@ library
       Surypus.Error
       Surypus.Logging
       Surypus.Validation
+      Surypus.JWT
   other-modules:
       Surypus
       Surypus.Reports
