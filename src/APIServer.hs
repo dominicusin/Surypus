@@ -17,13 +17,17 @@ import DAL.Mutations
 import DAL.Queries
 import DAL.Types
 import Data.Aeson (FromJSON, ToJSON, Value (..), object, (.=))
+import Data.ByteString (ByteString)
 import Data.Int (Int64)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
 import GHC.Generics (Generic)
 import Hasql.Pool (Pool)
-import Network.Wai (Middleware)
+import qualified Network.HTTP.Types as HTTP
+import Network.Wai (Middleware, requestHeaders, responseLBS)
+import Surypus.JWT (JWTConfig (..), JWTPayload (..), defaultJWTConfig, generateSimpleToken, validateSimpleToken)
 import System.IO (hFlush, stdout)
 import Web.Scotty
 import qualified Web.Scotty as Scotty
@@ -63,6 +67,19 @@ rateLimitMiddleware _cfg app = app
 
 securityMiddleware :: Middleware
 securityMiddleware app = app
+
+jwtAuthMiddleware :: JWTConfig -> Middleware
+jwtAuthMiddleware config app req respond = do
+  let authHeader = lookup "Authorization" (requestHeaders req)
+  case authHeader of
+    Nothing -> respond $ responseLBS HTTP.status401 [] "Unauthorized"
+    Just header -> do
+      let headerText = T.decodeUtf8 header
+          mbPrefix = T.stripPrefix "Bearer " headerText
+          token = maybe headerText T.strip mbPrefix
+      case validateSimpleToken config token of
+        Left _ -> respond $ responseLBS HTTP.status401 [] "Unauthorized"
+        Right _ -> app req respond
 
 -- ============================================================================
 -- AUTH TYPES
