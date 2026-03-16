@@ -406,15 +406,33 @@ runServer cfg = do
       result <- liftIO $ getGoodsPriceByGoods pool gid
       json $ toJSONResult result
 
+    -- Create Price
+    post "/api/v1/goods/prices" $ do
+      input <- jsonData :: ActionM PriceInput
+      result <- liftIO $ createPrice pool input
+      json result
+
     -- Tax
     get "/api/v1/taxes" $ do
       result <- liftIO $ getTaxes pool
       json $ toJSONResult result
 
+    -- Create Tax
+    post "/api/v1/taxes" $ do
+      input <- jsonData :: ActionM TaxInput
+      result <- liftIO $ createTax pool input
+      json result
+
     -- Currency
     get "/api/v1/currencies" $ do
       result <- liftIO $ getCurrencies pool
       json $ toJSONResult result
+
+    -- Create Currency
+    post "/api/v1/currencies" $ do
+      input <- jsonData :: ActionM CurrencyInput
+      result <- liftIO $ createCurrency pool input
+      json result
 
     -- Stock
     get "/api/v1/stock" $ do

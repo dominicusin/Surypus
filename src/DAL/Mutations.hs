@@ -460,3 +460,89 @@ updateUser _ _ = return $ QuerySuccess (MutationResult True Nothing (T.pack "Use
 
 authenticateUser :: Pool -> Text -> Text -> IO (QueryResult (Maybe User))
 authenticateUser _ _ _ = return $ QuerySuccess Nothing
+
+-- Price mutations
+createPrice :: Pool -> PriceInput -> IO (QueryResult MutationResult)
+createPrice pool input = do
+  let goodsIdVal = show (priGoodsId input)
+      priceTypeVal = show (priPriceType input)
+      priceVal = renderDecimal (priPrice input)
+      currencyIdVal = show (priCurrencyId input)
+      fromDateVal = "'" ++ show (priFromDate input) ++ "'"
+      toDateVal = case priToDate input of
+        Just d -> "'" ++ show d ++ "'"
+        Nothing -> "NULL"
+
+      sql =
+        T.pack $
+          "INSERT INTO goods_price (goods_id, price_type, price, currency_id, from_date, to_date) VALUES ("
+            ++ goodsIdVal
+            ++ ", "
+            ++ priceTypeVal
+            ++ ", "
+            ++ priceVal
+            ++ ", "
+            ++ currencyIdVal
+            ++ ", "
+            ++ fromDateVal
+            ++ ", "
+            ++ toDateVal
+            ++ ") RETURNING id"
+
+  let stmt = unpreparable sql E.noParams (D.singleRow (D.column (D.nonNullable D.int8)))
+  res <- use pool $ Session.statement () stmt
+  case res of
+    Right pid -> return $ QuerySuccess (MutationResult True (Just pid) (T.pack "Price created"))
+    Left err -> return $ QueryError (T.pack $ show err)
+
+-- Tax mutations
+createTax :: Pool -> TaxInput -> IO (QueryResult MutationResult)
+createTax pool input = do
+  let nameVal = "'" ++ escapeSql (T.unpack (tiName input)) ++ "'"
+      rateVal = show (tiRate input)
+      taxTypeVal = show (tiTaxType input)
+      includedVal = if tiIncluded input then "TRUE" else "FALSE"
+
+      sql =
+        T.pack $
+          "INSERT INTO tax (name, rate, tax_type, is_included) VALUES ("
+            ++ nameVal
+            ++ ", "
+            ++ rateVal
+            ++ ", "
+            ++ taxTypeVal
+            ++ ", "
+            ++ includedVal
+            ++ ") RETURNING id"
+
+  let stmt = unpreparable sql E.noParams (D.singleRow (D.column (D.nonNullable D.int8)))
+  res <- use pool $ Session.statement () stmt
+  case res of
+    Right tid -> return $ QuerySuccess (MutationResult True (Just tid) (T.pack "Tax created"))
+    Left err -> return $ QueryError (T.pack $ show err)
+
+-- Currency mutations
+createCurrency :: Pool -> CurrencyInput -> IO (QueryResult MutationResult)
+createCurrency pool input = do
+  let codeVal = "'" ++ escapeSql (T.unpack (ciCode input)) ++ "'"
+      nameVal = "'" ++ escapeSql (T.unpack (ciName input)) ++ "'"
+      symbolVal = "'" ++ escapeSql (T.unpack (ciSymbol input)) ++ "'"
+      rateVal = show (ciRate input)
+
+      sql =
+        T.pack $
+          "INSERT INTO currency (code, name, symbol, rate) VALUES ("
+            ++ codeVal
+            ++ ", "
+            ++ nameVal
+            ++ ", "
+            ++ symbolVal
+            ++ ", "
+            ++ rateVal
+            ++ ") RETURNING id"
+
+  let stmt = unpreparable sql E.noParams (D.singleRow (D.column (D.nonNullable D.int8)))
+  res <- use pool $ Session.statement () stmt
+  case res of
+    Right cid -> return $ QuerySuccess (MutationResult True (Just cid) (T.pack "Currency created"))
+    Left err -> return $ QueryError (T.pack $ show err)

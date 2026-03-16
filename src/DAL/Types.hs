@@ -471,3 +471,38 @@ data BillLineInput = BillLineInput
   deriving (Show, Eq, Generic)
 
 instance FromJSON BillLineInput
+
+-- | Price input
+data PriceInput = PriceInput
+  { priGoodsId :: Int64,
+    priPriceType :: Int,
+    priPrice :: Decimal,
+    priCurrencyId :: Int64,
+    priFromDate :: Day,
+    priToDate :: Maybe Day
+  }
+  deriving (Show, Eq, Generic)
+
+instance FromJSON PriceInput
+
+-- | Tax input
+data TaxInput = TaxInput
+  { tiName :: Text,
+    tiRate :: Double,
+    tiTaxType :: Int,
+    tiIncluded :: Bool
+  }
+  deriving (Show, Eq, Generic)
+
+instance FromJSON TaxInput
+
+-- | Currency input
+data CurrencyInput = CurrencyInput
+  { ciCode :: Text,
+    ciName :: Text,
+    ciSymbol :: Text,
+    ciRate :: Double
+  }
+  deriving (Show, Eq, Generic)
+
+instance FromJSON CurrencyInput
