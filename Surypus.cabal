@@ -21,6 +21,7 @@ library
       Core.Inventory.Types.Stock
       Core.Inventory.Types.Lot
       Core.Inventory.Types.Inventory
+      Core.Inventory.Operations
       Core.Accounting
       Core.Accounting.Account
       Core.Accounting.Ledger
