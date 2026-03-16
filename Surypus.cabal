@@ -33,6 +33,7 @@ library
       Core.Payroll.Operations
       Core.Tax
       Core.Price
+      Core.Price.Operations
       Core.Commerce
       Core.Auth
       Core.HR
