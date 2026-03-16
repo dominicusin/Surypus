@@ -35,7 +35,6 @@ module Surypus.Refined
   )
 where
 
-import Data.Int (Int64)
 import Surypus.Refined.Predicates
 import Surypus.Types (Decimal (..))
 
