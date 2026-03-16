@@ -341,6 +341,19 @@ runServer cfg = do
       result <- liftIO $ createBill pool input
       json result
 
+    -- Update Bill Status
+    put "/api/v1/bills/:id/status" $ do
+      bid <- param "id"
+      status :: Int <- param "status"
+      result <- liftIO $ updateBillStatus pool bid status
+      json result
+
+    -- Delete Bill
+    delete "/api/v1/bills/:id" $ do
+      bid <- param "id"
+      result <- liftIO $ deleteBill pool bid
+      json result
+
     -- Orders (with pagination)
     get "/api/v1/orders" $ do
       let pagination = Pagination 50 0
@@ -368,6 +381,19 @@ runServer cfg = do
     post "/api/v1/orders" $ do
       input <- jsonData :: ActionM OrderInput
       result <- liftIO $ createOrder pool input
+      json result
+
+    -- Update Order Status
+    put "/api/v1/orders/:id/status" $ do
+      oid <- param "id"
+      status :: Int <- param "status"
+      result <- liftIO $ updateOrderStatus pool oid status
+      json result
+
+    -- Delete Order
+    delete "/api/v1/orders/:id" $ do
+      oid <- param "id"
+      result <- liftIO $ deleteOrder pool oid
       json result
 
     -- Goods Prices

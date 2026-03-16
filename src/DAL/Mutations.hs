@@ -274,6 +274,15 @@ deleteBillLine pool blid = do
     Right _ -> return $ QuerySuccess (MutationResult True (Just blid) (T.pack "Bill line deleted"))
     Left err -> return $ QueryError (T.pack $ show err)
 
+deleteBill :: Pool -> Int64 -> IO (QueryResult MutationResult)
+deleteBill pool bid = do
+  let sql = T.pack $ "DELETE FROM bill WHERE id = " ++ show bid ++ " RETURNING id"
+  let stmt = unpreparable sql E.noParams (D.singleRow (D.column (D.nonNullable D.int8)))
+  res <- use pool $ Session.statement () stmt
+  case res of
+    Right _ -> return $ QuerySuccess (MutationResult True (Just bid) (T.pack "Bill deleted"))
+    Left err -> return $ QueryError (T.pack $ show err)
+
 createLocation :: Pool -> LocationInput -> IO (QueryResult MutationResult)
 createLocation pool input = do
   let codeVal = renderMaybeText (liCode input)
@@ -429,6 +438,15 @@ updateOrderStatus pool oid status = do
   res <- use pool $ Session.statement () stmt
   case res of
     Right _ -> return $ QuerySuccess (MutationResult True (Just oid) (T.pack "Order status updated"))
+    Left err -> return $ QueryError (T.pack $ show err)
+
+deleteOrder :: Pool -> Int64 -> IO (QueryResult MutationResult)
+deleteOrder pool oid = do
+  let sql = T.pack $ "DELETE FROM order_head WHERE id = " ++ show oid ++ " RETURNING id"
+  let stmt = unpreparable sql E.noParams (D.singleRow (D.column (D.nonNullable D.int8)))
+  res <- use pool $ Session.statement () stmt
+  case res of
+    Right _ -> return $ QuerySuccess (MutationResult True (Just oid) (T.pack "Order deleted"))
     Left err -> return $ QueryError (T.pack $ show err)
 
 createPayment :: Pool -> Payment -> IO (QueryResult MutationResult)
