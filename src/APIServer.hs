@@ -58,10 +58,10 @@ defaultRateLimit =
 -- ============================================================================
 
 rateLimitMiddleware :: RateLimitConfig -> Middleware
-rateLimitMiddleware _cfg app req respond = app req respond
+rateLimitMiddleware _cfg app = app
 
 securityMiddleware :: Middleware
-securityMiddleware app req respond = app req respond
+securityMiddleware app = app
 
 -- ============================================================================
 -- AUTH TYPES
@@ -107,11 +107,11 @@ toJSONResult (QueryError e) = object ["success" .= False, "error" .= e]
 
 runServer :: ServerConfig -> IO ()
 runServer cfg = do
-  putStrLn $ "========================================="
-  putStrLn $ "  Surypus HTTP Server v0.1.0"
+  putStrLn "========================================="
+  putStrLn "  Surypus HTTP Server v0.1.0"
   putStrLn $ "  Host: " ++ scHost cfg ++ ":" ++ show (scPort cfg)
-  putStrLn $ "========================================="
-  putStrLn $ "Starting Scotty server..."
+  putStrLn "========================================="
+  putStrLn "Starting Scotty server..."
   hFlush stdout
 
   let port = scPort cfg
