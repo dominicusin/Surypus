@@ -193,7 +193,7 @@ runServer cfg = do
             "role" .= ("admin" :: String)
           ]
 
-    -- Persons (with pagination)
+    -- Persons (with pagination and sorting)
     get "/api/v1/persons" $ do
       let pagination = Pagination 50 0
           filter = defaultPersonFilter
@@ -202,7 +202,7 @@ runServer cfg = do
         liftIO $
           catch
             ( do
-                result <- getPersonsPaginated pool filter pagination
+                result <- getPersonsPaginated pool filter Nothing Nothing pagination
                 return (Right result)
             )
             (\(e :: SomeException) -> return (Left (T.pack (show e))))

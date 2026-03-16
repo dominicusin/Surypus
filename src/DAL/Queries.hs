@@ -540,16 +540,18 @@ getCurrencies pool = do
 -- PAGINATED QUERIES
 -- ============================================================================
 
-getPersonsPaginated :: Pool -> PersonFilter -> Pagination -> IO (QueryResult (PaginatedResult Person))
-getPersonsPaginated pool f p = do
+getPersonsPaginated :: Pool -> PersonFilter -> Maybe PersonSortBy -> Maybe SortDir -> Pagination -> IO (QueryResult (PaginatedResult Person))
+getPersonsPaginated pool f mbSortBy mbSortDir p = do
   let limitVal = pgLimit p
       offsetVal = pgOffset p
       whereClause = buildPersonFilter f
+      orderClause = buildPersonOrderBy mbSortBy mbSortDir
       sql =
         T.pack $
           "SELECT id, code::text, name::text, inn::text, kpp::text, person_type, status FROM persons.person"
             ++ T.unpack whereClause
-            ++ " ORDER BY id LIMIT "
+            ++ orderClause
+            ++ " LIMIT "
             ++ show limitVal
             ++ " OFFSET "
             ++ show offsetVal
@@ -580,6 +582,17 @@ buildPersonFilter f =
             if isJust (pfStatus f) then " status = " ++ show (fromJust (pfStatus f)) else ""
           ]
    in if null conditions then "" else T.pack $ " WHERE " ++ unwords conditions
+
+buildPersonOrderBy :: Maybe PersonSortBy -> Maybe SortDir -> String
+buildPersonOrderBy mbSortBy mbSortDir =
+  let dir = case mbSortDir of
+        Just Desc -> " DESC"
+        _ -> " ASC"
+      field = case mbSortBy of
+        Just PersonSortByName -> "name"
+        Just PersonSortByINN -> "inn"
+        _ -> "id"
+   in " ORDER BY " ++ field ++ dir
 
 getGoodsPaginated :: Pool -> GoodsFilter -> Pagination -> IO (QueryResult (PaginatedResult Goods))
 getGoodsPaginated pool _ p = do
