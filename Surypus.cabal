@@ -26,6 +26,7 @@ library
       Core.Accounting.Account
       Core.Accounting.Ledger
       Core.Accounting.Types
+      Core.Accounting.Operations
       Core.Payroll
       Core.Payroll.Types
       Core.Payroll.Calculation
