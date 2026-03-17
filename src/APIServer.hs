@@ -220,12 +220,11 @@ runServer cfg = do
               ]
 
     -- Health
-    get "/api/v1/health" $
-      json $
-        object
-          [ "status" .= ("healthy" :: String),
-            "version" .= ("0.1.0" :: String)
-          ]
+    get "/api/v1/health" . json $
+      object
+        [ "status" .= ("healthy" :: String),
+          "version" .= ("0.1.0" :: String)
+        ]
 
     -- Auth
     post "/api/v1/auth/login" $

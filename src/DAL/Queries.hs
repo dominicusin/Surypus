@@ -5,7 +5,7 @@ module DAL.Queries where
 
 import Core.Document.Types (DocumentRegisterType (..))
 import Core.Inventory.Types (Location (..), Stock (..))
-import DAL.Types hiding (Location, Stock)
+import DAL.Types hiding (Goods, Location, Stock)
 import Data.Int (Int64)
 import Data.Maybe (fromJust, isJust)
 import Data.Text (Text)
@@ -17,7 +17,7 @@ import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
 import Hasql.Statement (unpreparable)
-import Surypus.RBAC (EntityType (..), Permission (..), Role (..), defaultRoles, hasPermission)
+import Surypus.RBAC (EntityType (..), Permission (..), Role (..), UserWithRole (..), defaultRoles, hasPermission)
 import Surypus.Types (Decimal (..))
 
 personRowDecoder :: D.Row Person
@@ -383,16 +383,11 @@ getStockByGoods pool gid = do
 getSalesSummary :: Pool -> Int64 -> Int64 -> IO (QueryResult [(Day, Decimal)])
 getSalesSummary pool daysAgo limit = do
   let sql =
-        T.concat
-          [ "SELECT doc_date, SUM(total) as daily_total FROM bill ",
-            "WHERE doc_date >= CURRENT_DATE - ('",
-            T.pack (show daysAgo),
-            " days')::interval ",
-            "GROUP BY doc_date ORDER BY doc_date DESC LIMIT ",
-            T.pack (show limit)
-          ]
-      stmt = unpreparable sql E.noParams (D.rowList dateAmountDecoder)
-  res <- use pool $ Session.statement () stmt
+        "SELECT doc_date, SUM(total) as daily_total FROM bill "
+          ++ "WHERE doc_date >= CURRENT_DATE - ($1 || ' days')::interval "
+          ++ "GROUP BY doc_date ORDER BY doc_date DESC LIMIT $2"
+      stmt = unpreparable sql (E.param (E.nonNullable E.int8) <> E.param (E.nonNullable E.int8)) (D.rowList dateAmountDecoder)
+  res <- use pool $ Session.statement (daysAgo, limit) stmt
   case res of
     Right rows -> return $ QuerySuccess rows
     Left err -> return $ QueryError (T.pack $ show err)
