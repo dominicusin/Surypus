@@ -16,30 +16,6 @@ library
       Core.Person
       Core.Person.Operations
       Core.Warehouse
-      Core.Inventory
-      Core.Inventory.Types
-      Core.Inventory.Types.Location
-      Core.Inventory.Types.Stock
-      Core.Inventory.Types.Lot
-      Core.Inventory.Types.Inventory
-      Core.Inventory.Operations
-      Core.Accounting
-      Core.Accounting.Account
-      Core.Accounting.Ledger
-      Core.Accounting.Types
-      Core.Accounting.Operations
-      Core.Payroll
-      Core.Payroll.Types
-      Core.Payroll.Calculation
-      Core.Payroll.Operations
-      Core.Tax
-      Core.Currency
-      Core.Currency.Operations
-      Core.Invoice
-      Core.Invoice.Operations
-      Core.Payment
-      Core.Price
-      Core.Price.Operations
       Core.Auth
       Core.Auth.Operations
       Core.Commerce
