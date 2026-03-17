@@ -40,8 +40,9 @@ library
       Core.Payment
       Core.Price
       Core.Price.Operations
-      Core.Commerce
       Core.Auth
+      Core.Auth.Operations
+      Core.Commerce
       Core.HR
       Core.HR.Types
       Core.Unit
