@@ -1,17 +1,18 @@
 -- | City module - Cities
 module Core.City where
 
-import           Data.Int (Int64)
+import Data.Int (Int64)
 
 -- | City - City
 data City = City
-  { ctId       :: Int64
-  , ctRegionId :: Int64
-  , ctCode     :: String
-  , ctName     :: String
-  , ctTimeZone :: String
-  } deriving (Show, Eq)
+  { ctId :: Int64,
+    ctRegionId :: Int64,
+    ctCode :: String,
+    ctName :: String,
+    ctTimeZone :: String
+  }
+  deriving (Show, Eq)
 
 -- | Get name
 getCityName :: City -> String
-getCityName ct = ctName ct
+getCityName = ctName

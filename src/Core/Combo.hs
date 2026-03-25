@@ -1,17 +1,18 @@
 -- | Combo module - Combo deals
 module Core.Combo where
 
-import           Data.Int (Int64)
+import Data.Int (Int64)
 
 -- | Combo - Combo deal
 data Combo = Combo
-  { cmbId       :: Int64
-  , cmbCode     :: String
-  , cmbName     :: String
-  , cmbDiscount :: Double
-  , cmbMinQty   :: Int
-  } deriving (Show, Eq)
+  { cmbId :: Int64,
+    cmbCode :: String,
+    cmbName :: String,
+    cmbDiscount :: Double,
+    cmbMinQty :: Int
+  }
+  deriving (Show, Eq)
 
 -- | Get discount
 getComboDiscount :: Combo -> Double
-getComboDiscount c = cmbDiscount c
+getComboDiscount = cmbDiscount

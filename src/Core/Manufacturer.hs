@@ -1,16 +1,17 @@
 -- | Manufacturer module - Manufacturers
 module Core.Manufacturer where
 
-import           Data.Int (Int64)
+import Data.Int (Int64)
 
 -- | Manufacturer - Manufacturer
 data Manufacturer = Manufacturer
-  { mfrId      :: Int64
-  , mfrCode    :: String
-  , mfrName    :: String
-  , mfrCountry :: String
-  } deriving (Show, Eq)
+  { mfrId :: Int64,
+    mfrCode :: String,
+    mfrName :: String,
+    mfrCountry :: String
+  }
+  deriving (Show, Eq)
 
 -- | Get name
 getMfrName :: Manufacturer -> String
-getMfrName m = mfrName m
+getMfrName = mfrName

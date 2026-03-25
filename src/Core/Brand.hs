@@ -1,16 +1,17 @@
 -- | Brand module - Brands
 module Core.Brand where
 
-import           Data.Int (Int64)
+import Data.Int (Int64)
 
 -- | Brand - Brand
 data Brand = Brand
-  { brId   :: Int64
-  , brCode :: String
-  , brName :: String
-  , brLogo :: String
-  } deriving (Show, Eq)
+  { brId :: Int64,
+    brCode :: String,
+    brName :: String,
+    brLogo :: String
+  }
+  deriving (Show, Eq)
 
 -- | Get brand name
 getBrandName :: Brand -> String
-getBrandName b = brName b
+getBrandName = brName
