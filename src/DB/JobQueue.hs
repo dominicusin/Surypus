@@ -1,6 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
-
 module DB.JobQueue
   ( JobRecord (..),
     enqueueJob,
