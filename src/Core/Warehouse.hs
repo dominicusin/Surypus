@@ -34,7 +34,7 @@ data StockMovement = StockMovement
 -- | Calculate stock balance from movements
 calcStockBalance :: Double -> [StockMovement] -> Double
 calcStockBalance initial movements =
-  initial + sum (map smQtty movements)
+  initial + sum (fmap smQtty movements)
 
 -- | Check stock availability
 checkStockAvailable :: Lot -> Double -> Bool

@@ -70,6 +70,6 @@ checkNegativeStock = filter (\(_, qty) -> qty < 0)
 -- | Recalculate balance from lot list
 -- Инвариант: результат >= 0
 recalculateBalance :: [Lot] -> Double
-recalculateBalance lots = sum (map lotQtty lots)
+recalculateBalance lots = sum (fmap lotQtty lots)
 
 -- Теорема: sum(lotQtty) >= 0 если все lotQtty >= 0
