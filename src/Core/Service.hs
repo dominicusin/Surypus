@@ -74,11 +74,11 @@ serviceCommandDescriptions =
 -- | Help text similar to ppmain OutHelp.
 serviceCommandHelp :: Text
 serviceCommandHelp =
-  T.unlines $ ("ppws <command>") : map (\(cmd, desc) -> "  " <> cmd <> "\t" <> desc) serviceCommandDescriptions
+  T.unlines $ "ppws <command>" : fmap (\(cmd, desc) -> "  " <> cmd <> "\t" <> desc) serviceCommandDescriptions
 
 -- | Parse the args that mimic ppmain's command line.
 parseServiceCommand :: [String] -> Maybe ServiceCommand
-parseServiceCommand args = case map (T.toLower . T.pack) args of
+parseServiceCommand args = case fmap (T.toLower . T.pack) args of
   ("install" : login : pw : _) -> Just $ CmdInstall (Just login) (Just pw)
   ("install" : login : _) -> Just $ CmdInstall (Just login) Nothing
   ("install" : _) -> Just $ CmdInstall Nothing Nothing

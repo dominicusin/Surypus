@@ -1,16 +1,13 @@
-{-# LANGUAGE EmptyCase #-}
-{-# LANGUAGE EmptyDataDecls #-}
-{-# LANGUAGE ViewPatterns #-}
-
 {-@ LIQUID "--reflection" @-}
 
 module Core.Refined
   ( -- * Functions
-    clampNonNeg
-  , clampPercentage
-  , isNonNeg
-  , combineNonNeg
-  ) where
+    clampNonNeg,
+    clampPercentage,
+    isNonNeg,
+    combineNonNeg,
+  )
+where
 
 import Data.Int (Int64)
 

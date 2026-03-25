@@ -153,7 +153,7 @@ calcVATFromInclusive amount rate
   | otherwise =
       -- VAT = inclusive * rate / (1 + rate) where rate is a decimal (0.20 for 20%)
       -- We need to perform the division manually to avoid the Fractional instance's multiplication by 10000
-      let divisor = unDecimal (fromInteger 1) + unDecimal rate -- 100 + 20 = 120
+      let divisor = unDecimal (1 :: Decimal) + unDecimal rate -- 100 + 20 = 120
        in roundTo 2 (Decimal (div (unDecimal amount * unDecimal rate) divisor))
 
 -- | Calculate price without VAT from inclusive price
@@ -163,7 +163,7 @@ calcPriceWithoutVAT inclusive rate
   | otherwise =
       -- inclusive / (1 + rate) where rate is a decimal (0.20 for 20%)
       -- We need to perform the division manually to avoid the Fractional instance's multiplication by 10000
-      let divisor = unDecimal (fromInteger 1) + unDecimal rate -- 100 + 20 = 120
+      let divisor = unDecimal (1 :: Decimal) + unDecimal rate -- 100 + 20 = 120
        in roundTo 2 (Decimal (div (unDecimal inclusive * 100) divisor))
 
 -- | Calculate price with VAT
@@ -172,7 +172,7 @@ calcTaxInclusive price rate
   | price < 0 || rate < 0 = 0
   | otherwise =
       -- price * (1 + rate) where rate is a decimal (0.20 for 20%)
-      let multiplier = unDecimal (fromInteger 1) + unDecimal rate -- 100 + 20 = 120
+      let multiplier = unDecimal (1 :: Decimal) + unDecimal rate -- 100 + 20 = 120
        in roundTo 2 (Decimal (div (unDecimal price * multiplier) 100))
 
 -- | Extract VAT from inclusive price (alias)
