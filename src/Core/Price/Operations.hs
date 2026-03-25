@@ -143,7 +143,7 @@ convertCurrency price rate
 -- | Check for negative stock
 -- Инвариант: остаток на складе не может быть отрицательным
 checkNegativeStock :: [Stock] -> Bool
-checkNegativeStock stocks = any (\s -> sQtty s < 0) stocks
+checkNegativeStock = any (\s -> sQtty s < 0)
 
 -- ============================================================================
 -- PRICE LISTS
