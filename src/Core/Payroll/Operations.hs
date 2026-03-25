@@ -153,11 +153,12 @@ checkPeriodOverlap :: [SalaryRec] -> PayrollOpResult
 checkPeriodOverlap [] = PayrollOpSuccess
 checkPeriodOverlap [_] = PayrollOpSuccess
 checkPeriodOverlap records
+  | null records = PayrollOpSuccess
   | any (\(r1, r2) -> sEnd r1 >= sBeg r2) pairs = PayrollOpPeriodOverlap
   | otherwise = PayrollOpSuccess
   where
     sorted = sortBy (\a b -> compare (sBeg a) (sBeg b)) records
-    pairs = zip sorted (tail sorted)
+    pairs = zip sorted (drop 1 sorted)
 
 -- ============================================================================
 -- VACATION CALCULATIONS

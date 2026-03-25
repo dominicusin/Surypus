@@ -2,6 +2,7 @@
 module Core.HR.Employee where
 
 import Data.Int (Int64)
+import Data.Maybe (isNothing)
 import Data.Text (Text)
 import Data.Time (Day)
 
@@ -32,7 +33,7 @@ data EmployeeStatus = ES_Active | ES_OnLeave | ES_Fired | ES_Retired
 
 -- | Check if employee is active
 isEmployeeActive :: Employee -> Bool
-isEmployeeActive e = empFireDate e == Nothing
+isEmployeeActive e = isNothing (empFireDate e)
 
 -- | Get employee status based on dates
 getEmployeeStatus :: Employee -> Day -> EmployeeStatus

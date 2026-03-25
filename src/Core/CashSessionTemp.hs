@@ -2,16 +2,17 @@
 
 -- | Temporary cash check accumulator inspired by AddTempCheckAmounts.
 module Core.CashSessionTemp
-  ( TempCashCheck
-  , TempCheckLine
-  , emptyTempCashCheck
-  , mkTempCheckLine
-  , addTempCheckLine
-  , totalAmount
-  , totalDiscount
-  , netAmount
-  , verifyCheck
-  ) where
+  ( TempCashCheck,
+    TempCheckLine,
+    emptyTempCashCheck,
+    mkTempCheckLine,
+    addTempCheckLine,
+    totalAmount,
+    totalDiscount,
+    netAmount,
+    verifyCheck,
+  )
+where
 
 import Data.Int (Int64)
 
@@ -24,16 +25,17 @@ import Data.Int (Int64)
       }
   @-}
 data TempCheckLine = TempCheckLine
-  { tclLineId   :: Int64
-  , tclAmount   :: Double
-  , tclDiscount :: Double
-  } deriving (Eq, Show)
+  { tclLineId :: Int64,
+    tclAmount :: Double,
+    tclDiscount :: Double
+  }
+  deriving (Eq, Show)
 
 {-@ mkTempCheckLine :: Int64 -> NonNeg -> NonNeg -> Maybe TempCheckLine @-}
 mkTempCheckLine :: Int64 -> Double -> Double -> Maybe TempCheckLine
 mkTempCheckLine lineId amount discount
   | amount >= discount = Just $ TempCheckLine lineId amount discount
-  | otherwise          = Nothing
+  | otherwise = Nothing
 
 {-@ data TempCashCheck = TempCashCheck
       { tchCheckId    :: Int64
@@ -42,20 +44,21 @@ mkTempCheckLine lineId amount discount
       }
   @-}
 data TempCashCheck = TempCashCheck
-  { tchCheckId    :: Int64
-  , tchRegisterId :: Int64
-  , tchLines      :: [TempCheckLine]
-  } deriving (Eq, Show)
+  { tchCheckId :: Int64,
+    tchRegisterId :: Int64,
+    tchLines :: [TempCheckLine]
+  }
+  deriving (Eq, Show)
 
 -- | Create an empty accumulator for a check.
 emptyTempCashCheck :: Int64 -> Int64 -> TempCashCheck
 emptyTempCashCheck checkId regId =
-  TempCashCheck { tchCheckId = checkId, tchRegisterId = regId, tchLines = [] }
+  TempCashCheck {tchCheckId = checkId, tchRegisterId = regId, tchLines = []}
 
 -- | Append a validated line to the temporary check.
 addTempCheckLine :: TempCashCheck -> TempCheckLine -> TempCashCheck
 addTempCheckLine check line =
-  check { tchLines = line : tchLines check }
+  check {tchLines = line : tchLines check}
 
 {-@ totalAmount :: TempCashCheck -> NonNeg @-}
 totalAmount :: TempCashCheck -> Double
@@ -69,7 +72,7 @@ totalDiscount = foldr (\l acc -> tclDiscount l + acc) 0 . tchLines
 netAmount :: TempCashCheck -> Double
 netAmount check =
   let diff = totalAmount check - totalDiscount check
-   in if diff < 0 then 0 else diff
+   in max diff 0
 
 -- | Verify that the accumulated amounts obey the invariant (total >= discount).
 verifyCheck :: TempCashCheck -> Bool
