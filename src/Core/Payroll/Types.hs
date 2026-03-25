@@ -1,5 +1,4 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
 
@@ -100,25 +99,30 @@ data PeriodStatus = PS_Draft | PS_Open | PS_Closed | PS_Calculated
 -- | Validate salary record
 validateSalaryRec :: SalaryRec -> Bool
 validateSalaryRec s =
-  sId s >= 0 &&
-  sPostId s > 0 && sPostId s < 0x00ffffff &&
-  sSalChargeId s > 0 && sSalChargeId s < 0x00ffffff &&
-  sExtObjId s >= 0 &&
-  sBeg s <= sEnd s &&
-  sAmount s >= 0 && sAmount s < 1e8 &&
-  sFlags s == 0 &&
-  sLinkBillId s >= 0 && sLinkBillId s < 0x00ffffff &&
-  sGenBillId s >= 0 && sGenBillId s < 0x00ffffff &&
-  sRByGenBill s == 0
+  sId s >= 0
+    && sPostId s > 0
+    && sPostId s < 0x00ffffff
+    && sSalChargeId s > 0
+    && sSalChargeId s < 0x00ffffff
+    && sExtObjId s >= 0
+    && sBeg s <= sEnd s
+    && sAmount s >= 0
+    && sAmount s < 1e8
+    && sFlags s == 0
+    && sLinkBillId s >= 0
+    && sLinkBillId s < 0x00ffffff
+    && sGenBillId s >= 0
+    && sGenBillId s < 0x00ffffff
+    && sRByGenBill s == 0
 
 -- | Validate employee
 validateEmployee :: Employee -> Bool
 validateEmployee e =
-  empId e > 0 &&
-  empPersonId e > 0 &&
-  empPostId e > 0 &&
-  empSalary e >= 0 &&
-  maybe True (\d -> empHireDate e /= d) (empDismissDate e)
+  empId e > 0
+    && empPersonId e > 0
+    && empPostId e > 0
+    && empSalary e >= 0
+    && maybe True (\d -> empHireDate e /= d) (empDismissDate e)
 
 -- ============================================================================
 -- CALCULATIONS
@@ -154,8 +158,8 @@ calcAverageHours entries
 salaryPeriodNoOverlap :: [SalaryRec] -> Bool
 salaryPeriodNoOverlap [] = True
 salaryPeriodNoOverlap [_] = True
-salaryPeriodNoOverlap (s1:s2:rest) =
-  sEnd s1 < sBeg s2 && salaryPeriodNoOverlap (s2:rest)
+salaryPeriodNoOverlap (s1 : s2 : rest) =
+  sEnd s1 < sBeg s2 && salaryPeriodNoOverlap (s2 : rest)
 
 -- | Total salary non-negative
 totalSalaryNonNegative :: [SalaryRec] -> Double

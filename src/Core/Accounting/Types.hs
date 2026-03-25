@@ -1,5 +1,4 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE TypeFamilies #-}
 
 -- | Accounting Types - Account, Ledger, Transactions
@@ -110,28 +109,28 @@ data PlanStatus = PS_Draft | PS_Active | PS_Closed
 -- | Validate account
 validateAccount :: Account -> Bool
 validateAccount a =
-  aId a >= 0 &&
-  aParentId a >= 0 &&
-  aBalance a >= 0 &&
-  aTurns a >= 0
+  aId a >= 0
+    && aParentId a >= 0
+    && aBalance a >= 0
+    && aTurns a >= 0
 
 -- | Validate accounting turn
 validateAccTurn :: AccTurn -> Bool
 validateAccTurn t =
-  atId t >= 0 &&
-  atAcctId t > 0 &&
-  atAmount t >= 0 &&
-  atCurRate t > 0 &&
-  (atDbtAmt t >= 0) &&
-  (atCrdAmt t >= 0) &&
-  ((atDbtAmt t > 0) /= (atCrdAmt t > 0))
+  atId t >= 0
+    && atAcctId t > 0
+    && atAmount t >= 0
+    && atCurRate t > 0
+    && (atDbtAmt t >= 0)
+    && (atCrdAmt t >= 0)
+    && ((atDbtAmt t > 0) /= (atCrdAmt t > 0))
 
 -- | Validate balance
 validateBalance :: Balance -> Bool
 validateBalance b =
-  bAcctId b >= 0 &&
-  bDebit b >= 0 &&
-  bCredit b >= 0
+  bAcctId b >= 0
+    && bDebit b >= 0
+    && bCredit b >= 0
 
 -- ============================================================================
 -- ACCOUNTING INVARIANTS
