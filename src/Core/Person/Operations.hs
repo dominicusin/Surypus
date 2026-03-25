@@ -57,14 +57,14 @@ validateinn inn
 validateINN10 :: Text -> Bool
 validateINN10 inn = checkDigit10 && checkDigit11
   where
-    digits = map (\c -> read (T.unpack (T.singleton c)) :: Int) (T.unpack inn)
+    digits = fmap (\c -> read (T.unpack (T.singleton c)) :: Int) (T.unpack inn)
     checkDigit10 = (10 * digits !! 0 + 9 * digits !! 1 + 8 * digits !! 2 + 7 * digits !! 3 + 6 * digits !! 4 + 5 * digits !! 5 + 4 * digits !! 6 + 3 * digits !! 7 + 2 * digits !! 8) `mod` 11 `mod` 10 == digits !! 9
     checkDigit11 = (7 * digits !! 0 + 2 * digits !! 1 + 4 * digits !! 2 + 10 * digits !! 3 + 3 * digits !! 4 + 5 * digits !! 5 + 9 * digits !! 6 + 4 * digits !! 7 + 6 * digits !! 8 + 8 * digits !! 9) `mod` 11 `mod` 10 == digits !! 10
 
 validateINN12 :: Text -> Bool
 validateINN12 inn = checkDigit11 && checkDigit12
   where
-    digits = map (\c -> read (T.unpack (T.singleton c)) :: Int) (T.unpack inn)
+    digits = fmap (\c -> read (T.unpack (T.singleton c)) :: Int) (T.unpack inn)
     checkDigit11 = (7 * digits !! 0 + 2 * digits !! 1 + 4 * digits !! 2 + 10 * digits !! 3 + 3 * digits !! 4 + 5 * digits !! 5 + 9 * digits !! 6 + 4 * digits !! 7 + 6 * digits !! 8 + 8 * digits !! 9 + 0 * digits !! 10) `mod` 11 `mod` 10 == digits !! 10
     checkDigit12 = (3 * digits !! 0 + 7 * digits !! 1 + 2 * digits !! 2 + 4 * digits !! 3 + 10 * digits !! 4 + 3 * digits !! 5 + 5 * digits !! 6 + 9 * digits !! 7 + 4 * digits !! 8 + 6 * digits !! 9 + 8 * digits !! 10 + 0 * digits !! 11) `mod` 11 `mod` 10 == digits !! 11
 
