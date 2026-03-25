@@ -90,7 +90,7 @@ instance Statusable Person where
   status = pStatus
 
 -- | Person kinds
-data PersonKind = PK_Company | PK_Individual | PK_Entrepreneur | PK_Foreign | PK_Bank
+data PersonKind = PKCompany | PKIndividual | PKEntrepreneur | PKForeign | PKBank
   deriving (Show, Eq, Enum)
 
 -- | Employee (extends Person)
@@ -137,7 +137,7 @@ instance Timestamped Goods where
 instance Statusable Goods where
   status = gStatus
 
-data GoodsType = GT_Item | GT_Service | GT_Bundle | GT_Material | GT_Product
+data GoodsType = GTItem | GTService | GTBundle | GTMaterial | GTProduct
   deriving (Show, Eq, Enum)
 
 -- | Location (Warehouse)
@@ -167,7 +167,7 @@ instance Timestamped Location where
 instance Statusable Location where
   status = lStatus
 
-data LocationType = LT_Warehouse | LT_Store | LT_Office | LT_Transit
+data LocationType = LTWarehouse | LTStore | LTOffice | LTTransit
   deriving (Show, Eq, Enum)
 
 -- | Bill (Document)
@@ -197,10 +197,10 @@ instance Entity Bill where
     Just c -> c
     Nothing -> T.pack "Bill"
 
-data BillType = BT_Sale | BT_Purchase | BT_Return | BT_Transfer
+data BillType = BTSale | BTPurchase | BTReturn | BTTransfer
   deriving (Show, Eq, Enum)
 
-data BillStatus = BS_Draft | BS_Registered | BS_Posted | BS_Annulled
+data BillStatus = BSDraft | BSRegistered | BSPosted | BSAnnulled
   deriving (Show, Eq, Enum)
 
 -- | BillLine
@@ -251,7 +251,7 @@ instance Entity Account where
 instance Statusable Account where
   status = aStatus
 
-data AccountType = AT_Asset | AT_Liability | AT_Equity | AT_Revenue | AT_Expense
+data AccountType = ATAsset | ATLiability | ATEquity | ATRevenue | ATExpense
   deriving (Show, Eq, Enum)
 
 -- | Accounting Entry
@@ -280,10 +280,10 @@ data Payment = Payment
   }
   deriving (Show, Generic)
 
-data PaymentMethod = PM_Cash | PM_Card | PM_Transfer | PM_Bonus
+data PaymentMethod = PMCash | PMCard | PMTransfer | PMBonus
   deriving (Show, Eq, Enum)
 
-data PaymentStatus = PS_Pending | PS_Completed | PS_Failed | PS_Refunded
+data PaymentStatus = PSPending | PSCompleted | PSFailed | PSRefunded
   deriving (Show, Eq, Enum)
 
 -- | Currency
@@ -319,7 +319,7 @@ instance Entity Tax where
   entityCode = Just . tCode
   entityName = tName
 
-data TaxType = TT_VAT | TT_Excise | TT_Property
+data TaxType = TTVat | TTExcise | TTProperty
   deriving (Show, Eq, Enum)
 
 -- | Unit
@@ -391,7 +391,7 @@ instance Entity Order where
     Just c -> c
     Nothing -> T.pack "Order"
 
-data OrderStatus = OS_Pending | OS_Confirmed | OS_InProgress | OS_Completed | OS_Cancelled
+data OrderStatus = OSPending | OSConfirmed | OSInProgress | OSCompleted | OSCancelled
   deriving (Show, Eq, Enum)
 
 -- | Stock Movement
@@ -409,7 +409,7 @@ data StockMovement = StockMovement
   }
   deriving (Show, Generic)
 
-data MovementType = MT_Receipt | MT_Issue | MT_Transfer | MT_Adjustment | MT_Inventory
+data MovementType = MTReceipt | MTIssue | MTTransfer | MTAdjustment | MTInventory
   deriving (Show, Eq, Enum)
 
 -- ============================================================================
@@ -633,20 +633,20 @@ stdUnits =
 -- | Person kinds
 personKinds :: [(PersonKind, Text)]
 personKinds =
-  [ (PK_Company, T.pack "Юридическое лицо"),
-    (PK_Individual, T.pack "Физическое лицо"),
-    (PK_Entrepreneur, T.pack "ИП"),
-    (PK_Foreign, T.pack "Иностранная организация"),
-    (PK_Bank, T.pack "Банк")
+  [ (PKCompany, T.pack "Юридическое лицо"),
+    (PKIndividual, T.pack "Физическое лицо"),
+    (PKEntrepreneur, T.pack "ИП"),
+    (PKForeign, T.pack "Иностранная организация"),
+    (PKBank, T.pack "Банк")
   ]
 
 -- | Bill statuses
 billStatuses :: [(BillStatus, Text)]
 billStatuses =
-  [ (BS_Draft, T.pack "Черновик"),
-    (BS_Registered, T.pack "Проведен"),
-    (BS_Posted, T.pack "Опубликован"),
-    (BS_Annulled, T.pack "Аннулирован")
+  [ (BSDraft, T.pack "Черновик"),
+    (BSRegistered, T.pack "Проведен"),
+    (BSPosted, T.pack "Опубликован"),
+    (BSAnnulled, T.pack "Аннулирован")
   ]
 
 -- | Currencies
@@ -660,10 +660,10 @@ stdCurrencies =
 -- | Tax rates
 stdTaxes :: [Tax]
 stdTaxes =
-  [ Tax 1 (T.pack "VAT0") (T.pack "НДС 0%") 0 TT_VAT False,
-    Tax 2 (T.pack "VAT10") (T.pack "НДС 10%") 10 TT_VAT False,
-    Tax 3 (T.pack "VAT20") (T.pack "НДС 20%") 20 TT_VAT False,
-    Tax 4 (T.pack "EXCISE") (T.pack "Акциз") 0 TT_Excise True
+  [ Tax 1 (T.pack "VAT0") (T.pack "НДС 0%") 0 TTVat False,
+    Tax 2 (T.pack "VAT10") (T.pack "НДС 10%") 10 TTVat False,
+    Tax 3 (T.pack "VAT20") (T.pack "НДС 20%") 20 TTVat False,
+    Tax 4 (T.pack "EXCISE") (T.pack "Акциз") 0 TTExcise True
   ]
 
 -- ============================================================================
@@ -725,7 +725,7 @@ data Proxy a = Proxy
 -- | Process a sale
 processSale :: Bill -> [BillLine] -> Either Text Bill
 processSale bill billLines
-  | bStatus bill /= BS_Draft = Left (T.pack "Bill must be in draft status")
+  | bStatus bill /= BSDraft = Left (T.pack "Bill must be in draft status")
   | null billLines = Left (T.pack "Bill must have at least one line")
   | otherwise = Right bill {bTotal = calcBillTotal billLines}
 
