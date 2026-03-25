@@ -286,8 +286,8 @@ validatePersonContact :: PersonContact -> Either Text PersonContact
 validatePersonContact contact@PersonContact {..}
   | allEmpty [pcPhone, pcEmail, pcTelegram, pcWhatsapp] =
       Left "contact must specify at least one channel"
-  | not (maybe True (validDigits 3) pcPhone) = Left "phone must be digits"
-  | not (maybe True (validDigits 3) pcPhoneAdd) = Left "additional phone must be digits"
+  | not (all (validDigits 3) pcPhone) = Left "phone must be digits"
+  | not (all (validDigits 3) pcPhoneAdd) = Left "additional phone must be digits"
   | otherwise = Right contact
 
 validatePersonBankAccount :: PersonBankAccount -> Either Text PersonBankAccount
@@ -301,7 +301,7 @@ allEmpty :: [Maybe Text] -> Bool
 allEmpty = all (maybe True T.null)
 
 nonEmpty :: Maybe Text -> Bool
-nonEmpty = maybe False (not . T.null)
+nonEmpty = any (not . T.null)
 
 validDigits :: Int -> Text -> Bool
 validDigits len txt =
@@ -321,7 +321,7 @@ validatePerson p@Person {..}
   | personDiscount < 0 = Left "discount must be at least 0%"
   | personDiscount > 100 = Left "discount cannot exceed 100%"
   | T.null personName = Left "name cannot be empty"
-  | maybe False T.null personCode = Left "code must be present"
-  | maybe False (not . validateINN) personINN = Left "invalid INN format"
-  | maybe False (not . validateKPP) personKPP = Left "invalid KPP format"
+  | any T.null personCode = Left "code must be present"
+  | any (not . validateINN) personINN = Left "invalid INN format"
+  | any (not . validateKPP) personKPP = Left "invalid KPP format"
   | otherwise = Right (normalizePerson p)

@@ -45,12 +45,12 @@ instance FromJSON TechCardInput
 
 validateTechLineInput :: TechLineInput -> Either Text TechLineInput
 validateTechLineInput line@TechLineInput {..}
-  | maybe False (<= 0) tliLineNo = Left "line number must be positive"
+  | any (<= 0) tliLineNo = Left "line number must be positive"
   | tliGoodsId <= 0 = Left "goods id must be positive"
   | tliQtty < 0 = Left "line quantity must be non-negative"
   | tliSign < -1 || tliSign > 1 = Left "line sign must be -1/0/1"
-  | maybe False (< 0) tliLineTime = Left "line time must be non-negative"
-  | maybe False (< 0) tliLineCost = Left "line cost must be non-negative"
+  | any (< 0) tliLineTime = Left "line time must be non-negative"
+  | any (< 0) tliLineCost = Left "line cost must be non-negative"
   | otherwise = Right line
 
 validateTechCardInput :: TechCardInput -> Either Text TechCardInput
