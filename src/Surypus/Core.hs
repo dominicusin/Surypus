@@ -731,7 +731,7 @@ processSale bill billLines
 
 -- | Post a bill (generate accounting entries)
 postBill :: Bill -> [BillLine] -> [AccTurn]
-postBill bill billLines = concatMap (generateEntries bill) billLines
+postBill bill = concatMap (generateEntries bill)
 
 generateEntries :: Bill -> BillLine -> [AccTurn]
 generateEntries bill line =
