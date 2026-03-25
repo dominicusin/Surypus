@@ -18,6 +18,7 @@ import Control.Monad (forM_, join, void, when)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.Aeson (FromJSON, ToJSON, Value (..), decode, defaultOptions, encode, genericToJSON, object, (.=))
 import Data.Aeson.TH (defaultOptions, deriveJSON, fieldLabelModifier)
+import Data.Char (isDigit)
 import Data.IORef (IORef, modifyIORef, newIORef, readIORef, writeIORef)
 import Data.Int (Int64)
 import Data.Maybe (fromMaybe, mapMaybe)
@@ -868,11 +869,7 @@ formatDate day = T.pack $ show day
 -- | Validate INN
 validateInn :: Text -> Bool
 validateInn inn = T.length inn >= 10 && T.length inn <= 12 && T.all isDigit inn
-  where
-    isDigit c = c >= '0' && c <= '9'
 
 -- | Validate KPP
 validateKpp :: Text -> Bool
 validateKpp kpp = T.length kpp == 9 && T.all isDigit kpp
-  where
-    isDigit c = c >= '0' && c <= '9'
