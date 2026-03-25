@@ -169,4 +169,4 @@ mkAssetEvent :: Int64 -> AssetEventType -> Day -> Double -> Text -> AssetEvent
 mkAssetEvent assetId etype dt amount desc = AssetEvent 0 assetId etype dt (max 0 amount) desc
 
 mkAssetDepreciation :: Int64 -> Day -> Double -> Double -> Int -> AssetDepreciation
-mkAssetDepreciation assetId period amount accum method = AssetDepreciation 0 assetId period amount accum method
+mkAssetDepreciation = AssetDepreciation 0

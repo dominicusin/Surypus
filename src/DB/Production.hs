@@ -320,7 +320,7 @@ planSnapshotRow = do
 logProductionPlan :: Pool -> [MRPPlanItem] -> Text -> IO Int64
 logProductionPlan pool plan params = use pool $ Session.statement (planPayload, params) stmt
   where
-    planPayload = TL.toStrict $ decodeUtf8 $ toStrict $ encode plan
+    planPayload = TL.toStrict . decodeUtf8 . toStrict $ encode plan
     stmt =
       Statement
         "INSERT INTO production_plan_snapshot (plan, params) VALUES ($1::jsonb, $2) RETURNING id"
