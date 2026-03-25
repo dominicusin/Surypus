@@ -1,11 +1,10 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module DB.Document.RegisterRow
-  ( documentRegisterRow
-  ) where
+  ( documentRegisterRow,
+  )
+where
 
-import Core.Document.Types (DocumentRegister(..))
-import Hasql.Decoders (Row, column, nonNullable, nullable, int8, text, date, int4, bool)
+import Core.Document.Types (DocumentRegister (..))
+import Hasql.Decoders (Row, bool, column, date, int4, int8, nonNullable, nullable, text)
 
 documentRegisterRow :: Row DocumentRegister
 documentRegisterRow =

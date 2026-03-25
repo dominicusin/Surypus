@@ -1,18 +1,18 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
 
 module DB.PersonSummary
-  ( PersonSummary(..)
-  , listPersonSummary
-  ) where
+  ( PersonSummary (..),
+    listPersonSummary,
+  )
+where
 
 import Data.Int (Int64)
-import Hasql.Pool (Pool, use)
-import Hasql.Statement (Statement(..))
-import qualified Hasql.Encoders as E
+import Domain.Person (PersonSummary (..))
 import qualified Hasql.Decoders as D
+import qualified Hasql.Encoders as E
+import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
-import Domain.Person (PersonSummary(..))
+import Hasql.Statement (Statement (..))
 
 personSummaryRowDecoder :: D.Row PersonSummary
 personSummaryRowDecoder =
@@ -26,8 +26,9 @@ personSummaryRowDecoder =
 listPersonSummary :: Pool -> IO [PersonSummary]
 listPersonSummary pool = use pool $ Session.statement () stmt
   where
-    stmt = Statement
-      "SELECT status, category, total_persons, total_credit_limit, avg_discount FROM get_person_summary()"
-      E.noParams
-      (D.rowList personSummaryRowDecoder)
-      False
+    stmt =
+      Statement
+        "SELECT status, category, total_persons, total_credit_limit, avg_discount FROM get_person_summary()"
+        E.noParams
+        (D.rowList personSummaryRowDecoder)
+        False

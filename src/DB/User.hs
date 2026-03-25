@@ -1,12 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
 
 module DB.User
-  ( AppUser(..)
-  , getUserByLogin
-  , verifyUserCredentials
-  , appUserRole
-  ) where
+  ( AppUser (..),
+    getUserByLogin,
+    verifyUserCredentials,
+    appUserRole,
+  )
+where
 
 import Control.Monad (guard)
 import Crypto.Hash (Digest, SHA256, hash)
@@ -22,17 +22,16 @@ import qualified Hasql.Decoders as D
 import Hasql.Encoders (param)
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
+import qualified Hasql.Session as Session
 import Hasql.Statement (Statement (..))
 
-import qualified Hasql.Session as Session
-
 data AppUser = AppUser
-  { appUserId       :: Int64
-  , appUserLogin    :: Text
-  , appUserName     :: Text
-  , appUserPassword :: Text
-  , appUserFlags    :: Int
-  , appUserStatus   :: Int
+  { appUserId :: Int64,
+    appUserLogin :: Text,
+    appUserName :: Text,
+    appUserPassword :: Text,
+    appUserFlags :: Int,
+    appUserStatus :: Int
   }
   deriving (Eq, Show)
 
@@ -57,14 +56,16 @@ appUserRole usr
   | otherwise = rolesFromFlags (appUserFlags usr)
 
 getUserByLogin :: Pool -> Text -> IO (Maybe AppUser)
-getUserByLogin pool login = use pool $
-  Session.statement login stmt
+getUserByLogin pool login =
+  use pool $
+    Session.statement login stmt
   where
-    stmt = Statement
-      "SELECT id, login, name, password, flags, status FROM users WHERE login = $1 AND status >= 0"
-      (param (E.nonNullable E.text))
-      (rowMaybe userRow)
-      False
+    stmt =
+      Statement
+        "SELECT id, login, name, password, flags, status FROM users WHERE login = $1 AND status >= 0"
+        (param (E.nonNullable E.text))
+        (rowMaybe userRow)
+        False
 
 verifyUserCredentials :: Pool -> Text -> Text -> IO (Maybe AppUser)
 verifyUserCredentials pool login password = do
