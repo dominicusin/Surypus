@@ -1,17 +1,26 @@
 -- | Main entry point for Surypus API server
 module Main where
 
-import qualified Data.Text          as T
-import           System.Environment (getArgs, getEnv, getEnvironment)
-import           System.IO          (hPutStrLn, stderr)
-
-import           API.Server         (ServerConfig (..), runServer)
-import           DB.Connection      (Pool, PoolConfig (..), closePool, createPool,
-                                     initSchema)
-import           Core.Service       (ServiceCommand (..), initialServiceState,
-                                     parseServiceCommand, serviceCommandHelp,
-                                     serviceStatePhase, transition)
-import           Core.ServiceManager (runDaemon)
+import API.Server (ServerConfig (..), runServer)
+import Core.Service
+  ( ServiceCommand (..),
+    initialServiceState,
+    parseServiceCommand,
+    serviceCommandHelp,
+    serviceStatePhase,
+    transition,
+  )
+import Core.ServiceManager (runDaemon)
+import DB.Connection
+  ( Pool,
+    PoolConfig (..),
+    closePool,
+    createPool,
+    initSchema,
+  )
+import qualified Data.Text as T
+import System.Environment (getArgs, getEnv, getEnvironment)
+import System.IO (hPutStrLn, stderr)
 
 main :: IO ()
 main = do
@@ -30,22 +39,24 @@ main = do
   pgPass <- getEnvDefault "SURYPUS_PG_PASSWORD" "surypus"
   pgDb <- getEnvDefault "SURYPUS_PG_DATABASE" "surypus"
 
-  let poolCfg = PoolConfig
-        { pcHost = pgHost
-        , pcPort = pgPort
-        , pcUser = pgUser
-        , pcPassword = pgPass
-        , pcDatabase = pgDb
-        , pcConnections = 10
-        , pcStripes = 1
-        , pcIdleTime = 60
-        }
+  let poolCfg =
+        PoolConfig
+          { pcHost = pgHost,
+            pcPort = pgPort,
+            pcUser = pgUser,
+            pcPassword = pgPass,
+            pcDatabase = pgDb,
+            pcConnections = 10,
+            pcStripes = 1,
+            pcIdleTime = 60
+          }
 
-      serverCfg = ServerConfig
-        { scPort = port
-        , scHost = host
-        , scPoolConfig = poolCfg
-        }
+      serverCfg =
+        ServerConfig
+          { scPort = port,
+            scHost = host,
+            scPoolConfig = poolCfg
+          }
 
   putStrLn $ "Database: " <> pgHost <> ":" <> show pgPort <> "/" <> pgDb
   putStrLn $ "Server: " <> host <> ":" <> show port
@@ -72,13 +83,9 @@ main = do
 getEnvDefault :: String -> String -> IO String
 getEnvDefault name defaultVal = do
   val <- tryGetEnv name
-  pure $ case val of
-    Just v  -> v
-    Nothing -> defaultVal
+  pure $ fromMaybe defaultVal val
   where
-    tryGetEnv n = do
-      envs <- getEnvironment
-      pure $ lookup n envs
+    tryGetEnv n = lookup n <$> getEnvironment
 
 runServiceMode :: ServerConfig -> Pool -> ServiceCommand -> IO ()
 runServiceMode _ _ CmdHelp = putStrLn (T.unpack serviceCommandHelp)
