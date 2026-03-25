@@ -18,19 +18,19 @@ import qualified Data.Text as T
 -- ============================================================================
 
 data ReportCategory
-  = RC_Accounting -- Бухгалтерия
-  | RC_Warehouse -- Склад
-  | RC_Bills -- Документы
-  | RC_Payroll -- Зарплата
-  | RC_Banking -- Банк
-  | RC_Persons -- Контрагенты
-  | RC_Goods -- Товары
-  | RC_Tax -- Налоги
-  | RC_CashSession -- Кассы
-  | RC_Project -- Проекты
-  | RC_Asset -- ОС
-  | RC_Analytics -- Аналитика
-  | RC_System -- Системные
+  = RCAccounting -- Бухгалтерия
+  | RCWarehouse -- Склад
+  | RCBills -- Документы
+  | RCPayroll -- Зарплата
+  | RCBanking -- Банк
+  | RCPersons -- Контрагенты
+  | RCGoods -- Товары
+  | RCTax -- Налоги
+  | RCCashSession -- Кассы
+  | RCProject -- Проекты
+  | RCAsset -- ОС
+  | RCAnalytics -- Аналитика
+  | RCSystem -- Системные
   deriving (Show, Eq, Enum)
 
 -- ============================================================================
@@ -59,7 +59,7 @@ data ParamDef = ParamDef
   }
   deriving (Show)
 
-data ParamType = PT_Date | PT_DateRange | PT_Int | PT_Text | PT_Double | PT_Boolean | PT_List
+data ParamType = PTDate | PTDateRange | PTInt | PTText | PTDouble | PTBoolean | PTList
   deriving (Show, Eq)
 
 data FieldDef = FieldDef
@@ -69,7 +69,7 @@ data FieldDef = FieldDef
   }
   deriving (Show)
 
-data FieldType = FT_String | FT_Integer | FT_Double | FT_Date | FT_Boolean | FT_BigDecimal
+data FieldType = FTString | FTInteger | FTDouble | FTDate | FTBoolean | FTBigDecimal
   deriving (Show, Eq)
 
 data GroupDef = GroupDef
@@ -127,13 +127,13 @@ generateParams ps = T.unlines $ fmap genParam ps
         <> "\""
         <> (if pRequired p then " isForPrompting=\"true\"" else "")
         <> "/>"
-    paramClass PT_Date = "java.util.Date"
-    paramClass PT_DateRange = "java.util.Date"
-    paramClass PT_Int = "java.lang.Integer"
-    paramClass PT_Text = "java.lang.String"
-    paramClass PT_Double = "java.lang.Double"
-    paramClass PT_Boolean = "java.lang.Boolean"
-    paramClass PT_List = "java.lang.String"
+    paramClass PTDate = "java.util.Date"
+    paramClass PTDateRange = "java.util.Date"
+    paramClass PTInt = "java.lang.Integer"
+    paramClass PTText = "java.lang.String"
+    paramClass PTDouble = "java.lang.Double"
+    paramClass PTBoolean = "java.lang.Boolean"
+    paramClass PTList = "java.lang.String"
 
 generateFields :: [FieldDef] -> Text
 generateFields fs =
@@ -147,12 +147,12 @@ generateFields fs =
         <> "\" class=\""
         <> fieldClass (fType f)
         <> "\"/>"
-    fieldClass FT_String = "java.lang.String"
-    fieldClass FT_Integer = "java.lang.Integer"
-    fieldClass FT_Double = "java.lang.Double"
-    fieldClass FT_Date = "java.util.Date"
-    fieldClass FT_Boolean = "java.lang.Boolean"
-    fieldClass FT_BigDecimal = "java.math.BigDecimal"
+    fieldClass FTString = "java.lang.String"
+    fieldClass FTInteger = "java.lang.Integer"
+    fieldClass FTDouble = "java.lang.Double"
+    fieldClass FTDate = "java.util.Date"
+    fieldClass FTBoolean = "java.lang.Boolean"
+    fieldClass FTBigDecimal = "java.math.BigDecimal"
 
 generateDetailFields :: [FieldDef] -> Text
 generateDetailFields fs = T.unlines $ fmap genTextField fs
@@ -175,7 +175,7 @@ balanceReport =
   ReportDef
     { rdName = "Balance",
       rdTitle = "Balance Sheet / Бухгалтерский баланс",
-      rdCategory = RC_Accounting,
+      rdCategory = RCAccounting,
       rdDescription = "Balance sheet (form 1)",
       rdJrxml = generateJRXML balanceReport,
       rdSql =
@@ -190,15 +190,15 @@ balanceReport =
             "ORDER BY a.code"
           ],
       rdParams =
-        [ ParamDef "StartDate" PT_Date "Start Date" True Nothing,
-          ParamDef "EndDate" PT_Date "End Date" True Nothing
+        [ ParamDef "StartDate" PTDate "Start Date" True Nothing,
+          ParamDef "EndDate" PTDate "End Date" True Nothing
         ],
       rdFields =
-        [ FieldDef "AccountCode" FT_String Nothing,
-          FieldDef "AccountName" FT_String Nothing,
-          FieldDef "DebitTurnover" FT_BigDecimal Nothing,
-          FieldDef "CreditTurnover" FT_BigDecimal Nothing,
-          FieldDef "Balance" FT_BigDecimal Nothing
+        [ FieldDef "AccountCode" FTString Nothing,
+          FieldDef "AccountName" FTString Nothing,
+          FieldDef "DebitTurnover" FTBigDecimal Nothing,
+          FieldDef "CreditTurnover" FTBigDecimal Nothing,
+          FieldDef "Balance" FTBigDecimal Nothing
         ],
       rdGroups = []
     }
@@ -209,7 +209,7 @@ accountTurnoverReport =
   ReportDef
     { rdName = "AccountTurnover",
       rdTitle = "Account Turnover / Оборотно-сальдовая ведомость",
-      rdCategory = RC_Accounting,
+      rdCategory = RCAccounting,
       rdDescription = "Account turnover with balances",
       rdJrxml = generateJRXML accountTurnoverReport,
       rdSql =
@@ -226,14 +226,14 @@ accountTurnoverReport =
             "ORDER BY ap.code"
           ],
       rdParams =
-        [ ParamDef "StartDate" PT_Date "Start Date" True Nothing,
-          ParamDef "EndDate" PT_Date "End Date" True Nothing
+        [ ParamDef "StartDate" PTDate "Start Date" True Nothing,
+          ParamDef "EndDate" PTDate "End Date" True Nothing
         ],
       rdFields =
-        [ FieldDef "AccCode" FT_String Nothing,
-          FieldDef "AccName" FT_String Nothing,
-          FieldDef "DebitSum" FT_BigDecimal Nothing,
-          FieldDef "CreditSum" FT_BigDecimal Nothing
+        [ FieldDef "AccCode" FTString Nothing,
+          FieldDef "AccName" FTString Nothing,
+          FieldDef "DebitSum" FTBigDecimal Nothing,
+          FieldDef "CreditSum" FTBigDecimal Nothing
         ],
       rdGroups = []
     }
@@ -244,7 +244,7 @@ accountingEntryList =
   ReportDef
     { rdName = "AccEntryList",
       rdTitle = "Journal of Entries / Журнал проводок",
-      rdCategory = RC_Accounting,
+      rdCategory = RCAccounting,
       rdDescription = "Accounting entries journal",
       rdJrxml = generateJRXML accountingEntryList,
       rdSql =
@@ -259,16 +259,16 @@ accountingEntryList =
             "ORDER BY at.dt, at.id"
           ],
       rdParams =
-        [ ParamDef "StartDate" PT_Date "Start Date" True Nothing,
-          ParamDef "EndDate" PT_Date "End Date" True Nothing
+        [ ParamDef "StartDate" PTDate "Start Date" True Nothing,
+          ParamDef "EndDate" PTDate "End Date" True Nothing
         ],
       rdFields =
-        [ FieldDef "Date" FT_Date Nothing,
-          FieldDef "DocID" FT_Integer Nothing,
-          FieldDef "DebitAcc" FT_String Nothing,
-          FieldDef "CreditAcc" FT_String Nothing,
-          FieldDef "Amount" FT_BigDecimal Nothing,
-          FieldDef "Memo" FT_String Nothing
+        [ FieldDef "Date" FTDate Nothing,
+          FieldDef "DocID" FTInteger Nothing,
+          FieldDef "DebitAcc" FTString Nothing,
+          FieldDef "CreditAcc" FTString Nothing,
+          FieldDef "Amount" FTBigDecimal Nothing,
+          FieldDef "Memo" FTString Nothing
         ],
       rdGroups = []
     }
@@ -283,7 +283,7 @@ goodsRestReport =
   ReportDef
     { rdName = "GoodsRest",
       rdTitle = "Stock Balance / Остатки товаров",
-      rdCategory = RC_Warehouse,
+      rdCategory = RCWarehouse,
       rdDescription = "Current stock by locations",
       rdJrxml = generateJRXML goodsRestReport,
       rdSql =
@@ -301,17 +301,17 @@ goodsRestReport =
             "ORDER BY g.name, l.name"
           ],
       rdParams =
-        [ ParamDef "LocationID" PT_List "Location" False (Just "0"),
-          ParamDef "GoodsGroupID" PT_List "Goods Group" False (Just "0")
+        [ ParamDef "LocationID" PTList "Location" False (Just "0"),
+          ParamDef "GoodsGroupID" PTList "Goods Group" False (Just "0")
         ],
       rdFields =
-        [ FieldDef "GoodsCode" FT_String Nothing,
-          FieldDef "GoodsName" FT_String Nothing,
-          FieldDef "UnitSymbol" FT_String Nothing,
-          FieldDef "LocationName" FT_String Nothing,
-          FieldDef "Quantity" FT_Double Nothing,
-          FieldDef "Price" FT_BigDecimal Nothing,
-          FieldDef "TotalCost" FT_BigDecimal Nothing
+        [ FieldDef "GoodsCode" FTString Nothing,
+          FieldDef "GoodsName" FTString Nothing,
+          FieldDef "UnitSymbol" FTString Nothing,
+          FieldDef "LocationName" FTString Nothing,
+          FieldDef "Quantity" FTDouble Nothing,
+          FieldDef "Price" FTBigDecimal Nothing,
+          FieldDef "TotalCost" FTBigDecimal Nothing
         ],
       rdGroups = [GroupDef "ByLocation" "LocationName" True]
     }
@@ -322,7 +322,7 @@ goodsMovementReport =
   ReportDef
     { rdName = "GoodsMovement",
       rdTitle = "Goods Movement / Движение товаров",
-      rdCategory = RC_Warehouse,
+      rdCategory = RCWarehouse,
       rdDescription = "Incoming and outgoing goods",
       rdJrxml = generateJRXML goodsMovementReport,
       rdSql =
@@ -340,18 +340,18 @@ goodsMovementReport =
             "ORDER BY gm.dt DESC"
           ],
       rdParams =
-        [ ParamDef "StartDate" PT_Date "Start Date" True Nothing,
-          ParamDef "EndDate" PT_Date "End Date" True Nothing
+        [ ParamDef "StartDate" PTDate "Start Date" True Nothing,
+          ParamDef "EndDate" PTDate "End Date" True Nothing
         ],
       rdFields =
-        [ FieldDef "Date" FT_Date Nothing,
-          FieldDef "GoodsCode" FT_String Nothing,
-          FieldDef "GoodsName" FT_String Nothing,
-          FieldDef "FromLoc" FT_String Nothing,
-          FieldDef "ToLoc" FT_String Nothing,
-          FieldDef "Quantity" FT_Double Nothing,
-          FieldDef "Cost" FT_BigDecimal Nothing,
-          FieldDef "BillType" FT_String Nothing
+        [ FieldDef "Date" FTDate Nothing,
+          FieldDef "GoodsCode" FTString Nothing,
+          FieldDef "GoodsName" FTString Nothing,
+          FieldDef "FromLoc" FTString Nothing,
+          FieldDef "ToLoc" FTString Nothing,
+          FieldDef "Quantity" FTDouble Nothing,
+          FieldDef "Cost" FTBigDecimal Nothing,
+          FieldDef "BillType" FTString Nothing
         ],
       rdGroups = []
     }
@@ -362,7 +362,7 @@ inventoryReport =
   ReportDef
     { rdName = "Inventory",
       rdTitle = "Inventory / Инвентаризация",
-      rdCategory = RC_Warehouse,
+      rdCategory = RCWarehouse,
       rdDescription = "Inventory worksheet",
       rdJrxml = generateJRXML inventoryReport,
       rdSql =
@@ -378,15 +378,15 @@ inventoryReport =
             "ORDER BY g.name"
           ],
       rdParams =
-        [ ParamDef "InventoryID" PT_Int "Inventory #" True Nothing
+        [ ParamDef "InventoryID" PTInt "Inventory #" True Nothing
         ],
       rdFields =
-        [ FieldDef "GoodsCode" FT_String Nothing,
-          FieldDef "GoodsName" FT_String Nothing,
-          FieldDef "Unit" FT_String Nothing,
-          FieldDef "FactQty" FT_Double Nothing,
-          FieldDef "PlanQty" FT_Double Nothing,
-          FieldDef "Diff" FT_Double Nothing
+        [ FieldDef "GoodsCode" FTString Nothing,
+          FieldDef "GoodsName" FTString Nothing,
+          FieldDef "Unit" FTString Nothing,
+          FieldDef "FactQty" FTDouble Nothing,
+          FieldDef "PlanQty" FTDouble Nothing,
+          FieldDef "Diff" FTDouble Nothing
         ],
       rdGroups = []
     }
@@ -401,7 +401,7 @@ billListReport =
   ReportDef
     { rdName = "BillList",
       rdTitle = "Documents List / Список документов",
-      rdCategory = RC_Bills,
+      rdCategory = RCBills,
       rdDescription = "List of all bills",
       rdJrxml = generateJRXML billListReport,
       rdSql =
@@ -418,18 +418,18 @@ billListReport =
             "ORDER BY b.dt DESC, b.code"
           ],
       rdParams =
-        [ ParamDef "StartDate" PT_Date "Start Date" True Nothing,
-          ParamDef "EndDate" PT_Date "End Date" True Nothing,
-          ParamDef "BillTypeID" PT_Int "Bill Type" False (Just "0"),
-          ParamDef "PersonID" PT_Int "Person" False (Just "0")
+        [ ParamDef "StartDate" PTDate "Start Date" True Nothing,
+          ParamDef "EndDate" PTDate "End Date" True Nothing,
+          ParamDef "BillTypeID" PTInt "Bill Type" False (Just "0"),
+          ParamDef "PersonID" PTInt "Person" False (Just "0")
         ],
       rdFields =
-        [ FieldDef "Date" FT_Date Nothing,
-          FieldDef "BillCode" FT_String Nothing,
-          FieldDef "PersonName" FT_String Nothing,
-          FieldDef "BillTypeName" FT_String Nothing,
-          FieldDef "Total" FT_BigDecimal Nothing,
-          FieldDef "Status" FT_String Nothing
+        [ FieldDef "Date" FTDate Nothing,
+          FieldDef "BillCode" FTString Nothing,
+          FieldDef "PersonName" FTString Nothing,
+          FieldDef "BillTypeName" FTString Nothing,
+          FieldDef "Total" FTBigDecimal Nothing,
+          FieldDef "Status" FTString Nothing
         ],
       rdGroups = [GroupDef "ByDate" "Date" False]
     }
@@ -440,7 +440,7 @@ goodsBillReport =
   ReportDef
     { rdName = "GoodsBill",
       rdTitle = "Goods Bill / Товарная накладная",
-      rdCategory = RC_Bills,
+      rdCategory = RCBills,
       rdDescription = "Goods bill document",
       rdJrxml = generateJRXML goodsBillReport,
       rdSql =
@@ -456,17 +456,17 @@ goodsBillReport =
             "ORDER BY bl.ord"
           ],
       rdParams =
-        [ ParamDef "BillID" PT_Int "Bill ID" True Nothing
+        [ ParamDef "BillID" PTInt "Bill ID" True Nothing
         ],
       rdFields =
-        [ FieldDef "LineNo" FT_Integer Nothing,
-          FieldDef "GoodsCode" FT_String Nothing,
-          FieldDef "GoodsName" FT_String Nothing,
-          FieldDef "Quantity" FT_Double Nothing,
-          FieldDef "Unit" FT_String Nothing,
-          FieldDef "Price" FT_BigDecimal Nothing,
-          FieldDef "Discount" FT_Double Nothing,
-          FieldDef "LineTotal" FT_BigDecimal Nothing
+        [ FieldDef "LineNo" FTInteger Nothing,
+          FieldDef "GoodsCode" FTString Nothing,
+          FieldDef "GoodsName" FTString Nothing,
+          FieldDef "Quantity" FTDouble Nothing,
+          FieldDef "Unit" FTString Nothing,
+          FieldDef "Price" FTBigDecimal Nothing,
+          FieldDef "Discount" FTDouble Nothing,
+          FieldDef "LineTotal" FTBigDecimal Nothing
         ],
       rdGroups = []
     }
@@ -477,7 +477,7 @@ invoiceReport =
   ReportDef
     { rdName = "Invoice",
       rdTitle = "Invoice / Счет-фактура",
-      rdCategory = RC_Bills,
+      rdCategory = RCBills,
       rdDescription = "VAT invoice",
       rdJrxml = generateJRXML invoiceReport,
       rdSql =
@@ -492,17 +492,17 @@ invoiceReport =
             "ORDER BY bl.ord"
           ],
       rdParams =
-        [ ParamDef "BillID" PT_Int "Bill ID" True Nothing
+        [ ParamDef "BillID" PTInt "Bill ID" True Nothing
         ],
       rdFields =
-        [ FieldDef "Num" FT_Integer Nothing,
-          FieldDef "GoodsName" FT_String Nothing,
-          FieldDef "Qty" FT_Double Nothing,
-          FieldDef "Price" FT_BigDecimal Nothing,
-          FieldDef "TotalWoTax" FT_BigDecimal Nothing,
-          FieldDef "TaxRate" FT_Double Nothing,
-          FieldDef "TaxAmount" FT_BigDecimal Nothing,
-          FieldDef "TotalWithTax" FT_BigDecimal Nothing
+        [ FieldDef "Num" FTInteger Nothing,
+          FieldDef "GoodsName" FTString Nothing,
+          FieldDef "Qty" FTDouble Nothing,
+          FieldDef "Price" FTBigDecimal Nothing,
+          FieldDef "TotalWoTax" FTBigDecimal Nothing,
+          FieldDef "TaxRate" FTDouble Nothing,
+          FieldDef "TaxAmount" FTBigDecimal Nothing,
+          FieldDef "TotalWithTax" FTBigDecimal Nothing
         ],
       rdGroups = []
     }
@@ -517,7 +517,7 @@ salaryReport =
   ReportDef
     { rdName = "Salary",
       rdTitle = "Salary Report / Расчетная ведомость",
-      rdCategory = RC_Payroll,
+      rdCategory = RCPayroll,
       rdDescription = "Employee salary calculation",
       rdJrxml = generateJRXML salaryReport,
       rdSql =
@@ -533,16 +533,16 @@ salaryReport =
             "ORDER BY prsn.name"
           ],
       rdParams =
-        [ ParamDef "Period" PT_Text "Period (YYYY-MM)" True Nothing
+        [ ParamDef "Period" PTText "Period (YYYY-MM)" True Nothing
         ],
       rdFields =
-        [ FieldDef "EmpID" FT_Integer Nothing,
-          FieldDef "EmpName" FT_String Nothing,
-          FieldDef "Position" FT_String Nothing,
-          FieldDef "BaseSalary" FT_BigDecimal Nothing,
-          FieldDef "Bonus" FT_BigDecimal Nothing,
-          FieldDef "Deductions" FT_BigDecimal Nothing,
-          FieldDef "NetSalary" FT_BigDecimal Nothing
+        [ FieldDef "EmpID" FTInteger Nothing,
+          FieldDef "EmpName" FTString Nothing,
+          FieldDef "Position" FTString Nothing,
+          FieldDef "BaseSalary" FTBigDecimal Nothing,
+          FieldDef "Bonus" FTBigDecimal Nothing,
+          FieldDef "Deductions" FTBigDecimal Nothing,
+          FieldDef "NetSalary" FTBigDecimal Nothing
         ],
       rdGroups = []
     }
@@ -557,7 +557,7 @@ paymentOrderReport =
   ReportDef
     { rdName = "PaymentOrder",
       rdTitle = "Payment Order / Платежное поручение",
-      rdCategory = RC_Banking,
+      rdCategory = RCBanking,
       rdDescription = "Bank payment order",
       rdJrxml = generateJRXML paymentOrderReport,
       rdSql =
@@ -570,17 +570,17 @@ paymentOrderReport =
             "WHERE po.id = $P{PaymentOrderID}"
           ],
       rdParams =
-        [ ParamDef "PaymentOrderID" PT_Int "Payment Order ID" True Nothing
+        [ ParamDef "PaymentOrderID" PTInt "Payment Order ID" True Nothing
         ],
       rdFields =
-        [ FieldDef "DocNum" FT_String Nothing,
-          FieldDef "DocDate" FT_Date Nothing,
-          FieldDef "Payer" FT_String Nothing,
-          FieldDef "PayerBank" FT_String Nothing,
-          FieldDef "Receiver" FT_String Nothing,
-          FieldDef "ReceiverBank" FT_String Nothing,
-          FieldDef "Amount" FT_BigDecimal Nothing,
-          FieldDef "Purpose" FT_String Nothing
+        [ FieldDef "DocNum" FTString Nothing,
+          FieldDef "DocDate" FTDate Nothing,
+          FieldDef "Payer" FTString Nothing,
+          FieldDef "PayerBank" FTString Nothing,
+          FieldDef "Receiver" FTString Nothing,
+          FieldDef "ReceiverBank" FTString Nothing,
+          FieldDef "Amount" FTBigDecimal Nothing,
+          FieldDef "Purpose" FTString Nothing
         ],
       rdGroups = []
     }
@@ -591,7 +591,7 @@ cashBookReport =
   ReportDef
     { rdName = "CashBook",
       rdTitle = "Cash Book / Кассовая книга",
-      rdCategory = RC_Banking,
+      rdCategory = RCBanking,
       rdDescription = "Cash transactions register",
       rdJrxml = generateJRXML cashBookReport,
       rdSql =
@@ -608,17 +608,17 @@ cashBookReport =
             "ORDER BY cs.dt, cs.id"
           ],
       rdParams =
-        [ ParamDef "CashNodeID" PT_Int "Cash Node" True Nothing,
-          ParamDef "StartDate" PT_Date "Start Date" True Nothing,
-          ParamDef "EndDate" PT_Date "End Date" True Nothing
+        [ ParamDef "CashNodeID" PTInt "Cash Node" True Nothing,
+          ParamDef "StartDate" PTDate "Start Date" True Nothing,
+          ParamDef "EndDate" PTDate "End Date" True Nothing
         ],
       rdFields =
-        [ FieldDef "Date" FT_Date Nothing,
-          FieldDef "DocNum" FT_String Nothing,
-          FieldDef "OpName" FT_String Nothing,
-          FieldDef "Income" FT_BigDecimal Nothing,
-          FieldDef "Outcome" FT_BigDecimal Nothing,
-          FieldDef "Balance" FT_BigDecimal Nothing
+        [ FieldDef "Date" FTDate Nothing,
+          FieldDef "DocNum" FTString Nothing,
+          FieldDef "OpName" FTString Nothing,
+          FieldDef "Income" FTBigDecimal Nothing,
+          FieldDef "Outcome" FTBigDecimal Nothing,
+          FieldDef "Balance" FTBigDecimal Nothing
         ],
       rdGroups = []
     }
@@ -633,7 +633,7 @@ vatBookBuyReport =
   ReportDef
     { rdName = "VATBookBuy",
       rdTitle = "VAT Purchase Book / Книга покупок",
-      rdCategory = RC_Tax,
+      rdCategory = RCTax,
       rdDescription = "VAT input register",
       rdJrxml = generateJRXML vatBookBuyReport,
       rdSql =
@@ -649,16 +649,16 @@ vatBookBuyReport =
             "ORDER BY b.dt"
           ],
       rdParams =
-        [ ParamDef "StartDate" PT_Date "Start Date" True Nothing,
-          ParamDef "EndDate" PT_Date "End Date" True Nothing
+        [ ParamDef "StartDate" PTDate "Start Date" True Nothing,
+          ParamDef "EndDate" PTDate "End Date" True Nothing
         ],
       rdFields =
-        [ FieldDef "RegDate" FT_Date Nothing,
-          FieldDef "InvoiceNum" FT_String Nothing,
-          FieldDef "SellerName" FT_String Nothing,
-          FieldDef "SellerINN" FT_String Nothing,
-          FieldDef "Total" FT_BigDecimal Nothing,
-          FieldDef "VAT" FT_BigDecimal Nothing
+        [ FieldDef "RegDate" FTDate Nothing,
+          FieldDef "InvoiceNum" FTString Nothing,
+          FieldDef "SellerName" FTString Nothing,
+          FieldDef "SellerINN" FTString Nothing,
+          FieldDef "Total" FTBigDecimal Nothing,
+          FieldDef "VAT" FTBigDecimal Nothing
         ],
       rdGroups = []
     }
@@ -669,7 +669,7 @@ vatBookSellReport =
   ReportDef
     { rdName = "VATBookSell",
       rdTitle = "VAT Sales Book / Книга продаж",
-      rdCategory = RC_Tax,
+      rdCategory = RCTax,
       rdDescription = "VAT output register",
       rdJrxml = generateJRXML vatBookSellReport,
       rdSql =
@@ -685,16 +685,16 @@ vatBookSellReport =
             "ORDER BY b.dt"
           ],
       rdParams =
-        [ ParamDef "StartDate" PT_Date "Start Date" True Nothing,
-          ParamDef "EndDate" PT_Date "End Date" True Nothing
+        [ ParamDef "StartDate" PTDate "Start Date" True Nothing,
+          ParamDef "EndDate" PTDate "End Date" True Nothing
         ],
       rdFields =
-        [ FieldDef "RegDate" FT_Date Nothing,
-          FieldDef "InvoiceNum" FT_String Nothing,
-          FieldDef "BuyerName" FT_String Nothing,
-          FieldDef "BuyerINN" FT_String Nothing,
-          FieldDef "Total" FT_BigDecimal Nothing,
-          FieldDef "VAT" FT_BigDecimal Nothing
+        [ FieldDef "RegDate" FTDate Nothing,
+          FieldDef "InvoiceNum" FTString Nothing,
+          FieldDef "BuyerName" FTString Nothing,
+          FieldDef "BuyerINN" FTString Nothing,
+          FieldDef "Total" FTBigDecimal Nothing,
+          FieldDef "VAT" FTBigDecimal Nothing
         ],
       rdGroups = []
     }
@@ -709,7 +709,7 @@ personListReport =
   ReportDef
     { rdName = "PersonList",
       rdTitle = "Counteragents List / Список контрагентов",
-      rdCategory = RC_Persons,
+      rdCategory = RCPersons,
       rdDescription = "All persons directory",
       rdJrxml = generateJRXML personListReport,
       rdSql =
@@ -722,16 +722,16 @@ personListReport =
             "ORDER BY p.name"
           ],
       rdParams =
-        [ ParamDef "PersonKindID" PT_List "Kind" False (Just "0")
+        [ ParamDef "PersonKindID" PTList "Kind" False (Just "0")
         ],
       rdFields =
-        [ FieldDef "Code" FT_String Nothing,
-          FieldDef "Name" FT_String Nothing,
-          FieldDef "Kind" FT_String Nothing,
-          FieldDef "INN" FT_String Nothing,
-          FieldDef "KPP" FT_String Nothing,
-          FieldDef "Phone" FT_String Nothing,
-          FieldDef "Email" FT_String Nothing
+        [ FieldDef "Code" FTString Nothing,
+          FieldDef "Name" FTString Nothing,
+          FieldDef "Kind" FTString Nothing,
+          FieldDef "INN" FTString Nothing,
+          FieldDef "KPP" FTString Nothing,
+          FieldDef "Phone" FTString Nothing,
+          FieldDef "Email" FTString Nothing
         ],
       rdGroups = [GroupDef "ByKind" "Kind" True]
     }
@@ -746,7 +746,7 @@ salesTurnoverReport =
   ReportDef
     { rdName = "SalesTurnover",
       rdTitle = "Sales Turnover / Обороты продаж",
-      rdCategory = RC_Analytics,
+      rdCategory = RCAnalytics,
       rdDescription = "Sales analysis by goods",
       rdJrxml = generateJRXML salesTurnoverReport,
       rdSql =
@@ -767,15 +767,15 @@ salesTurnoverReport =
             "ORDER BY TotalSum DESC"
           ],
       rdParams =
-        [ ParamDef "StartDate" PT_Date "Start Date" True Nothing,
-          ParamDef "EndDate" PT_Date "End Date" True Nothing
+        [ ParamDef "StartDate" PTDate "Start Date" True Nothing,
+          ParamDef "EndDate" PTDate "End Date" True Nothing
         ],
       rdFields =
-        [ FieldDef "GoodsCode" FT_String Nothing,
-          FieldDef "GoodsName" FT_String Nothing,
-          FieldDef "GroupName" FT_String Nothing,
-          FieldDef "TotalQty" FT_Double Nothing,
-          FieldDef "TotalSum" FT_BigDecimal Nothing
+        [ FieldDef "GoodsCode" FTString Nothing,
+          FieldDef "GoodsName" FTString Nothing,
+          FieldDef "GroupName" FTString Nothing,
+          FieldDef "TotalQty" FTDouble Nothing,
+          FieldDef "TotalSum" FTBigDecimal Nothing
         ],
       rdGroups = [GroupDef "ByGroup" "GroupName" True]
     }

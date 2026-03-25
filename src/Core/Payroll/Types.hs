@@ -40,7 +40,7 @@ data SalaryCharge = SalaryCharge
   }
   deriving (Show, Eq)
 
-data SalaryChargeType = SCT_Fixed | SCT_Periodic | SCT_Accrual | SCT_Deduction
+data SalaryChargeType = SCTFixed | SCTPeriodic | SCTAccrual | SCTDeduction
   deriving (Show, Eq)
 
 -- | HR Position
@@ -66,7 +66,7 @@ data Employee = Employee
   }
   deriving (Show, Eq)
 
-data EmployeeStatus = ES_Active | ES_Dismissed | ES_OnLeave | ES_Archived
+data EmployeeStatus = ESActive | ESDismissed | ESOnLeave | ESArchived
   deriving (Show, Eq)
 
 -- | Time sheet entry
@@ -89,7 +89,7 @@ data PayrollPeriod = PayrollPeriod
   }
   deriving (Show, Eq)
 
-data PeriodStatus = PS_Draft | PS_Open | PS_Closed | PS_Calculated
+data PeriodStatus = PSDraft | PSOpen | PSClosed | PSCalculated
   deriving (Show, Eq)
 
 -- ============================================================================
