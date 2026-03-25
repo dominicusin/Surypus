@@ -139,13 +139,13 @@ instance ToJSON AssetEvent
 instance FromJSON AssetEvent
 
 data AssetEventType
-  = AE_Purchase
-  | AE_Commission
-  | AE_Transfer
-  | AE_Repair
-  | AE_Depreciate
-  | AE_Sell
-  | AE_WriteOff
+  = AEPurchase
+  | AECommission
+  | AETransfer
+  | AERepair
+  | AEDepreciate
+  | AESell
+  | AEWriteOff
   deriving (Eq, Show, Enum, Generic)
 
 instance ToJSON AssetEventType

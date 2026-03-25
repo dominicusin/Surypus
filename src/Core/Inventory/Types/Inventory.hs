@@ -24,13 +24,13 @@ data Inventory = Inventory
 
 -- | Inventory status
 data InventoryStatus
-  = IS_Draft -- Черновик (0)
-  | IS_InProgress -- В процессе (1)
-  | IS_Counted -- Подсчитано (2)
-  | IS_Analyzed -- Проанализировано (3)
-  | IS_Approved -- Утверждено (4)
-  | IS_Completed -- Завершена (5)
-  | IS_Cancelled -- Отменена (6)
+  = ISDraft -- Черновик (0)
+  | ISInProgress -- В процессе (1)
+  | ISCounted -- Подсчитано (2)
+  | ISAnalyzed -- Проанализировано (3)
+  | ISApproved -- Утверждено (4)
+  | ISCompleted -- Завершена (5)
+  | ISCancelled -- Отменена (6)
   deriving (Show, Eq, Enum, Generic)
 
 instance ToJSON InventoryStatus
@@ -51,7 +51,7 @@ data InventoryLine = InventoryLine
 
 -- | Inventory result
 data InventoryResult
-  = IR_Match -- Quantity matches
-  | IR_Overage -- More than expected (излишек)
-  | IR_Shortage -- Less than expected (недостача)
+  = IRMatch -- Quantity matches
+  | IROverage -- More than expected (излишек)
+  | IRShortage -- Less than expected (недостача)
   deriving (Show, Eq)

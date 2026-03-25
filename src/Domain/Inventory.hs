@@ -173,9 +173,9 @@ sumShortage = List.foldl' (+) 0 . fmap (negate . min 0 . ilDiffQtty)
 
 inventoryLineResult :: InventoryLine -> InventoryResult
 inventoryLineResult InventoryLine {..}
-  | ilDiffQtty > 0 = IR_Overage
-  | ilDiffQtty < 0 = IR_Shortage
-  | otherwise = IR_Match
+  | ilDiffQtty > 0 = IROverage
+  | ilDiffQtty < 0 = IRShortage
+  | otherwise = IRMatch
 
 validateInventoryDocumentInput :: InventoryDocumentInput -> Either Text InventoryDocumentInput
 validateInventoryDocumentInput input@InventoryDocumentInput {..}

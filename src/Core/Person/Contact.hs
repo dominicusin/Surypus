@@ -18,13 +18,13 @@ data Contact = Contact
 
 -- | Contact type
 data ContactType
-  = CT_Phone -- Phone
-  | CT_Email -- Email
-  | CT_URL -- Website
-  | CT_ICQ -- ICQ
-  | CT_Skype -- Skype
-  | CT_Telegram -- Telegram
-  | CT_WhatsApp -- WhatsApp
+  = CTPhone -- Phone
+  | CTEmail -- Email
+  | CTURL -- Website
+  | CTICQ -- ICQ
+  | CTSkype -- Skype
+  | CTTelegram -- Telegram
+  | CTWhatsApp -- WhatsApp
   deriving (Show, Eq, Enum)
 
 -- | Address - Postal address
@@ -45,10 +45,10 @@ data Address = Address
 
 -- | Address type
 data AddressType
-  = AT_Legal -- Юридический
-  | AT_Physical -- Фактический
-  | AT_Mailing -- Почтовый
-  | AT_Warehouse -- Склад
+  = ATLegal -- Юридический
+  | ATPhysical -- Фактический
+  | ATMailing -- Почтовый
+  | ATWarehouse -- Склад
   deriving (Show, Eq, Enum)
 
 -- | Bank account

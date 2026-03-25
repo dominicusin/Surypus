@@ -19,10 +19,10 @@ data SmartReceipt = SmartReceipt
   }
   deriving (Show, Eq)
 
-data PaymentType = PT_Cash | PT_Card | PT_Online | PT_Bonus
+data PaymentType = PTCash | PTCard | PTOnline | PTBonus
   deriving (Show, Eq)
 
-data ReceiptStatus = RS_Printed | RS_Sent | RS_Returned
+data ReceiptStatus = RSPrinted | RSSent | RSReturned
   deriving (Show, Eq)
 
 -- | SmartReceiptLine - Receipt line

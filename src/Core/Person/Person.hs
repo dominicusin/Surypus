@@ -44,17 +44,17 @@ data PersonFlags = PersonFlags
 
 -- | Person kind - type of counterparty
 data PersonKind
-  = PK_Company -- Юридическое лицо
-  | PK_Individual -- Физическое лицо
-  | PK_Entrepreneur -- Индивидуальный предприниматель
-  | PK_Bank -- Банк
-  | PK_Supplier -- Поставщик
-  | PK_Customer -- Покупатель
-  | PK_Employee -- Сотрудник
+  = PKCompany -- Юридическое лицо
+  | PKIndividual -- Физическое лицо
+  | PKEntrepreneur -- Индивидуальный предприниматель
+  | PKBank -- Банк
+  | PKSupplier -- Поставщик
+  | PKCustomer -- Покупатель
+  | PKEmployee -- Сотрудник
   deriving (Show, Eq, Enum)
 
 -- | Person status
-data PersonStatus = PS_Active | PS_Inactive | PS_Blocked | PS_Deleted
+data PersonStatus = PSActive | PSInactive | PSBlocked | PSDeleted
   deriving (Show, Eq, Enum)
 
 -- | Validate INN (Tax ID)

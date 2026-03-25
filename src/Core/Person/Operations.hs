@@ -119,12 +119,12 @@ checkDuplicateINN persons inn = length filtered > 1
 -- | Check if person kind is valid
 -- Инвариант: вид контрагента определён
 isValidPersonKind :: PersonKind -> Bool
-isValidPersonKind pk = pk `elem` [PK_Company, PK_Individual, PK_Entrepreneur, PK_Bank, PK_Supplier, PK_Customer, PK_Employee]
+isValidPersonKind pk = pk `elem` [PKCompany, PKIndividual, PKEntrepreneur, PKBank, PKSupplier, PKCustomer, PKEmployee]
 
 -- | Check if person status is active
 -- Инвариант: активный статус означает возможность проведения операций
 isActiveStatus :: PersonStatus -> Bool
-isActiveStatus PS_Active = True
+isActiveStatus PSActive = True
 isActiveStatus _ = False
 
 -- | Get person display name

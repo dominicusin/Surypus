@@ -17,13 +17,13 @@ data PersonRelation = PersonRelation
 
 -- | Relation type
 data RelationType
-  = RT_Owner -- Owner (владелец)
-  | RT_Parent -- Parent company (родитель)
-  | RT_Subsidiary -- Subsidiary (дочерняя)
-  | RT_Branch -- Branch (филиал)
-  | RT_Head -- Head office (головной офис)
-  | RT_Agent -- Agent (агент)
-  | RT_Contractor -- Contractor (контрагент)
+  = RTOwner -- Owner (владелец)
+  | RTParent -- Parent company (родитель)
+  | RTSubsidiary -- Subsidiary (дочерняя)
+  | RTBranch -- Branch (филиал)
+  | RTHead -- Head office (головной офис)
+  | RTAgent -- Agent (агент)
+  | RTContractor -- Contractor (контрагент)
   deriving (Show, Eq, Enum)
 
 -- | Person event - Historical events for person
@@ -39,9 +39,9 @@ data PersonEvent = PersonEvent
 
 -- | Event type
 data EventType
-  = ET_Registered -- Registered
-  | ET_Updated -- Info updated
-  | ET_StatusChanged -- Status changed
-  | ET_Contact -- Contact added
-  | ET_Contract -- Contract signed
+  = ETRegistered -- Registered
+  | ETUpdated -- Info updated
+  | ETStatusChanged -- Status changed
+  | ETContact -- Contact added
+  | ETContract -- Contract signed
   deriving (Show, Eq, Enum)

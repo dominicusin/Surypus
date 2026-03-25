@@ -27,10 +27,10 @@ data Account = Account
   }
   deriving (Show, Eq)
 
-data AccountType = AT_Asset | AT_Liability | AT_Equity | AT_Revenue | AT_Expense
+data AccountType = ATAsset | ATLiability | ATEquity | ATRevenue | ATExpense
   deriving (Show, Eq)
 
-data AccountKind = AK_Active | AK_Passive | AK_Auxiliary | AK_OffBalance
+data AccountKind = AKActive | AKPassive | AKAuxiliary | AKOffBalance
   deriving (Show, Eq)
 
 -- | Article (sub-account)
@@ -99,7 +99,7 @@ data AccountPlan = AccountPlan
   }
   deriving (Show, Eq)
 
-data PlanStatus = PS_Draft | PS_Active | PS_Closed
+data PlanStatus = PSDraft | PSActive | PSClosed
   deriving (Show, Eq)
 
 -- ============================================================================
@@ -150,11 +150,11 @@ accountBalanceInvariant acc turns =
       debitSum = sum (fmap atDbtAmt acctTurns)
       creditSum = sum (fmap atCrdAmt acctTurns)
       calcBalance = case aType acc of
-        AT_Asset -> debitSum - creditSum
-        AT_Liability -> creditSum - debitSum
-        AT_Equity -> creditSum - debitSum
-        AT_Revenue -> creditSum - debitSum
-        AT_Expense -> debitSum - creditSum
+        ATAsset -> debitSum - creditSum
+        ATLiability -> creditSum - debitSum
+        ATEquity -> creditSum - debitSum
+        ATRevenue -> creditSum - debitSum
+        ATExpense -> debitSum - creditSum
    in abs (calcBalance - aBalance acc) < 0.01
 
 -- | Trial balance
