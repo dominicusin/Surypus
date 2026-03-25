@@ -22,6 +22,7 @@ where
 import Core.Inventory.Types.Stock (Stock (..))
 import Core.Price hiding (convertCurrency, validatePrice)
 import Data.Int (Int64)
+import Data.Maybe (fromMaybe)
 import Data.Time (Day)
 import Surypus.Refined.Predicates ()
 
@@ -100,12 +101,12 @@ calculateLineTotal price quantity discountPercent
 -- | Calculate bill total from lines
 -- Инвариант: total >= 0
 calculateBillTotal :: [(Double, Double, Double)] -> Double
-calculateBillTotal lines = sum (map (\(p, q, d) -> calculateLineTotal p q d) lines)
+calculateBillTotal lines = sum (fmap (\(p, q, d) -> calculateLineTotal p q d) lines)
 
 -- | Calculate total discount for bill
 -- Инвариант: total >= 0
 calculateTotalDiscount :: [(Double, Double, Double)] -> Double
-calculateTotalDiscount lines = sum (map (\(p, q, d) -> calculateDiscount (p * q) d) lines)
+calculateTotalDiscount lines = sum (fmap (\(p, q, d) -> calculateDiscount (p * q) d) lines)
 
 -- ============================================================================
 -- PRICE VERIFICATION
@@ -153,7 +154,7 @@ checkNegativeStock = any (\s -> sQtty s < 0)
 -- Инвариант: возвращает Nothing если нет активного прайса
 getActivePriceList :: Day -> [PriceList] -> Maybe PriceList
 getActivePriceList date priceLists = do
-  let valid = filter (\pl -> plValidFrom pl <= date && maybe True (date <=) (plValidTo pl)) priceLists
+  let valid = filter (\pl -> plValidFrom pl <= date && all (date <=) (plValidTo pl)) priceLists
   case valid of
     [] -> Nothing
     (p : _) -> Just p
@@ -162,4 +163,4 @@ getActivePriceList date priceLists = do
 -- Инвариант: result >= 0
 calcPriceFromList :: [(Int64, Double)] -> Int64 -> Double -> Double
 calcPriceFromList goodsPrices goodsId defaultPrice =
-  maybe defaultPrice id (lookup goodsId goodsPrices)
+  fromMaybe defaultPrice (lookup goodsId goodsPrices)

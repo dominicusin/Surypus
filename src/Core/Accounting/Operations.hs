@@ -42,17 +42,17 @@ verifyDoubleEntry entries
   | totalDebit == totalCredit = AccOpSuccess
   | otherwise = AccOpDoubleEntryError
   where
-    totalDebit = sum (map atAmount entries)
-    totalCredit = sum (map (negate . atAmount) entries)
+    totalDebit = sum (fmap atAmount entries)
+    totalCredit = sum (fmap (negate . atAmount) entries)
 
 -- | Calculate account balance
 -- Баланс = дебет - кредит
 calcAccountBalance :: [AccTurn] -> Double
-calcAccountBalance entries = sum (map atAmount entries)
+calcAccountBalance entries = sum (fmap atAmount entries)
 
 -- | Calculate turnover (оборот) for period
 calcTurnover :: [AccTurn] -> (Double, Double)
 calcTurnover entries = (debitTurnover, creditTurnover)
   where
-    debitTurnover = sum [abs a | a <- map atAmount entries, a > 0]
-    creditTurnover = sum [abs a | a <- map atAmount entries, a < 0]
+    debitTurnover = sum [abs a | a <- fmap atAmount entries, a > 0]
+    creditTurnover = sum [abs a | a <- fmap atAmount entries, a < 0]

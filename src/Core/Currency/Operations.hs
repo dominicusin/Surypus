@@ -117,7 +117,7 @@ formatAmountSimple cur amount =
 -- | Get base currency from list
 -- Инвариант: возвращает Nothing если нет базовой валюты
 getBaseCurrency :: [Currency] -> Maybe Currency
-getBaseCurrency = find (\c -> cfBase (curFlags c))
+getBaseCurrency = find (cfBase . curFlags)
 
 -- | Check if currency is active
 -- Инвариант: активная валюта не помечена как неактивная
@@ -128,8 +128,8 @@ isActiveCurrency c = not (cfInactive (curFlags c))
 -- Инвариант: result >= 0
 calculateTotalInBaseCurrency :: [(Currency, Double)] -> Maybe Double
 calculateTotalInBaseCurrency items = do
-  base <- getBaseCurrency (map fst items)
-  let convertAndSum = sum $ map (\(cur, amt) -> convertCurrency cur base amt) items
+  base <- getBaseCurrency (fmap fst items)
+  let convertAndSum = sum $ fmap (\(cur, amt) -> convertCurrency cur base amt) items
   pure (roundToPrecision (curPrecision base) convertAndSum)
 
 -- ============================================================================
@@ -148,7 +148,7 @@ findBestRate rates = Just $ maximumByDate rates
 -- Инвариант: result > 0
 calculateAverageRate :: [ExchangeRate] -> Double
 calculateAverageRate [] = 0
-calculateAverageRate rates = sum (map erRate rates) / fromIntegral (length rates)
+calculateAverageRate rates = sum (fmap erRate rates) / fromIntegral (length rates)
 
 -- ============================================================================
 -- HELPERS

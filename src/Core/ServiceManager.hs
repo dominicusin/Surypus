@@ -36,8 +36,8 @@ runCronOnce _pool = do
 runDaemon :: Pool -> IO ()
 runDaemon pool = do
   putStrLn "Daemon: starting job queue and cron loops"
-  void $ forkIO $ forever $ tryRun (runJobQueueOnce pool)
-  void $ forkIO $ forever $ tryRun (runCronOnce pool)
+  void . forkIO . forever $ tryRun (runJobQueueOnce pool)
+  void . forkIO . forever $ tryRun (runCronOnce pool)
   forever $ threadDelay daemonTickDelay
 
 tryRun :: IO () -> IO ()

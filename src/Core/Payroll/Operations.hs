@@ -131,17 +131,17 @@ checkNegativeDeductions records
 -- | Calculate total payroll for period
 -- Инвариант: total >= 0
 calcTotalPayroll :: [SalaryRec] -> Double
-calcTotalPayroll = sum . map sAmount
+calcTotalPayroll = sum . fmap sAmount
 
 -- | Calculate total deductions
 -- Инвариант: deductions >= 0
 calcTotalDeductions :: [SalaryRec] -> Double
-calcTotalDeductions = sum . filter (< 0) . map sAmount
+calcTotalDeductions = sum . filter (< 0) . fmap sAmount
 
 -- | Calculate total accruals
 -- Инвариант: accruals >= 0
 calcTotalAccruals :: [SalaryRec] -> Double
-calcTotalAccruals = sum . filter (> 0) . map sAmount
+calcTotalAccruals = sum . filter (> 0) . fmap sAmount
 
 -- ============================================================================
 -- PERIOD VALIDATION
