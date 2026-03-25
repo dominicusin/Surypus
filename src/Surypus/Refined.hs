@@ -1,7 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE TypeOperators #-}
 
 -- | Refined Types with LiquidHaskell-style invariants
 -- Модуль содержит типы с проверенными инвариантами:
