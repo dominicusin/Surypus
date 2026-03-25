@@ -110,7 +110,7 @@ exprToString e = case e of
 
 -- | Inventory invariant: stock >= reserved
 inventoryInvariant :: Expr -> Expr -> Expr
-inventoryInvariant stock reserved = EGe stock reserved
+inventoryInvariant = EGe
 
 -- | Price invariant: price >= 0
 priceInvariant :: Expr -> Expr
@@ -118,7 +118,7 @@ priceInvariant price = EGe price (EConstReal 0)
 
 -- | Balance invariant: debits == credits
 balanceInvariant :: Expr -> Expr -> Expr
-balanceInvariant debits credits = EEq debits credits
+balanceInvariant = EEq
 
 -- | Quantity invariant: qtty >= 0
 quantityInvariant :: Expr -> Expr
@@ -126,7 +126,7 @@ quantityInvariant qtty = EGe qtty (EConstReal 0)
 
 -- | Credit limit invariant: debt <= credit_limit
 creditLimitInvariant :: Expr -> Expr -> Expr
-creditLimitInvariant debt creditLimit = ELe debt creditLimit
+creditLimitInvariant = ELe
 
 -- | Discount invariant: discount <= 100%
 discountInvariant :: Expr -> Expr
