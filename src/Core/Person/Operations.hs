@@ -17,6 +17,7 @@ module Core.Person.Operations
 where
 
 import Core.Person.Person
+import Data.Char (digitToInt, isDigit)
 import Data.Text (Text)
 import qualified Data.Text as T
 
@@ -55,25 +56,26 @@ validateinn inn
   | otherwise = False
 
 validateINN10 :: Text -> Bool
-validateINN10 inn = checkDigit10 && checkDigit11
-  where
-    digits = fmap (\c -> read (T.unpack (T.singleton c)) :: Int) (T.unpack inn)
-    checkDigit10 = (10 * digits !! 0 + 9 * digits !! 1 + 8 * digits !! 2 + 7 * digits !! 3 + 6 * digits !! 4 + 5 * digits !! 5 + 4 * digits !! 6 + 3 * digits !! 7 + 2 * digits !! 8) `mod` 11 `mod` 10 == digits !! 9
-    checkDigit11 = (7 * digits !! 0 + 2 * digits !! 1 + 4 * digits !! 2 + 10 * digits !! 3 + 3 * digits !! 4 + 5 * digits !! 5 + 9 * digits !! 6 + 4 * digits !! 7 + 6 * digits !! 8 + 8 * digits !! 9) `mod` 11 `mod` 10 == digits !! 10
+validateINN10 inn = case fmap digitToInt (T.unpack inn) of
+  [d0, d1, d2, d3, d4, d5, d6, d7, d8, d9] ->
+    let checkDigit10 = (10 * d0 + 9 * d1 + 8 * d2 + 7 * d3 + 6 * d4 + 5 * d5 + 4 * d6 + 3 * d7 + 2 * d8) `mod` 11 `mod` 10
+     in checkDigit10 == d9
+  _ -> False
 
 validateINN12 :: Text -> Bool
-validateINN12 inn = checkDigit11 && checkDigit12
-  where
-    digits = fmap (\c -> read (T.unpack (T.singleton c)) :: Int) (T.unpack inn)
-    checkDigit11 = (7 * digits !! 0 + 2 * digits !! 1 + 4 * digits !! 2 + 10 * digits !! 3 + 3 * digits !! 4 + 5 * digits !! 5 + 9 * digits !! 6 + 4 * digits !! 7 + 6 * digits !! 8 + 8 * digits !! 9 + 0 * digits !! 10) `mod` 11 `mod` 10 == digits !! 10
-    checkDigit12 = (3 * digits !! 0 + 7 * digits !! 1 + 2 * digits !! 2 + 4 * digits !! 3 + 10 * digits !! 4 + 3 * digits !! 5 + 5 * digits !! 6 + 9 * digits !! 7 + 4 * digits !! 8 + 6 * digits !! 9 + 8 * digits !! 10 + 0 * digits !! 11) `mod` 11 `mod` 10 == digits !! 11
+validateINN12 inn = case fmap digitToInt (T.unpack inn) of
+  [d0, d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11] ->
+    let c11 = (7 * d0 + 2 * d1 + 4 * d2 + 10 * d3 + 3 * d4 + 5 * d5 + 9 * d6 + 4 * d7 + 6 * d8 + 8 * d9) `mod` 11 `mod` 10
+        c12 = (3 * d0 + 7 * d1 + 2 * d2 + 4 * d3 + 10 * d4 + 3 * d5 + 5 * d6 + 9 * d7 + 4 * d8 + 6 * d9 + 8 * d10) `mod` 11 `mod` 10
+     in c11 == d10 && c12 == d11
+  _ -> False
 
 -- | Validate KPP (Tax Registration Reason Code)
 -- Инвариант: КПП - 9 цифр в формате ППППNNNNCC
 validatekpp :: Text -> Bool
 validatekpp kpp
   | T.length kpp /= 9 = False
-  | otherwise = T.all (\c -> c >= '0' && c <= '9') kpp
+  | otherwise = T.all isDigit kpp
 
 -- | Validate phone number (Russian format)
 -- Инвариант: телефон содержит 10-12 цифр
@@ -84,7 +86,7 @@ validatePhone phone
   | T.length cleaned > 12 = False
   | otherwise = True
   where
-    cleaned = T.filter (\c -> c >= '0' && c <= '9') phone
+    cleaned = T.filter isDigit phone
 
 -- | Validate email address
 -- Инвариант: email содержит @ и .
@@ -93,12 +95,15 @@ validateEmail email
   | T.null email = False
   | T.null localPart = False
   | T.null domain = False
-  | not (T.isInfixOf (T.singleton '@') email) = False
-  | otherwise = T.isInfixOf (T.singleton '.') domain
+  | otherwise = T.isInfixOf (T.singleton '@') email && T.isInfixOf (T.singleton '.') domain
   where
     parts = T.splitOn (T.singleton '@') email
-    localPart = head parts
-    domain = if length parts > 1 then parts !! 1 else T.empty
+    localPart = case parts of
+      [] -> T.empty
+      (x : _) -> x
+    domain = case parts of
+      (_ : d : _) -> d
+      _ -> T.empty
 
 -- ============================================================================
 -- HELPER FUNCTIONS
