@@ -193,7 +193,7 @@ data Bill = Bill
 instance Entity Bill where
   entityId = bId
   entityCode = bCode
-  entityName = \bill -> case bCode bill of
+  entityName bill = case bCode bill of
     Just c -> c
     Nothing -> T.pack "Bill"
 
@@ -387,7 +387,7 @@ data Order = Order
 instance Entity Order where
   entityId = oId
   entityCode = oCode
-  entityName = \order -> case oCode order of
+  entityName order = case oCode order of
     Just c -> c
     Nothing -> T.pack "Order"
 
@@ -495,7 +495,7 @@ calcBillLineAmount bl =
 
 -- | Calculate bill total
 calcBillTotal :: [BillLine] -> Double
-calcBillTotal lines = sum (map calcBillLineAmount lines)
+calcBillTotal lines = sum (fmap calcBillLineAmount lines)
 
 -- | Calculate stock available
 calcStockAvailable :: Stock -> Double
