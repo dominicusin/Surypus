@@ -23,8 +23,8 @@ import Data.Int (Int64)
 -- | Validate accounting entry: debits must equal credits
 validateAccTurn :: [AccTurn] -> Bool
 validateAccTurn turns =
-  let totalDebit = sum (map (max 0 . atAmount) turns)
-      totalCredit = sum (map (max 0 . negate . atAmount) turns)
+  let totalDebit = sum (fmap (max 0 . atAmount) turns)
+      totalCredit = sum (fmap (max 0 . negate . atAmount) turns)
    in totalDebit == totalCredit
 
 -- | Calculate balance for account
@@ -36,7 +36,7 @@ calcBalance turns accountId =
 
 -- | Get debit side of entry
 getDebit :: AccTurn -> Double
-getDebit at = if atAmount at > 0 then atAmount at else 0
+getDebit at = max (atAmount at) 0
 
 -- | Get credit side of entry
 getCredit :: AccTurn -> Double
