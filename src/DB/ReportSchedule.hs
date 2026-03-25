@@ -1,22 +1,20 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
-
 -- | Report Schedule Database Operations
 -- Note: Simplified stub implementation
 module DB.ReportSchedule
-  ( listReportSchedules
-  , getReportSchedule
-  , createReportSchedule
-  , updateReportSchedule
-  , deleteReportSchedule
-  , listReportSnapshots
-  , logReportSnapshot
-  ) where
+  ( listReportSchedules,
+    getReportSchedule,
+    createReportSchedule,
+    updateReportSchedule,
+    deleteReportSchedule,
+    listReportSnapshots,
+    logReportSnapshot,
+  )
+where
 
 import Data.Int (Int64)
 import Data.Text (Text)
-import Hasql.Pool (Pool)
 import Domain.ReportSchedule
+import Hasql.Pool (Pool)
 
 -- | List all report schedules
 listReportSchedules :: Pool -> IO [ReportSchedule]
