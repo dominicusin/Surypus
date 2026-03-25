@@ -217,7 +217,7 @@ taxVectorTotal tv =
 
 -- | Get net amount from tax vector
 taxVectorNet :: TaxVector -> Decimal
-taxVectorNet tv = tvAmount tv
+taxVectorNet = tvAmount
 
 -- | Get gross amount (net + taxes)
 taxVectorGross :: TaxVector -> Decimal
