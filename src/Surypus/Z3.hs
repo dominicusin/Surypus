@@ -284,7 +284,7 @@ profitMargin profit revenue
 -- | Validate all business rules for a bill
 validateBill :: [(Double, Double, Double)] -> SolverResult
 validateBill billLines =
-  let totals = map (\(p, q, t) -> p * q * (1 + t / 100)) billLines
+  let totals = fmap (\(p, q, t) -> p * q * (1 + t / 100)) billLines
       total = sum totals
       priceCheck = all (\(p, _, _) -> p >= 0) billLines
       qtyCheck = all (\(_, q, _) -> q > 0) billLines

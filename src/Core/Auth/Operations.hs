@@ -14,7 +14,7 @@ module Core.Auth.Operations
 where
 
 import Core.Auth hiding (validateLogin, validatePassword, validateSession)
-import Data.Char (isAlphaNum)
+import Data.Char (isAlphaNum, isAsciiLower, isAsciiUpper, isDigit)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Time (UTCTime, diffUTCTime)
@@ -73,10 +73,10 @@ checkPasswordStrength pwd
       let score = lengthScore + varietyScore
           lengthScore = min 40 (T.length pwd * 2)
           varietyScore =
-            let hasLower = if T.any (\c -> c >= 'a' && c <= 'z') pwd then 1 else 0
-                hasUpper = if T.any (\c -> c >= 'A' && c <= 'Z') pwd then 1 else 0
-                hasDigit = if T.any (\c -> c >= '0' && c <= '9') pwd then 1 else 0
-                hasSpecial = if T.any (\c -> not (isAlphaNum c)) pwd then 1 else 0
+            let hasLower = if T.any isAsciiLower pwd then 1 else 0
+                hasUpper = if T.any isAsciiUpper pwd then 1 else 0
+                hasDigit = if T.any isDigit pwd then 1 else 0
+                hasSpecial = if T.any (not . isAlphaNum) pwd then 1 else 0
              in (hasLower + hasUpper + hasDigit + hasSpecial) * 10
        in min 100 score
 

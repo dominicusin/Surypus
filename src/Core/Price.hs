@@ -2,7 +2,7 @@
 module Core.Price where
 
 import Data.Int (Int64)
-import Data.List (sortBy)
+import Data.List (minimumBy, sortBy)
 import Data.Text (Text)
 import Data.Time (Day)
 
@@ -126,17 +126,17 @@ priceWithoutVAT price vatRate = price / (1 + vatRate / 100)
 -- | Find best quotation for goods
 findBestQuot :: [Quot] -> Double -> Day -> Maybe Quot
 findBestQuot quots qty date =
-  let valid = filter (\q -> qDateFrom q <= date && maybe True (\dt -> dt >= date) (qDateTo q)) quots
+  let valid = filter (\q -> qDateFrom q <= date && all (>= date) (qDateTo q)) quots
       byQty = filter (\q -> qMinQtty q <= qty) valid
    in case byQty of
         [] -> Nothing
-        _ -> Just (head (sortBy (\a b -> compare (qPrice a) (qPrice b)) byQty))
+        _ -> Just (minimumBy (\a b -> compare (qPrice a) (qPrice b)) byQty)
 
 -- | Calculate final price with all discounts
 calcFinalPrice :: Double -> Double -> [Discount] -> Double
 calcFinalPrice price _ discounts =
   let applicable = filter (\d -> dMinSum d <= price) discounts
-      withDiscounts = foldr (\d p -> applyDiscount p d) price applicable
+      withDiscounts = foldr (flip applyDiscount) price applicable
    in roundPrice 2 withDiscounts
 
 -- ============================================================================

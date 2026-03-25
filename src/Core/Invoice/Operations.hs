@@ -113,9 +113,9 @@ allocatePayment remainingPayment invoices = go remainingPayment (filter (not . i
 -- | Calculate total outstanding amount
 -- Инвариант: result >= 0
 calcTotalOutstanding :: [Invoice] -> Double
-calcTotalOutstanding = sum . map calculateInvoiceBalance
+calcTotalOutstanding = sum . fmap calculateInvoiceBalance
 
 -- | Calculate total overdue amount
 -- Инвариант: result >= 0
 calcTotalOverdue :: [Invoice] -> Day -> Double
-calcTotalOverdue invoices today = sum $ map calculateInvoiceBalance $ filter (`isInvoiceOverdue` today) invoices
+calcTotalOverdue invoices today = sum . fmap calculateInvoiceBalance $ filter (`isInvoiceOverdue` today) invoices
