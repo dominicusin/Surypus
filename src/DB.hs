@@ -30,7 +30,7 @@ newDatabase = do
   locations <- newIORef testLocations
   bills <- newIORef testBills
   stock <- newIORef testStock
-  return Database {dbPersons = persons, dbGoods = goods, dbLocations = locations, dbBills = bills, dbStock = stock}
+  pure Database {dbPersons = persons, dbGoods = goods, dbLocations = locations, dbBills = bills, dbStock = stock}
 
 -- Test data - using record syntax
 testPersons :: [Person]
@@ -72,17 +72,17 @@ testStock =
 queryPersons :: Database -> Int -> Int -> IO [Person]
 queryPersons db limit offset = do
   xs <- readIORef (dbPersons db)
-  return $ take limit $ drop offset xs
+  pure $ take limit $ drop offset xs
 
 queryPersonById :: Database -> Int64 -> IO (Maybe Person)
 queryPersonById db pid = do
   xs <- readIORef (dbPersons db)
-  return $ find (\p -> pId p == pid) xs
+  pure $ find (\p -> pId p == pid) xs
 
 insertPerson :: Database -> Person -> IO Int64
 insertPerson db p = do
   modifyIORef (dbPersons db) (p :)
-  return $ pId p
+  pure $ pId p
 
 updatePerson :: Database -> Int64 -> Person -> IO ()
 updatePerson db pid p = do
@@ -96,17 +96,17 @@ deletePerson db pid = do
 queryGoods :: Database -> Int -> Int -> IO [Goods]
 queryGoods db limit offset = do
   xs <- readIORef (dbGoods db)
-  return $ take limit $ drop offset xs
+  pure $ take limit $ drop offset xs
 
 queryGoodsById :: Database -> Int64 -> IO (Maybe Goods)
 queryGoodsById db gid = do
   xs <- readIORef (dbGoods db)
-  return $ find (\g -> gId g == gid) xs
+  pure $ find (\g -> gId g == gid) xs
 
 insertGoods :: Database -> Goods -> IO Int64
 insertGoods db g = do
   modifyIORef (dbGoods db) (g :)
-  return $ gId g
+  pure $ gId g
 
 updateGoods :: Database -> Int64 -> Goods -> IO ()
 updateGoods db gid g = do
@@ -120,17 +120,17 @@ deleteGoods db gid = do
 queryLocations :: Database -> Int -> Int -> IO [Location]
 queryLocations db limit offset = do
   xs <- readIORef (dbLocations db)
-  return $ take limit $ drop offset xs
+  pure $ take limit $ drop offset xs
 
 queryLocationById :: Database -> Int64 -> IO (Maybe Location)
 queryLocationById db lid = do
   xs <- readIORef (dbLocations db)
-  return $ find (\l -> lId l == lid) xs
+  pure $ find (\l -> lId l == lid) xs
 
 insertLocation :: Database -> Location -> IO Int64
 insertLocation db l = do
   modifyIORef (dbLocations db) (l :)
-  return $ lId l
+  pure $ lId l
 
 updateLocation :: Database -> Int64 -> Location -> IO ()
 updateLocation db lid l = do
@@ -144,33 +144,33 @@ deleteLocation db lid = do
 queryBills :: Database -> Int -> Int -> Maybe Int -> Maybe Int -> IO [Bill]
 queryBills db limit offset _mtype _mperson = do
   xs <- readIORef (dbBills db)
-  return $ take limit $ drop offset xs
+  pure $ take limit $ drop offset xs
 
 queryBillById :: Database -> Int64 -> IO (Maybe Bill)
 queryBillById db bid = do
   xs <- readIORef (dbBills db)
-  return $ find (\b -> bId b == bid) xs
+  pure $ find (\b -> bId b == bid) xs
 
 queryBillLines :: Database -> Int64 -> IO [(Int64, Double)]
-queryBillLines _db _bid = return []
+queryBillLines _db _bid = pure []
 
 insertBill :: Database -> Bill -> IO Int64
 insertBill db b = do
   modifyIORef (dbBills db) (b :)
-  return $ bId b
+  pure $ bId b
 
 postBill :: Database -> Int64 -> IO Bool
-postBill _db _bid = return True
+postBill _db _bid = pure True
 
 -- Stock
 queryStock :: Database -> Maybe Int64 -> Maybe Int64 -> IO [Stock]
 queryStock db mgid mlid = do
   xs <- readIORef (dbStock db)
-  return $ case (mgid, mlid) of
+  pure $ case (mgid, mlid) of
     (Just gid, Just lid) -> filter (\s -> sGoodsId s == gid && sLocationId s == lid) xs
     (Just gid, Nothing) -> filter (\s -> sGoodsId s == gid) xs
     (Nothing, Just lid) -> filter (\s -> sLocationId s == lid) xs
     (Nothing, Nothing) -> xs
 
 reserveStock :: Database -> Int64 -> Int64 -> Double -> IO Bool
-reserveStock _db _gid _lid _qty = return True
+reserveStock _db _gid _lid _qty = pure True

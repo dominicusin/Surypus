@@ -14,13 +14,13 @@ data AccSheet2 = AccSheet2
   , as2Flags :: Int
   } deriving (Show, Eq)
 
-data AccSheetType = AST_Assets | AST_Liabilities | AST_Income | AST_Expenses
+data AccSheetType = AstAssets | AstLiabilities | AstIncome | AstExpenses
   deriving (Show, Eq)
 
 -- | Get sheet type name
 getSheetTypeName :: AccSheet2 -> Text
 getSheetTypeName a = case as2Type a of
-  AST_Assets      -> T.pack "Assets"
-  AST_Liabilities-> T.pack "Liabilities"
-  AST_Income      -> T.pack "Income"
-  AST_Expenses    -> T.pack "Expenses"
+  AstAssets      -> T.pack "Assets"
+  AstLiabilities-> T.pack "Liabilities"
+  AstIncome      -> T.pack "Income"
+  AstExpenses    -> T.pack "Expenses"

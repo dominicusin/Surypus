@@ -16,7 +16,7 @@ data Order = Order
   , ordFlags        :: Int
   } deriving (Show, Eq)
 
-data OrderStatus = OS_Draft | OS_Confirmed | OS_InProgress | OS_Completed | OS_Cancelled
+data OrderStatus = OSDraft | OSConfirmed | OSInProgress | OSCompleted | OSCancelled
   deriving (Show, Eq)
 
 -- | Order line
@@ -30,7 +30,7 @@ data OrderLine = OrderLine
   , olStatus   :: LineStatus
   } deriving (Show, Eq)
 
-data LineStatus = LS_Pending | LS_Reserved | LS_Shipped | LS_Returned
+data LineStatus = LSPending | LSReserved | LSShipped | LSReturned
   deriving (Show, Eq)
 
 -- | Calculate order total

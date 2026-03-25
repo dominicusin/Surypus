@@ -15,4 +15,4 @@ data Address = Address
 
 -- | Get full address
 getFullAddress :: Address -> String
-getFullAddress a = adrStreet a ++ " " ++ adrBuilding a ++ ", " ++ adrOffice a
+getFullAddress a = adrStreet a <> " " <> adrBuilding a <> ", " <> adrOffice a

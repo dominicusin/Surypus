@@ -44,8 +44,8 @@ getCredit at = if atAmount at < 0 then abs (atAmount at) else 0
 
 -- | Check if account is debit-balanced (assets, expenses)
 isDebitBalanced :: AccountType -> Bool
-isDebitBalanced at = at == Asset || at == Expense
+isDebitBalanced at = at == ATAsset || at == ATExpense
 
 -- | Check if account is credit-balanced (liabilities, equity, revenue)
 isCreditBalanced :: AccountType -> Bool
-isCreditBalanced at = at == Liability || at == Equity || at == Revenue
+isCreditBalanced at = at == ATLiability || at == ATEquity || at == ATRevenue

@@ -18,10 +18,10 @@ data Contract = Contract
   , conStatus     :: ContractStatus
   } deriving (Show, Eq)
 
-data ContractKind = CK_Supply | CK_Service | CK_Loan | CK_Lease | CK_Other
+data ContractKind = CKSupply | CKService | CKLoan | CKLease | CKOther
   deriving (Show, Eq)
 
-data ContractStatus = CS_Draft | CS_Active | CS_Completed | CS_Cancelled
+data ContractStatus = CSDraft | CSActive | CSCompleted | CSCancelled
   deriving (Show, Eq)
 
 -- | PaymentSchedule - Payment plan
@@ -34,7 +34,7 @@ data PaymentSchedule = PaymentSchedule
   , psStatus     :: PaymentStatus
   } deriving (Show, Eq)
 
-data PaymentType = PT_Advance | PT_Intermediate | PT_Final
+data PaymentType = PTAdvance | PTIntermediate | PTFinal
   deriving (Show, Eq)
 
 data PaymentStatus = PayPending | PayDone | PayOverdue

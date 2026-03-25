@@ -51,7 +51,7 @@ instance ToJSON Decimal where
 
 instance FromJSON Decimal where
   parseJSON = withScientific "Decimal" $ \n ->
-    return (Decimal (round (realToFrac n * 100) :: Integer))
+    pure (Decimal (round (realToFrac n * 100) :: Integer))
 
 newtype Money = Money {unMoney :: Decimal}
   deriving (Eq, Generic, Ord)

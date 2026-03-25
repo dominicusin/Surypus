@@ -34,7 +34,7 @@ generateSimpleToken config payload = do
   now <- getCurrentTime
   let expiration = addUTCTime (fromIntegral (jwtExpirationHours config * 3600)) now
       token = jwtSecret config <> ":" <> T.pack (show (jwtUserId payload)) <> ":" <> jwtUsername payload <> ":" <> jwtRole payload <> ":" <> T.pack (show expiration)
-  return token
+  pure token
 
 validateSimpleToken :: JWTConfig -> Text -> AppResult JWTPayload
 validateSimpleToken config token = do

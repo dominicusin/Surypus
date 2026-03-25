@@ -17,7 +17,7 @@ data Event = Event
   , evFlags   :: Int
   } deriving (Show, Eq)
 
-data EventType = ET_Info | ET_Warning | ET_Error | ET_Audit
+data EventType = ETInfo | ETWarning | ETError | ETAudit
   deriving (Show, Eq)
 
 -- | EventSubscription - Event subscription

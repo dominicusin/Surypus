@@ -130,7 +130,7 @@ calculateTotalInBaseCurrency :: [(Currency, Double)] -> Maybe Double
 calculateTotalInBaseCurrency items = do
   base <- getBaseCurrency (map fst items)
   let convertAndSum = sum $ map (\(cur, amt) -> convertCurrency cur base amt) items
-  return (roundToPrecision (curPrecision base) convertAndSum)
+  pure (roundToPrecision (curPrecision base) convertAndSum)
 
 -- ============================================================================
 -- EXCHANGE RATE OPERATIONS

@@ -101,7 +101,7 @@ updateRegisterType pool rid DocumentRegisterType{..} = do
     , drtFlags
     )
     stmt
-  return (mb /= Nothing)
+  pure (mb /= Nothing)
   where
     stmt = Statement
       "UPDATE document_register_type SET name = $2, code = $3, flags = $4 WHERE id = $1 RETURNING id"
@@ -116,7 +116,7 @@ updateRegisterType pool rid DocumentRegisterType{..} = do
 deleteRegisterType :: Pool -> Int64 -> IO Bool
 deleteRegisterType pool rid = do
   mb <- use pool $ Session.statement rid stmt
-  return (mb /= Nothing)
+  pure (mb /= Nothing)
   where
     stmt = Statement
       "DELETE FROM document_register_type WHERE id = $1 RETURNING id"

@@ -12,9 +12,9 @@ data PaymentCard = PaymentCard
   , pcType     :: CardType
   } deriving (Show, Eq)
 
-data CardType = CT_Visa | CT_MasterCard | CT_MIR | CT_Amex
+data CardType = CTVisa | CTMasterCard | CTMir | CTAmex
   deriving (Show, Eq)
 
 -- | Mask card number
 maskCard :: PaymentCard -> String
-maskCard pc = replicate 12 '*' ++ drop 12 (pcNumber pc)
+maskCard pc = replicate 12 '*' <> drop 12 (pcNumber pc)

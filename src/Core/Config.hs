@@ -11,7 +11,7 @@ data Config = Config
   , cfgType  :: ConfigType
   } deriving (Show, Eq)
 
-data ConfigType = CT_String | CT_Int | CT_Bool | CT_Double
+data ConfigType = CTString | CTInt | CTBool | CTDouble
   deriving (Show, Eq)
 
 -- | Get string value

@@ -13,9 +13,9 @@ data BonusPoints = BonusPoints
   , bpDate     :: Day
   } deriving (Show, Eq)
 
-data BonusPointsType = BPT_Accrual | BPT_Burn | BPT_Expired
+data BonusPointsType = BPTAccrual | BPTBurn | BPTExpired
   deriving (Show, Eq)
 
 -- | Is accrual
 isAccrual :: BonusPoints -> Bool
-isAccrual bp = bpType bp == BPT_Accrual
+isAccrual bp = bpType bp == BPTAccrual

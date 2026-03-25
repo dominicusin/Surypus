@@ -13,9 +13,9 @@ data BillStatusEx = BillStatusEx
   , bseChangedBy :: Int64
   } deriving (Show, Eq)
 
-data BillStatEx = BSE_Draft | BSE_Registered | BSE_Posted | BSE_Annuled
+data BillStatEx = BSEDraft | BSERegistered | BSEPosted | BSEAnnuled
   deriving (Show, Eq)
 
 -- | Is bill posted
 isPosted :: BillStatusEx -> Bool
-isPosted b = bseStatus b == BSE_Posted
+isPosted b = bseStatus b == BSEPosted

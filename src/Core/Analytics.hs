@@ -13,7 +13,7 @@ data TimeSeries = TimeSeries
   , tsFlags  :: Int
   } deriving (Show, Eq)
 
-data Period = P_Day | P_Week | P_Month | P_Quarter | P_Year
+data Period = PDay | PWeek | PMonth | PQuarter | PYear
   deriving (Show, Eq)
 
 -- | BizScore - Business score

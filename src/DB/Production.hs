@@ -202,7 +202,7 @@ createWorkOrder pool code dt due product qty = use pool $ Session.statement para
 releaseWorkOrder :: Pool -> Int64 -> Day -> IO Bool
 releaseWorkOrder pool orderId dt = do
   mb <- use pool $ Session.statement (orderId, dt) stmt
-  return (mb /= Nothing)
+  pure (mb /= Nothing)
   where
     stmt = Statement
       "SELECT work_order_release($1, $2)"
@@ -215,7 +215,7 @@ releaseWorkOrder pool orderId dt = do
 completeWorkOrder :: Pool -> Int64 -> Double -> IO Bool
 completeWorkOrder pool orderId qty = do
   mb <- use pool $ Session.statement (orderId, qty) stmt
-  return (mb /= Nothing)
+  pure (mb /= Nothing)
   where
     stmt = Statement
       "SELECT work_order_complete($1, $2)"

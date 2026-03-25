@@ -47,4 +47,4 @@ closePool = Pool.release
 
 -- | Initialize database schema (no-op for now; migrations can be added later)
 initSchema :: Pool.Pool -> IO ()
-initSchema _pool = return ()
+initSchema _pool = pure ()

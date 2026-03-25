@@ -14,7 +14,7 @@ data Contact = Contact
   , conPrimary  :: Bool
   } deriving (Show, Eq)
 
-data ContactType = CT_Phone | CT_Email | CT_Address | CT_URL
+data ContactType = CTPhone | CTEmail | CTAddress | CTURL
   deriving (Show, Eq)
 
 -- | Validate contact

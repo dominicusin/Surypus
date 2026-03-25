@@ -20,10 +20,10 @@ import Data.Text (Text)
 {-@ type TimeOrder a = {v:a | v >= v} @-}
 
 data HardwareStatus
-  = HS_Planned
-  | HS_InProgress
-  | HS_Completed
-  | HS_Cancelled
+  = HSPlanned
+  | HSInProgress
+  | HSCompleted
+  | HSCancelled
   deriving (Show, Eq, Enum, Read, Generic)
 
 instance ToJSON HardwareStatus

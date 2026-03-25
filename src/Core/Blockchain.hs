@@ -25,5 +25,5 @@ data BlockchainTransaction = BlockchainTransaction
   , btStatus      :: BlockchainStatus
   } deriving (Show, Eq)
 
-data BlockchainStatus = BS_Pending | BS_Confirmed | BS_Failed
+data BlockchainStatus = BSPending | BSConfirmed | BSFailed
   deriving (Show, Eq)

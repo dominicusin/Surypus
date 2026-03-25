@@ -15,9 +15,9 @@ data Preorder = Preorder
   , poStatus       :: PreorderStatus
   } deriving (Show, Eq)
 
-data PreorderStatus = POS_Pending | POS_Confirmed | POS_Shipped | POS_Completed | POS_Cancelled
+data PreorderStatus = POSPending | POSConfirmed | POSShipped | POSCompleted | POSCancelled
   deriving (Show, Eq)
 
 -- | Is preorder active
 isPreorderActive :: Preorder -> Bool
-isPreorderActive p = poStatus p == POS_Pending || poStatus p == POS_Confirmed
+isPreorderActive p = poStatus p == POSPending || poStatus p == POSConfirmed

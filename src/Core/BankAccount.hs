@@ -13,9 +13,9 @@ data BankAccount = BankAccount
   , baBalance    :: Double
   } deriving (Show, Eq)
 
-data AccountType = AT_Checking | AT_Savings | AT_Current
+data AccountType = ATChecking | ATSavings | ATCurrent
   deriving (Show, Eq)
 
 -- | Mask account number
 maskAccount :: BankAccount -> String
-maskAccount ba = replicate 8 '*' ++ drop (length (baNumber ba) - 4) (baNumber ba)
+maskAccount ba = replicate 8 '*' <> drop (length (baNumber ba) - 4) (baNumber ba)

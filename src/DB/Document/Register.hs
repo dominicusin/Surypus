@@ -124,7 +124,7 @@ updateRegister pool rid DocumentRegister{..} =
 deleteRegister :: Pool -> Int64 -> IO Bool
 deleteRegister pool rid = do
   mb <- use pool $ Session.statement rid stmt
-  return (mb /= Nothing)
+  pure (mb /= Nothing)
   where
     stmt = Statement
       "DELETE FROM document_register WHERE id = $1 RETURNING id"

@@ -15,7 +15,7 @@ data LogEntry = LogEntry
   , leUserId    :: Maybe Int64
   } deriving (Show, Eq)
 
-data LogLevel = LL_Debug | LL_Info | LL_Warning | LL_Error | LL_Critical
+data LogLevel = LLDebug | LLInfo | LLWarning | LLError | LLCritical
   deriving (Show, Eq)
 
 -- | LogConfig - Logging configuration
@@ -25,5 +25,5 @@ data LogConfig = LogConfig
   , lcFormat :: Text
   } deriving (Show, Eq)
 
-data LogOutput = LO_Console | LO_File | LO_Database | LO_Syslog
+data LogOutput = LOConsole | LOFile | LODatabase | LOSyslog
   deriving (Show, Eq)

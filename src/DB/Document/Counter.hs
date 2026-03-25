@@ -85,7 +85,7 @@ updateDocumentCounter pool cid DocumentOpCounter{..} = do
     , docCounterFlags
     )
     stmt
-  return (mb /= Nothing)
+  pure (mb /= Nothing)
   where
     stmt = Statement
       "UPDATE document_op_counter SET name = $2, op_kind_id = $3, prefix = $4, flags = $5 WHERE id = $1 RETURNING id"
@@ -101,7 +101,7 @@ updateDocumentCounter pool cid DocumentOpCounter{..} = do
 deleteDocumentCounter :: Pool -> Int64 -> IO Bool
 deleteDocumentCounter pool cid = do
   mb <- use pool $ Session.statement cid stmt
-  return (mb /= Nothing)
+  pure (mb /= Nothing)
   where
     stmt = Statement
       "DELETE FROM document_op_counter WHERE id = $1 RETURNING id"

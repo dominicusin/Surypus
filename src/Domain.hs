@@ -1,6 +1,6 @@
 -- | Domain Module - Переработанная архитектура
 -- Использует мощь PostgreSQL и безопасность Haskell
--- Расширено на основе реинжиниринга C++ кода 
+-- Расширено на основе реинжиниринга C<> кода 
 module Domain
   ( module Domain.Core
   , module Domain.Types

@@ -90,7 +90,7 @@ createAsset pool AssetInput{..} = use pool $ Session.statement params stmt
 depreciateAsset :: Pool -> Int64 -> Day -> IO Bool
 depreciateAsset pool assetId period = do
   mb <- use pool $ Session.statement (assetId, period) stmt
-  return (mb /= Nothing)
+  pure (mb /= Nothing)
   where
     stmt = Statement
       "SELECT depreciate_asset_month($1, $2)"

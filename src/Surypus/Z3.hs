@@ -88,20 +88,20 @@ exprToString e = case e of
   EConstReal d -> showFFloat (Just 2) d ""
   EConstBool True -> "true"
   EConstBool False -> "false"
-  EAdd a b -> "(" ++ exprToString a ++ " + " ++ exprToString b ++ ")"
-  ESub a b -> "(" ++ exprToString a ++ " - " ++ exprToString b ++ ")"
-  EMul a b -> "(" ++ exprToString a ++ " * " ++ exprToString b ++ ")"
-  EDiv a b -> "(" ++ exprToString a ++ " / " ++ exprToString b ++ ")"
-  EEq a b -> "(" ++ exprToString a ++ " = " ++ exprToString b ++ ")"
-  ENeq a b -> "(" ++ exprToString a ++ " != " ++ exprToString b ++ ")"
-  ELt a b -> "(" ++ exprToString a ++ " < " ++ exprToString b ++ ")"
-  EGt a b -> "(" ++ exprToString a ++ " > " ++ exprToString b ++ ")"
-  ELe a b -> "(" ++ exprToString a ++ " <= " ++ exprToString b ++ ")"
-  EGe a b -> "(" ++ exprToString a ++ " >= " ++ exprToString b ++ ")"
-  EAnd a b -> "(and " ++ exprToString a ++ " " ++ exprToString b ++ ")"
-  EOr a b -> "(or " ++ exprToString a ++ " " ++ exprToString b ++ ")"
-  ENot a -> "(not " ++ exprToString a ++ ")"
-  EIf c t f -> "(ite " ++ exprToString c ++ " " ++ exprToString t ++ " " ++ exprToString f ++ ")"
+  EAdd a b -> "(" <> exprToString a <> " + " <> exprToString b <> ")"
+  ESub a b -> "(" <> exprToString a <> " - " <> exprToString b <> ")"
+  EMul a b -> "(" <> exprToString a <> " * " <> exprToString b <> ")"
+  EDiv a b -> "(" <> exprToString a <> " / " <> exprToString b <> ")"
+  EEq a b -> "(" <> exprToString a <> " = " <> exprToString b <> ")"
+  ENeq a b -> "(" <> exprToString a <> " != " <> exprToString b <> ")"
+  ELt a b -> "(" <> exprToString a <> " < " <> exprToString b <> ")"
+  EGt a b -> "(" <> exprToString a <> " > " <> exprToString b <> ")"
+  ELe a b -> "(" <> exprToString a <> " <= " <> exprToString b <> ")"
+  EGe a b -> "(" <> exprToString a <> " >= " <> exprToString b <> ")"
+  EAnd a b -> "(and " <> exprToString a <> " " <> exprToString b <> ")"
+  EOr a b -> "(or " <> exprToString a <> " " <> exprToString b <> ")"
+  ENot a -> "(not " <> exprToString a <> ")"
+  EIf c t f -> "(ite " <> exprToString c <> " " <> exprToString t <> " " <> exprToString f <> ")"
   _ -> "(expr)"
 
 -- ============================================================================
@@ -430,7 +430,7 @@ toSMTLib f =
   unlines
     [ "(set-logic QF_NRA)",
       "(declare-fun x () Real)",
-      "(assert " ++ exprToString (fExpr f) ++ ")",
+      "(assert " <> exprToString (fExpr f) <> ")",
       "(check-sat)",
       "(get-model)"
     ]

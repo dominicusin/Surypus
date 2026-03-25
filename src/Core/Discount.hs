@@ -14,14 +14,14 @@ data Discount = Discount
   , dscMinAmount :: Double
   } deriving (Show, Eq)
 
-data DiscountType = DT_Percent | DT_Fixed | DT_Conditional
+data DiscountType = DTPercent | DTFixed | DTConditional
   deriving (Show, Eq)
 
 -- | Calculate discount amount
 calcDiscount :: Discount -> Double -> Double
 calcDiscount d amount
   | amount >= dscMinAmount d = case dscType d of
-      DT_Percent     -> amount * dscValue d / 100
-      DT_Fixed       -> dscValue d
-      DT_Conditional -> amount * dscValue d / 100
+      DTPercent     -> amount * dscValue d / 100
+      DTFixed       -> dscValue d
+      DTConditional -> amount * dscValue d / 100
   | otherwise = 0

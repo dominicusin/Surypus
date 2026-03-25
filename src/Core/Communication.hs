@@ -27,7 +27,7 @@ data Email = Email
   , emStatus  :: EmailStatus
   } deriving (Show, Eq)
 
-data EmailStatus = EM_Pending | EM_Sent | EM_Failed
+data EmailStatus = EMPending | EMSent | EMFailed
   deriving (Show, Eq)
 
 -- | EAddress - Electronic address
@@ -39,5 +39,5 @@ data EAddress = EAddress
   , eaFlags    :: Int
   } deriving (Show, Eq)
 
-data EAddrType = EA_Email | EA_Phone | EA_Telegram | EA_WhatsApp
+data EAddrType = EAEmail | EAPhone | EATelegram | EAWhatsApp
   deriving (Show, Eq)

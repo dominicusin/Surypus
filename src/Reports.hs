@@ -14,7 +14,7 @@ data ReportTemplate = ReportTemplate
   } deriving (Show, Eq)
 
 -- | Report types
-data ReportType = RT_Sales | RT_Inventory | RT_Financial | RT_Tax | RT_Custom
+data ReportType = RTSales | RTInventory | RTFinancial | RTTax | RTCustom
   deriving (Show, Eq)
 
 -- | Report parameters
@@ -24,7 +24,7 @@ data ReportParams = ReportParams
   } deriving (Show, Eq)
 
 -- | Report status
-data ReportStatus = RS_Pending | RS_Processing | RS_Completed | RS_Failed
+data ReportStatus = RSPending | RSProcessing | RSCompleted | RSFailed
   deriving (Show, Eq)
 
 -- | Report job
@@ -39,9 +39,9 @@ data ReportJob = ReportJob
 -- | Available report templates
 getReportTemplates :: [ReportTemplate]
 getReportTemplates =
-  [ ReportTemplate 1 "sales_daily" "Daily Sales" RT_Sales (Just "sales_daily.jrxml")
-  , ReportTemplate 2 "inventory" "Inventory Report" RT_Inventory (Just "inventory.jrxml")
-  , ReportTemplate 3 "balance_sheet" "Balance Sheet" RT_Financial (Just "balance_sheet.jrxml")
+  [ ReportTemplate 1 "sales_daily" "Daily Sales" RTSales (Just "sales_daily.jrxml")
+  , ReportTemplate 2 "inventory" "Inventory Report" RTInventory (Just "inventory.jrxml")
+  , ReportTemplate 3 "balance_sheet" "Balance Sheet" RTFinancial (Just "balance_sheet.jrxml")
   ]
 
 -- | Create report job
@@ -49,7 +49,7 @@ createReportJob :: Int64 -> ReportJob
 createReportJob tid = ReportJob
   { rjId = 0
   , rjTemplateId = tid
-  , rjStatus = RS_Pending
+  , rjStatus = RSPending
   , rjOutputPath = Nothing
   , rjCreatedAt = fromGregorian 2026 3 9
   }

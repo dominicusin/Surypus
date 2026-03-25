@@ -10,7 +10,7 @@ import Data.Time (Day)
 -- PRICE TYPES
 -- ============================================================================
 
-data PriceType = PT_Retail | PT_Wholesale | PT_Cost | PT_Purchase | PT_Transfer
+data PriceType = PTRetail | PTWholesale | PTCost | PTPurchase | PTTransfer
   deriving (Show, Eq)
 
 data Currency = Currency
@@ -36,7 +36,7 @@ data PriceList = PriceList
   }
   deriving (Show, Eq)
 
-data PriceListFlags = PLF_DisableAutoQuote | PLF_RoundDiscount | PLF_DiscountExclude
+data PriceListFlags = PLFDisableAutoQuote | PLFRoundDiscount | PLFDiscountExclude
   deriving (Show, Eq)
 
 -- | Quotation (price for goods)
@@ -54,7 +54,7 @@ data Quot = Quot
   }
   deriving (Show, Eq)
 
-data QuotFlags = QF_AutoCalc | QF_LastPrice | QF_Manual
+data QuotFlags = QFAutoCalc | QFLastPrice | QFManual
   deriving (Show, Eq)
 
 -- ============================================================================

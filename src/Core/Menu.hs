@@ -12,7 +12,7 @@ data Menu = Menu
   , mnuParentId :: Maybe Int64
   } deriving (Show, Eq)
 
-data MenuType = MT_Main | MT_Context | MT_Toolbar | MT_Popup
+data MenuType = MTMain | MTContext | MTToolbar | MTPopup
   deriving (Show, Eq)
 
 -- | MenuItem - Menu item

@@ -45,9 +45,9 @@ data AccSheet = AccSheet
 
 -- | AccSheet type
 data AccSheetType
-  = AST_Agents -- Agents (контрагенты)
-  | AST_Contracts -- Contracts (договоры)
-  | AST_Projects -- Projects (проекты)
-  | AST_Orders -- Orders (заказы)
-  | AST_Employees -- Employees (сотрудники)
+  = AstAgents -- Agents (контрагенты)
+  | AstContracts -- Contracts (договоры)
+  | AstProjects -- Projects (проекты)
+  | AstOrders -- Orders (заказы)
+  | AstEmployees -- Employees (сотрудники)
   deriving (Show, Eq, Enum)

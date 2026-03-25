@@ -49,7 +49,7 @@ payrollSnapshotRow = do
   summaryText <- D.column (D.nonNullable D.text)
   case eitherDecodeStrict (encodeUtf8 summaryText) of
     Left err -> fail err
-    Right summary -> return PayrollSnapshotRecord
+    Right summary -> pure PayrollSnapshotRecord
       { psrId = iid
       , psrPeriodStart = pstart
       , psrPeriodEnd = pend

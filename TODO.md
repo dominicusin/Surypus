@@ -24,7 +24,7 @@
 
 ### Security
 - [ ] Implement JWT authentication with refresh tokens
-- [ ] Add role-based access control (RBAC)
+- [x] Add role-based access control (RBAC)
 - [ ] Add audit logging for sensitive operations
 - [ ] Implement API key authentication for integrations
 

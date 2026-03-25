@@ -1,9 +1,13 @@
+{-# LANGUAGE DeriveGeneric #-}
+
 -- | Inventory types - Stock counts and inventories
 module Core.Inventory.Types.Inventory where
 
+import Data.Aeson (FromJSON, ToJSON)
 import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Time (Day)
+import GHC.Generics (Generic)
 
 -- | Inventory - Stock count/check document
 data Inventory = Inventory
@@ -27,7 +31,11 @@ data InventoryStatus
   | IS_Approved -- Утверждено (4)
   | IS_Completed -- Завершена (5)
   | IS_Cancelled -- Отменена (6)
-  deriving (Show, Eq, Enum)
+  deriving (Show, Eq, Enum, Generic)
+
+instance ToJSON InventoryStatus
+
+instance FromJSON InventoryStatus
 
 -- | Inventory line - actual vs expected
 data InventoryLine = InventoryLine

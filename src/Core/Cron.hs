@@ -25,5 +25,5 @@ data CronLog = CronLog
   , clOutput   :: Text
   } deriving (Show, Eq)
 
-data CronStatus = CS_Running | CS_Success | CS_Failed
+data CronStatus = CSRunning | CSSuccess | CSFailed
   deriving (Show, Eq)

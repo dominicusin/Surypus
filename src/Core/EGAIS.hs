@@ -20,10 +20,10 @@ data EgaisShipment = EgaisShipment
   , esReplyId :: Maybe Text
   } deriving (Show, Eq)
 
-data EgaisType = ET_Waybill | ET_ActWriteOff | ET_ActTurnover
+data EgaisType = ETWaybill | ETActWriteOff | ETActTurnover
   deriving (Show, Eq)
 
-data EgaisStatus = ES_Pending | ES_Sent | ES_Accepted | ES_Rejected
+data EgaisStatus = ESPending | ESSent | ESAccepted | ESRejected
   deriving (Show, Eq)
 
 -- | EGAIS product info
@@ -38,4 +38,4 @@ data EgaisProduct = EgaisProduct
 
 -- | Validate EGAIS waybill
 validateEgaisShipment :: EgaisShipment -> Bool
-validateEgaisShipment es = esStatus es /= ES_Rejected
+validateEgaisShipment es = esStatus es /= ESRejected

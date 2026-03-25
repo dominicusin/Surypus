@@ -26,7 +26,7 @@ data ImportSession = ImportSession
   , isErrorRows     :: Int
   } deriving (Show, Eq)
 
-data ImportStatus = IS_Pending | IS_InProgress | IS_Completed | IS_Failed
+data ImportStatus = ISPending | ISInProgress | ISCompleted | ISFailed
   deriving (Show, Eq)
 
 -- | ExportTemplate - Export template
@@ -38,5 +38,5 @@ data ExportTemplate = ExportTemplate
   , etFormat     :: ExportFormat
   } deriving (Show, Eq)
 
-data ExportFormat = EF_CSV | EF_XLSX | EF_XML | EF_JSON
+data ExportFormat = EFCSV | EFXLSX | EFXML | EFJSON
   deriving (Show, Eq)

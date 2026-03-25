@@ -16,11 +16,11 @@ data EDIExchange = EDIExchange
   , ediDocId      :: Int64
   } deriving (Show, Eq)
 
-data EDIType = EDI_Order | EDI_Invoice | EDI_Desadv | EDI_Recadv
+data EDIType = EDIOrder | EDIInvoice | EDIDesadv | EDIRecadv
   deriving (Show, Eq)
 
-data EDIDirection = EDID_Incoming | EDID_Outgoing
+data EDIDirection = EDIDIncoming | EDIDOutgoing
   deriving (Show, Eq)
 
-data EDIStatus = EDIS_Pending | EDIS_Sent | EDIS_Received | EDIS_Accepted | EDIS_Rejected
+data EDIStatus = EDISPending | EDISSent | EDISReceived | EDISAccepted | EDISRejected
   deriving (Show, Eq)

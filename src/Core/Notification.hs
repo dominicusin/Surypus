@@ -15,7 +15,7 @@ data Notification = Notification
   , nCreatedAt :: Int64
   } deriving (Show, Eq)
 
-data NotificationStatus = NS_Pending | NS_Sent | NS_Delivered | NS_Read | NS_Failed
+data NotificationStatus = NSPending | NSSent | NSDelivered | NSRead | NSFailed
   deriving (Show, Eq)
 
 -- | NotificationTemplate - Notification template

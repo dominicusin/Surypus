@@ -31,6 +31,7 @@ import qualified Hasql.Session as Session
 import qualified Network.HTTP.Types as HTTP
 import Network.Wai (Middleware, Request, rawPathInfo, requestHeaders, requestMethod, responseLBS, responseStatus)
 import Surypus.JWT (JWTConfig (..), JWTPayload (..), defaultJWTConfig, generateSimpleToken, validateSimpleToken)
+import Surypus.RBAC (EntityType (..), Permission (..), checkPermissions)
 import System.IO (hFlush, stdout)
 import Web.Scotty
 import qualified Web.Scotty as Scotty
@@ -227,26 +228,23 @@ runServer cfg = do
         ]
 
     -- Auth
-    post "/api/v1/auth/login" $
-      json $
-        LoginResponse
-          { token = "token-placeholder",
-            userId = 1,
-            role = "admin",
-            expiresAt = "2026-12-31T23:59:59Z"
-          }
+    post "/api/v1/auth/login" . json $
+      LoginResponse
+        { token = "token-placeholder",
+          userId = 1,
+          role = "admin",
+          expiresAt = "2026-12-31T23:59:59Z"
+        }
 
-    post "/api/v1/auth/logout" $
-      json $
-        object ["success" .= True]
+    post "/api/v1/auth/logout" . json $
+      object ["success" .= True]
 
-    get "/api/v1/auth/me" $
-      json $
-        object
-          [ "userId" .= (1 :: Int64),
-            "username" .= ("admin" :: String),
-            "role" .= ("admin" :: String)
-          ]
+    get "/api/v1/auth/me" . json $
+      object
+        [ "userId" .= (1 :: Int64),
+          "username" .= ("admin" :: String),
+          "role" .= ("admin" :: String)
+        ]
 
     -- Roles
     get "/api/v1/roles" $
@@ -273,12 +271,12 @@ runServer cfg = do
           catch
             ( do
                 result <- getPersonsPaginated pool filter Nothing Nothing pagination
-                return (Right result)
+                pure (Right result)
             )
-            (\(e :: SomeException) -> return (Left (T.pack (show e))))
+            (\(e :: SomeException) -> pure (Left (T.pack (show e))))
       case eResult of
         Left err -> do
-          liftIO $ putStrLn $ "ERROR in /api/v1/persons: " ++ T.unpack err
+          liftIO . putStrLn $ ("ERROR in /api/v1/persons: " <> T.unpack err)
           json $ object ["success" .= False, "error" .= err]
         Right result -> json result
 
@@ -311,6 +309,7 @@ runServer cfg = do
 
     -- Goods (with pagination)
     get "/api/v1/goods" $ do
+      checkPermissions [PermRead EntityGoods]
       let pagination = Pagination 50 0
           filter = defaultGoodsFilter
           sortBy = Nothing :: Maybe GoodsSortBy
@@ -321,30 +320,14 @@ runServer cfg = do
           catch
             ( do
                 result <- getGoodsPaginated pool filter pagination sortBy sortDir
-                return (Right result)
+                pure (Right result)
             )
-            (\(e :: SomeException) -> return (Left (T.pack (show e))))
+            (\(e :: SomeException) -> pure (Left (T.pack (show e))))
       case eResult of
         Left err -> do
-          liftIO $ putStrLn $ "ERROR in /api/v1/goods: " ++ T.unpack err
+          liftIO . putStrLn $ ("ERROR in /api/v1/goods: " <> T.unpack err)
           json $ object ["success" .= False, "error" .= err]
         Right result -> json result
-
-    get "/api/v1/goods/search/:query" $ do
-      query <- param "query"
-      result <- liftIO $ searchGoods pool query
-      json $ toJSONResult result
-
-    get "/api/v1/goods/:id" $ do
-      gid <- param "id"
-      result <- liftIO $ getGoodsById pool gid
-      json $ toJSONResult result
-
-    get "/api/v1/goods/barcode/:code" $ do
-      code <- param "code"
-      result <- liftIO $ getGoodsByBarcode pool code
-      json $ toJSONResult result
-
     -- Goods CRUD
     post "/api/v1/goods" $ do
       input <- jsonData :: ActionM GoodsInput
@@ -386,6 +369,7 @@ runServer cfg = do
 
     -- Bills (with pagination)
     get "/api/v1/bills" $ do
+      checkPermissions [PermRead EntityBills]
       let pagination = Pagination 50 0
           filter = defaultBillFilter
           sortBy = Nothing :: Maybe BillSortBy
@@ -396,30 +380,14 @@ runServer cfg = do
           catch
             ( do
                 result <- getBillsPaginated pool filter pagination sortBy sortDir
-                return (Right result)
+                pure (Right result)
             )
-            (\(e :: SomeException) -> return (Left (T.pack (show e))))
+            (\(e :: SomeException) -> pure (Left (T.pack (show e))))
       case eResult of
         Left err -> do
-          liftIO $ putStrLn $ "ERROR in /api/v1/bills: " ++ T.unpack err
+          liftIO . putStrLn $ ("ERROR in /api/v1/bills: " <> T.unpack err)
           json $ object ["success" .= False, "error" .= err]
         Right result -> json result
-
-    get "/api/v1/bills/:id" $ do
-      bid <- param "id"
-      result <- liftIO $ getBillById pool bid
-      json $ toJSONResult result
-
-    get "/api/v1/bills/:id/lines" $ do
-      bid <- param "id"
-      result <- liftIO $ getBillLines pool bid
-      json $ toJSONResult result
-
-    get "/api/v1/bills/:id/payments" $ do
-      bid <- param "id"
-      result <- liftIO $ getPaymentsByBill pool bid
-      json $ toJSONResult result
-
     -- Create Bill
     post "/api/v1/bills" $ do
       input <- jsonData :: ActionM BillInput
@@ -451,6 +419,7 @@ runServer cfg = do
 
     -- Orders (with pagination)
     get "/api/v1/orders" $ do
+      checkPermissions [PermRead EntityOrders]
       let pagination = Pagination 50 0
           filter = defaultOrderFilter
           sortBy = Nothing :: Maybe OrderSortBy
@@ -461,25 +430,14 @@ runServer cfg = do
           catch
             ( do
                 result <- getOrdersPaginated pool filter pagination sortBy sortDir
-                return (Right result)
+                pure (Right result)
             )
-            (\(e :: SomeException) -> return (Left (T.pack (show e))))
+            (\(e :: SomeException) -> pure (Left (T.pack (show e))))
       case eResult of
         Left err -> do
-          liftIO $ putStrLn $ "ERROR in /api/v1/orders: " ++ T.unpack err
+          liftIO . putStrLn $ ("ERROR in /api/v1/orders: " <> T.unpack err)
           json $ object ["success" .= False, "error" .= err]
         Right result -> json result
-
-    get "/api/v1/orders/:id" $ do
-      oid <- param "id"
-      result <- liftIO $ getOrderById pool oid
-      json $ toJSONResult result
-
-    get "/api/v1/orders/:id/lines" $ do
-      oid <- param "id"
-      result <- liftIO $ getOrderLines pool oid
-      json $ toJSONResult result
-
     -- Create Order
     post "/api/v1/orders" $ do
       input <- jsonData :: ActionM OrderInput

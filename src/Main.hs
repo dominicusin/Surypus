@@ -47,8 +47,8 @@ main = do
         , scPoolConfig = poolCfg
         }
 
-  putStrLn $ "Database: " ++ pgHost ++ ":" ++ show pgPort ++ "/" ++ pgDb
-  putStrLn $ "Server: " ++ host ++ ":" ++ show port
+  putStrLn $ "Database: " <> pgHost <> ":" <> show pgPort <> "/" <> pgDb
+  putStrLn $ "Server: " <> host <> ":" <> show port
 
   -- Create connection pool
   putStrLn "Creating database connection pool..."
@@ -72,26 +72,26 @@ main = do
 getEnvDefault :: String -> String -> IO String
 getEnvDefault name defaultVal = do
   val <- tryGetEnv name
-  return $ case val of
+  pure $ case val of
     Just v  -> v
     Nothing -> defaultVal
   where
     tryGetEnv n = do
       envs <- getEnvironment
-      return $ lookup n envs
+      pure $ lookup n envs
 
 runServiceMode :: ServerConfig -> Pool -> ServiceCommand -> IO ()
 runServiceMode _ _ CmdHelp = putStrLn (T.unpack serviceCommandHelp)
 runServiceMode serverCfg pool cmd = case transition initialServiceState cmd of
   Left err -> hPutStrLn stderr (T.unpack err)
   Right state -> do
-    putStrLn $ "Service phase: " ++ show (serviceStatePhase state)
+    putStrLn $ "Service phase: " <> show (serviceStatePhase state)
     case cmd of
       CmdRun -> do
         putStrLn "Executing ppws run command"
         runServer serverCfg pool
       CmdInstall login pw -> do
-        putStrLn $ "Installing service (login=" ++ show login ++ ", password=" ++ show pw ++ ")"
+        putStrLn $ "Installing service (login=" <> show login <> ", password=" <> show pw <> ")"
       CmdUninstall ->
         putStrLn "Uninstalling service"
       CmdStart ->
@@ -106,4 +106,4 @@ runServiceMode serverCfg pool cmd = case transition initialServiceState cmd of
       CmdRFID ->
         putStrLn "Running RFID processor"
       _ ->
-        return ()
+        pure ()

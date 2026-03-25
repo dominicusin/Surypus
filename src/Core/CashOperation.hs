@@ -15,9 +15,9 @@ data CashOperation = CashOperation
   , coReason     :: Text
   } deriving (Show, Eq)
 
-data CashOpType = CO_Income | CO_Expense | CO_Transfer | CO_Exchange
+data CashOpType = COIncome | COExpense | COTransfer | COExchange
   deriving (Show, Eq)
 
 -- | Is income operation
 isIncome :: CashOperation -> Bool
-isIncome co = coType co == CO_Income
+isIncome co = coType co == COIncome

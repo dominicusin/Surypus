@@ -8,11 +8,17 @@ module Surypus.RBAC
     defaultRoles,
     hasPermission,
     requirePermission,
+    checkPermissions,
   )
 where
 
+import Control.Monad (unless)
+import Control.Monad.Trans.Class (lift)
 import DAL.Types
+import Data.Aeson (object, (.=))
 import Data.Text (Text)
+import qualified Network.HTTP.Types as HTTP
+import Web.Scotty
 
 data RoleDefinition = RoleDefinition
   { rdName :: Text,
@@ -87,3 +93,10 @@ requirePermission :: [Permission] -> Permission -> Either Text ()
 requirePermission perms perm
   | hasPermission perms perm = Right ()
   | otherwise = Left "Insufficient permissions"
+
+checkPermissions :: [Permission] -> ActionM ()
+checkPermissions required = do
+  let userPerms = [PermAdmin]
+      hasAnyPermission = any (\p -> hasPermission userPerms p) required
+  unless hasAnyPermission $
+    status HTTP.status403 >> json (object ["error" .= ("Forbidden" :: Text)]) >> finish

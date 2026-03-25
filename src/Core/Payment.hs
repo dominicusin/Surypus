@@ -1,4 +1,4 @@
--- | Payment module - Payments (corresponds to PaymentTbl in C++)
+-- | Payment module - Payments (corresponds to PaymentTbl in C<>)
 module Core.Payment where
 
 import Data.Int (Int64)
@@ -26,21 +26,21 @@ data Payment = Payment
 
 -- | Payment method - corresponds to PPPAYMT_*
 data PaymentMethod
-  = PM_Cash -- Cash (Наличные)
-  | PM_Card -- Card (Карта)
-  | PM_Transfer -- Bank transfer (Безналичные)
-  | PM_Bonus -- Bonus points (Бонусы)
-  | PM_GiftCard -- Gift card (Подарочная карта)
-  | PM_Credit -- Credit (Кредит)
+  = PMCash -- Cash (Наличные)
+  | PMCard -- Card (Карта)
+  | PMTransfer -- Bank transfer (Безналичные)
+  | PMBonus -- Bonus points (Бонусы)
+  | PMGiftCard -- Gift card (Подарочная карта)
+  | PMCredit -- Credit (Кредит)
   deriving (Show, Eq, Enum)
 
 -- | Payment status
 data PaymentStatus
-  = PS_Pending -- Pending (Ожидание)
-  | PS_Completed -- Completed (Проведен)
-  | PS_Failed -- Failed (Ошибка)
-  | PS_Refunded -- Refunded (Возвращен)
-  | PS_Cancelled -- Cancelled (Отменен)
+  = PSPending -- Pending (Ожидание)
+  | PSCompleted -- Completed (Проведен)
+  | PSFailed -- Failed (Ошибка)
+  | PSRefunded -- Refunded (Возвращен)
+  | PSCancelled -- Cancelled (Отменен)
   deriving (Show, Eq)
 
 -- | Payment flags - corresponds to PAYMF_*
@@ -57,11 +57,11 @@ data PaymentFlags = PaymentFlags
 
 -- | Check if payment is completed
 isCompleted :: Payment -> Bool
-isCompleted p = payStatus p == PS_Completed
+isCompleted p = payStatus p == PSCompleted
 
 -- | Check if payment can be refunded
 canRefund :: Payment -> Bool
-canRefund p = payStatus p == PS_Completed && payAmount p > 0
+canRefund p = payStatus p == PSCompleted && payAmount p > 0
 
 -- | Calculate payment amount (ensure non-negative)
 calcPaymentAmount :: Double -> Double

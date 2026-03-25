@@ -60,10 +60,10 @@ getBill :: Pool -> Int64 -> IO (Maybe Bill)
 getBill pool bid = do
   mb <- use pool $ Session.statement bid stmt
   case mb of
-    Nothing -> return Nothing
+    Nothing -> pure Nothing
     Just bill -> do
       lines <- DBBillLine.listBillLines pool bid
-      return $ Just bill { billLines = lines }
+      pure $ Just bill { billLines = lines }
   where
     stmt = Statement
       "SELECT id, number, op_kind_id, date, person_id, object_id, amount, vat_sum, discount, status, currency_id, created_by FROM bill WHERE id = $1"
@@ -90,7 +90,7 @@ createBill pool bill@Bill{..} = do
   forM_ billLines $ \line ->
     void $ DBBillLine.createBillLine pool newId line
   recalcBillTotals pool newId
-  return newId
+  pure newId
   where
     stmt = Statement
       "INSERT INTO bill (number, op_kind_id, date, person_id, object_id, amount, vat_sum, discount, status, currency_id, created_by) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id"

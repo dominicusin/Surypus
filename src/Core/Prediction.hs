@@ -13,7 +13,7 @@ data PredictionModel = PredictionModel
   , pmTrainedAt :: Int64
   } deriving (Show, Eq)
 
-data ModelType = MT_Demand | MT_Churn | MT_Fraud | MT_Price
+data ModelType = MTDemand | MTChurn | MTFraud | MTPrice
   deriving (Show, Eq)
 
 -- | Prediction - Prediction result

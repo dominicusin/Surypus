@@ -13,7 +13,7 @@ data Chart = Chart
   , chConfig     :: Text  -- JSON
   } deriving (Show, Eq)
 
-data ChartType = CT_Line | CT_Bar | CT_Pie | CT_Scatter | CT_Gauge
+data ChartType = CTLine | CTBar | CTPie | CTScatter | CTGauge
   deriving (Show, Eq)
 
 -- | Dashboard - Dashboard configuration

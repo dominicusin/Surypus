@@ -69,10 +69,10 @@ getUserByLogin pool login = use pool $
 verifyUserCredentials :: Pool -> Text -> Text -> IO (Maybe AppUser)
 verifyUserCredentials pool login password = do
   user <- getUserByLogin pool login
-  return $ do
+  pure $ do
     u <- user
     guard (verifyPassword (appUserPassword u) password)
-    return u
+    pure u
 
 verifyPassword :: Text -> Text -> Bool
 verifyPassword stored input =

@@ -16,7 +16,7 @@ data Project = Project
   , prjStatus    :: ProjectStatus
   } deriving (Show, Eq)
 
-data ProjectStatus = PS_Planned | PS_InProgress | PS_Completed | PS_Cancelled
+data ProjectStatus = PSPlanned | PSInProgress | PSCompleted | PSCancelled
   deriving (Show, Eq)
 
 -- | Task - Project task
@@ -30,7 +30,7 @@ data Task = Task
   , tskStatus    :: TaskStatus
   } deriving (Show, Eq)
 
-data TaskStatus = TS_Todo | TS_InProgress | TS_Done | TS_Blocked
+data TaskStatus = TS_Todo | TSInProgress | TSDone | TSBlocked
   deriving (Show, Eq)
 
 -- | Check if project is overdue

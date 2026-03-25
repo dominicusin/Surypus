@@ -22,5 +22,5 @@ data CategoryProp = CategoryProp
   , cpRequired   :: Bool
   } deriving (Show, Eq)
 
-data PropType = PT_String | PT_Int | PT_Double | PT_Bool | PT_Enum
+data PropType = PTString | PTInt | PTDouble | PTBool | PTEnum
   deriving (Show, Eq)

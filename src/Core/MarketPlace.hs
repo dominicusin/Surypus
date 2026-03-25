@@ -15,7 +15,7 @@ data MarketPlace = MarketPlace
   , mpStatus :: MarketPlaceStatus
   } deriving (Show, Eq)
 
-data MarketPlaceStatus = MPS_Active | MPS_Inactive | MPS_Error
+data MarketPlaceStatus = MPSActive | MPSInactive | MPSError
   deriving (Show, Eq)
 
 -- | MarketOrder - Order from marketplace
@@ -28,5 +28,5 @@ data MarketOrder = MarketOrder
   , moTotal      :: Double
   } deriving (Show, Eq)
 
-data MarketOrderStatus = MOS_New | MOS_Processing | MOS_Shipped | MOS_Delivered | MOS_Cancelled
+data MarketOrderStatus = MOSNew | MOSProcessing | MOSShipped | MOSDelivered | MOSCancelled
   deriving (Show, Eq)

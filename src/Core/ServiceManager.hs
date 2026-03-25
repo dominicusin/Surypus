@@ -23,13 +23,13 @@ daemonTickDelay = 5 * 1000000 -- 5 seconds
 runJobQueueOnce :: Pool -> IO ()
 runJobQueueOnce _pool = do
   now <- getCurrentTime
-  putStrLn $ "Job queue sweep at " ++ show now
+  putStrLn $ "Job queue sweep at " <> show now
   putStrLn "Job queue idle"
 
 runCronOnce :: Pool -> IO ()
 runCronOnce _pool = do
   now <- getCurrentTime
-  putStrLn $ "Cron tick at " ++ show now
+  putStrLn $ "Cron tick at " <> show now
   putStrLn "Cron idle"
 
 -- | Run both job queue and cron loops in parallel.
@@ -44,6 +44,6 @@ tryRun :: IO () -> IO ()
 tryRun action = do
   result <- try action
   case result of
-    Left (err :: SomeException) -> putStrLn $ "Daemon tick failed: " ++ show err
-    Right () -> return ()
+    Left (err :: SomeException) -> putStrLn $ "Daemon tick failed: " <> show err
+    Right () -> pure ()
   threadDelay daemonTickDelay

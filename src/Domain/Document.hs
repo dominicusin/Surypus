@@ -33,4 +33,4 @@ documentRegisterStatusAsOf today doc =
 documentRegisterStatus :: DocumentRegister -> IO DocumentRegisterStatus
 documentRegisterStatus doc = do
   today <- utctDay <$> getCurrentTime
-  return $ documentRegisterStatusAsOf today doc
+  pure $ documentRegisterStatusAsOf today doc

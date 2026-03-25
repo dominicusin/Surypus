@@ -10,6 +10,7 @@ build-type:     Simple
 library
     exposed-modules:
         Core
+        Core.Asset
         Core.Goods
         Core.Document
         Core.Document.Types
@@ -73,6 +74,25 @@ library
       Core.Person.Person
       Core.Person.Relation
       Core.Refined
+      Domain.Goods
+      Domain.Bill
+      Domain.Stock
+      Domain.Location
+      Domain.Accounting
+      Domain.Document
+      Domain.Document.Audit
+      Domain.Payroll
+      Domain.Person
+      Domain.Core
+      Domain.Inventory
+      Domain.Asset
+      Domain.HR
+      Domain.Production
+      Domain.TechCard
+      Domain.Job
+      Domain.ReportJob
+      Domain.ReportSchedule
+      Domain.Types
   hs-source-dirs:
       src
   build-depends:
@@ -104,6 +124,8 @@ library
     , fast-logger >=3.0
     , monad-logger >=0.3
     , wai-extra >=3.1
+    , scientific >=0.3
+    , transformers >=0.5
 
   default-language: Haskell2010
   ghc-options: -Wall

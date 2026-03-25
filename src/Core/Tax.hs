@@ -1,4 +1,4 @@
--- | Tax Calculation Module - GTaxVect equivalent from  C++
+-- | Tax Calculation Module - GTaxVect equivalent from  C<>
 -- Supports: VAT, Excise, Sales Tax with forward/backward calculation
 --
 -- = Formal Verification (LiquidHaskell)
@@ -57,7 +57,7 @@ import Test.QuickCheck
 data TaxCalcType = TaxCalcType_VAT | TaxCalcType_Excise | TaxCalcType_SalesTax | TaxCalcType_Property
   deriving (Show, Eq, Enum)
 
--- | Tax flags from C++ GTAXF_*
+-- | Tax flags from C<> GTAXF_*
 data TaxFlags = TaxFlags
   { tfAbsolute :: Bool, -- GTAXF_ABSVAT
     tfUnion :: Bool, -- GTAXF_UNION
@@ -69,7 +69,7 @@ data TaxFlags = TaxFlags
 defaultTaxFlags :: TaxFlags
 defaultTaxFlags = TaxFlags False False False False
 
--- | Tax entry - corresponds to PPGoodsTaxEntry in C++
+-- | Tax entry - corresponds to PPGoodsTaxEntry in C<>
 -- Invariant: All tax values >= 0
 data TaxEntry = TaxEntry
   { teTaxGrpId :: Int64, -- Tax group ID
@@ -85,7 +85,7 @@ data TaxEntry = TaxEntry
   }
   deriving (Show, Eq)
 
--- | Tax vector - corresponds to GTaxVect in C++
+-- | Tax vector - corresponds to GTaxVect in C<>
 data TaxVector = TaxVector
   { tvAmount :: Decimal, -- Net amount
     tvQtty :: Decimal, -- Quantity
@@ -188,7 +188,7 @@ validateTaxEntry :: TaxEntry -> Bool
 validateTaxEntry e = teVAT e >= 0 && teExcise e >= 0 && teSalesTax e >= 0
 
 -- ============================================================================
--- TAX VECTOR CALCULATIONS (from C++ GTaxVect)
+-- TAX VECTOR CALCULATIONS (from C<> GTaxVect)
 -- ============================================================================
 
 -- | Calculate complete tax vector from amounts and rates
@@ -234,7 +234,7 @@ validateTaxVector tv =
 -- ============================================================================
 
 -- | Calculate excise tax
--- C++: GTAXF_ABSEXCISE flag determines if absolute or ad valorem
+-- C<>: GTAXF_ABSEXCISE flag determines if absolute or ad valorem
 calcExcise :: Decimal -> Decimal -> Bool -> Decimal
 calcExcise amount rate isAbsolute
   | isAbsolute = rate -- Absolute amount

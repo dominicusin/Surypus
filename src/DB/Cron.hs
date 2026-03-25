@@ -19,10 +19,10 @@ data CronTask = CronTask
   deriving (Show, Eq)
 
 fetchDueCronTasks :: p -> IO [CronTask]
-fetchDueCronTasks _pool = return []
+fetchDueCronTasks _pool = pure []
 
 updateCronTaskNextRun :: p -> Int64 -> IO ()
-updateCronTaskNextRun _pool _taskId = return ()
+updateCronTaskNextRun _pool _taskId = pure ()
 
 recordCronLog :: p -> Int64 -> Text -> Text -> IO ()
-recordCronLog _pool _taskId _status _output = return ()
+recordCronLog _pool _taskId _status _output = pure ()

@@ -19,5 +19,5 @@ data Counter = Counter
 nextCounterValue :: Counter -> Text
 nextCounterValue c =
   let num = show (cntLastValue c + 1)
-      padded = replicate (cntPadding c - length num) '0' ++ num
+      padded = replicate (cntPadding c - length num) '0' <> num
   in cntPrefix c `T.append` (T.pack padded) `T.append` cntSuffix c

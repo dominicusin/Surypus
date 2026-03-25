@@ -19,7 +19,7 @@ data LogLevel
 
 initLogger :: IO (Text -> LogLevel -> Text -> IO ())
 initLogger = do
-  return $ \moduleName level msg -> do
+  pure $ \moduleName level msg -> do
     let levelStr = case level of
           LogLevelDebug -> "[DEBUG]"
           LogLevelInfo -> "[INFO]"

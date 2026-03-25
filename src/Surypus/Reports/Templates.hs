@@ -190,13 +190,13 @@ instance Yaml.FromJSON TemplateRect
 -- | Get template directory path
 getTemplateDir :: IO FilePath
 getTemplateDir = do
-  return "templates/reports"
+  pure "templates/reports"
 
 -- | Get full path to template file
 getTemplatePath :: TemplateType -> IO FilePath
 getTemplatePath tpl = do
   dir <- getTemplateDir
-  return $ dir </> T.unpack (templateTypeToFile tpl)
+  pure $ dir </> T.unpack (templateTypeToFile tpl)
 
 -- | Load template by type
 loadTemplate :: TemplateType -> IO (Either String ReportTemplate)
@@ -208,14 +208,14 @@ loadTemplate tpl = do
 loadTemplateFromFile :: FilePath -> IO (Either String ReportTemplate)
 loadTemplateFromFile path = do
   content <- TIO.readFile path
-  return $ Yaml.decodeEither content
+  pure $ Yaml.decodeEither content
 
 -- | List all available templates
 listTemplates :: IO [(TemplateType, Text)]
 listTemplates = do
   dir <- getTemplateDir
   files <- listDirectory dir
-  return $ map (\f -> (Custom (T.pack (dropExtension f)), T.pack f)) files
+  pure $ map (\f -> (Custom (T.pack (dropExtension f)), T.pack f)) files
   where
     dropExtension :: String -> String
     dropExtension = reverse . drop 1 . reverse . dropWhile (/= '.')

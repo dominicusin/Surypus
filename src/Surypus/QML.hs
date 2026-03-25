@@ -109,11 +109,11 @@ initQMLEngine = do
 -- | Run QML application
 runQMLApp :: FilePath -> IO ()
 runQMLApp qmlFile = do
-    putStrLn $ "Running QML: " ++ qmlFile
+    putStrLn $ "Running QML: " <> qmlFile
     
     -- Run with qmlscene or Qt runtime
     callProcess "qmlscene" [qmlFile]
-    return ()
+    pure ()
 
 -- ============================================================================
 -- QML MODEL WRAPPERS
@@ -126,7 +126,7 @@ data QMLListModel a = QMLListModel
   }
 
 instance Show a => Show (QMLListModel a) where
-  show m = "QMLListModel " ++ show (qlmCount m) ++ " items"
+  show m = "QMLListModel " <> show (qlmCount m) <> " items"
 
 -- | Convert Persons to QML model
 personsToQML :: [Person] -> QMLListModel Person
@@ -159,19 +159,19 @@ type QMLCallback = IO ()
 -- | Register callback for navigation
 onNavigate :: Text -> QMLCallback -> IO ()
 onNavigate page action = do
-    putStrLn $ "Navigate to: " ++ T.unpack page
+    putStrLn $ "Navigate to: " <> T.unpack page
     action
 
 -- | Register callback for button click
 onButtonClick :: Text -> IO () -> IO ()
 onButtonClick buttonId action = do
-    putStrLn $ "Button clicked: " ++ T.unpack buttonId
+    putStrLn $ "Button clicked: " <> T.unpack buttonId
     action
 
 -- | Register callback for table row selection
 onRowSelect :: Int -> IO () -> IO ()
 onRowSelect rowId action = do
-    putStrLn $ "Row selected: " ++ show rowId
+    putStrLn $ "Row selected: " <> show rowId
     action
 
 -- ============================================================================
@@ -182,31 +182,31 @@ onRowSelect rowId action = do
 loadPersons :: IO [Person]
 loadPersons = do
     putStrLn "Loading persons from API..."
-    return samplePersons
+    pure samplePersons
 
 -- | Load all goods from API
 loadGoods :: IO [Goods]
 loadGoods = do
     putStrLn "Loading goods from API..."
-    return sampleGoods
+    pure sampleGoods
 
 -- | Load all locations from API
 loadLocations :: IO [Location]
 loadLocations = do
     putStrLn "Loading locations from API..."
-    return sampleLocations
+    pure sampleLocations
 
 -- | Load all bills from API
 loadBills :: IO [Bill]
 loadBills = do
     putStrLn "Loading bills from API..."
-    return sampleBills
+    pure sampleBills
 
 -- | Load all jobs from API
 loadJobs :: IO [Job]
 loadJobs = do
     putStrLn "Loading jobs from API..."
-    return sampleJobs
+    pure sampleJobs
 
 -- ============================================================================
 -- SAMPLE DATA
@@ -254,18 +254,18 @@ registerSurypusContext :: Qml.Context -> IO ()
 registerSurypusContext ctx = do
     putStrLn "Registering Surypus QML context..."
     -- Register data models and callbacks
-    return ()
+    pure ()
 
 -- | Export data to QML
 exportToQML :: Text -> Value -> IO ()
 exportToQML name value = do
-    putStrLn $ "Exporting to QML: " ++ T.unpack name
+    putStrLn $ "Exporting to QML: " <> T.unpack name
 
 -- | Import data from QML
 importFromQML :: Text -> IO Value
 importFromQML name = do
-    putStrLn $ "Importing from QML: " ++ T.unpack name
-    return Null
+    putStrLn $ "Importing from QML: " <> T.unpack name
+    pure Null
 
 -- ============================================================================
 -- QML MAIN ENTRY POINT
@@ -285,11 +285,11 @@ mainQML = do
     bills <- loadBills
     jobs <- loadJobs
     
-    putStrLn $ "Loaded: " ++ show (length persons) ++ " persons"
-    putStrLn $ "Loaded: " ++ show (length goods) ++ " goods"
-    putStrLn $ "Loaded: " ++ show (length locations) ++ " locations"
-    putStrLn $ "Loaded: " ++ show (length bills) ++ " bills"
-    putStrLn $ "Loaded: " ++ show (length jobs) ++ " jobs"
+    putStrLn $ "Loaded: " <> show (length persons) <> " persons"
+    putStrLn $ "Loaded: " <> show (length goods) <> " goods"
+    putStrLn $ "Loaded: " <> show (length locations) <> " locations"
+    putStrLn $ "Loaded: " <> show (length bills) <> " bills"
+    putStrLn $ "Loaded: " <> show (length jobs) <> " jobs"
     
     putStrLn "Surypus QML Application ready!"
 
@@ -361,7 +361,7 @@ getDashboardStats = do
     goods <- loadGoods
     bills <- loadBills
     jobs <- loadJobs
-    return (length persons, length goods, length bills, length jobs)
+    pure (length persons, length goods, length bills, length jobs)
 
 -- | Filter persons by status
 filterPersonsByStatus :: Text -> [Person] -> [Person]

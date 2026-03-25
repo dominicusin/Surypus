@@ -17,5 +17,5 @@ data AuditRecord = AuditRecord
   , arTimestamp  :: UTCTime
   } deriving (Show, Eq)
 
-data AuditAction = AA_Create | AA_Update | AA_Delete | AA_View | AA_Execute
+data AuditAction = AACreate | AAUpdate | AADelete | AAView | AAExecute
   deriving (Show, Eq)

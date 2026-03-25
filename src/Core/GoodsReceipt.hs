@@ -14,9 +14,9 @@ data GoodsReceipt = GoodsReceipt
   , grStatus      :: ReceiptStatus
   } deriving (Show, Eq)
 
-data ReceiptStatus = RS_Pending | RS_Received | RS_Checked | RS_Verified
+data ReceiptStatus = RSPending | RSReceived | RSChecked | RSVerified
   deriving (Show, Eq)
 
 -- | Is received
 isReceived :: GoodsReceipt -> Bool
-isReceived gr = grStatus gr == RS_Received || grStatus gr == RS_Checked
+isReceived gr = grStatus gr == RSReceived || grStatus gr == RSChecked

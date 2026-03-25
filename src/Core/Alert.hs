@@ -13,7 +13,7 @@ data Alert = Alert
   , alrRead    :: Bool
   } deriving (Show, Eq)
 
-data AlertType = AT_Warning | AT_Error | AT_Info | AT_Success
+data AlertType = ATWarning | ATError | ATInfo | ATSuccess
   deriving (Show, Eq)
 
 -- | Mark as read

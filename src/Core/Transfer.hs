@@ -1,4 +1,4 @@
--- | Transfer module - Stock transfers (corresponds to TransferTbl in C++)
+-- | Transfer module - Stock transfers (corresponds to TransferTbl in C<>)
 module Core.Transfer where
 
 import Data.Int (Int64)

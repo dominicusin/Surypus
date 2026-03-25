@@ -18,10 +18,10 @@ data Job = Job
   , jobResult   :: Maybe Text
   } deriving (Show, Eq)
 
-data JobType = JT_Sync | JT_Import | JT_Export | JT_Report | JT_Cleanup
+data JobType = JTSync | JTImport | JTExport | JTReport | JTCleanup
   deriving (Show, Eq)
 
-data JobStatus = JS_Pending | JS_Running | JS_Completed | JS_Failed
+data JobStatus = JSPending | JSRunning | JSCompleted | JSFailed
   deriving (Show, Eq)
 
 -- | JobServer - Job processor
@@ -34,11 +34,11 @@ data JobServer = JobServer
   , jsFlags  :: Int
   } deriving (Show, Eq)
 
-data ServerStatus = SS_Online | SS_Offline | SS_Busy
+data ServerStatus = SSOnline | SSOffline | SSBusy
   deriving (Show, Eq)
 
 -- | Check if job is overdue (running > 1 hour)
 isJobOverdue :: Job -> UTCTime -> Bool
 isJobOverdue job _now = case jobStarted job of
   Nothing  -> False
-  Just _st -> jobStatus job == JS_Running
+  Just _st -> jobStatus job == JSRunning

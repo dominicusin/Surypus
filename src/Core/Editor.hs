@@ -13,7 +13,7 @@ data EditorDocument = EditorDocument
   , edOwnerId :: Int64
   } deriving (Show, Eq)
 
-data EditorType = ET_Text | ET_HTML | ET_Markdown | ET_JSON | ET_XML
+data EditorType = ETText | ETHTML | ETMarkdown | ETJSON | ETXML
   deriving (Show, Eq)
 
 -- | EditorSession - Edit session

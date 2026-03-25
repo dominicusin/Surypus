@@ -18,10 +18,10 @@ data Backup = Backup
   , bkFlags   :: Int
   } deriving (Show, Eq)
 
-data BackupType = BT_Full | BT_Incremental | BT_Config
+data BackupType = BTFull | BTIncremental | BTConfig
   deriving (Show, Eq)
 
-data BackupStatus = BS_Pending | BS_InProgress | BS_Completed | BS_Failed
+data BackupStatus = BSPending | BSInProgress | BSCompleted | BSFailed
   deriving (Show, Eq)
 
 -- | Backup settings

@@ -12,7 +12,7 @@ data Component = Component
   , cmpConfig :: Text  -- JSON
   } deriving (Show, Eq)
 
-data ComponentType = CT_Button | CT_Input | CT_Table | CT_Chart | CT_Form
+data ComponentType = CTButton | CTInput | CTTable | CTChart | CTForm
   deriving (Show, Eq)
 
 -- | ComponentLibrary - Component library

@@ -84,7 +84,7 @@ instance Applicative OpResult where
   _ <*> (OpFailure e) = OpFailure e
 
 instance Monad OpResult where
-  return = OpSuccess
+  pure = OpSuccess
   (OpSuccess a) >>= f = f a
   (OpFailure e) >>= _ = OpFailure e
 

@@ -773,11 +773,11 @@ getReportsByCategory cat = filter (\r -> rdCategory r == cat) (Map.elems allRepo
 -- | Export single report JRXML
 exportReportJRXML :: Text -> IO (Maybe Text)
 exportReportJRXML name = case getReport name of
-    Just r  -> return (Just (rdJrxml r))
-    Nothing -> return Nothing
+    Just r  -> pure (Just (rdJrxml r))
+    Nothing -> pure Nothing
 
 -- | Export all reports to directory
 exportAllReports :: FilePath -> IO ()
 exportAllReports dir = mapM_ exportOne (Map.toList allReports)
     where
-        exportOne (name, r) = writeFile (dir ++ "/" ++ T.unpack name ++ ".jrxml") (T.unpack (rdJrxml r))
+        exportOne (name, r) = writeFile (dir <> "/" <> T.unpack name <> ".jrxml") (T.unpack (rdJrxml r))

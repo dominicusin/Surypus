@@ -14,7 +14,7 @@ data GridColumn = GridColumn
   , gcSortable :: Bool
   } deriving (Show, Eq)
 
-data AlignType = AT_Left | AT_Center | AT_Right
+data AlignType = ATLeft | ATCenter | ATRight
   deriving (Show, Eq)
 
 -- | GridView - Grid view configuration

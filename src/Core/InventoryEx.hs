@@ -14,9 +14,9 @@ data InventoryEx = InventoryEx
   , invStatus     :: InvStatus
   } deriving (Show, Eq)
 
-data InvStatus = IS_Draft | IS_InProgress | IS_Completed | IS_Cancelled
+data InvStatus = ISDraft | ISInProgress | ISCompleted | ISCancelled
   deriving (Show, Eq)
 
 -- | Is inventory active
 isActive :: InventoryEx -> Bool
-isActive i = invStatus i == IS_InProgress
+isActive i = invStatus i == ISInProgress

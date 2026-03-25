@@ -16,7 +16,7 @@ data GiftCard = GiftCard
   , gcStatus       :: GiftCardStatus
   } deriving (Show, Eq)
 
-data GiftCardStatus = GCS_Active | GCS_Used | GCS_Expired | GCS_Cancelled
+data GiftCardStatus = GCSActive | GCSUsed | GCSExpired | GSCancelled
   deriving (Show, Eq)
 
 -- | GiftCardOperation - Usage history
@@ -29,13 +29,13 @@ data GiftCardOperation = GiftCardOperation
   , gcoOrderId :: Maybe Int64
   } deriving (Show, Eq)
 
-data GCOpType = GCT_Issue | GCT_Load | GCT_Payment | GCT_Refund
+data GCOpType = GCTIssue | GCTLoad | GCTPayment | GCTRefund
   deriving (Show, Eq)
 
 -- | Check if card is valid
 isGiftCardValid :: GiftCard -> Day -> Bool
 isGiftCardValid gc today =
-  gcStatus gc == GCS_Active &&
+  gcStatus gc == GCSActive &&
   case gcExpireDate gc of
     Nothing  -> True
     Just exp -> today <= exp

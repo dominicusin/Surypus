@@ -6,11 +6,11 @@ import Data.Text (Text)
 
 -- | Account type
 data AccountType
-  = Asset -- Активы (01-19)
-  | Liability -- Пассивы (60-79)
-  | Equity -- Капитал (80-89)
-  | Revenue -- Доходы (90-99)
-  | Expense -- Расходы (20-29, 44)
+  = ATAsset -- Активы (01-19)
+  | ATLiability -- Пассивы (60-79)
+  | ATEquity -- Капитал (80-89)
+  | ATRevenue -- Доходы (90-99)
+  | ATExpense -- Расходы (20-29, 44)
   deriving (Show, Eq, Enum)
 
 -- | Account - Chart of accounts entry (счет)
@@ -27,12 +27,12 @@ data Account = Account
 
 -- | Account kind
 data AccountKind
-  = AK_Regular -- Regular (обычный)
-  | AK_Analytic -- Analytic (аналитический)
-  | AK_Subconto -- Subconto (субконто)
-  | AK_Bank -- Bank (банк)
-  | AK_Cash -- Cash (касса)
-  | AK_VAT -- VAT account
+  = AKRegular -- Regular (обычный)
+  | AKAnalytic -- Analytic (аналитический)
+  | AKSubconto -- Subconto (субконто)
+  | AKBank -- Bank (банк)
+  | AKCash -- Cash (касса)
+  | AKVAT -- VAT account
   deriving (Show, Eq, Enum)
 
 -- | Account flags

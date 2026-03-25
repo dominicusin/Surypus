@@ -106,14 +106,14 @@ generateDocumentNumber drt seriesCounter counter =
   let series = fromMaybe "" seriesCounter
       number = show counter
       prefix = case drtCode drt of
-        Just c -> c ++ "-"
+        Just c -> c <> "-"
         Nothing -> ""
    in if documentRegisterTypeOnlyNumber drt
         then number
         else
           if T.null series
-            then prefix ++ number
-            else prefix ++ series ++ "-" ++ number
+            then prefix <> number
+            else prefix <> series <> "-" <> number
 
 -- | Calculate document total from lines
 -- Инвариант: результат >= 0

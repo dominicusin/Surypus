@@ -32,7 +32,7 @@ validateField name predicate value =
 combineValidators :: Validator a -> Validator a -> Validator a
 combineValidators v1 v2 a = case v1 a of
   Left errs1 -> case v2 a of
-    Left errs2 -> Left (errs1 ++ errs2)
+    Left errs2 -> Left (errs1 <> errs2)
     Right _ -> Left errs1
   Right _ -> v2 a
 

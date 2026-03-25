@@ -47,5 +47,5 @@ fifoSelect qty lots = go qty lots []
     go 0 remaining selected = (selected, remaining)
     go _ [] selected = (selected, [])
     go n (l : ls) selected
-      | lotQtty l <= n = go (n - lotQtty l) ls (selected ++ [(l, lotQtty l)])
-      | otherwise = (selected ++ [(l, n)], l {lotQtty = lotQtty l - n} : ls)
+      | lotQtty l <= n = go (n - lotQtty l) ls (selected <> [(l, lotQtty l)])
+      | otherwise = (selected <> [(l, n)], l {lotQtty = lotQtty l - n} : ls)

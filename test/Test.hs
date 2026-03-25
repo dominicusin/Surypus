@@ -115,23 +115,23 @@ main = hspec $ do
   -- ACCOUNTING - ACCOUNT TYPES
   -- ========================================================================
   describe "Accounting - Account Types" $ do
-    it "Asset account type" $ do
-      show Asset `shouldBe` "Asset"
+    it "ATAsset account type" $ do
+      show ATAsset `shouldBe` "ATAsset"
 
-    it "Liability account type" $ do
-      show Liability `shouldBe` "Liability"
+    it "ATLiability account type" $ do
+      show ATLiability `shouldBe` "ATLiability"
 
     it "Equity account type" $ do
-      show Equity `shouldBe` "Equity"
+      show ATEquity `shouldBe` "ATEquity"
 
     it "Revenue account type" $ do
-      show Revenue `shouldBe` "Revenue"
+      show ATRevenue `shouldBe` "ATRevenue"
 
     it "Expense account type" $ do
-      show Expense `shouldBe` "Expense"
+      show ATExpense `shouldBe` "ATExpense"
 
     it "AccountType enum count" $ do
-      length [Asset, Liability, Equity, Revenue, Expense] `shouldBe` 5
+      length [ATAsset, ATLiability, ATEquity, ATRevenue, ATExpense] `shouldBe` 5
 
   -- ========================================================================
   -- ACCOUNTING - ACCOUNT CREATION
@@ -143,14 +143,14 @@ main = hspec $ do
               { accId = 1,
                 accCode = "01",
                 accName = "Cash",
-                accType = Asset,
+                accType = ATAsset,
                 accParent = Nothing,
-                accKind = AK_Regular,
+                accKind = AKRegular,
                 accFlags = 0
               }
       accCode acc `shouldBe` "01"
       accName acc `shouldBe` "Cash"
-      accType acc `shouldBe` Asset
+      accType acc `shouldBe` ATAsset
 
     it "Account with parent" $ do
       let acc =
@@ -158,47 +158,47 @@ main = hspec $ do
               { accId = 2,
                 accCode = "010",
                 accName = "Cash in Bank",
-                accType = Asset,
+                accType = ATAsset,
                 accParent = Just 1,
-                accKind = AK_Regular,
+                accKind = AKRegular,
                 accFlags = 0
               }
       accParent acc `shouldBe` Just 1
 
     it "Regular account kind" $ do
-      show AK_Regular `shouldBe` "AK_Regular"
+      show AKRegular `shouldBe` "AKRegular"
 
     it "Analytic account kind" $ do
-      show AK_Analytic `shouldBe` "AK_Analytic"
+      show AKAnalytic `shouldBe` "AKAnalytic"
 
   -- ========================================================================
   -- ACCOUNTING - BALANCE CHECK
   -- ========================================================================
   describe "Accounting - Balance Check" $ do
-    it "Asset account type check" $ do
-      let acc = Account 1 "01" "Cash" Asset Nothing AK_Regular 0
-      accType acc `shouldBe` Asset
+    it "ATAsset account type check" $ do
+      let acc = Account 1 "01" "Cash" ATAsset Nothing AKRegular 0
+      accType acc `shouldBe` ATAsset
 
-    it "Liability account type check" $ do
-      let acc = Account 1 "60" "Accounts Payable" Liability Nothing AK_Regular 0
-      accType acc `shouldBe` Liability
+    it "ATLiability account type check" $ do
+      let acc = Account 1 "60" "Accounts Payable" ATLiability Nothing AKRegular 0
+      accType acc `shouldBe` ATLiability
 
   -- ========================================================================
   -- ACCOUNTING - CHART OF ACCOUNTS
   -- ========================================================================
   describe "Accounting - Chart of Accounts" $ do
     it "create chart of accounts" $ do
-      let acc1 = Account 1 "01" "Cash" Asset Nothing AK_Regular 0
-      let acc2 = Account 2 "02" "Accounts Receivable" Asset Nothing AK_Regular 0
-      let acc3 = Account 3 "60" "Accounts Payable" Liability Nothing AK_Regular 0
+      let acc1 = Account 1 "01" "Cash" ATAsset Nothing AKRegular 0
+      let acc2 = Account 2 "02" "Accounts Receivable" ATAsset Nothing AKRegular 0
+      let acc3 = Account 3 "60" "Accounts Payable" ATLiability Nothing AKRegular 0
       length [acc1, acc2, acc3] `shouldBe` 3
 
     it "filter asset accounts" $ do
       let accounts = [acc1, acc2, acc3]
-          acc1 = Account 1 "01" "Cash" Asset Nothing AK_Regular 0
-          acc2 = Account 2 "60" "Accounts Payable" Liability Nothing AK_Regular 0
-          acc3 = Account 3 "10" "Fixed Assets" Asset Nothing AK_Regular 0
-          assets = filter (\a -> accType a == Asset) accounts
+          acc1 = Account 1 "01" "Cash" ATAsset Nothing AKRegular 0
+          acc2 = Account 2 "60" "Accounts Payable" ATLiability Nothing AKRegular 0
+          acc3 = Account 3 "10" "Fixed ATAssets" ATAsset Nothing AKRegular 0
+          assets = filter (\a -> accType a == ATAsset) accounts
       length assets `shouldBe` 2
 
   -- ========================================================================

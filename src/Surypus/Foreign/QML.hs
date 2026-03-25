@@ -387,7 +387,7 @@ initQML = do
         }
   
   logInfo "QML Engine initialized"
-  return app
+  pure app
 
 -- | Default configuration
 defaultConfig :: AppConfig
@@ -486,49 +486,49 @@ loadAllData app = do
     , stIsLoading = False
     }
   
-  logInfo $ "Loaded: " ++ show (length persons) ++ " persons, " ++ show (length goods) ++ " goods"
+  logInfo $ "Loaded: " <> show (length persons) <> " persons, " <> show (length goods) <> " goods"
 
 -- | Load persons
 loadPersons :: IO [Person]
 loadPersons = do
   logInfo "Loading persons..."
-  return samplePersons
+  pure samplePersons
 
 -- | Load goods
 loadGoods :: IO [Goods]
 loadGoods = do
   logInfo "Loading goods..."
-  return sampleGoods
+  pure sampleGoods
 
 -- | Load locations
 loadLocations :: IO [Location]
 loadLocations = do
   logInfo "Loading locations..."
-  return sampleLocations
+  pure sampleLocations
 
 -- | Load bills
 loadBills :: IO [Bill]
 loadBills = do
   logInfo "Loading bills..."
-  return sampleBills
+  pure sampleBills
 
 -- | Load accounts
 loadAccounts :: IO [Account]
 loadAccounts = do
   logInfo "Loading accounts..."
-  return sampleAccounts
+  pure sampleAccounts
 
 -- | Load employees
 loadEmployees :: IO [Employee]
 loadEmployees = do
   logInfo "Loading employees..."
-  return sampleEmployees
+  pure sampleEmployees
 
 -- | Load jobs
 loadJobs :: IO [Job]
 loadJobs = do
   logInfo "Loading jobs..."
-  return sampleJobs
+  pure sampleJobs
 
 -- ============================================================================
 -- CRUD OPERATIONS
@@ -537,38 +537,38 @@ loadJobs = do
 -- | Create person
 createPerson :: SurypusApp -> Person -> IO (Either Text Person)
 createPerson app person = do
-  logInfo $ "Creating person: " ++ personName person
-  return $ Right person
+  logInfo $ "Creating person: " <> personName person
+  pure $ Right person
 
 -- | Update person
 updatePerson :: SurypusApp -> Person -> IO (Either Text Person)
 updatePerson app person = do
-  logInfo $ "Updating person: " ++ show (personId person)
-  return $ Right person
+  logInfo $ "Updating person: " <> show (personId person)
+  pure $ Right person
 
 -- | Delete person
 deletePerson :: SurypusApp -> Int -> IO (Either Text ())
 deletePerson app pid = do
-  logInfo $ "Deleting person: " ++ show pid
-  return $ Right ()
+  logInfo $ "Deleting person: " <> show pid
+  pure $ Right ()
 
 -- | Create goods
 createGoods :: SurypusApp -> Goods -> IO (Either Text Goods)
 createGoods app goods = do
-  logInfo $ "Creating goods: " ++ goodsName goods
-  return $ Right goods
+  logInfo $ "Creating goods: " <> goodsName goods
+  pure $ Right goods
 
 -- | Create bill
 createBill :: SurypusApp -> Bill -> IO (Either Text Bill)
 createBill app bill = do
-  logInfo $ "Creating bill: " ++ billNumber bill
-  return $ Right bill
+  logInfo $ "Creating bill: " <> billNumber bill
+  pure $ Right bill
 
 -- | Approve bill
 approveBill :: SurypusApp -> Int -> IO (Either Text Bill)
 approveBill app bid = do
-  logInfo $ "Approving bill: " ++ show bid
-  return $ Right (head sampleBills)
+  logInfo $ "Approving bill: " <> show bid
+  pure $ Right (head sampleBills)
 
 -- ============================================================================
 -- FILTERING AND SORTING
@@ -788,7 +788,7 @@ mainQML = do
   state <- readIORef (appState app)
   let stats = getDashboardStats state
   
-  putStrLn $ "Dashboard stats: " ++ show stats
+  putStrLn $ "Dashboard stats: " <> show stats
   putStrLn "Surypus QML Application ready!"
   
   -- In real implementation, this would launch QML:
@@ -797,9 +797,9 @@ mainQML = do
 -- | Run QML scene (placeholder)
 runQMLScene :: FilePath -> IO ()
 runQMLScene qmlFile = do
-  putStrLn $ "Running QML scene: " ++ qmlFile
+  putStrLn $ "Running QML scene: " <> qmlFile
   -- In production: callProcess "qmlscene" [qmlFile]
-  return ()
+  pure ()
 
 -- ============================================================================
 -- CONVENIENCE FUNCTIONS

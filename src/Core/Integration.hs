@@ -23,7 +23,7 @@ data Webhook = Webhook
   , whFlags  :: Int
   } deriving (Show, Eq)
 
-data WebhookEvent = WE_BillCreated | WE_BillPosted | WE_BillChanged | WE_GoodsChanged
+data WebhookEvent = WEBillCreated | WEBillPosted | WEBillChanged | WEGoodsChanged
   deriving (Show, Eq)
 
 -- | SMSAccount - SMS provider

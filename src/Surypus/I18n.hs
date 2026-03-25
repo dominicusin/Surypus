@@ -115,7 +115,7 @@ ruTranslations =
       (k D_Bills "bill", T.pack "Документ"),
       (k D_Bills "sale", T.pack "Продажа"),
       (k D_Bills "purchase", T.pack "Закупка"),
-      (k D_Bills "return", T.pack "Возврат"),
+      (k D_Bills "pure", T.pack "Возврат"),
       (k D_Bills "invoice", T.pack "Счет-фактура"),
       (k D_Bills "order", T.pack "Заказ"),
       (k D_Bills "total", T.pack "Итого"),
@@ -225,7 +225,7 @@ enTranslations =
       (k D_Bills "bill", T.pack "Document"),
       (k D_Bills "sale", T.pack "Sale"),
       (k D_Bills "purchase", T.pack "Purchase"),
-      (k D_Bills "return", T.pack "Return"),
+      (k D_Bills "pure", T.pack "Return"),
       (k D_Bills "invoice", T.pack "Invoice"),
       (k D_Bills "order", T.pack "Order"),
       (k D_Bills "total", T.pack "Total"),
@@ -430,4 +430,4 @@ formatDate fmt (y, m, d) = case fmt of
   DF_EU -> T.pack (pad d <> "." <> pad m <> "." <> show y)
   DF_RU -> T.pack (pad d <> "." <> pad m <> "." <> show y)
   where
-    pad n = if n < 10 then "0" ++ show n else show n
+    pad n = if n < 10 then "0" <> show n else show n

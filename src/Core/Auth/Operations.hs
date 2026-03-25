@@ -119,7 +119,7 @@ hashPassword _ = T.pack "hashed_password_demo"
 -- | Generate simple token (for demo purposes)
 -- Инвариант: токен не пустой
 generateToken :: IO Text
-generateToken = return (T.pack "demotoken123456789012345678901234567890")
+generateToken = pure (T.pack "demotoken123456789012345678901234567890")
 
 -- | Simple password hash (for demo - use proper crypto in production)
 -- Инвариант: хеш не пустой

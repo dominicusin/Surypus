@@ -5,7 +5,7 @@ import           Data.Int  (Int64)
 import           Data.Text (Text)
 
 -- | PackageType - Type of product package
-data PackageType = PT_Box | PT_Pallet | PT_Bundle | PT_Piece
+data PackageType = PTBox | PTPallet | PTBundle | PTPiece
   deriving (Show, Eq)
 
 -- | Package - Product package
@@ -28,5 +28,5 @@ data Pallet = Pallet
   , palWeight     :: Double
   } deriving (Show, Eq)
 
-data PalletStatus = PS_Empty | PS_Loading | PS_Loaded | PS_Shipped
+data PalletStatus = PSEmpty | PSLoading | PSLoaded | PSShipped
   deriving (Show, Eq)

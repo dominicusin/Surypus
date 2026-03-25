@@ -23,5 +23,5 @@ data DialogField = DialogField
   , dfDefault  :: Maybe Text
   } deriving (Show, Eq)
 
-data FieldType = FT_String | FT_Int | FT_Double | FT_Date | FT_Bool | FT_Object
+data FieldType = FTString | FTInt | FTDouble | FTDate | FTBool | FTObject
   deriving (Show, Eq)
