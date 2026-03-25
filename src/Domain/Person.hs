@@ -27,6 +27,7 @@ where
 import Core.Person (validateINN, validateKPP)
 import Core.Refined (clampNonNeg, clampPercentage)
 import Data.Aeson (FromJSON, ToJSON)
+import Data.Char (isDigit)
 import Data.Int (Int64)
 import Data.Maybe (isJust)
 import Data.Scientific (Scientific)
@@ -301,12 +302,12 @@ allEmpty :: [Maybe Text] -> Bool
 allEmpty = all (maybe True T.null)
 
 nonEmpty :: Maybe Text -> Bool
-nonEmpty = any (not . T.null)
+nonEmpty = not . maybe True T.null
 
 validDigits :: Int -> Text -> Bool
 validDigits len txt =
-  let digits = T.filter (`elem` ['0' .. '9']) txt
-   in T.length digits >= len && T.all (`elem` ['0' .. '9']) txt
+  let digits = T.filter isDigit txt
+   in T.length digits >= len && T.all isDigit txt
 
 normalizePerson :: Person -> Person
 normalizePerson p@Person {..} =
@@ -322,6 +323,6 @@ validatePerson p@Person {..}
   | personDiscount > 100 = Left "discount cannot exceed 100%"
   | T.null personName = Left "name cannot be empty"
   | any T.null personCode = Left "code must be present"
-  | any (not . validateINN) personINN = Left "invalid INN format"
-  | any (not . validateKPP) personKPP = Left "invalid KPP format"
+  | not (maybe True validateINN personINN) = Left "invalid INN format"
+  | not (maybe True validateKPP personKPP) = Left "invalid KPP format"
   | otherwise = Right (normalizePerson p)
