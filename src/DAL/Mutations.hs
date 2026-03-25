@@ -15,13 +15,7 @@ import Hasql.Statement (unpreparable)
 import Surypus.Types (Decimal (..))
 
 escapeText :: String -> String
-escapeText s = map (\c -> if c == '\'' then '\'' else c) s
-  where
-    -- Replace single quote with two single quotes for SQL
-    -- Actually, let's just double the quote
-    replaceQuote :: Char -> Char
-    replaceQuote '\'' = '\'' -- This would double it in a raw string sense
-    replaceQuote c = c
+escapeText = fmap (\c -> if c == '\'' then '\'' else c)
 
 escapeSql :: String -> String
 escapeSql [] = []

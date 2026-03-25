@@ -72,7 +72,7 @@ testStock =
 queryPersons :: Database -> Int -> Int -> IO [Person]
 queryPersons db limit offset = do
   xs <- readIORef (dbPersons db)
-  pure $ take limit $ drop offset xs
+  pure . take limit $ drop offset xs
 
 queryPersonById :: Database -> Int64 -> IO (Maybe Person)
 queryPersonById db pid = do
@@ -86,7 +86,7 @@ insertPerson db p = do
 
 updatePerson :: Database -> Int64 -> Person -> IO ()
 updatePerson db pid p = do
-  modifyIORef (dbPersons db) (map (\x -> if pId x == pid then p else x))
+  modifyIORef (dbPersons db) (fmap (\x -> if pId x == pid then p else x))
 
 deletePerson :: Database -> Int64 -> IO ()
 deletePerson db pid = do
@@ -96,7 +96,7 @@ deletePerson db pid = do
 queryGoods :: Database -> Int -> Int -> IO [Goods]
 queryGoods db limit offset = do
   xs <- readIORef (dbGoods db)
-  pure $ take limit $ drop offset xs
+  pure . take limit $ drop offset xs
 
 queryGoodsById :: Database -> Int64 -> IO (Maybe Goods)
 queryGoodsById db gid = do
@@ -110,7 +110,7 @@ insertGoods db g = do
 
 updateGoods :: Database -> Int64 -> Goods -> IO ()
 updateGoods db gid g = do
-  modifyIORef (dbGoods db) (map (\x -> if gId x == gid then g else x))
+  modifyIORef (dbGoods db) (fmap (\x -> if gId x == gid then g else x))
 
 deleteGoods :: Database -> Int64 -> IO ()
 deleteGoods db gid = do
@@ -120,7 +120,7 @@ deleteGoods db gid = do
 queryLocations :: Database -> Int -> Int -> IO [Location]
 queryLocations db limit offset = do
   xs <- readIORef (dbLocations db)
-  pure $ take limit $ drop offset xs
+  pure . take limit $ drop offset xs
 
 queryLocationById :: Database -> Int64 -> IO (Maybe Location)
 queryLocationById db lid = do
@@ -134,7 +134,7 @@ insertLocation db l = do
 
 updateLocation :: Database -> Int64 -> Location -> IO ()
 updateLocation db lid l = do
-  modifyIORef (dbLocations db) (map (\x -> if lId x == lid then l else x))
+  modifyIORef (dbLocations db) (fmap (\x -> if lId x == lid then l else x))
 
 deleteLocation :: Database -> Int64 -> IO ()
 deleteLocation db lid = do
@@ -144,7 +144,7 @@ deleteLocation db lid = do
 queryBills :: Database -> Int -> Int -> Maybe Int -> Maybe Int -> IO [Bill]
 queryBills db limit offset _mtype _mperson = do
   xs <- readIORef (dbBills db)
-  pure $ take limit $ drop offset xs
+  pure . take limit $ drop offset xs
 
 queryBillById :: Database -> Int64 -> IO (Maybe Bill)
 queryBillById db bid = do

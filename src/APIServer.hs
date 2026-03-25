@@ -247,19 +247,18 @@ runServer cfg = do
         ]
 
     -- Roles
-    get "/api/v1/roles" $
-      json $
-        object
-          [ "success" .= True,
-            "data"
-              .= ( [ object ["id" .= (1 :: Int64), "name" .= ("admin" :: Text), "permissions" .= (["admin"] :: [Text])],
-                     object ["id" .= (2 :: Int64), "name" .= ("manager" :: Text), "permissions" .= (["read_goods", "write_goods", "read_bills", "write_bills"] :: [Text])],
-                     object ["id" .= (3 :: Int64), "name" .= ("cashier" :: Text), "permissions" .= (["read_goods", "read_prices", "write_bills"] :: [Text])],
-                     object ["id" .= (4 :: Int64), "name" .= ("accountant" :: Text), "permissions" .= (["read_accounting", "write_accounting", "read_payroll"] :: [Text])]
-                   ] ::
-                     [Value]
-                 )
-          ]
+    get "/api/v1/roles" . json $
+      object
+        [ "success" .= True,
+          "data"
+            .= ( [ object ["id" .= (1 :: Int64), "name" .= ("admin" :: Text), "permissions" .= (["admin"] :: [Text])],
+                   object ["id" .= (2 :: Int64), "name" .= ("manager" :: Text), "permissions" .= (["read_goods", "write_goods", "read_bills", "write_bills"] :: [Text])],
+                   object ["id" .= (3 :: Int64), "name" .= ("cashier" :: Text), "permissions" .= (["read_goods", "read_prices", "write_bills"] :: [Text])],
+                   object ["id" .= (4 :: Int64), "name" .= ("accountant" :: Text), "permissions" .= (["read_accounting", "write_accounting", "read_payroll"] :: [Text])]
+                 ] ::
+                   [Value]
+               )
+        ]
 
     -- Persons (with pagination and sorting)
     get "/api/v1/persons" $ do
@@ -614,9 +613,9 @@ runServer cfg = do
       json $ toJSONResult result
 
     -- Jobs (stub - no jobs table in DB)
-    get "/api/v1/jobs" $ json $ object ["items" .= ([] :: [Value])]
-    get "/api/v1/jobs/pending" $ json $ object ["count" .= (0 :: Int)]
-    post "/api/v1/jobs" $ json $ object ["jobId" .= (1 :: Int64)]
+    get "/api/v1/jobs" . json $ object ["items" .= ([] :: [Value])]
+    get "/api/v1/jobs/pending" . json $ object ["count" .= (0 :: Int)]
+    post "/api/v1/jobs" . json $ object ["jobId" .= (1 :: Int64)]
 
     -- Reports
     get "/api/v1/reports" $ do
@@ -632,7 +631,7 @@ runServer cfg = do
       result <- liftIO $ getReportById pool rid
       json $ toJSONResult result
 
-    post "/api/v1/reports" $ json $ object ["reportId" .= (1 :: Int64)]
+    post "/api/v1/reports" . json $ object ["reportId" .= (1 :: Int64)]
 
 healthStatus :: IO Text
 healthStatus = pure "healthy"

@@ -554,14 +554,13 @@ getPersonsPaginated pool _ _ _ pagination = do
   result <- getPersons pool
   case result of
     QuerySuccess persons ->
-      pure $
-        QuerySuccess $
-          PaginatedResult
-            { prItems = persons,
-              prTotal = fromIntegral (length persons),
-              prLimit = pgLimit pagination,
-              prOffset = pgOffset pagination
-            }
+      pure . QuerySuccess $
+        PaginatedResult
+          { prItems = persons,
+            prTotal = fromIntegral (length persons),
+            prLimit = pgLimit pagination,
+            prOffset = pgOffset pagination
+          }
     QueryError err -> pure $ QueryError err
 
 -- | Get goods with pagination (simplified implementation)
@@ -570,14 +569,13 @@ getGoodsPaginated pool _ pagination _ _ = do
   result <- getGoods pool
   case result of
     QuerySuccess items ->
-      pure $
-        QuerySuccess $
-          PaginatedResult
-            { prItems = items,
-              prTotal = fromIntegral (length items),
-              prLimit = pgLimit pagination,
-              prOffset = pgOffset pagination
-            }
+      pure . QuerySuccess $
+        PaginatedResult
+          { prItems = items,
+            prTotal = fromIntegral (length items),
+            prLimit = pgLimit pagination,
+            prOffset = pgOffset pagination
+          }
     QueryError err -> pure $ QueryError err
 
 -- | Get payments (stub implementation)
@@ -618,14 +616,13 @@ getBillsPaginated pool _ pagination _ _ = do
   result <- getBills pool
   case result of
     QuerySuccess items ->
-      pure $
-        QuerySuccess $
-          PaginatedResult
-            { prItems = items,
-              prTotal = fromIntegral (length items),
-              prLimit = pgLimit pagination,
-              prOffset = pgOffset pagination
-            }
+      pure . QuerySuccess $
+        PaginatedResult
+          { prItems = items,
+            prTotal = fromIntegral (length items),
+            prLimit = pgLimit pagination,
+            prOffset = pgOffset pagination
+          }
     QueryError err -> pure $ QueryError err
 
 -- | Get payments by bill (stub implementation)
