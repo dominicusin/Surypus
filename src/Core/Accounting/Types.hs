@@ -139,16 +139,16 @@ validateBalance b =
 -- | Double entry balance
 doubleEntryBalance :: [AccTurn] -> Bool
 doubleEntryBalance turns =
-  let totalDebit = sum (map atDbtAmt turns)
-      totalCredit = sum (map atCrdAmt turns)
+  let totalDebit = sum (fmap atDbtAmt turns)
+      totalCredit = sum (fmap atCrdAmt turns)
    in totalDebit == totalCredit
 
 -- | Account balance invariant
 accountBalanceInvariant :: Account -> [AccTurn] -> Bool
 accountBalanceInvariant acc turns =
   let acctTurns = filter (\t -> atAcctId t == aId acc) turns
-      debitSum = sum (map atDbtAmt acctTurns)
-      creditSum = sum (map atCrdAmt acctTurns)
+      debitSum = sum (fmap atDbtAmt acctTurns)
+      creditSum = sum (fmap atCrdAmt acctTurns)
       calcBalance = case aType acc of
         AT_Asset -> debitSum - creditSum
         AT_Liability -> creditSum - debitSum
@@ -160,8 +160,8 @@ accountBalanceInvariant acc turns =
 -- | Trial balance
 trialBalance :: [Balance] -> Double
 trialBalance balances =
-  let totalDebit = sum (map bDebit balances)
-      totalCredit = sum (map bCredit balances)
+  let totalDebit = sum (fmap bDebit balances)
+      totalCredit = sum (fmap bCredit balances)
    in abs (totalDebit - totalCredit)
 
 -- | Trial balance zero

@@ -148,7 +148,7 @@ calcPeriodDays pp = diffDays (ppEnd pp) (ppBeg pp) + 1
 calcAverageHours :: [TimeSheetEntry] -> Double
 calcAverageHours entries
   | null entries = 0
-  | otherwise = sum (map tsHours entries) / fromIntegral (length entries)
+  | otherwise = sum (fmap tsHours entries) / fromIntegral (length entries)
 
 -- ============================================================================
 -- INVARIANTS
@@ -163,15 +163,15 @@ salaryPeriodNoOverlap (s1 : s2 : rest) =
 
 -- | Total salary non-negative
 totalSalaryNonNegative :: [SalaryRec] -> Double
-totalSalaryNonNegative = sum . map sAmount
+totalSalaryNonNegative = sum . fmap sAmount
 
 -- | Total deductions
 totalDeductions :: [SalaryRec] -> Double
-totalDeductions = sum . filter (< 0) . map sAmount
+totalDeductions = sum . filter (< 0) . fmap sAmount
 
 -- | Total accruals
 totalAccruals :: [SalaryRec] -> Double
-totalAccruals = sum . filter (> 0) . map sAmount
+totalAccruals = sum . filter (> 0) . fmap sAmount
 
 -- ============================================================================
 -- HELPERS
