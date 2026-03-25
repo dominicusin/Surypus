@@ -3,7 +3,6 @@
 -- CRYSTAL REPORTS TO PDF-SLAVE YAML CONVERTER
 -- ============================================================================
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
 
 module Surypus.Reports.Conversion.CrystalToPdfSlave
   ( convertCrystalToPdfSlave,
@@ -141,7 +140,7 @@ data PdfSlaveColumn = PdfSlaveColumn
   deriving (Show, Generic)
 
 instance ToJSON PdfSlaveColumn where
-  toJSON c = Yaml.toJSON c
+  toJSON = Yaml.toJSON
 
 data PdfSlaveCell = PdfSlaveCell
   { pceValue :: Text,
@@ -152,7 +151,7 @@ data PdfSlaveCell = PdfSlaveCell
   deriving (Show, Generic)
 
 instance ToJSON PdfSlaveCell where
-  toJSON c = Yaml.toJSON c
+  toJSON = Yaml.toJSON
 
 data PdfSlaveBarcode = PdfSlaveBarcode
   { pbX :: Double,
@@ -165,7 +164,7 @@ data PdfSlaveBarcode = PdfSlaveBarcode
   deriving (Show, Generic)
 
 instance ToJSON PdfSlaveBarcode where
-  toJSON b = Yaml.toJSON b
+  toJSON = Yaml.toJSON
 
 data PdfSlaveLine = PdfSlaveLine
   { plX1 :: Double,
@@ -178,7 +177,7 @@ data PdfSlaveLine = PdfSlaveLine
   deriving (Show, Generic)
 
 instance ToJSON PdfSlaveLine where
-  toJSON l = Yaml.toJSON l
+  toJSON = Yaml.toJSON
 
 data PdfSlaveRect = PdfSlaveRect
   { prX :: Double,
@@ -192,7 +191,7 @@ data PdfSlaveRect = PdfSlaveRect
   deriving (Show, Generic)
 
 instance ToJSON PdfSlaveRect where
-  toJSON r = Yaml.toJSON r
+  toJSON = Yaml.toJSON
 
 -- ============================================================================
 -- CRYSTAL REPORTS TYPES (re-exported from CrystalTypes)
@@ -270,37 +269,37 @@ convertSection (Just (ReportHeaderSection objs)) =
   Just
     PdfSlaveSection
       { psHeight = Nothing,
-        psElements = map convertObject objs
+        psElements = fmap convertObject objs
       }
 convertSection (Just (PageHeaderSection objs)) =
   Just
     PdfSlaveSection
       { psHeight = Nothing,
-        psElements = map convertObject objs
+        psElements = fmap convertObject objs
       }
 convertSection (Just (ReportFooterSection objs)) =
   Just
     PdfSlaveSection
       { psHeight = Nothing,
-        psElements = map convertObject objs
+        psElements = fmap convertObject objs
       }
 convertSection (Just (PageFooterSection objs)) =
   Just
     PdfSlaveSection
       { psHeight = Nothing,
-        psElements = map convertObject objs
+        psElements = fmap convertObject objs
       }
 convertSection (Just (GroupHeaderSection _ objs)) =
   Just
     PdfSlaveSection
       { psHeight = Nothing,
-        psElements = map convertObject objs
+        psElements = fmap convertObject objs
       }
 convertSection (Just (GroupFooterSection _ objs)) =
   Just
     PdfSlaveSection
       { psHeight = Nothing,
-        psElements = map convertObject objs
+        psElements = fmap convertObject objs
       }
 convertSection (Just (DetailSection _)) = Nothing -- Handled separately
 
@@ -310,7 +309,7 @@ convertDetailSection (Just (DetailSection objs)) =
   Just
     PdfSlaveSection
       { psHeight = Nothing,
-        psElements = map convertObject objs
+        psElements = fmap convertObject objs
       }
 convertDetailSection _ = Nothing
 
