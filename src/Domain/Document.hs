@@ -1,14 +1,13 @@
-{-# LANGUAGE DeriveGeneric #-}
-
 module Domain.Document
-  ( DocumentRegisterFilter(..)
-  , documentRegisterStatusAsOf
-  , documentRegisterStatus
-  ) where
+  ( DocumentRegisterFilter (..),
+    documentRegisterStatusAsOf,
+    documentRegisterStatus,
+  )
+where
 
 import Core.Document.Types
-  ( DocumentRegister(..)
-  , DocumentRegisterStatus(..)
+  ( DocumentRegister (..),
+    DocumentRegisterStatus (..),
   )
 import Data.Int (Int64)
 import Data.Text (Text)
@@ -16,9 +15,9 @@ import Data.Time (Day, getCurrentTime, utctDay)
 
 -- | Filters for listing document registers
 data DocumentRegisterFilter = DocumentRegisterFilter
-  { drfPersonId :: Maybe Int64
-  , drfTypeId   :: Maybe Int64
-  , drfNumber   :: Maybe Text
+  { drfPersonId :: Maybe Int64,
+    drfTypeId :: Maybe Int64,
+    drfNumber :: Maybe Text
   }
   deriving (Eq, Show)
 

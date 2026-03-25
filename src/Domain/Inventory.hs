@@ -145,8 +145,8 @@ inventoryLineDiff expected actual = actual - expected
 {-@ inventorySummary :: ls:[InventoryLine] -> {v:InventorySummary | isSummaryDiff v == sumDiff ls} @-}
 inventorySummary :: [InventoryLine] -> InventorySummary
 inventorySummary ls =
-  let totalBooked = List.foldl' (+) 0 (map ilExpectedQtty ls)
-      totalFact = List.foldl' (+) 0 (map ilActualQtty ls)
+  let totalBooked = List.foldl' (+) 0 (fmap ilExpectedQtty ls)
+      totalFact = List.foldl' (+) 0 (fmap ilActualQtty ls)
       count p = length (filter (p . ilDiffQtty) ls)
    in InventorySummary
         { isSummaryBooked = totalBooked,
@@ -166,10 +166,10 @@ sumDiff [] = 0
 sumDiff (l : ls) = inventoryLineDiffField l + sumDiff ls
 
 sumSurplus :: [InventoryLine] -> Double
-sumSurplus = List.foldl' (+) 0 . map (max 0 . ilDiffQtty)
+sumSurplus = List.foldl' (+) 0 . fmap (max 0 . ilDiffQtty)
 
 sumShortage :: [InventoryLine] -> Double
-sumShortage = List.foldl' (+) 0 . map (negate . min 0 . ilDiffQtty)
+sumShortage = List.foldl' (+) 0 . fmap (negate . min 0 . ilDiffQtty)
 
 inventoryLineResult :: InventoryLine -> InventoryResult
 inventoryLineResult InventoryLine {..}

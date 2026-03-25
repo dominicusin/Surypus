@@ -1,57 +1,60 @@
-{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
 
 module Domain.ReportSchedule
-  ( ReportSchedule(..)
-  , ReportSnapshot(..)
-  , ReportScheduleInput(..)
-  , reportScheduleTemplates
-  , validateReportSchedule
-  ) where
+  ( ReportSchedule (..),
+    ReportSnapshot (..),
+    ReportScheduleInput (..),
+    reportScheduleTemplates,
+    validateReportSchedule,
+  )
+where
 
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Int (Int64)
+import qualified Data.Map as Map
 import Data.Text (Text)
+import qualified Data.Text as T
 import Data.Time.Clock (UTCTime)
 import Data.UUID (UUID)
 import GHC.Generics (Generic)
-import qualified Data.Text as T
 import Surypus.Reports (ReportDef, allReports)
-import qualified Data.Map as Map
 
 -- | Report schedule definition
 data ReportSchedule = ReportSchedule
-  { rsId          :: Int64
-  , rsName        :: Text
-  , rsReport      :: Text
-  , rsCron        :: Text
-  , rsEnabled     :: Bool
-  , rsParams      :: Maybe Text
-  , rsCreatedAt   :: UTCTime
-  , rsUpdatedAt   :: UTCTime
-  } deriving (Eq, Show, Generic, FromJSON, ToJSON)
+  { rsId :: Int64,
+    rsName :: Text,
+    rsReport :: Text,
+    rsCron :: Text,
+    rsEnabled :: Bool,
+    rsParams :: Maybe Text,
+    rsCreatedAt :: UTCTime,
+    rsUpdatedAt :: UTCTime
+  }
+  deriving (Eq, Show, Generic, FromJSON, ToJSON)
 
 -- | Report schedule input (for creating/updating)
 data ReportScheduleInput = ReportScheduleInput
-  { rsiName        :: Text
-  , rsiReport      :: Text
-  , rsiCron        :: Text
-  , rsiEnabled     :: Bool
-  , rsiParams      :: Maybe Text
-  } deriving (Eq, Show, Generic, FromJSON, ToJSON)
+  { rsiName :: Text,
+    rsiReport :: Text,
+    rsiCron :: Text,
+    rsiEnabled :: Bool,
+    rsiParams :: Maybe Text
+  }
+  deriving (Eq, Show, Generic, FromJSON, ToJSON)
 
 -- | Snapshot log entry
 data ReportSnapshot = ReportSnapshot
-  { rssId          :: Int64
-  , rssScheduleId  :: Int64
-  , rssRunId       :: UUID
-  , rssRunAt       :: UTCTime
-  , rssStatus      :: Text
-  , rssMessage     :: Maybe Text
-  , rssJrxml       :: Maybe Text
-  } deriving (Eq, Show, Generic, FromJSON, ToJSON)
+  { rssId :: Int64,
+    rssScheduleId :: Int64,
+    rssRunId :: UUID,
+    rssRunAt :: UTCTime,
+    rssStatus :: Text,
+    rssMessage :: Maybe Text,
+    rssJrxml :: Maybe Text
+  }
+  deriving (Eq, Show, Generic, FromJSON, ToJSON)
 
 -- | Available templates
 reportScheduleTemplates :: [(Text, ReportDef)]

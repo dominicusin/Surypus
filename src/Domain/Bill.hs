@@ -143,7 +143,7 @@ validateBill bill@Bill {..}
   | billVat < 0 = Left "VAT must be non-negative"
   | billDiscount < 0 = Left "discount must be non-negative"
   | otherwise =
-      case firstError (map validateBillLine billLines) of
+      case firstError (fmap validateBillLine billLines) of
         Just err -> Left err
         Nothing
           | abs (calcBillTotal billLines - billAmount) > epsilon -> Left "bill total mismatch"
