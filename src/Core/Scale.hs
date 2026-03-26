@@ -15,7 +15,7 @@ data Scale = Scale
   , scStatus     :: ScaleStatus
   } deriving (Show, Eq)
 
-data ScaleStatus = SS_Online | SS_Offline | SS_Error
+data ScaleStatus = SSOnline | SSOffline | SSError
   deriving (Show, Eq)
 
 -- | ScalePLU - Price lookup

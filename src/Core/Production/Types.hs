@@ -72,13 +72,13 @@ data TechLine = TechLine
 instance ToJSON TechLine
 instance FromJSON TechLine
 
-{-@ data WorkOrderStatusCode = WO_Draft | WO_Released | WO_InProgress | WO_Completed | WO_Cancelled @-}
+{-@ data WorkOrderStatusCode = WODraft | WOReleased | WOInProgress | WOCompleted | WOCancelled @-}
 data WorkOrderStatusCode =
-    WO_Draft
-  | WO_Released
-  | WO_InProgress
-  | WO_Completed
-  | WO_Cancelled
+    WODraft
+  | WOReleased
+  | WOInProgress
+  | WOCompleted
+  | WOCancelled
   deriving (Eq, Show, Enum)
 
 {-@ data WorkOrder = WorkOrder
@@ -135,7 +135,7 @@ validateWorkOrderCore wo@WorkOrder{..}
 
 mkWorkOrder :: Text -> Int64 -> Int64 -> Double -> UTCTime -> WorkOrder
 mkWorkOrder code processor product qty scheduled =
-  WorkOrder Nothing code processor product qty 0 WO_Draft scheduled Nothing Nothing
+  WorkOrder Nothing code processor product qty 0 WODraft scheduled Nothing Nothing
 
 toWorkOrderStatus :: Int -> Maybe WorkOrderStatusCode
 toWorkOrderStatus n

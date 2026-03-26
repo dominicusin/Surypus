@@ -19,10 +19,10 @@ data BonusOp = BonusOp
 
 -- | Bonus operation type
 data BonusOpType
-  = BOT_Accrual -- Accrual (начисление)
-  | BOT_Spending -- Spending (списание)
-  | BOT_Expiration -- Expiration (сгорание)
-  | BOT_Adjustment -- Adjustment (корректировка)
+  = BOTAccrual -- Accrual (начисление)
+  | BOTSpending -- Spending (списание)
+  | BOTExpiration -- Expiration (сгорание)
+  | BOTAdjustment -- Adjustment (корректировка)
   deriving (Show, Eq, Enum)
 
 -- | Bonus program (бонусная программа)
@@ -40,8 +40,8 @@ data BonusProgram = BonusProgram
 -- | Check bonus balance
 calcBonusBalance :: [BonusOp] -> Double
 calcBonusBalance ops =
-  let accruals = sum [boAmount op | op <- ops, boType op == BOT_Accrual]
-      spendings = sum [boAmount op | op <- ops, boType op == BOT_Spending]
+  let accruals = sum [boAmount op | op <- ops, boType op == BOTAccrual]
+      spendings = sum [boAmount op | op <- ops, boType op == BOTSpending]
    in accruals - spendings
 
 -- | Check if card can be used for payment

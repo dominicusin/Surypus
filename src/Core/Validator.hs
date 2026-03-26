@@ -14,7 +14,7 @@ data ValidationRule = ValidationRule
   , vrMessage    :: Text
   } deriving (Show, Eq)
 
-data ValidationType = VT_Required | VT_MinLength | VT_MaxLength | VT_Pattern | VT_Range | VT_Custom
+data ValidationType = VTRequired | VTMinLength | VTMaxLength | VTPattern | VTRange | VTCustom
   deriving (Show, Eq)
 
 -- | ValidationResult - Validation result

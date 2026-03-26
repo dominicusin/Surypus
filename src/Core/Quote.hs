@@ -16,7 +16,7 @@ data Quote = Quote
   , qteStatus     :: QuoteStatus
   } deriving (Show, Eq)
 
-data QuoteStatus = QS_Draft | QS_Sent | QS_Accepted | QS_Rejected | QS_Expired
+data QuoteStatus = QSDraft | QSSent | QSAccepted | QSRejected | QSExpired
   deriving (Show, Eq)
 
 -- | Is quote expired

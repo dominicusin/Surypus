@@ -16,7 +16,7 @@ data StockOp = StockOp
   , soBillId     :: Maybe Int64
   } deriving (Show, Eq)
 
-data StockOpType = SO_Receipt | SO_Issue | SO_Transfer | SO_Adjustment | SO_Inventory
+data StockOpType = SOReceipt | SOIssue | SOTransfer | SOAdjustment | SOInventory
   deriving (Show, Eq)
 
 -- | StockOpHistory - Stock operation history

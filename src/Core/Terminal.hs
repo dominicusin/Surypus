@@ -12,9 +12,9 @@ data Terminal = Terminal
   , trmStatus     :: TerminalStatus
   } deriving (Show, Eq)
 
-data TerminalStatus = TS_Online | TS_Offline | TS_Error
+data TerminalStatus = TSOnline | TSOffline | TSError
   deriving (Show, Eq)
 
 -- | Is terminal active
 isTerminalActive :: Terminal -> Bool
-isTerminalActive t = trmStatus t == TS_Online
+isTerminalActive t = trmStatus t == TSOnline

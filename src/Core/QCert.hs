@@ -16,7 +16,7 @@ data QCert = QCert
   , qcOrgName    :: Text
   } deriving (Show, Eq)
 
-data CertType = CT_Quality | CT_Phytosanitary | CT_Veterinary | CT_Explosive
+data CertType = CTQuality | CTPhytosanitary | CTVeterinary | CTExplosive
   deriving (Show, Eq)
 
 -- | Check if certificate is valid

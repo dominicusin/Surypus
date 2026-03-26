@@ -18,10 +18,10 @@ data Location = Location
 
 -- | Location type
 data LocationType
-  = LT_Warehouse -- Склад
-  | LT_Store -- Магазин
-  | LT_Office -- Офис
-  | LT_Transit -- Транзит
+  = LTWarehouse -- Склад
+  | LTStore -- Магазин
+  | LTOffice -- Офис
+  | LTTransit -- Транзит
   deriving (Show, Eq, Enum)
 
 -- | Location flags

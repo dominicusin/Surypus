@@ -25,5 +25,5 @@ data SessionLog = SessionLog
   , slIP        :: Text
   } deriving (Show, Eq)
 
-data SessionAction = SA_Login | SA_Logout | SA_Failed | SA_PasswordChange
+data SessionAction = SALogin | SALogout | SAFailed | SAPasswordChange
   deriving (Show, Eq)

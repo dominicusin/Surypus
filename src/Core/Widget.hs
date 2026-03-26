@@ -13,7 +13,7 @@ data Widget = Widget
   , wgtPosition :: Text  -- JSON {x,y,w,h}
   } deriving (Show, Eq)
 
-data WidgetType = WT_Chart | WT_Table | WT_Stat | WT_Map | WT_Calendar
+data WidgetType = WTChart | WTTable | WTStat | WTMap | WTCalendar
   deriving (Show, Eq)
 
 -- | WidgetDataSource - Widget data source

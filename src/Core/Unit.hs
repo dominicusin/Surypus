@@ -15,7 +15,7 @@ data Unit = Unit
   , uFlags  :: Int
   } deriving (Show, Eq)
 
-data UnitType = UT_Length | UT_Weight | UT_Volume | UT_Area | UT_Count | UT_Time
+data UnitType = UTLength | UTWeight | UTVolume | UTArea | UTCount | UTTime
   deriving (Show, Eq)
 
 -- | Currency - Currency

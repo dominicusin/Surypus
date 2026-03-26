@@ -39,11 +39,11 @@ instance FromJSON TechFilter
 
 -- | Work order status
 data WorkOrderStatus
-  = WO_Draft
-  | WO_Released
-  | WO_InProgress
-  | WO_Completed
-  | WO_Cancelled
+  = WODraft
+  | WOReleased
+  | WOInProgress
+  | WOCompleted
+  | WOCancelled
   deriving (Eq, Show, Enum, Generic)
 
 instance ToJSON WorkOrderStatus

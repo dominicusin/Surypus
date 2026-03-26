@@ -24,7 +24,7 @@ data Transfer = Transfer
   deriving (Show, Eq)
 
 -- | Transfer status
-data TransferStatus = TS_Draft | TS_Sent | TS_Received | TS_Cancelled
+data TransferStatus = TSDraft | TSSent | TSReceived | TSCancelled
   deriving (Show, Eq)
 
 -- | Transfer flags - corresponds to TRANSF_*
@@ -57,7 +57,7 @@ data TransferLine = TransferLine
 
 -- | Check if transfer is complete (all goods received)
 isTransferComplete :: Transfer -> Bool
-isTransferComplete t = trStatus t == TS_Received
+isTransferComplete t = trStatus t == TSReceived
 
 -- | Check if transfer line is fully received
 isTransferLineComplete :: TransferLine -> Bool

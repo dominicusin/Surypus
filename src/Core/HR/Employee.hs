@@ -28,7 +28,7 @@ data EmployeeFlags = EmployeeFlags
   deriving (Show, Eq)
 
 -- | Employee status
-data EmployeeStatus = ES_Active | ES_OnLeave | ES_Fired | ES_Retired
+data EmployeeStatus = ESActive | ESOnLeave | ESFired | ESRetired
   deriving (Show, Eq, Enum)
 
 -- | Check if employee is active
@@ -38,5 +38,5 @@ isEmployeeActive e = isNothing (empFireDate e)
 -- | Get employee status based on dates
 getEmployeeStatus :: Employee -> Day -> EmployeeStatus
 getEmployeeStatus emp today
-  | isEmployeeActive emp = ES_Active
-  | otherwise = ES_Fired
+  | isEmployeeActive emp = ESActive
+  | otherwise = ESFired

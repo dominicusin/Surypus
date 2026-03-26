@@ -13,7 +13,7 @@ data Webhook = Webhook
   , whEnabled :: Bool
   } deriving (Show, Eq)
 
-data WebhookEvent = WE_BillCreated | WE_BillUpdated | WE_OrderCreated | WE_PaymentReceived
+data WebhookEvent = WEBillCreated | WEBillUpdated | WEOrderCreated | WEPaymentReceived
   deriving (Show, Eq)
 
 -- | WebhookLog - Webhook delivery log

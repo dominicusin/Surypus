@@ -13,7 +13,7 @@ data Settings = Settings
   , setFlags :: Int
   } deriving (Show, Eq)
 
-data SettingType = ST_String | ST_Int | ST_Bool | ST_Double | ST_JSON
+data SettingType = STString | STInt | STBool | STDouble | ST_JSON
   deriving (Show, Eq)
 
 -- | Company info

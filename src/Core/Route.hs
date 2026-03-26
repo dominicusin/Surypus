@@ -14,9 +14,9 @@ data Route = Route
   , rtStatus    :: RouteStatus
   } deriving (Show, Eq)
 
-data RouteStatus = RS_Draft | RS_InProgress | RS_Completed
+data RouteStatus = RSDraft | RSInProgress | RS_Completed
   deriving (Show, Eq)
 
 -- | Is active
 isRouteActive :: Route -> Bool
-isRouteActive r = rtStatus r == RS_InProgress
+isRouteActive r = rtStatus r == RSInProgress

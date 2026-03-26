@@ -13,7 +13,7 @@ data Template = Template
   , tplEngine     :: TemplateEngine
   } deriving (Show, Eq)
 
-data TemplateEngine = TE_BuiltIn | TE_Handlebars | TE_Mustache
+data TemplateEngine = TEBuiltIn | TEHandlebars | TEMustache
   deriving (Show, Eq)
 
 -- | TemplateVariable - Template variable

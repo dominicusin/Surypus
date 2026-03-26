@@ -32,10 +32,10 @@ data DiscountCardSeries = DiscountCardSeries
 
 -- | Card series type
 data CardSeriesType
-  = CST_Discount -- Discount card (дисконтная)
-  | CST_Bonus -- Bonus card (бонусная)
-  | CST_Credit -- Credit card (кредитная)
-  | CST_Gift -- Gift card (подарочная)
+  = CSTDiscount -- Discount card (дисконтная)
+  | CSTBonus -- Bonus card (бонусная)
+  | CSTCredit -- Credit card (кредитная)
+  | CSTGift -- Gift card (подарочная)
   deriving (Show, Eq, Enum)
 
 -- | Card series flags

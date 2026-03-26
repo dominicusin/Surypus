@@ -21,5 +21,5 @@ data ViewerFilter = ViewerFilter
   , vfValue     :: Text
   } deriving (Show, Eq)
 
-data FilterOp = FO_Equals | FO_Contains | FO_Greater | FO_Less | FO_Between
+data FilterOp = FOEquals | FOContains | FOGreater | FOLess | FOBetween
   deriving (Show, Eq)

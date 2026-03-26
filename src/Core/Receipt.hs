@@ -16,7 +16,7 @@ data Receipt = Receipt
   , rcFlags      :: Int
   } deriving (Show, Eq)
 
-data ReceiptStatus = RS_Draft | RSReceived | RSChecked | RS_Accepted | RS_Rejected
+data ReceiptStatus = RSDraft | RSReceived | RSChecked | RSAccepted | RSRejected
   deriving (Show, Eq)
 
 -- | Receipt line

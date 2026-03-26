@@ -12,7 +12,7 @@ data Tag = Tag
   , tagColor :: Text
   } deriving (Show, Eq)
 
-data TagType = TT_General | TT_Status | TT_Priority | TT_Custom
+data TagType = TTGeneral | TTStatus | TTPriority | TTCustom
   deriving (Show, Eq)
 
 -- | TagObject - Tag assignment to object

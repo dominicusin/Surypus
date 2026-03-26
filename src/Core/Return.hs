@@ -15,9 +15,9 @@ data Return = Return
   , retStatus  :: ReturnStatus
   } deriving (Show, Eq)
 
-data ReturnStatus = RS_Pending | RS_Approved | RS_Rejected | RS_Completed
+data ReturnStatus = RSPending | RSApproved | RSRejected | RSCompleted
   deriving (Show, Eq)
 
 -- | Is pure completed
 isReturnCompleted :: Return -> Bool
-isReturnCompleted r = retStatus r == RS_Completed
+isReturnCompleted r = retStatus r == RSCompleted

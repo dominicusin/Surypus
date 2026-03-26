@@ -16,7 +16,7 @@ data Quotation = Quotation
   , qotFlags     :: Int
   } deriving (Show, Eq)
 
-data QuotationStatus = QS_Draft | QS_Sent | QS_Accepted | QS_Rejected | QS_Expired
+data QuotationStatus = QSDraft | QSSent | QSAccepted | QSRejected | QSExpired
   deriving (Show, Eq)
 
 -- | Quotation line

@@ -24,10 +24,10 @@ data Lot = Lot
 
 -- | Lot status
 data LotStatus
-  = LS_Active
-  | LS_Closed
-  | LS_Expired
-  | LS_Reserved
+  = LSActive
+  | LSClosed
+  | LSExpired
+  | LSReserved
   deriving (Show, Eq)
 
 -- | Lot flags

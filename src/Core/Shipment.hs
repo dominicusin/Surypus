@@ -15,9 +15,9 @@ data Shipment = Shipment
   , shpCarrier :: Maybe Text
   } deriving (Show, Eq)
 
-data ShipmentStatus = SS_Pending | SS_Packed | SS_Shipped | SS_Delivered
+data ShipmentStatus = SSPending | SSPacked | SSShipped | SSDelivered
   deriving (Show, Eq)
 
 -- | Is shipment delivered
 isDelivered :: Shipment -> Bool
-isDelivered s = shpStatus s == SS_Delivered
+isDelivered s = shpStatus s == SSDelivered

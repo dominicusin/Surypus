@@ -25,10 +25,10 @@ data StockFlags = StockFlags
 
 -- | Stock movement type
 data StockMotionType
-  = SMT_Receipt
-  | SMT_Shipment
-  | SMT_TransferIn
-  | SMT_TransferOut
-  | SMT_WriteOff
-  | SMT_Adjustment
+  = SMTReceipt
+  | SMTShipment
+  | SMTTransferIn
+  | SMTTransferOut
+  | SMTWriteOff
+  | SMTAdjustment
   deriving (Show, Eq, Enum)

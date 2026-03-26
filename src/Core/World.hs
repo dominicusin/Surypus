@@ -16,7 +16,7 @@ data World = World
   , wldAddress  :: Text
   } deriving (Show, Eq)
 
-data WorldType = WT_Country | WT_Region | WT_City | WT_Street | WT_Building
+data WorldType = WTCountry | WTRegion | WTCity | WTStreet | WTBuilding
   deriving (Show, Eq)
 
 -- | Geo tracking

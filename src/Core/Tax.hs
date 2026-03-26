@@ -54,7 +54,7 @@ import Test.QuickCheck
 -- ============================================================================
 
 -- | Tax calculation types
-data TaxCalcType = TaxCalcType_VAT | TaxCalcType_Excise | TaxCalcType_SalesTax | TaxCalcType_Property
+data TaxCalcType = TaxCalcTypeVAT | TaxCalcTypeExcise | TaxCalcTypeSalesTax | TaxCalcTypeProperty
   deriving (Show, Eq, Enum)
 
 -- | Tax flags from C<> GTAXF_*

@@ -24,5 +24,5 @@ data SalaryItem = SalaryItem
   , siAmount   :: Double
   } deriving (Show, Eq)
 
-data SalaryItemType = SIT_Base | SIT_Bonus | SIT_Penalty | SIT_Tax | SIT_Advance
+data SalaryItemType = SITBase | SITBonus | SITPenalty | SITTax | SITAdvance
   deriving (Show, Eq)
