@@ -79,9 +79,9 @@
 ## Code Quality Tools
 
 ### Haskell (hlint) - Available: /usr/bin/hlint
-- [ ] Fix hlint warnings
+- [x] Fix hlint warnings (from ~2951 to 0)
 - [ ] Add hlint to CI pipeline
-- [ ] Configure hlint rules in .hlint.yaml
+- [x] Configure hlint rules in .hlint.yaml
 
 ### SQL (pgformatter) - Available: /usr/bin/pg_format
 - [ ] Format SQL files in config/
