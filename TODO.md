@@ -3,8 +3,8 @@
 ## Strategic Goals
 
 ### Architecture
-- [ ] Migrate to proper Hasql parameterized queries (avoid string interpolation for security)
-- [ ] Add database connection pooling with proper error handling
+- [x] Migrate to proper Hasql parameterized queries (avoid string interpolation for security)
+- [x] Add database connection pooling with proper error handling
 - [ ] Implement repository pattern for DAL layer
 - [ ] Add input validation layer (validate requests before DB operations)
 
@@ -38,7 +38,7 @@
 - [ ] Add Docker configuration
 - [ ] Add CI/CD pipeline
 - [ ] Add database migrations (flyway/schema migrations)
-- [ ] Add health check endpoints
+- [x] Add health check endpoints
 - [ ] Add metrics (Prometheus)
 
 ---

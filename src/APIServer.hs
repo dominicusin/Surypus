@@ -26,8 +26,11 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import Data.Time (diffUTCTime, getCurrentTime, utctDayTime)
 import GHC.Generics (Generic)
+import qualified Hasql.Decoders as D
+import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
+import qualified Hasql.Statement as Statement
 import qualified Network.HTTP.Types as HTTP
 import Network.Wai (Middleware, Request, rawPathInfo, requestHeaders, requestMethod, responseLBS, responseStatus)
 import Surypus.JWT (JWTConfig (..), JWTPayload (..), defaultJWTConfig, generateSimpleToken, validateSimpleToken)
@@ -221,11 +224,9 @@ runServer cfg = do
               ]
 
     -- Health
-    get "/api/v1/health" . json $
-      object
-        [ "status" .= ("healthy" :: String),
-          "version" .= ("0.1.0" :: String)
-        ]
+    get "/api/v1/health" $ do
+      result <- liftIO $ healthCheck pool
+      json result
 
     -- Auth
     post "/api/v1/auth/login" . json $
@@ -635,3 +636,12 @@ runServer cfg = do
 
 healthStatus :: IO Text
 healthStatus = pure "healthy"
+
+healthCheck :: Pool -> IO Value
+healthCheck pool = do
+  let testQuery = "SELECT 1"
+      stmt = Statement.unpreparable testQuery E.noParams (D.singleRow (D.column (D.nonNullable D.int8)))
+  result <- use pool $ Session.statement () stmt
+  case result of
+    Left _ -> pure $ object ["status" .= ("unhealthy" :: Text), "database" .= ("disconnected" :: Text)]
+    Right _ -> pure $ object ["status" .= ("healthy" :: Text), "database" .= ("connected" :: Text)]
