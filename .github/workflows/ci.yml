@@ -31,17 +31,14 @@ jobs:
     
     - name: Build
       run: |
-        cd Surypus
         stack build
     
     - name: Run tests
       run: |
-        cd Surypus
         stack test
     
     - name: Check formatting
       run: |
-        cd Surypus
         stack build --flags="+HLint" 2>/dev/null || true
 
   lint:
@@ -60,7 +57,6 @@ jobs:
     
     - name: Run hlint
       run: |
-        cd Surypus
         hlint src/
 
   docker:
@@ -71,5 +67,4 @@ jobs:
     
     - name: Build Docker image
       run: |
-        cd Surypus
         docker build -t surypus:latest .
