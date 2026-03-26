@@ -9,7 +9,7 @@ where
 import Data.Aeson (FromJSON, ToJSON)
 import GHC.Generics (Generic)
 
-data DocumentAuditPayload = DocumentAuditPayload
+newtype DocumentAuditPayload = DocumentAuditPayload
   { daaLookaheadDays :: Maybe Int
   }
   deriving (Eq, Show, Generic)

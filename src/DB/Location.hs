@@ -109,7 +109,7 @@ updateLocation pool lid Location{..} = use pool $
 
 deleteLocation :: Pool -> Int64 -> IO Bool
 deleteLocation pool lid = use pool $
-  Session.statement lid stmt *> pure True
+  Session.statement lid stmt Data.Functor.$> True
   where
     stmt = Statement
       "DELETE FROM location WHERE id = $1"

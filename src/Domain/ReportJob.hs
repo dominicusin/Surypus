@@ -13,7 +13,7 @@ import GHC.Generics (Generic)
   { rrpScheduleId :: Int64
   } @-}
 
-data ReportRenderPayload = ReportRenderPayload
+newtype ReportRenderPayload = ReportRenderPayload
   { rrpScheduleId :: Int64
   }
   deriving (Eq, Show, Generic)

@@ -91,7 +91,7 @@ updatePersonBankAccount pool personId ba@PersonBankAccount{..} = case pbaId of
 
 deletePersonBankAccount :: Pool -> Int64 -> IO Bool
 deletePersonBankAccount pool bid = use pool $
-  Session.statement bid stmt *> pure True
+  Session.statement bid stmt Data.Functor.$> True
   where
     stmt = Statement
       "DELETE FROM personbankaccount WHERE id = $1"

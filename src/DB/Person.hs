@@ -131,7 +131,7 @@ updatePerson pool pid Person{..} = use pool $
 
 deletePerson :: Pool -> Int64 -> IO Bool
 deletePerson pool pid = use pool $
-  Session.statement pid stmt *> pure True
+  Session.statement pid stmt Data.Functor.$> True
   where
     stmt = Statement
       "DELETE FROM person WHERE id = $1"

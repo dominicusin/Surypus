@@ -97,6 +97,6 @@ requirePermission perms perm
 checkPermissions :: [Permission] -> ActionM ()
 checkPermissions required = do
   let userPerms = [PermAdmin]
-      hasAnyPermission = any (\p -> hasPermission userPerms p) required
+      hasAnyPermission = any (hasPermission userPerms) required
   unless hasAnyPermission $
     status HTTP.status403 >> json (object ["error" .= ("Forbidden" :: Text)]) >> finish

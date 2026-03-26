@@ -162,8 +162,7 @@ inventorySummary ls =
 
 {-@ sumDiff :: [InventoryLine] -> Double @-}
 sumDiff :: [InventoryLine] -> Double
-sumDiff [] = 0
-sumDiff (l : ls) = inventoryLineDiffField l + sumDiff ls
+sumDiff = foldr ((+) . inventoryLineDiffField) 0
 
 sumSurplus :: [InventoryLine] -> Double
 sumSurplus = List.foldl' (+) 0 . fmap (max 0 . ilDiffQtty)

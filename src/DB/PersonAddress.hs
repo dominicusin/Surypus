@@ -121,7 +121,7 @@ updatePersonAddress pool personId addr@PersonAddress{..} = case paId of
 
 deletePersonAddress :: Pool -> Int64 -> IO Bool
 deletePersonAddress pool aid = use pool $
-  Session.statement aid stmt *> pure True
+  Session.statement aid stmt Data.Functor.$> True
   where
     stmt = Statement
       "DELETE FROM personaddress WHERE id = $1"

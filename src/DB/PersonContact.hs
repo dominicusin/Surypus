@@ -111,7 +111,7 @@ updatePersonContact pool personId contact@PersonContact{..} = case pcId of
 
 deletePersonContact :: Pool -> Int64 -> IO Bool
 deletePersonContact pool cid = use pool $
-  Session.statement cid stmt *> pure True
+  Session.statement cid stmt Data.Functor.$> True
   where
     stmt = Statement
       "DELETE FROM personcontact WHERE id = $1"
