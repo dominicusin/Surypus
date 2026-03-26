@@ -85,7 +85,7 @@ createTechCard pool pid gid kind formula =
 addTechLine :: Pool -> Int64 -> Maybe Int -> Int64 -> Double -> Int -> Maybe Text -> Maybe Double -> Maybe Double -> IO ()
 addTechLine pool techId lineNo goodsId qty sign formula lineTime lineCost =
   use pool $
-    Session.statement (techId, lineNo, goodsId, qty, sign, formula, lineTime', lineCost') stmt *> pure ()
+    Session.statement (techId, lineNo, goodsId, qty, sign, formula, lineTime', lineCost') stmt Data.Functor.$> ()
   where
     lineTime' = fromMaybe 0 lineTime
     lineCost' = fromMaybe 0 lineCost
