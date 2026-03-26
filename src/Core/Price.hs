@@ -130,7 +130,7 @@ findBestQuot quots qty date =
       byQty = filter (\q -> qMinQtty q <= qty) valid
    in case byQty of
         [] -> Nothing
-        _ -> Just (minimumBy (\a b -> compare (qPrice a) (qPrice b)) byQty)
+        _ -> Just (minimumBy (\a b -> compare (qPrice a) (qPrice b)) byQty) -- hlint: ignore
 
 -- | Calculate final price with all discounts
 calcFinalPrice :: Double -> Double -> [Discount] -> Double

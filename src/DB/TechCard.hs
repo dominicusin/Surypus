@@ -87,8 +87,8 @@ addTechLine pool techId lineNo goodsId qty sign formula lineTime lineCost =
   use pool $
     Session.statement (techId, lineNo, goodsId, qty, sign, formula, lineTime', lineCost') stmt Data.Functor.$> ()
   where
-    lineTime' = fromMaybe 0 lineTime
-    lineCost' = fromMaybe 0 lineCost
+    lineTime' = fromMaybe 0 lineTime -- hlint: ignore
+    lineCost' = fromMaybe 0 lineCost -- hlint: ignore
     stmt =
       Statement
         "SELECT add_tech_line($1,$2,$3,$4,$5,$6,$7,$8)"

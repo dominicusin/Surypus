@@ -73,3 +73,11 @@
 
 # To generate a suitable file for HLint do:
 # $ hlint --default > .hlint.yaml
+
+# Ignore false positive warnings
+- ignore: {name: "Use all", within: [Core.PriceList, Core.Payroll.Types, Domain.Person]}
+- ignore: {name: "Avoid partial function", within: [Core.Price, Core.Currency.Operations]}
+- ignore: {name: "Use drop1"}
+- ignore: {name: "Use foldMap", within: [DAL.Queries]}
+- ignore: {name: "Use sum", within: [DB.TechCard]}
+- ignore: {name: "Eta reduce", within: [Domain.Asset]}

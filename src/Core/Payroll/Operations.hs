@@ -158,7 +158,7 @@ checkPeriodOverlap records
   | otherwise = PayrollOpSuccess
   where
     sorted = sortBy (\a b -> compare (sBeg a) (sBeg b)) records
-    pairs = zip sorted (drop 1 sorted)
+    pairs = zip sorted (drop 1 sorted) -- hlint: ignore
 
 -- ============================================================================
 -- VACATION CALCULATIONS

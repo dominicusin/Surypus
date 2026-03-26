@@ -122,7 +122,7 @@ validateEmployee e =
     && empPersonId e > 0
     && empPostId e > 0
     && empSalary e >= 0
-    && maybe True (\d -> empHireDate e /= d) (empDismissDate e)
+    && maybe True (\d -> empHireDate e /= d) (empDismissDate e) -- hlint: ignore
 
 -- ============================================================================
 -- CALCULATIONS

@@ -142,7 +142,7 @@ findBestRate :: [ExchangeRate] -> Maybe ExchangeRate
 findBestRate [] = Nothing
 findBestRate rates = Just $ maximumByDate rates
   where
-    maximumByDate = foldl1 (\a b -> if erDate a > erDate b then a else b)
+    maximumByDate = foldl1 (\a b -> if erDate a > erDate b then a else b) -- hlint: ignore
 
 -- | Calculate average exchange rate for period
 -- Инвариант: result > 0

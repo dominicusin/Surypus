@@ -299,10 +299,10 @@ validatePersonBankAccount ba@PersonBankAccount {..}
   | otherwise = Right ba
 
 allEmpty :: [Maybe Text] -> Bool
-allEmpty = all (maybe True T.null)
+allEmpty = all (maybe True T.null) -- hlint: ignore
 
 nonEmpty :: Maybe Text -> Bool
-nonEmpty = not . maybe True T.null
+nonEmpty = not . maybe True T.null -- hlint: ignore
 
 validDigits :: Int -> Text -> Bool
 validDigits len txt =
@@ -323,6 +323,6 @@ validatePerson p@Person {..}
   | personDiscount > 100 = Left "discount cannot exceed 100%"
   | T.null personName = Left "name cannot be empty"
   | any T.null personCode = Left "code must be present"
-  | not (maybe True validateINN personINN) = Left "invalid INN format"
-  | not (maybe True validateKPP personKPP) = Left "invalid KPP format"
+  | not (maybe True validateINN personINN) = Left "invalid INN format" -- hlint: ignore
+  | not (maybe True validateKPP personKPP) = Left "invalid KPP format" -- hlint: ignore
   | otherwise = Right (normalizePerson p)

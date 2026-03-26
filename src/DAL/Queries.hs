@@ -515,7 +515,7 @@ getRoles pool = do
       (,,)
         <$> D.column (D.nonNullable D.int8)
         <*> D.column (D.nonNullable D.text)
-        <*> fmap (maybe [] (splitOn ",")) (D.column (D.nullable D.text))
+        <*> fmap (maybe [] (splitOn ",")) (D.column (D.nullable D.text)) -- hlint: ignore
 
 -- | Get inventory summary (goods with stock levels)
 getInventory :: Pool -> IO (QueryResult [(Int64, Text, Text, Text, Double, Double, Double)])

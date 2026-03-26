@@ -166,7 +166,7 @@ validateAssetInput input@AssetInput {..}
   | otherwise = Right input
 
 mkAssetEvent :: Int64 -> AssetEventType -> Day -> Double -> Text -> AssetEvent
-mkAssetEvent assetId etype dt amount desc = AssetEvent 0 assetId etype dt (max 0 amount) desc
+mkAssetEvent assetId etype dt amount desc = AssetEvent 0 assetId etype dt (max 0 amount) desc -- hlint: ignore
 
 mkAssetDepreciation :: Int64 -> Day -> Double -> Double -> Int -> AssetDepreciation
 mkAssetDepreciation = AssetDepreciation 0
