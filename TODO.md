@@ -80,7 +80,7 @@
 
 ### Haskell (hlint) - Available: /usr/bin/hlint
 - [x] Fix hlint warnings (from ~2951 to 0)
-- [ ] Add hlint to CI pipeline
+- [x] Add hlint to CI pipeline
 - [x] Configure hlint rules in .hlint.yaml
 
 ### SQL (pgformatter) - Available: /usr/bin/pg_format
