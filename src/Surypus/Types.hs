@@ -9,6 +9,7 @@ import Data.Text (Text)
 import Data.Time (Day, UTCTime)
 import Data.UUID (UUID)
 import GHC.Generics (Generic)
+import Test.QuickCheck
 
 newtype Decimal = Decimal {unDecimal :: Integer}
   deriving (Eq, Generic, Ord)
@@ -81,6 +82,9 @@ moneyFromDouble = Money . toDecimal
 
 toDouble :: Money -> Double
 toDouble (Money d) = fromDecimal d
+
+instance Arbitrary Decimal where
+  arbitrary = Decimal <$> arbitrary
 
 type NonNeg = Decimal
 

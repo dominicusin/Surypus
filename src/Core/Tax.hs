@@ -69,6 +69,9 @@ data TaxFlags = TaxFlags
 defaultTaxFlags :: TaxFlags
 defaultTaxFlags = TaxFlags False False False False
 
+instance Arbitrary TaxFlags where
+  arbitrary = TaxFlags <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+
 -- | Tax entry - corresponds to PPGoodsTaxEntry in C<>
 -- Invariant: All tax values >= 0
 data TaxEntry = TaxEntry
@@ -85,6 +88,20 @@ data TaxEntry = TaxEntry
   }
   deriving (Show, Eq)
 
+instance Arbitrary TaxEntry where
+  arbitrary =
+    TaxEntry
+      <$> arbitrary
+      <*> arbitrary
+      <*> arbitrary
+      <*> arbitrary
+      <*> arbitrary
+      <*> arbitrary
+      <*> arbitrary
+      <*> arbitrary
+      <*> arbitrary
+      <*> arbitrary
+
 -- | Tax vector - corresponds to GTaxVect in C<>
 data TaxVector = TaxVector
   { tvAmount :: Decimal, -- Net amount
@@ -96,6 +113,19 @@ data TaxVector = TaxVector
     tvRoundPrec :: Int -- Rounding precision
   }
   deriving (Show, Eq)
+
+instance Arbitrary TaxVector where
+  arbitrary =
+    TaxVector
+      <$> arbitrary
+      <*> arbitrary
+      <*> arbitrary4
+      <*> arbitrary4
+      <*> arbitrary
+      <*> arbitrary
+      <*> arbitrary
+    where
+      arbitrary4 = (,,,) <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
 
 defaultTaxVector :: TaxVector
 defaultTaxVector =
@@ -260,11 +290,11 @@ prop_vat_nonnegative amount rate =
   let vat = calcVAT amount rate
    in property (vat >= 0)
 
--- | Property: VAT is always less than or equal to original amount (when rate <= 100)
+-- | Property: VAT is always less than or equal to original amount (when rate <= 100%)
 prop_vat_bounded :: Decimal -> Decimal -> Property
 prop_vat_bounded amount rate =
   let vat = calcVAT amount rate
-   in property (rate <= 100 ==> vat <= amount)
+   in property (rate <= Decimal 10000 ==> vat <= amount)
 
 -- | Property: Round-trip calculation
 prop_vat_roundtrip :: Decimal -> Decimal -> Property

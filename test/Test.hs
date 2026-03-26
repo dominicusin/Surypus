@@ -15,6 +15,7 @@ import qualified Data.Text as T
 import Data.Time (Day, fromGregorian)
 import Surypus.Types (Decimal (..))
 import Test.Hspec
+import Test.Hspec.QuickCheck (prop)
 import Test.QuickCheck
 
 -- ============================================================================
@@ -329,3 +330,10 @@ main = hspec $ do
 
       it "calcUnitExcise" $ do
         calcUnitExcise (Decimal 50) (Decimal 100) `shouldBe` Decimal 50
+
+    -- ========================================================================
+    -- QUICKCHECK PROPERTIES
+    -- ========================================================================
+    describe "QuickCheck Properties" $ do
+      prop "VAT is non-negative" $
+        \amount rate -> prop_vat_nonnegative amount rate
