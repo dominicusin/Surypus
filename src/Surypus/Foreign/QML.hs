@@ -591,7 +591,9 @@ createBill app bill = do
 approveBill :: SurypusApp -> Int -> IO (Either Text Bill)
 approveBill app bid = do
   logInfo $ "Approving bill: " <> show bid
-  pure $ Right (head sampleBills)
+  pure $ case sampleBills of
+    (x : _) -> Right x
+    [] -> Left "No sample bills"
 
 -- ============================================================================
 -- FILTERING AND SORTING

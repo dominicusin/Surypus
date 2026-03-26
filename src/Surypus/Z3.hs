@@ -14,6 +14,7 @@ import qualified Data.Map as Map
 import Data.Text (Text)
 import qualified Data.Text as T
 import Numeric (showFFloat)
+import Text.Printf (printf)
 
 -- ============================================================================
 -- Z3 TYPES (SMT-LIB compatible)
@@ -85,7 +86,7 @@ exprToString :: Expr -> String
 exprToString e = case e of
   EVar t -> T.unpack t
   EConstInt n -> show n
-  EConstReal d -> showFFloat (Just 2) d ""
+  EConstReal d -> printf "%.2f" d
   EConstBool True -> "true"
   EConstBool False -> "false"
   EAdd a b -> "(" <> exprToString a <> " + " <> exprToString b <> ")"
