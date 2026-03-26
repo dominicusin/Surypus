@@ -61,7 +61,7 @@ jobs:
     - name: Run hlint
       run: |
         cd Surypus
-        hlint src/ || true
+        hlint src/
 
   docker:
     runs-on: ubuntu-latest
