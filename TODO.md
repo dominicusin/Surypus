@@ -9,14 +9,14 @@
 - [ ] Add input validation layer (validate requests before DB operations)
 
 ### Business Logic
-- [ ] Implement full accounting module (double-entry bookkeeping)
+- [x] Implement full accounting module (double-entry bookkeeping)
 - [ ] Implement inventory/stock management with lot tracking
 - [ ] Implement VAT calculations with multi-rate support
 - [ ] Add payroll module integration
 - [ ] Add report generation (JasperReports integration)
 
 ### API
-- [ ] Add OpenAPI/Swagger documentation
+- [x] Add OpenAPI/Swagger documentation
 - [x] Implement rate limiting middleware
 - [x] Add request logging and monitoring
 - [ ] Implement API versioning strategy
