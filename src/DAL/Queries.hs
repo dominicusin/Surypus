@@ -384,7 +384,7 @@ getSalesSummary :: Pool -> Int64 -> Int64 -> IO (QueryResult [(Day, Decimal)])
 getSalesSummary pool daysAgo limit = do
   let sql =
         "SELECT doc_date, SUM(total) as daily_total FROM bill "
-          <> "WHERE doc_date >= CURRENT_DATE - ($1 || ' days')::interval "
+          <> "WHERE doc_date >= CURRENT_DATE - make_interval(days => $1) "
           <> "GROUP BY doc_date ORDER BY doc_date DESC LIMIT $2"
       stmt = unpreparable sql ((fst >$< E.param (E.nonNullable E.int8)) <> (snd >$< E.param (E.nonNullable E.int8))) (D.rowList dateAmountDecoder)
   res <- use pool $ Session.statement (daysAgo, limit) stmt
@@ -413,18 +413,15 @@ getUsers pool = do
 getTopSellingGoods :: Pool -> Int64 -> IO (QueryResult [(Int64, Text, Decimal)])
 getTopSellingGoods pool limit = do
   let sql =
-        T.concat
-          [ "SELECT g.id, g.name::text, COALESCE(SUM(bl.qtty * bl.price), 0) as total_amount ",
-            "FROM goods g ",
-            "LEFT JOIN bill_line bl ON g.id = bl.goods_id ",
-            "LEFT JOIN bill b ON bl.bill_id = b.id ",
-            "WHERE b.doc_status = 1 ",
-            "GROUP BY g.id, g.name ",
-            "ORDER BY total_amount DESC LIMIT ",
-            T.pack (show limit)
-          ]
-      stmt = unpreparable sql E.noParams (D.rowList topGoodsDecoder)
-  res <- use pool $ Session.statement () stmt
+        "SELECT g.id, g.name::text, COALESCE(SUM(bl.qtty * bl.price), 0) as total_amount \
+        \FROM goods g \
+        \LEFT JOIN bill_line bl ON g.id = bl.goods_id \
+        \LEFT JOIN bill b ON bl.bill_id = b.id \
+        \WHERE b.doc_status = 1 \
+        \GROUP BY g.id, g.name \
+        \ORDER BY total_amount DESC LIMIT $1"
+      stmt = unpreparable sql (E.param (E.nonNullable E.int8)) (D.rowList topGoodsDecoder)
+  res <- use pool $ Session.statement limit stmt
   case res of
     Right rows -> pure $ QuerySuccess rows
     Left err -> pure $ QueryError (T.pack $ show err)
