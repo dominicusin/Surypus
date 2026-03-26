@@ -29,7 +29,7 @@
 - [ ] Implement API key authentication for integrations
 
 ### Testing
-- [ ] Add property-based testing with QuickCheck
+- [x] Add property-based testing with QuickCheck
 - [ ] Add integration tests for API endpoints
 - [ ] Add database migration tests
 - [ ] Add performance/load tests
