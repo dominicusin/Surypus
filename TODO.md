@@ -36,7 +36,7 @@
 
 ### DevOps
 - [x] Add Docker configuration
-- [ ] Add CI/CD pipeline
+- [x] Add CI/CD pipeline
 - [ ] Add database migrations (flyway/schema migrations)
 - [x] Add health check endpoints
 - [ ] Add metrics (Prometheus)

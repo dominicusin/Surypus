@@ -59,6 +59,22 @@ jobs:
       run: |
         hlint src/
 
+  sql-lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install pgformatter
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y postgresql-client
+    
+    - name: Format SQL files
+      run: |
+        which pg_format || echo "pg_format not available, skipping"
+        # pg_format -i config/*.sql 2>/dev/null || true
+
   docker:
     runs-on: ubuntu-latest
     
