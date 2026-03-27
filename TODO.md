@@ -6,7 +6,7 @@
 - [x] Migrate to proper Hasql parameterized queries (avoid string interpolation for security)
 - [x] Add database connection pooling with proper error handling
 - [ ] Implement repository pattern for DAL layer
-- [ ] Add input validation layer (validate requests before DB operations)
+- [x] Add input validation layer (validate requests before DB operations)
 
 ### Business Logic
 - [x] Implement full accounting module (double-entry bookkeeping)
@@ -23,7 +23,7 @@
 - [ ] Add WebSocket support for real-time updates
 
 ### Security
-- [ ] Implement JWT authentication with refresh tokens
+- [x] Implement JWT authentication with refresh tokens
 - [x] Add role-based access control (RBAC)
 - [ ] Add audit logging for sensitive operations
 - [ ] Implement API key authentication for integrations
