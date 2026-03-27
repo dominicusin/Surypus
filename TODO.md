@@ -25,8 +25,8 @@
 ### Security
 - [x] Implement JWT authentication with refresh tokens
 - [x] Add role-based access control (RBAC)
-- [ ] Add audit logging for sensitive operations
-- [ ] Implement API key authentication for integrations
+- [x] Add audit logging for sensitive operations
+- [x] Implement API key authentication for integrations
 
 ### Testing
 - [x] Add property-based testing with QuickCheck
