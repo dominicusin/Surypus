@@ -52,8 +52,8 @@ createBillLine pool bid BillLine {..} = do
     params =
       ( bid,
         billLineGoodsId,
-        billLinePrice,
         billLineQuantity,
+        billLinePrice,
         billLineDiscount,
         billLineVatRate,
         billLineTax,

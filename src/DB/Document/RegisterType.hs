@@ -78,7 +78,7 @@ updateRegisterType pool rid doc = do
     Right mb -> pure $ isJust mb
     Left _ -> pure False
   where
-    params = (rid, drtName doc, drtCode doc, drtFlags doc)
+    params = (rid, drtName doc, drtCode doc, fromIntegral (drtFlags doc) :: Int32)
     stmt =
       unpreparable
         "UPDATE document_register_type SET name = $2, code = $3, flags = $4 WHERE id = $1 RETURNING id"
