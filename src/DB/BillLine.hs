@@ -7,14 +7,13 @@ module DB.BillLine
   )
 where
 
-import Data.Functor.Contravariant ((>$<))
 import Data.Int (Int64)
 import Domain.Bill (BillLine (..))
 import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
-import Hasql.Statement (unpreparable)
+import Hasql.Statement (Statement (Statement))
 
 billLineRow :: D.Row BillLine
 billLineRow =
@@ -36,10 +35,11 @@ listBillLines pool bid = do
     Left _ -> pure []
   where
     stmt =
-      unpreparable
+      Statement
         "SELECT id, goods_id, price, quantity, discount, vat_rate, vat_amount, line_total FROM bill_line WHERE bill_id = $1 ORDER BY line_num"
         (E.param (E.nonNullable E.int8))
         (D.rowList billLineRow)
+        False
 
 createBillLine :: Pool -> Int64 -> BillLine -> IO Int64
 createBillLine pool bid BillLine {..} = do
@@ -60,7 +60,7 @@ createBillLine pool bid BillLine {..} = do
         billLineAmount
       )
     stmt =
-      unpreparable
+      Statement
         "SELECT create_bill_line($1,$2,$3,$4,$5,$6,$7,$8)"
         ( E.param (E.nonNullable E.int8)
             <> E.param (E.nonNullable E.int8)
@@ -72,3 +72,4 @@ createBillLine pool bid BillLine {..} = do
             <> E.param (E.nonNullable E.float8)
         )
         (D.singleRow $ D.column (D.nonNullable D.int8))
+        False

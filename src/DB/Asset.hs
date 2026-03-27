@@ -85,21 +85,21 @@ createAsset pool AssetInput {..} = do
     Right x -> pure x
     Left _ -> error "createAsset failed"
   where
-    params = (aiInvNo, aiName, (0 :: Int32), aiGroupId, aiLocation, aiOwner, aiCost, aiSalvage, fromIntegral aiUsefulLife :: Int, aiPurchaseDate, aiCommissioning)
+    params = (aiInvNo, aiName, (0 :: Int32), aiGroupId, aiLocation, aiOwner, aiCost, aiSalvage, fromIntegral aiUsefulLife :: Int32, aiPurchaseDate, aiCommissioning)
     stmt =
       unpreparable
         "INSERT INTO asset (inv_no, name, atype, group_id, location_id, owner_id, cost, salvage_value, useful_life, purchase_date, commissioning_date) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id, inv_no, name, group_id, location_id, owner_id, status, cost, depreciation, salvage_value, useful_life, purchase_date, commissioning_date"
-        ( E.param (E.nonNullable E.text)
-            <> E.param (E.nonNullable E.text)
-            <> E.param (E.nonNullable E.int4)
-            <> E.param (E.nullable E.int8)
-            <> E.param (E.nullable E.int8)
-            <> E.param (E.nullable E.int8)
-            <> E.param (E.nonNullable E.float8)
-            <> E.param (E.nonNullable E.float8)
-            <> E.param (E.nonNullable E.int4)
-            <> E.param (E.nullable E.date)
-            <> E.param (E.nullable E.date)
+        ( ((\(a, _, _, _, _, _, _, _, _, _, _) -> a) >$< E.param (E.nonNullable E.text))
+            <> ((\(_, b, _, _, _, _, _, _, _, _, _) -> b) >$< E.param (E.nonNullable E.text))
+            <> ((\(_, _, c, _, _, _, _, _, _, _, _) -> c) >$< E.param (E.nonNullable E.int4))
+            <> ((\(_, _, _, d, _, _, _, _, _, _, _) -> d) >$< E.param (E.nullable E.int8))
+            <> ((\(_, _, _, _, e, _, _, _, _, _, _) -> e) >$< E.param (E.nullable E.int8))
+            <> ((\(_, _, _, _, _, f, _, _, _, _, _) -> f) >$< E.param (E.nullable E.int8))
+            <> ((\(_, _, _, _, _, _, g, _, _, _, _) -> g) >$< E.param (E.nonNullable E.float8))
+            <> ((\(_, _, _, _, _, _, _, h, _, _, _) -> h) >$< E.param (E.nonNullable E.float8))
+            <> ((\(_, _, _, _, _, _, _, _, i, _, _) -> i) >$< E.param (E.nonNullable E.int4))
+            <> ((\(_, _, _, _, _, _, _, _, _, j, _) -> j) >$< E.param (E.nullable E.date))
+            <> ((\(_, _, _, _, _, _, _, _, _, _, k) -> k) >$< E.param (E.nullable E.date))
         )
         (D.singleRow assetRow)
 
@@ -107,14 +107,14 @@ depreciateAsset :: Pool -> Int64 -> Day -> IO Bool
 depreciateAsset pool assetId period = do
   result <- use pool $ Session.statement (assetId, period) stmt
   case result of
-    Right mb -> pure $ isJust mb
+    Right b -> pure b
     Left _ -> pure False
   where
     stmt =
       unpreparable
         "SELECT depreciate_asset_month($1, $2)"
-        ( E.param (E.nonNullable E.int8)
-            <> E.param (E.nonNullable E.date)
+        ( ((\(a, _) -> a) >$< E.param (E.nonNullable E.int8))
+            <> ((\(_, b) -> b) >$< E.param (E.nonNullable E.date))
         )
         (D.singleRow $ D.column (D.nonNullable D.bool))
 
@@ -129,11 +129,11 @@ recordAssetEvent pool AssetEvent {..} = do
     stmt =
       unpreparable
         "INSERT INTO asset_event (asset_id, etype, dt, amount, description) VALUES ($1,$2,$3,$4,$5) RETURNING id"
-        ( E.param (E.nonNullable E.int8)
-            <> E.param (E.nonNullable E.int4)
-            <> E.param (E.nonNullable E.date)
-            <> E.param (E.nonNullable E.float8)
-            <> E.param (E.nonNullable E.text)
+        ( ((\(a, _, _, _, _) -> a) >$< E.param (E.nonNullable E.int8))
+            <> ((\(_, b, _, _, _) -> b) >$< E.param (E.nonNullable E.int4))
+            <> ((\(_, _, c, _, _) -> c) >$< E.param (E.nonNullable E.date))
+            <> ((\(_, _, _, d, _) -> d) >$< E.param (E.nonNullable E.float8))
+            <> ((\(_, _, _, _, e) -> e) >$< E.param (E.nonNullable E.text))
         )
         (D.singleRow $ D.column (D.nonNullable D.int8))
 

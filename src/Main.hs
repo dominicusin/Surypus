@@ -19,6 +19,7 @@ import DB.Connection
     createPool,
     defaultPoolConfig,
     initSchema,
+    withPool,
   )
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -33,43 +34,28 @@ main = do
   putStrLn "  Surypus - ERP/CRM System"
   putStrLn "  Version 0.1.0"
   putStrLn "========================================="
+  withPool $ \pool -> do
+    putStrLn "Initializing database schema..."
+    initSchema pool
 
-  let poolCfg =
-        PoolConfig
-          { pcHost = "localhost",
-            pcPort = 5432,
-            pcUser = "surypus",
-            pcPassword = "surypus",
-            pcDatabase = "surypus",
-            pcConnections = 10
-          }
+    rateLimit <- defaultRateLimit
 
-  putStrLn "Creating database connection pool..."
-  pool <- createPool poolCfg
+    let serverCfg =
+          ServerConfig
+            { scHost = "0.0.0.0",
+              scPort = 3000,
+              scLogRequests = True,
+              scJwtSecret = "surypus-secret-key",
+              scRateLimit = rateLimit,
+              scPool = pool,
+              scWebSocketHub = Nothing
+            }
 
-  putStrLn "Initializing database schema..."
-  initSchema pool
-
-  rateLimit <- defaultRateLimit
-
-  let serverCfg =
-        ServerConfig
-          { scHost = "0.0.0.0",
-            scPort = 3000,
-            scLogRequests = True,
-            scJwtSecret = "surypus-secret-key",
-            scRateLimit = rateLimit,
-            scPool = pool,
-            scWebSocketHub = Nothing
-          }
-
-  case parseServiceCommand args of
-    Just cmd -> runServiceMode serverCfg pool cmd
-    Nothing -> do
-      putStrLn "Starting API server..."
-      runServer serverCfg
-
-  closePool pool
+    case parseServiceCommand args of
+      Just cmd -> runServiceMode serverCfg pool cmd
+      Nothing -> do
+        putStrLn "Starting API server..."
+        runServer serverCfg
 
 runServiceMode :: ServerConfig -> Pool -> ServiceCommand -> IO ()
 runServiceMode _ _ CmdHelp = putStrLn (T.unpack serviceCommandHelp)

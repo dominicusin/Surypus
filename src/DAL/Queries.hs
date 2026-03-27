@@ -14,7 +14,7 @@ import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
-import Hasql.Statement (unpreparable)
+import qualified Hasql.Statement as Statement
 import Surypus.Types (Decimal (..))
 
 personRowDecoder :: D.Row Person
@@ -213,7 +213,7 @@ dashboardStatsRowDecoder =
 getPersons :: Pool -> IO (QueryResult [Person])
 getPersons pool = do
   let stmt =
-        unpreparable
+        Statement.unpreparable
           "SELECT id, code::text, name::text, inn::text, kpp::text, person_type, status FROM persons.person ORDER BY id"
           E.noParams
           (D.rowList personRowDecoder)
@@ -225,7 +225,7 @@ getPersons pool = do
 searchPersons :: Pool -> Text -> IO (QueryResult [Person])
 searchPersons pool query = do
   let stmt =
-        unpreparable
+        Statement.prepared
           "SELECT id, code::text, name::text, inn::text, kpp::text, person_type, status FROM persons.person WHERE name ILIKE $1 OR code ILIKE $1 OR inn ILIKE $1 ORDER BY id"
           (E.param (E.nonNullable E.text))
           (D.rowList personRowDecoder)
@@ -237,7 +237,7 @@ searchPersons pool query = do
 getPersonById :: Pool -> Int64 -> IO (QueryResult Person)
 getPersonById pool pid = do
   let stmt =
-        unpreparable
+        Statement.prepared
           "SELECT id, code::text, name::text, inn::text, kpp::text, person_type, status FROM persons.person WHERE id = $1"
           (E.param (E.nonNullable E.int8))
           (D.rowMaybe personRowDecoder)
@@ -250,7 +250,7 @@ getPersonById pool pid = do
 getGoods :: Pool -> IO (QueryResult [Goods])
 getGoods pool = do
   let stmt =
-        unpreparable
+        Statement.prepared
           "SELECT id, code::text, name::text, barcode::text, unit_id, parent_id FROM goods ORDER BY id"
           E.noParams
           (D.rowList goodsRowDecoder)
@@ -262,7 +262,7 @@ getGoods pool = do
 searchGoods :: Pool -> Text -> IO (QueryResult [Goods])
 searchGoods pool query = do
   let stmt =
-        unpreparable
+        Statement.prepared
           "SELECT id, code::text, name::text, barcode::text, unit_id, parent_id FROM goods WHERE name ILIKE $1 OR code ILIKE $1 OR barcode ILIKE $1 ORDER BY id"
           (E.param (E.nonNullable E.text))
           (D.rowList goodsRowDecoder)
@@ -274,7 +274,7 @@ searchGoods pool query = do
 getGoodsById :: Pool -> Int64 -> IO (QueryResult Goods)
 getGoodsById pool gid = do
   let stmt =
-        unpreparable
+        Statement.prepared
           "SELECT id, code::text, name::text, barcode::text, unit_id, parent_id FROM goods WHERE id = $1"
           (E.param (E.nonNullable E.int8))
           (D.rowMaybe goodsRowDecoder)
@@ -287,7 +287,7 @@ getGoodsById pool gid = do
 getGoodsByBarcode :: Pool -> Text -> IO (QueryResult Goods)
 getGoodsByBarcode pool barcode = do
   let stmt =
-        unpreparable
+        Statement.prepared
           "SELECT id, code::text, name::text, barcode::text, unit_id, parent_id FROM goods WHERE barcode = $1"
           (E.param (E.nonNullable E.text))
           (D.rowMaybe goodsRowDecoder)
@@ -300,7 +300,7 @@ getGoodsByBarcode pool barcode = do
 getLocations :: Pool -> IO (QueryResult [Location])
 getLocations pool = do
   let stmt =
-        unpreparable
+        Statement.prepared
           "SELECT id, code::text, name::text, location_type FROM location ORDER BY id"
           E.noParams
           (D.rowList locationRowDecoder)
@@ -312,7 +312,7 @@ getLocations pool = do
 getLocationById :: Pool -> Int64 -> IO (QueryResult Location)
 getLocationById pool lid = do
   let stmt =
-        unpreparable
+        Statement.prepared
           "SELECT id, code::text, name::text, location_type FROM location WHERE id = $1"
           (E.param (E.nonNullable E.int8))
           (D.rowMaybe locationRowDecoder)
@@ -325,7 +325,7 @@ getLocationById pool lid = do
 getBills :: Pool -> IO (QueryResult [Bill])
 getBills pool = do
   let stmt =
-        unpreparable
+        Statement.prepared
           "SELECT id, code::text, bill_type, doc_status, doc_date, person_id, location_id, total, discount_amount, tax_amount FROM bill ORDER BY id"
           E.noParams
           (D.rowList billRowDecoder)
@@ -337,7 +337,7 @@ getBills pool = do
 getBillById :: Pool -> Int64 -> IO (QueryResult Bill)
 getBillById pool bid = do
   let stmt =
-        unpreparable
+        Statement.prepared
           "SELECT id, code::text, bill_type, doc_status, doc_date, person_id, location_id, total, discount_amount, tax_amount FROM bill WHERE id = $1"
           (E.param (E.nonNullable E.int8))
           (D.rowMaybe billRowDecoder)
@@ -350,7 +350,7 @@ getBillById pool bid = do
 getBillLines :: Pool -> Int64 -> IO (QueryResult [BillLine])
 getBillLines pool bid = do
   let stmt =
-        unpreparable
+        Statement.prepared
           "SELECT id, bill_id, goods_id, qtty, price, discount_amount, amount FROM bill_line WHERE bill_id = $1 ORDER BY id"
           (E.param (E.nonNullable E.int8))
           (D.rowList billLineRowDecoder)
@@ -365,7 +365,7 @@ getStock pool _ _ = getStockAll pool
 getStockAll :: Pool -> IO (QueryResult [Stock])
 getStockAll pool = do
   let stmt =
-        unpreparable
+        Statement.prepared
           "SELECT id, goods_id, location_id, qtty, resrv_qtty FROM stock ORDER BY id"
           E.noParams
           (D.rowList stockRowDecoder)
@@ -377,7 +377,7 @@ getStockAll pool = do
 getStockByLocation :: Pool -> Int64 -> IO (QueryResult [Stock])
 getStockByLocation pool lid = do
   let stmt =
-        unpreparable
+        Statement.prepared
           "SELECT id, goods_id, location_id, qtty, resrv_qtty FROM stock WHERE location_id = $1"
           (E.param (E.nonNullable E.int8))
           (D.rowList stockRowDecoder)
@@ -389,7 +389,7 @@ getStockByLocation pool lid = do
 getStockByGoods :: Pool -> Int64 -> IO (QueryResult [Stock])
 getStockByGoods pool gid = do
   let stmt =
-        unpreparable
+        Statement.prepared
           "SELECT id, goods_id, location_id, qtty, resrv_qtty FROM stock WHERE goods_id = $1"
           (E.param (E.nonNullable E.int8))
           (D.rowList stockRowDecoder)
@@ -404,7 +404,7 @@ getSalesSummary pool daysAgo limit = do
         "SELECT doc_date, SUM(total) as daily_total FROM bill "
           <> "WHERE doc_date >= CURRENT_DATE - make_interval(days => $1) "
           <> "GROUP BY doc_date ORDER BY doc_date DESC LIMIT $2"
-      stmt = unpreparable sql ((fst >$< E.param (E.nonNullable E.int8)) <> (snd >$< E.param (E.nonNullable E.int8))) (D.rowList dateAmountDecoder)
+      stmt = Statement.prepared sql ((fst >$< E.param (E.nonNullable E.int8)) <> (snd >$< E.param (E.nonNullable E.int8))) (D.rowList dateAmountDecoder)
   res <- use pool $ Session.statement (daysAgo, limit) stmt
   case res of
     Right rows -> pure $ QuerySuccess rows
@@ -416,7 +416,7 @@ getSalesSummary pool daysAgo limit = do
 getUsers :: Pool -> IO (QueryResult [User])
 getUsers pool = do
   let stmt =
-        unpreparable
+        Statement.prepared
           "SELECT e.id, e.code::text, e.name::text, e.email::text, ur.role_id, e.status \
           \FROM employee e \
           \LEFT JOIN user_role ur ON e.id = ur.user_id \
@@ -438,7 +438,7 @@ getTopSellingGoods pool limit = do
         \WHERE b.doc_status = 1 \
         \GROUP BY g.id, g.name \
         \ORDER BY total_amount DESC LIMIT $1"
-      stmt = unpreparable sql (E.param (E.nonNullable E.int8)) (D.rowList topGoodsDecoder)
+      stmt = Statement.prepared sql (E.param (E.nonNullable E.int8)) (D.rowList topGoodsDecoder)
   res <- use pool $ Session.statement limit stmt
   case res of
     Right rows -> pure $ QuerySuccess rows
@@ -466,7 +466,7 @@ inventoryDecoder =
 getDocumentTypes :: Pool -> IO (QueryResult [DocumentRegisterType])
 getDocumentTypes pool = do
   let stmt =
-        unpreparable
+        Statement.prepared
           "SELECT id, name::text, description::text, flag FROM document_type ORDER BY id"
           E.noParams
           (D.rowList documentTypeRowDecoder)
@@ -494,7 +494,7 @@ getStockSummary pool = do
           <> "LEFT JOIN stock s ON l.id = s.location_id "
           <> "GROUP BY l.id, l.name "
           <> "ORDER BY l.id"
-      stmt = unpreparable sql E.noParams (D.rowList stockSummaryDecoder)
+      stmt = Statement.prepared sql E.noParams (D.rowList stockSummaryDecoder)
   res <- use pool $ Session.statement () stmt
   case res of
     Right rows -> pure $ QuerySuccess rows
@@ -519,7 +519,7 @@ getRoles pool = do
           <> "LEFT JOIN permission p ON rp.permission_id = p.id "
           <> "GROUP BY r.id, r.name "
           <> "ORDER BY r.id"
-      stmt = unpreparable sql E.noParams (D.rowList rolesDecoder)
+      stmt = Statement.prepared sql E.noParams (D.rowList rolesDecoder)
   res <- use pool $ Session.statement () stmt
   case res of
     Right rows -> pure $ QuerySuccess rows
@@ -546,7 +546,7 @@ getInventory pool = do
           <> "AVG(unit_cost) as average_cost FROM stock GROUP BY goods_id) s "
           <> "ON g.id = s.goods_id "
           <> "ORDER BY g.id"
-      stmt = unpreparable sql E.noParams (D.rowList inventoryDecoder)
+      stmt = Statement.prepared sql E.noParams (D.rowList inventoryDecoder)
   res <- use pool $ Session.statement () stmt
   case res of
     Right rows -> pure $ QuerySuccess rows
@@ -587,7 +587,7 @@ getPersonsPaginated pool filter' mSortBy mSortDir pagination = do
       countFilterParams :: (Maybe Text, Maybe Text, Maybe Int16, Maybe Int16)
       countFilterParams = (nameFilter, innFilter, typeFilter, statusFilter)
       listStmt =
-        unpreparable
+        Statement.prepared
           listSql
           ( ((\(_, _, _, _, _, _) -> Nothing) >$< E.param (E.nullable E.text))
               <> ((\(_, b, _, _, _, _) -> b) >$< E.param (E.nullable E.text))
@@ -598,7 +598,7 @@ getPersonsPaginated pool filter' mSortBy mSortDir pagination = do
           )
           (D.rowList personRowDecoder)
       countStmt =
-        unpreparable
+        Statement.prepared
           countSql
           ( ((\(a, _, _, _) -> a) >$< E.param (E.nullable E.text))
               <> ((\(_, b, _, _) -> b) >$< E.param (E.nullable E.text))
@@ -653,7 +653,7 @@ getGoodsPaginated pool filter' pagination mSortBy mSortDir = do
       countParams :: (Maybe Text, Maybe Text, Maybe Text)
       countParams = (nameFilter, barcodeFilter, codeFilter)
       listStmt =
-        unpreparable
+        Statement.prepared
           listSql
           ( ((\(_, _, _, _, _) -> Nothing) >$< E.param (E.nullable E.text))
               <> ((\(_, b, _, _, _) -> b) >$< E.param (E.nullable E.text))
@@ -663,7 +663,7 @@ getGoodsPaginated pool filter' pagination mSortBy mSortDir = do
           )
           (D.rowList goodsRowDecoder)
       countStmt =
-        unpreparable
+        Statement.prepared
           countSql
           ( ((\(a, _, _) -> a) >$< E.param (E.nullable E.text))
               <> ((\(_, b, _) -> b) >$< E.param (E.nullable E.text))
@@ -688,7 +688,7 @@ getGoodsPaginated pool filter' pagination mSortBy mSortDir = do
 getPayments :: Pool -> IO (QueryResult [Payment])
 getPayments pool = do
   let stmt =
-        unpreparable
+        Statement.prepared
           "SELECT id, bill_id, date, amount, payment_method, payment_status FROM payment ORDER BY date DESC, id DESC"
           E.noParams
           (D.rowList paymentRowDecoder)
@@ -700,7 +700,7 @@ getPayments pool = do
 getPaymentById :: Pool -> Int64 -> IO (QueryResult Payment)
 getPaymentById pool paymentId = do
   let stmt =
-        unpreparable
+        Statement.prepared
           "SELECT id, bill_id, date, amount, payment_method, payment_status FROM payment WHERE id = $1"
           (E.param (E.nonNullable E.int8))
           (D.rowMaybe paymentRowDecoder)
@@ -714,7 +714,7 @@ getPaymentById pool paymentId = do
 getUnits :: Pool -> IO (QueryResult [Unit])
 getUnits pool = do
   let stmt =
-        unpreparable
+        Statement.prepared
           "SELECT id, code::text, name::text, short_name::text FROM unit ORDER BY id"
           E.noParams
           (D.rowList unitRowDecoder)
@@ -727,7 +727,7 @@ getUnits pool = do
 getTaxes :: Pool -> IO (QueryResult [Tax])
 getTaxes pool = do
   let stmt =
-        unpreparable
+        Statement.prepared
           "SELECT id, COALESCE(code,'')::text, name::text, rate FROM tax ORDER BY id"
           E.noParams
           (D.rowList taxRowDecoder)
@@ -739,7 +739,7 @@ getTaxes pool = do
 getTaxById :: Pool -> Int64 -> IO (QueryResult Tax)
 getTaxById pool tid = do
   let stmt =
-        unpreparable
+        Statement.prepared
           "SELECT id, COALESCE(code,'')::text, name::text, rate FROM tax WHERE id = $1"
           (E.param (E.nonNullable E.int8))
           (D.rowMaybe taxRowDecoder)
@@ -753,7 +753,7 @@ getTaxById pool tid = do
 getAccPlans :: Pool -> IO (QueryResult [AccPlan])
 getAccPlans pool = do
   let stmt =
-        unpreparable
+        Statement.prepared
           "SELECT id, code::text, name::text, acc_type FROM acc_plan ORDER BY code"
           E.noParams
           (D.rowList accPlanRowDecoder)
@@ -766,7 +766,7 @@ getAccPlans pool = do
 getAccTurns :: Pool -> IO (QueryResult [AccTurn])
 getAccTurns pool = do
   let stmt =
-        unpreparable
+        Statement.prepared
           "SELECT id, bill_id, dbt_acc_id, crd_acc_id, amount, date FROM acc_turn ORDER BY date DESC, id DESC"
           E.noParams
           (D.rowList accTurnRowDecoder)
@@ -779,7 +779,7 @@ getAccTurns pool = do
 getEmployees :: Pool -> IO (QueryResult [Employee])
 getEmployees pool = do
   let stmt =
-        unpreparable
+        Statement.prepared
           "SELECT id, COALESCE(code,'')::text, COALESCE(name,'')::text, email::text, status FROM employee ORDER BY id"
           E.noParams
           (D.rowList employeeRowDecoder)
@@ -792,7 +792,7 @@ getEmployees pool = do
 getSalaries :: Pool -> IO (QueryResult [Salary])
 getSalaries pool = do
   let stmt =
-        unpreparable
+        Statement.prepared
           "SELECT id, employee_id, period, base_salary, bonus, penalty, tax, net_salary FROM salary ORDER BY period DESC, id DESC"
           E.noParams
           (D.rowList salaryRowDecoder)
@@ -805,7 +805,7 @@ getSalaries pool = do
 getReports :: Pool -> IO (QueryResult [ReportTemplate])
 getReports pool = do
   let stmt =
-        unpreparable
+        Statement.prepared
           "SELECT id, COALESCE(code,'')::text, COALESCE(name,'')::text, report_type, COALESCE(jasper_file,'')::text, COALESCE(output_format,'PDF')::text FROM report_template ORDER BY id"
           E.noParams
           (D.rowList reportTemplateRowDecoder)
@@ -851,7 +851,7 @@ getBillsPaginated pool filter' pagination mSortBy mSortDir = do
       countParams :: (Maybe Int16, Maybe Int16, Maybe Int64, Maybe Day, Maybe Day)
       countParams = (typeFilter, statusFilter, personFilter, dateFromFilter, dateToFilter)
       listStmt =
-        unpreparable
+        Statement.prepared
           listSql
           ( ((\(_, _, _, _, _, _, _) -> Nothing) >$< E.param (E.nullable E.int2))
               <> ((\(_, b, _, _, _, _, _) -> b) >$< E.param (E.nullable E.int2))
@@ -863,7 +863,7 @@ getBillsPaginated pool filter' pagination mSortBy mSortDir = do
           )
           (D.rowList billRowDecoder)
       countStmt =
-        unpreparable
+        Statement.prepared
           countSql
           ( ((\(a, _, _, _, _) -> a) >$< E.param (E.nullable E.int2))
               <> ((\(_, b, _, _, _) -> b) >$< E.param (E.nullable E.int2))
@@ -890,7 +890,7 @@ getBillsPaginated pool filter' pagination mSortBy mSortDir = do
 getPaymentsByBill :: Pool -> Int64 -> IO (QueryResult [Payment])
 getPaymentsByBill pool billId = do
   let stmt =
-        unpreparable
+        Statement.prepared
           "SELECT id, bill_id, date, amount, payment_method, payment_status FROM payment WHERE bill_id = $1 ORDER BY date DESC, id DESC"
           (E.param (E.nonNullable E.int8))
           (D.rowList paymentRowDecoder)
@@ -903,7 +903,7 @@ getPaymentsByBill pool billId = do
 getLowStockGoods :: Pool -> IO (QueryResult [(Int64, Text, Decimal, Decimal)])
 getLowStockGoods pool = do
   let stmt =
-        unpreparable
+        Statement.prepared
           "SELECT g.id, g.name::text, COALESCE(SUM(s.qtty), 0), COALESCE(g.min_stock, 0) FROM goods g LEFT JOIN stock s ON s.goods_id = g.id GROUP BY g.id, g.name, g.min_stock HAVING COALESCE(SUM(s.qtty), 0) <= COALESCE(g.min_stock, 0) ORDER BY g.id"
           E.noParams
           (D.rowList lowStockDecoder)
@@ -928,7 +928,7 @@ getInventoryDocuments = getBills
 getDashboardStats :: Pool -> IO (QueryResult DashboardStats)
 getDashboardStats pool = do
   let stmt =
-        unpreparable
+        Statement.prepared
           "SELECT COALESCE((SELECT SUM(total)::bigint FROM bill WHERE doc_date = CURRENT_DATE), 0)::bigint, COALESCE((SELECT COUNT(*) FROM order_head WHERE doc_date = CURRENT_DATE), 0)::bigint, COALESCE((SELECT COUNT(*) FROM goods), 0)::bigint, COALESCE((SELECT COUNT(*) FROM persons.person), 0)::bigint"
           E.noParams
           (D.singleRow dashboardStatsRowDecoder)
@@ -941,7 +941,7 @@ getDashboardStats pool = do
 getAccPlanById :: Pool -> Int64 -> IO (QueryResult AccPlan)
 getAccPlanById pool planId = do
   let stmt =
-        unpreparable
+        Statement.prepared
           "SELECT id, code::text, name::text, acc_type FROM acc_plan WHERE id = $1"
           (E.param (E.nonNullable E.int8))
           (D.rowMaybe accPlanRowDecoder)
@@ -955,7 +955,7 @@ getAccPlanById pool planId = do
 getEmployeeById :: Pool -> Int64 -> IO (QueryResult Employee)
 getEmployeeById pool employeeId = do
   let stmt =
-        unpreparable
+        Statement.prepared
           "SELECT id, COALESCE(code,'')::text, COALESCE(name,'')::text, email::text, status FROM employee WHERE id = $1"
           (E.param (E.nonNullable E.int8))
           (D.rowMaybe employeeRowDecoder)
@@ -969,7 +969,7 @@ getEmployeeById pool employeeId = do
 getSalaryByEmployee :: Pool -> Int64 -> IO (QueryResult [Salary])
 getSalaryByEmployee pool employeeId = do
   let stmt =
-        unpreparable
+        Statement.prepared
           "SELECT id, employee_id, period, base_salary, bonus, penalty, tax, net_salary FROM salary WHERE employee_id = $1 ORDER BY period DESC, id DESC"
           (E.param (E.nonNullable E.int8))
           (D.rowList salaryRowDecoder)
@@ -982,7 +982,7 @@ getSalaryByEmployee pool employeeId = do
 getReportById :: Pool -> Int64 -> IO (QueryResult ReportTemplate)
 getReportById pool reportId = do
   let stmt =
-        unpreparable
+        Statement.prepared
           "SELECT id, COALESCE(code,'')::text, COALESCE(name,'')::text, report_type, COALESCE(jasper_file,'')::text, COALESCE(output_format,'PDF')::text FROM report_template WHERE id = $1"
           (E.param (E.nonNullable E.int8))
           (D.rowMaybe reportTemplateRowDecoder)
@@ -996,7 +996,7 @@ getReportById pool reportId = do
 getOrders :: Pool -> IO (QueryResult [Order])
 getOrders pool = do
   let stmt =
-        unpreparable
+        Statement.prepared
           "SELECT id, code::text, name::text, doc_date, person_id, location_id, doc_status, total, discount_amount, tax_amount FROM order_head ORDER BY doc_date DESC, id DESC"
           E.noParams
           (D.rowList orderRowDecoder)
@@ -1017,7 +1017,7 @@ getOrdersPaginated pool orderFilter pagination _ _ = do
           fromIntegral (pgOffset pagination) :: Int64
         )
       listStmt =
-        unpreparable
+        Statement.prepared
           "SELECT id, code::text, name::text, doc_date, person_id, location_id, doc_status, total, discount_amount, tax_amount FROM order_head WHERE ($1 IS NULL OR doc_status = $1) AND ($2 IS NULL OR person_id = $2) AND ($3 IS NULL OR doc_date >= $3) AND ($4 IS NULL OR doc_date <= $4) ORDER BY doc_date DESC, id DESC LIMIT $5 OFFSET $6"
           ( ((\(status, _, _, _, _, _) -> status) >$< E.param (E.nullable E.int2))
               <> ((\(_, personId, _, _, _, _) -> personId) >$< E.param (E.nullable E.int8))
@@ -1028,7 +1028,7 @@ getOrdersPaginated pool orderFilter pagination _ _ = do
           )
           (D.rowList orderRowDecoder)
       countStmt =
-        unpreparable
+        Statement.prepared
           "SELECT COUNT(*) FROM order_head WHERE ($1 IS NULL OR doc_status = $1) AND ($2 IS NULL OR person_id = $2) AND ($3 IS NULL OR doc_date >= $3) AND ($4 IS NULL OR doc_date <= $4)"
           ( ((\(status, _, _, _) -> status) >$< E.param (E.nullable E.int2))
               <> ((\(_, personId, _, _) -> personId) >$< E.param (E.nullable E.int8))
@@ -1055,7 +1055,7 @@ getOrdersPaginated pool orderFilter pagination _ _ = do
 getOrderById :: Pool -> Int64 -> IO (QueryResult Order)
 getOrderById pool orderId = do
   let stmt =
-        unpreparable
+        Statement.prepared
           "SELECT id, code::text, name::text, doc_date, person_id, location_id, doc_status, total, discount_amount, tax_amount FROM order_head WHERE id = $1"
           (E.param (E.nonNullable E.int8))
           (D.rowMaybe orderRowDecoder)
@@ -1069,7 +1069,7 @@ getOrderById pool orderId = do
 getOrderLines :: Pool -> Int64 -> IO (QueryResult [Text])
 getOrderLines pool orderId = do
   let stmt =
-        unpreparable
+        Statement.prepared
           "SELECT id::text FROM order_line WHERE order_id = $1 ORDER BY id"
           (E.param (E.nonNullable E.int8))
           (D.rowList (D.column (D.nonNullable D.text)))
@@ -1082,7 +1082,7 @@ getOrderLines pool orderId = do
 getGoodsPrices :: Pool -> IO (QueryResult [GoodsPrice])
 getGoodsPrices pool = do
   let stmt =
-        unpreparable
+        Statement.prepared
           "SELECT id, goods_id, price_type, price, min_qtty, valid_from, valid_to FROM goods_price ORDER BY id"
           E.noParams
           (D.rowList goodsPriceRowDecoder)
@@ -1095,7 +1095,7 @@ getGoodsPrices pool = do
 getGoodsPriceByGoods :: Pool -> Int64 -> IO (QueryResult [GoodsPrice])
 getGoodsPriceByGoods pool goodsId = do
   let stmt =
-        unpreparable
+        Statement.prepared
           "SELECT id, goods_id, price_type, price, min_qtty, valid_from, valid_to FROM goods_price WHERE goods_id = $1 ORDER BY id"
           (E.param (E.nonNullable E.int8))
           (D.rowList goodsPriceRowDecoder)
@@ -1107,7 +1107,7 @@ getGoodsPriceByGoods pool goodsId = do
 getGoodsPriceById :: Pool -> Int64 -> IO (QueryResult GoodsPrice)
 getGoodsPriceById pool priceId = do
   let stmt =
-        unpreparable
+        Statement.prepared
           "SELECT id, goods_id, price_type, price, min_qtty, valid_from, valid_to FROM goods_price WHERE id = $1"
           (E.param (E.nonNullable E.int8))
           (D.rowMaybe goodsPriceRowDecoder)
@@ -1125,7 +1125,7 @@ getDocumentOpKinds = getDocumentTypes
 getCurrencies :: Pool -> IO (QueryResult [Currency])
 getCurrencies pool = do
   let stmt =
-        unpreparable
+        Statement.prepared
           "SELECT id, code::text, name::text, COALESCE(symbol,'')::text, rate_to_base, is_base FROM currency ORDER BY is_base DESC, code"
           E.noParams
           (D.rowList currencyRowDecoder)
@@ -1137,7 +1137,7 @@ getCurrencies pool = do
 getCurrencyById :: Pool -> Int64 -> IO (QueryResult Currency)
 getCurrencyById pool currencyId = do
   let stmt =
-        unpreparable
+        Statement.prepared
           "SELECT id, code::text, name::text, COALESCE(symbol,'')::text, rate_to_base, is_base FROM currency WHERE id = $1"
           (E.param (E.nonNullable E.int8))
           (D.rowMaybe currencyRowDecoder)
@@ -1151,7 +1151,7 @@ getCurrencyById pool currencyId = do
 getAccTurnById :: Pool -> Int64 -> IO (QueryResult AccTurn)
 getAccTurnById pool turnId = do
   let stmt =
-        unpreparable
+        Statement.prepared
           "SELECT id, bill_id, dbt_acc_id, crd_acc_id, amount, date FROM acc_turn WHERE id = $1"
           (E.param (E.nonNullable E.int8))
           (D.rowMaybe accTurnRowDecoder)

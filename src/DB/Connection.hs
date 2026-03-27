@@ -6,9 +6,11 @@ module DB.Connection
     createPoolWithTimeout,
     closePool,
     initSchema,
+    withPool,
   )
 where
 
+import Control.Exception (bracket)
 import qualified Data.Text as T
 import Data.Time.Clock (secondsToDiffTime)
 import qualified Hasql.Connection.Settings as Settings
@@ -93,3 +95,11 @@ closePool = Pool.release
 -- | Initialize database schema (no-op for now; migrations can be added later)
 initSchema :: Pool.Pool -> IO ()
 initSchema _pool = pure ()
+
+-- | Convenience wrapper to acquire a pool, run an action and
+-- ensure the pool is released afterwards. This helps to stabilize
+-- resource management across the codebase without leaking connections.
+withPool :: (Pool.Pool -> IO a) -> IO a
+withPool action = do
+  cfg <- poolConfigFromEnv
+  bracket (createPool cfg) closePool $ \pool -> action pool
