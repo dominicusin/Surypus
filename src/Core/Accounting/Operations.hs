@@ -1,6 +1,8 @@
 -- | Accounting Operations with Formal Verification
 -- Модуль содержит инварианты и проверенные операции для бухгалтерии
-module Core.Accounting.Operations
+-- LiquidHaskell refinement types for accounting
+{-@ type NonNegAmount = {v:Double | v >= 0} @-}
+{-@ type BalancedTransaction = {v:Transaction | sum [amount | Entry Debit amount _ <- txEntries v] == sum [amount | Entry Credit amount _ <- txEntries v]} @-}
   ( AccOpResult (..),
     validateEntry,
     verifyBalance,
