@@ -1,81 +1,117 @@
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Surypus.WebSocket
-  ( WebSocketMessage (..),
-    WSHandler,
+  ( NotificationType (..),
+    WebSocketMessage (..),
+    WebSocketHub,
+    newWebSocketHub,
     runWebSocketServer,
     broadcastMessage,
-    NotificationType (..),
   )
 where
 
-import Control.Concurrent (Chan, newChan, writeChan)
-import Control.Monad (forever)
+import Control.Concurrent.STM
+import Control.Exception (SomeException, catch)
+import Control.Monad (forM, forever, when)
+import Data.Aeson (ToJSON, Value, encode, toJSON)
+import Data.Maybe (catMaybes)
 import Data.Text (Text)
-import qualified Data.Text as T
-import Data.Text.Lazy (toStrict)
-import Data.Text.Lazy.Encoding (decodeUtf8)
-import Network.Wai (Application, Response)
+import Data.Time.Clock (UTCTime)
+import GHC.Generics (Generic)
+import Network.HTTP.Types (status400)
+import Network.Wai (Application, responseLBS)
 import Network.Wai.Handler.Warp (run)
-import qualified Network.Wai.Handler.Warp as Warp
-import qualified Network.Wai.Handler.WebSockets as WaiWS
+import Network.Wai.Handler.WebSockets (websocketsOr)
 import qualified Network.WebSockets as WS
 
 data NotificationType
-  = NTBillUpdate
-  | NTOrderUpdate
-  | NTStockUpdate
-  | NTPaymentUpdate
-  | NTSystemMessage
-  deriving (Show, Eq)
+  = NTPersonChanged
+  | NTGoodsChanged
+  | NTBillChanged
+  | NTOrderChanged
+  | NTPaymentChanged
+  | NTTaxChanged
+  | NTCurrencyChanged
+  | NTSystem
+  deriving (Show, Eq, Generic)
+
+instance ToJSON NotificationType where
+  toJSON nt = case nt of
+    NTPersonChanged -> toJSON ("person_changed" :: Text)
+    NTGoodsChanged -> toJSON ("goods_changed" :: Text)
+    NTBillChanged -> toJSON ("bill_changed" :: Text)
+    NTOrderChanged -> toJSON ("order_changed" :: Text)
+    NTPaymentChanged -> toJSON ("payment_changed" :: Text)
+    NTTaxChanged -> toJSON ("tax_changed" :: Text)
+    NTCurrencyChanged -> toJSON ("currency_changed" :: Text)
+    NTSystem -> toJSON ("system" :: Text)
 
 data WebSocketMessage = WebSocketMessage
   { wsmType :: NotificationType,
-    wsmPayload :: Text
+    wsmEvent :: Text,
+    wsmPayload :: Value,
+    wsmTimestamp :: UTCTime
+  }
+  deriving (Show, Eq, Generic)
+
+instance ToJSON WebSocketMessage
+
+data WebSocketHub = WebSocketHub
+  { wshNextId :: TVar Int,
+    wshClients :: TVar [(Int, WS.Connection)]
   }
 
-type WSHandler = WS.Connection -> IO ()
+newWebSocketHub :: IO WebSocketHub
+newWebSocketHub = do
+  nextIdVar <- newTVarIO 1
+  clientsVar <- newTVarIO []
+  pure $ WebSocketHub nextIdVar clientsVar
 
-type WSBroadcast = WebSocketMessage -> IO ()
-
-newWebSocketServer :: IO (WSHandler, WSBroadcast)
-newWebSocketServer = do
-  chan <- newChan
-  let sender conn = forever $ do
-        msg <- WS.receiveData conn
-        putStrLn $ "Received: " <> T.unpack (toStrict msg)
-      broadcaster msg = writeChan chan msg
-  return (sender, broadcaster)
-
-runWebSocketServer :: Int -> IO ()
-runWebSocketServer port = do
-  putStrLn $ "WebSocket server starting on port " <> show port
+runWebSocketServer :: Int -> WebSocketHub -> IO ()
+runWebSocketServer port hub = do
+  putStrLn $ "WebSocket server listening on port " <> show port
   run port app
   where
     app :: Application
-    app req respond = do
-      if WaiWS.isWebSocketsReq req
-        then WaiWS.websocketsOr WS.defaultConnectionOptions wsApp (respond emptyResponse)
-        else respond emptyResponse
-    wsApp :: WS.ServerApp
-    wsApp pendingConn = do
-      conn <- WS.acceptRequest pendingConn
-      putStrLn "Client connected"
-      WS.withPingThread conn 30 (return ()) $ forever $ do
-        msg <- WS.receiveData conn
-        putStrLn $ "Received: " <> T.unpack (toStrict (decodeUtf8 msg))
-      putStrLn "Client disconnected"
-    emptyResponse :: Response
-    emptyResponse = respond (WS.rejectRequest "Not a WebSocket request")
+    app =
+      websocketsOr
+        WS.defaultConnectionOptions
+        (webSocketApp hub)
+        (\_ respond -> respond (responseLBS status400 [("Content-Type", "text/plain")] "WebSocket endpoint"))
 
-broadcastMessage :: WSBroadcast -> WebSocketMessage -> IO ()
-broadcastMessage _broadcaster _msg = do
-  putStrLn "Broadcasting message"
+webSocketApp :: WebSocketHub -> WS.ServerApp
+webSocketApp hub pendingConnection = do
+  connection <- WS.acceptRequest pendingConnection
+  clientId <- registerClient hub connection
+  putStrLn $ "WebSocket client connected: " <> show clientId
+  ( forever $ do
+      _ <- WS.receiveDataMessage connection
+      pure ()
+    )
+    `catch` \(_ :: SomeException) -> pure ()
+  unregisterClient hub clientId
+  putStrLn $ "WebSocket client disconnected: " <> show clientId
 
-messageToText :: WebSocketMessage -> Text
-messageToText msg = case wsmType msg of
-  NTBillUpdate -> "bill_update:" <> wsmPayload msg
-  NTOrderUpdate -> "order_update:" <> wsmPayload msg
-  NTStockUpdate -> "stock_update:" <> wsmPayload msg
-  NTPaymentUpdate -> "payment_update:" <> wsmPayload msg
-  NTSystemMessage -> "system:" <> wsmPayload msg
+registerClient :: WebSocketHub -> WS.Connection -> IO Int
+registerClient hub connection = atomically $ do
+  currentId <- readTVar (wshNextId hub)
+  modifyTVar' (wshNextId hub) (+ 1)
+  modifyTVar' (wshClients hub) ((currentId, connection) :)
+  pure currentId
+
+unregisterClient :: WebSocketHub -> Int -> IO ()
+unregisterClient hub clientId =
+  atomically $ modifyTVar' (wshClients hub) (filter (\(cid, _) -> cid /= clientId))
+
+broadcastMessage :: WebSocketHub -> WebSocketMessage -> IO ()
+broadcastMessage hub message = do
+  clients <- readTVarIO (wshClients hub)
+  failedClientIds <-
+    fmap catMaybes . forM clients $ \(clientId, connection) -> do
+      (WS.sendTextData connection (encode message) >> pure Nothing)
+        `catch` \(_ :: SomeException) -> pure (Just clientId)
+  when (not (null failedClientIds)) $
+    atomically $
+      modifyTVar' (wshClients hub) (filter (\(cid, _) -> cid `notElem` failedClientIds))

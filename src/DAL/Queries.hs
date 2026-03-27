@@ -6,18 +6,15 @@ module DAL.Queries where
 import Core.Document.Types (DocumentRegisterType (..))
 import DAL.Types
 import Data.Functor.Contravariant ((>$<))
-import Data.Int (Int64)
-import Data.Maybe (fromJust, isJust)
+import Data.Int (Int16, Int64)
 import Data.Text (Text, splitOn)
 import qualified Data.Text as T
 import Data.Time (Day)
-import qualified Domain.Goods
 import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
 import Hasql.Statement (unpreparable)
-import Surypus.RBAC (EntityType (..), Permission (..), Role (..), UserWithRole (..), defaultRoles, hasPermission)
 import Surypus.Types (Decimal (..))
 
 personRowDecoder :: D.Row Person
@@ -205,6 +202,14 @@ currencyRowDecoder =
     <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
     <*> D.column (D.nonNullable D.bool)
 
+dashboardStatsRowDecoder :: D.Row DashboardStats
+dashboardStatsRowDecoder =
+  DashboardStats
+    <$> (fromIntegral <$> D.column (D.nonNullable D.int8))
+    <*> (fromIntegral <$> D.column (D.nonNullable D.int8))
+    <*> (fromIntegral <$> D.column (D.nonNullable D.int8))
+    <*> (fromIntegral <$> D.column (D.nonNullable D.int8))
+
 getPersons :: Pool -> IO (QueryResult [Person])
 getPersons pool = do
   let stmt =
@@ -302,6 +307,19 @@ getLocations pool = do
   res <- use pool $ Session.statement () stmt
   case res of
     Right rows -> pure $ QuerySuccess rows
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+getLocationById :: Pool -> Int64 -> IO (QueryResult Location)
+getLocationById pool lid = do
+  let stmt =
+        unpreparable
+          "SELECT id, code::text, name::text, location_type FROM location WHERE id = $1"
+          (E.param (E.nonNullable E.int8))
+          (D.rowMaybe locationRowDecoder)
+  res <- use pool $ Session.statement lid stmt
+  case res of
+    Right (Just location) -> pure $ QuerySuccess location
+    Right Nothing -> pure $ QueryError "Not Found"
     Left err -> pure $ QueryError (T.pack $ show err)
 
 getBills :: Pool -> IO (QueryResult [Bill])
@@ -533,17 +551,6 @@ getInventory pool = do
   case res of
     Right rows -> pure $ QuerySuccess rows
     Left err -> pure $ QueryError (T.pack $ show err)
-  where
-    inventoryDecoder :: D.Row (Int64, Text, Text, Text, Double, Double, Double)
-    inventoryDecoder =
-      (,,,,,,)
-        <$> D.column (D.nonNullable D.int8)
-        <*> D.column (D.nonNullable D.text)
-        <*> D.column (D.nonNullable D.text)
-        <*> D.column (D.nonNullable D.text)
-        <*> (realToFrac <$> D.column (D.nonNullable D.numeric))
-        <*> (realToFrac <$> D.column (D.nonNullable D.numeric))
-        <*> (realToFrac <$> D.column (D.nonNullable D.numeric))
 
 -- | Get persons with pagination (simplified implementation)
 getPersonsPaginated :: Pool -> PersonFilter -> Maybe PersonSortBy -> Maybe SortDir -> Pagination -> IO (QueryResult (PaginatedResult Person))
@@ -575,39 +582,137 @@ getGoodsPaginated pool _ pagination _ _ = do
           }
     QueryError err -> pure $ QueryError err
 
--- | Get payments (stub implementation)
-getPayments :: Pool -> IO (QueryResult [Text])
-getPayments _ = pure $ QuerySuccess []
+-- | Get payments
+getPayments :: Pool -> IO (QueryResult [Payment])
+getPayments pool = do
+  let stmt =
+        unpreparable
+          "SELECT id, bill_id, date, amount, payment_method, payment_status FROM payment ORDER BY date DESC, id DESC"
+          E.noParams
+          (D.rowList paymentRowDecoder)
+  res <- use pool $ Session.statement () stmt
+  case res of
+    Right rows -> pure $ QuerySuccess rows
+    Left err -> pure $ QueryError (T.pack $ show err)
 
--- | Get units (stub implementation)
-getUnits :: Pool -> IO (QueryResult [Text])
-getUnits _ = pure $ QuerySuccess []
+getPaymentById :: Pool -> Int64 -> IO (QueryResult Payment)
+getPaymentById pool paymentId = do
+  let stmt =
+        unpreparable
+          "SELECT id, bill_id, date, amount, payment_method, payment_status FROM payment WHERE id = $1"
+          (E.param (E.nonNullable E.int8))
+          (D.rowMaybe paymentRowDecoder)
+  res <- use pool $ Session.statement paymentId stmt
+  case res of
+    Right (Just payment) -> pure $ QuerySuccess payment
+    Right Nothing -> pure $ QueryError "Not Found"
+    Left err -> pure $ QueryError (T.pack $ show err)
 
--- | Get taxes (stub implementation)
-getTaxes :: Pool -> IO (QueryResult [Text])
-getTaxes _ = pure $ QuerySuccess []
+-- | Get units
+getUnits :: Pool -> IO (QueryResult [Unit])
+getUnits pool = do
+  let stmt =
+        unpreparable
+          "SELECT id, code::text, name::text, short_name::text FROM unit ORDER BY id"
+          E.noParams
+          (D.rowList unitRowDecoder)
+  res <- use pool $ Session.statement () stmt
+  case res of
+    Right rows -> pure $ QuerySuccess rows
+    Left err -> pure $ QueryError (T.pack $ show err)
 
--- | Get account plans (stub implementation)
-getAccPlans :: Pool -> IO (QueryResult [Text])
-getAccPlans _ = pure $ QuerySuccess []
+-- | Get taxes
+getTaxes :: Pool -> IO (QueryResult [Tax])
+getTaxes pool = do
+  let stmt =
+        unpreparable
+          "SELECT id, COALESCE(code,'')::text, name::text, rate FROM tax ORDER BY id"
+          E.noParams
+          (D.rowList taxRowDecoder)
+  res <- use pool $ Session.statement () stmt
+  case res of
+    Right rows -> pure $ QuerySuccess rows
+    Left err -> pure $ QueryError (T.pack $ show err)
 
--- | Get account turns (stub implementation)
-getAccTurns :: Pool -> IO (QueryResult [Text])
-getAccTurns _ = pure $ QuerySuccess []
+getTaxById :: Pool -> Int64 -> IO (QueryResult Tax)
+getTaxById pool tid = do
+  let stmt =
+        unpreparable
+          "SELECT id, COALESCE(code,'')::text, name::text, rate FROM tax WHERE id = $1"
+          (E.param (E.nonNullable E.int8))
+          (D.rowMaybe taxRowDecoder)
+  res <- use pool $ Session.statement tid stmt
+  case res of
+    Right (Just taxVal) -> pure $ QuerySuccess taxVal
+    Right Nothing -> pure $ QueryError "Not Found"
+    Left err -> pure $ QueryError (T.pack $ show err)
 
--- | Get employees (stub implementation)
-getEmployees :: Pool -> IO (QueryResult [Text])
-getEmployees _ = pure $ QuerySuccess []
+-- | Get account plans
+getAccPlans :: Pool -> IO (QueryResult [AccPlan])
+getAccPlans pool = do
+  let stmt =
+        unpreparable
+          "SELECT id, code::text, name::text, acc_type FROM acc_plan ORDER BY code"
+          E.noParams
+          (D.rowList accPlanRowDecoder)
+  res <- use pool $ Session.statement () stmt
+  case res of
+    Right rows -> pure $ QuerySuccess rows
+    Left err -> pure $ QueryError (T.pack $ show err)
 
--- | Get salaries (stub implementation)
-getSalaries :: Pool -> IO (QueryResult [Text])
-getSalaries _ = pure $ QuerySuccess []
+-- | Get account turns
+getAccTurns :: Pool -> IO (QueryResult [AccTurn])
+getAccTurns pool = do
+  let stmt =
+        unpreparable
+          "SELECT id, bill_id, dbt_acc_id, crd_acc_id, amount, date FROM acc_turn ORDER BY date DESC, id DESC"
+          E.noParams
+          (D.rowList accTurnRowDecoder)
+  res <- use pool $ Session.statement () stmt
+  case res of
+    Right rows -> pure $ QuerySuccess rows
+    Left err -> pure $ QueryError (T.pack $ show err)
 
--- | Get reports (stub implementation)
-getReports :: Pool -> IO (QueryResult [Text])
-getReports _ = pure $ QuerySuccess []
+-- | Get employees
+getEmployees :: Pool -> IO (QueryResult [Employee])
+getEmployees pool = do
+  let stmt =
+        unpreparable
+          "SELECT id, COALESCE(code,'')::text, COALESCE(name,'')::text, email::text, status FROM employee ORDER BY id"
+          E.noParams
+          (D.rowList employeeRowDecoder)
+  res <- use pool $ Session.statement () stmt
+  case res of
+    Right rows -> pure $ QuerySuccess rows
+    Left err -> pure $ QueryError (T.pack $ show err)
 
--- | Get bills with pagination (stub implementation)
+-- | Get salaries
+getSalaries :: Pool -> IO (QueryResult [Salary])
+getSalaries pool = do
+  let stmt =
+        unpreparable
+          "SELECT id, employee_id, period, base_salary, bonus, penalty, tax, net_salary FROM salary ORDER BY period DESC, id DESC"
+          E.noParams
+          (D.rowList salaryRowDecoder)
+  res <- use pool $ Session.statement () stmt
+  case res of
+    Right rows -> pure $ QuerySuccess rows
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- | Get report templates
+getReports :: Pool -> IO (QueryResult [ReportTemplate])
+getReports pool = do
+  let stmt =
+        unpreparable
+          "SELECT id, COALESCE(code,'')::text, COALESCE(name,'')::text, report_type, COALESCE(jasper_file,'')::text, COALESCE(output_format,'PDF')::text FROM report_template ORDER BY id"
+          E.noParams
+          (D.rowList reportTemplateRowDecoder)
+  res <- use pool $ Session.statement () stmt
+  case res of
+    Right rows -> pure $ QuerySuccess rows
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- | Get bills with pagination
 getBillsPaginated :: Pool -> BillFilter -> Pagination -> Maybe BillSortBy -> Maybe SortDir -> IO (QueryResult (PaginatedResult Bill))
 getBillsPaginated pool _ pagination _ _ = do
   result <- getBills pool
@@ -622,61 +727,240 @@ getBillsPaginated pool _ pagination _ _ = do
           }
     QueryError err -> pure $ QueryError err
 
--- | Get payments by bill (stub implementation)
-getPaymentsByBill :: Pool -> Int64 -> IO (QueryResult [Text])
-getPaymentsByBill _ _ = pure $ QuerySuccess []
+-- | Get payments by bill
+getPaymentsByBill :: Pool -> Int64 -> IO (QueryResult [Payment])
+getPaymentsByBill pool billId = do
+  let stmt =
+        unpreparable
+          "SELECT id, bill_id, date, amount, payment_method, payment_status FROM payment WHERE bill_id = $1 ORDER BY date DESC, id DESC"
+          (E.param (E.nonNullable E.int8))
+          (D.rowList paymentRowDecoder)
+  res <- use pool $ Session.statement billId stmt
+  case res of
+    Right rows -> pure $ QuerySuccess rows
+    Left err -> pure $ QueryError (T.pack $ show err)
 
--- | Get low stock goods (stub implementation)
+-- | Get low stock goods
 getLowStockGoods :: Pool -> IO (QueryResult [(Int64, Text, Decimal, Decimal)])
-getLowStockGoods _ = pure $ QuerySuccess []
+getLowStockGoods pool = do
+  let stmt =
+        unpreparable
+          "SELECT g.id, g.name::text, COALESCE(SUM(s.qtty), 0), COALESCE(g.min_stock, 0) FROM goods g LEFT JOIN stock s ON s.goods_id = g.id GROUP BY g.id, g.name, g.min_stock HAVING COALESCE(SUM(s.qtty), 0) <= COALESCE(g.min_stock, 0) ORDER BY g.id"
+          E.noParams
+          (D.rowList lowStockDecoder)
+  res <- use pool $ Session.statement () stmt
+  case res of
+    Right rows -> pure $ QuerySuccess rows
+    Left err -> pure $ QueryError (T.pack $ show err)
+  where
+    lowStockDecoder :: D.Row (Int64, Text, Decimal, Decimal)
+    lowStockDecoder =
+      (,,,)
+        <$> D.column (D.nonNullable D.int8)
+        <*> D.column (D.nonNullable D.text)
+        <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+        <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
 
--- | Get inventory documents (stub implementation)
-getInventoryDocuments :: Pool -> IO (QueryResult [Text])
-getInventoryDocuments _ = pure $ QuerySuccess []
+-- | Get inventory documents
+getInventoryDocuments :: Pool -> IO (QueryResult [Bill])
+getInventoryDocuments = getBills
 
--- | Get dashboard stats (stub implementation)
-getDashboardStats :: Pool -> IO (QueryResult Text)
-getDashboardStats _ = pure $ QuerySuccess ""
+-- | Get dashboard stats
+getDashboardStats :: Pool -> IO (QueryResult DashboardStats)
+getDashboardStats pool = do
+  let stmt =
+        unpreparable
+          "SELECT COALESCE((SELECT SUM(total)::bigint FROM bill WHERE doc_date = CURRENT_DATE), 0)::bigint, COALESCE((SELECT COUNT(*) FROM order_head WHERE doc_date = CURRENT_DATE), 0)::bigint, COALESCE((SELECT COUNT(*) FROM goods), 0)::bigint, COALESCE((SELECT COUNT(*) FROM persons.person), 0)::bigint"
+          E.noParams
+          (D.singleRow dashboardStatsRowDecoder)
+  res <- use pool $ Session.statement () stmt
+  case res of
+    Right stats -> pure $ QuerySuccess stats
+    Left err -> pure $ QueryError (T.pack $ show err)
 
--- | Get account plan by ID (stub implementation)
-getAccPlanById :: Pool -> Int64 -> IO (QueryResult Text)
-getAccPlanById _ _ = pure $ QuerySuccess ""
+-- | Get account plan by ID
+getAccPlanById :: Pool -> Int64 -> IO (QueryResult AccPlan)
+getAccPlanById pool planId = do
+  let stmt =
+        unpreparable
+          "SELECT id, code::text, name::text, acc_type FROM acc_plan WHERE id = $1"
+          (E.param (E.nonNullable E.int8))
+          (D.rowMaybe accPlanRowDecoder)
+  res <- use pool $ Session.statement planId stmt
+  case res of
+    Right (Just accPlan) -> pure $ QuerySuccess accPlan
+    Right Nothing -> pure $ QueryError "Not Found"
+    Left err -> pure $ QueryError (T.pack $ show err)
 
--- | Get employee by ID (stub implementation)
-getEmployeeById :: Pool -> Int64 -> IO (QueryResult Text)
-getEmployeeById _ _ = pure $ QuerySuccess ""
+-- | Get employee by ID
+getEmployeeById :: Pool -> Int64 -> IO (QueryResult Employee)
+getEmployeeById pool employeeId = do
+  let stmt =
+        unpreparable
+          "SELECT id, COALESCE(code,'')::text, COALESCE(name,'')::text, email::text, status FROM employee WHERE id = $1"
+          (E.param (E.nonNullable E.int8))
+          (D.rowMaybe employeeRowDecoder)
+  res <- use pool $ Session.statement employeeId stmt
+  case res of
+    Right (Just employee) -> pure $ QuerySuccess employee
+    Right Nothing -> pure $ QueryError "Not Found"
+    Left err -> pure $ QueryError (T.pack $ show err)
 
--- | Get salary by employee ID (stub implementation)
-getSalaryByEmployee :: Pool -> Int64 -> IO (QueryResult [Text])
-getSalaryByEmployee _ _ = pure $ QuerySuccess []
+-- | Get salary by employee ID
+getSalaryByEmployee :: Pool -> Int64 -> IO (QueryResult [Salary])
+getSalaryByEmployee pool employeeId = do
+  let stmt =
+        unpreparable
+          "SELECT id, employee_id, period, base_salary, bonus, penalty, tax, net_salary FROM salary WHERE employee_id = $1 ORDER BY period DESC, id DESC"
+          (E.param (E.nonNullable E.int8))
+          (D.rowList salaryRowDecoder)
+  res <- use pool $ Session.statement employeeId stmt
+  case res of
+    Right rows -> pure $ QuerySuccess rows
+    Left err -> pure $ QueryError (T.pack $ show err)
 
--- | Get report by ID (stub implementation)
-getReportById :: Pool -> Int64 -> IO (QueryResult Text)
-getReportById _ _ = pure $ QuerySuccess ""
+-- | Get report template by ID
+getReportById :: Pool -> Int64 -> IO (QueryResult ReportTemplate)
+getReportById pool reportId = do
+  let stmt =
+        unpreparable
+          "SELECT id, COALESCE(code,'')::text, COALESCE(name,'')::text, report_type, COALESCE(jasper_file,'')::text, COALESCE(output_format,'PDF')::text FROM report_template WHERE id = $1"
+          (E.param (E.nonNullable E.int8))
+          (D.rowMaybe reportTemplateRowDecoder)
+  res <- use pool $ Session.statement reportId stmt
+  case res of
+    Right (Just reportTemplate) -> pure $ QuerySuccess reportTemplate
+    Right Nothing -> pure $ QueryError "Not Found"
+    Left err -> pure $ QueryError (T.pack $ show err)
 
--- | Get orders with pagination (stub implementation)
-getOrdersPaginated :: Pool -> OrderFilter -> Pagination -> Maybe OrderSortBy -> Maybe SortDir -> IO (QueryResult (PaginatedResult Text))
-getOrdersPaginated _ _ pagination _ _ = pure $ QuerySuccess (PaginatedResult [] 0 (pgLimit pagination) (pgOffset pagination))
+-- | Get all orders
+getOrders :: Pool -> IO (QueryResult [Order])
+getOrders pool = do
+  let stmt =
+        unpreparable
+          "SELECT id, code::text, name::text, doc_date, person_id, location_id, doc_status, total, discount_amount, tax_amount FROM order_head ORDER BY doc_date DESC, id DESC"
+          E.noParams
+          (D.rowList orderRowDecoder)
+  res <- use pool $ Session.statement () stmt
+  case res of
+    Right rows -> pure $ QuerySuccess rows
+    Left err -> pure $ QueryError (T.pack (show err))
 
--- | Get order by ID (stub implementation)
-getOrderById :: Pool -> Int64 -> IO (QueryResult Text)
-getOrderById _ _ = pure $ QuerySuccess ""
+-- | Get orders with pagination
+getOrdersPaginated :: Pool -> OrderFilter -> Pagination -> Maybe OrderSortBy -> Maybe SortDir -> IO (QueryResult (PaginatedResult Order))
+getOrdersPaginated pool orderFilter pagination _ _ = do
+  let params =
+        ( fmap (fromIntegral :: Int -> Int16) (ofStatus orderFilter),
+          ofPersonId orderFilter,
+          ofDateFrom orderFilter,
+          ofDateTo orderFilter,
+          fromIntegral (pgLimit pagination) :: Int64,
+          fromIntegral (pgOffset pagination) :: Int64
+        )
+      listStmt =
+        unpreparable
+          "SELECT id, code::text, name::text, doc_date, person_id, location_id, doc_status, total, discount_amount, tax_amount FROM order_head WHERE ($1 IS NULL OR doc_status = $1) AND ($2 IS NULL OR person_id = $2) AND ($3 IS NULL OR doc_date >= $3) AND ($4 IS NULL OR doc_date <= $4) ORDER BY doc_date DESC, id DESC LIMIT $5 OFFSET $6"
+          ( ((\(status, _, _, _, _, _) -> status) >$< E.param (E.nullable E.int2))
+              <> ((\(_, personId, _, _, _, _) -> personId) >$< E.param (E.nullable E.int8))
+              <> ((\(_, _, dateFrom, _, _, _) -> dateFrom) >$< E.param (E.nullable E.date))
+              <> ((\(_, _, _, dateTo, _, _) -> dateTo) >$< E.param (E.nullable E.date))
+              <> ((\(_, _, _, _, limit, _) -> limit) >$< E.param (E.nonNullable E.int8))
+              <> ((\(_, _, _, _, _, offset) -> offset) >$< E.param (E.nonNullable E.int8))
+          )
+          (D.rowList orderRowDecoder)
+      countStmt =
+        unpreparable
+          "SELECT COUNT(*) FROM order_head WHERE ($1 IS NULL OR doc_status = $1) AND ($2 IS NULL OR person_id = $2) AND ($3 IS NULL OR doc_date >= $3) AND ($4 IS NULL OR doc_date <= $4)"
+          ( ((\(status, _, _, _) -> status) >$< E.param (E.nullable E.int2))
+              <> ((\(_, personId, _, _) -> personId) >$< E.param (E.nullable E.int8))
+              <> ((\(_, _, dateFrom, _) -> dateFrom) >$< E.param (E.nullable E.date))
+              <> ((\(_, _, _, dateTo) -> dateTo) >$< E.param (E.nullable E.date))
+          )
+          (D.singleRow (D.column (D.nonNullable D.int8)))
+  listRes <- use pool $ Session.statement params listStmt
+  countRes <-
+    use pool $ Session.statement (fmap (fromIntegral :: Int -> Int16) (ofStatus orderFilter), ofPersonId orderFilter, ofDateFrom orderFilter, ofDateTo orderFilter) countStmt
+  case (listRes, countRes) of
+    (Right items, Right totalCount) ->
+      pure . QuerySuccess $
+        PaginatedResult
+          { prItems = items,
+            prTotal = totalCount,
+            prLimit = pgLimit pagination,
+            prOffset = pgOffset pagination
+          }
+    (Left err, _) -> pure $ QueryError (T.pack (show err))
+    (_, Left err) -> pure $ QueryError (T.pack (show err))
 
--- | Get order lines (stub implementation)
+-- | Get order by ID
+getOrderById :: Pool -> Int64 -> IO (QueryResult Order)
+getOrderById pool orderId = do
+  let stmt =
+        unpreparable
+          "SELECT id, code::text, name::text, doc_date, person_id, location_id, doc_status, total, discount_amount, tax_amount FROM order_head WHERE id = $1"
+          (E.param (E.nonNullable E.int8))
+          (D.rowMaybe orderRowDecoder)
+  res <- use pool $ Session.statement orderId stmt
+  case res of
+    Right (Just orderVal) -> pure $ QuerySuccess orderVal
+    Right Nothing -> pure $ QueryError "Not Found"
+    Left err -> pure $ QueryError (T.pack (show err))
+
+-- | Get order lines
 getOrderLines :: Pool -> Int64 -> IO (QueryResult [Text])
-getOrderLines _ _ = pure $ QuerySuccess []
+getOrderLines pool orderId = do
+  let stmt =
+        unpreparable
+          "SELECT id::text FROM order_line WHERE order_id = $1 ORDER BY id"
+          (E.param (E.nonNullable E.int8))
+          (D.rowList (D.column (D.nonNullable D.text)))
+  res <- use pool $ Session.statement orderId stmt
+  case res of
+    Right rows -> pure $ QuerySuccess rows
+    Left err -> pure $ QueryError (T.pack $ show err)
 
--- | Get goods prices (stub implementation)
-getGoodsPrices :: Pool -> IO (QueryResult [Text])
-getGoodsPrices _ = pure $ QuerySuccess []
+-- | Get goods prices
+getGoodsPrices :: Pool -> IO (QueryResult [GoodsPrice])
+getGoodsPrices pool = do
+  let stmt =
+        unpreparable
+          "SELECT id, goods_id, price_type, price, min_qtty, valid_from, valid_to FROM goods_price ORDER BY id"
+          E.noParams
+          (D.rowList goodsPriceRowDecoder)
+  res <- use pool $ Session.statement () stmt
+  case res of
+    Right rows -> pure $ QuerySuccess rows
+    Left err -> pure $ QueryError (T.pack $ show err)
 
--- | Get goods price by goods ID (stub implementation)
-getGoodsPriceByGoods :: Pool -> Int64 -> IO (QueryResult [Text])
-getGoodsPriceByGoods _ _ = pure $ QuerySuccess []
+-- | Get goods price by goods ID
+getGoodsPriceByGoods :: Pool -> Int64 -> IO (QueryResult [GoodsPrice])
+getGoodsPriceByGoods pool goodsId = do
+  let stmt =
+        unpreparable
+          "SELECT id, goods_id, price_type, price, min_qtty, valid_from, valid_to FROM goods_price WHERE goods_id = $1 ORDER BY id"
+          (E.param (E.nonNullable E.int8))
+          (D.rowList goodsPriceRowDecoder)
+  res <- use pool $ Session.statement goodsId stmt
+  case res of
+    Right rows -> pure $ QuerySuccess rows
+    Left err -> pure $ QueryError (T.pack $ show err)
 
--- | Get document operation kinds (stub implementation)
-getDocumentOpKinds :: Pool -> IO (QueryResult [Text])
-getDocumentOpKinds _ = pure $ QuerySuccess []
+getGoodsPriceById :: Pool -> Int64 -> IO (QueryResult GoodsPrice)
+getGoodsPriceById pool priceId = do
+  let stmt =
+        unpreparable
+          "SELECT id, goods_id, price_type, price, min_qtty, valid_from, valid_to FROM goods_price WHERE id = $1"
+          (E.param (E.nonNullable E.int8))
+          (D.rowMaybe goodsPriceRowDecoder)
+  res <- use pool $ Session.statement priceId stmt
+  case res of
+    Right (Just priceVal) -> pure $ QuerySuccess priceVal
+    Right Nothing -> pure $ QueryError "Not Found"
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- | Get document operation kinds
+getDocumentOpKinds :: Pool -> IO (QueryResult [DocumentRegisterType])
+getDocumentOpKinds = getDocumentTypes
 
 -- | Get currencies
 getCurrencies :: Pool -> IO (QueryResult [Currency])
@@ -689,4 +973,17 @@ getCurrencies pool = do
   res <- use pool $ Session.statement () stmt
   case res of
     Right rows -> pure $ QuerySuccess rows
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+getCurrencyById :: Pool -> Int64 -> IO (QueryResult Currency)
+getCurrencyById pool currencyId = do
+  let stmt =
+        unpreparable
+          "SELECT id, code::text, name::text, COALESCE(symbol,'')::text, rate_to_base, is_base FROM currency WHERE id = $1"
+          (E.param (E.nonNullable E.int8))
+          (D.rowMaybe currencyRowDecoder)
+  res <- use pool $ Session.statement currencyId stmt
+  case res of
+    Right (Just currency) -> pure $ QuerySuccess currency
+    Right Nothing -> pure $ QueryError "Not Found"
     Left err -> pure $ QueryError (T.pack $ show err)

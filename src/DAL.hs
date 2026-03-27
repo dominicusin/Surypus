@@ -1,6 +1,33 @@
 -- | Database Access Layer
-module DAL (module DAL.Types, module DAL.Queries, module DAL.Mutations) where
+module DAL
+  ( module DAL.Types,
+    module DAL.Queries,
+    module DAL.Mutations,
+    module DAL.Repository,
+    module DAL.Repository.Person,
+    module DAL.Repository.Goods,
+    module DAL.Repository.Location,
+    module DAL.Repository.Payment,
+    module DAL.Repository.Price,
+    module DAL.Repository.Tax,
+    module DAL.Repository.Currency,
+    module DAL.Repository.Bill,
+    module DAL.Repository.Order,
+    module DAL.Repository.Container,
+  )
+where
 
-import           DAL.Mutations
-import           DAL.Queries
-import           DAL.Types
+import DAL.Mutations
+import DAL.Queries
+import DAL.Repository
+import DAL.Repository.Bill
+import DAL.Repository.Container
+import DAL.Repository.Currency
+import DAL.Repository.Goods
+import DAL.Repository.Location
+import DAL.Repository.Order
+import DAL.Repository.Payment
+import DAL.Repository.Person
+import DAL.Repository.Price
+import DAL.Repository.Tax
+import DAL.Types

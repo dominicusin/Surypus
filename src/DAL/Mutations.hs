@@ -1,585 +1,469 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 -- | Database Mutations (Write operations)
 module DAL.Mutations where
 
 import DAL.Types
-import Data.ByteString (ByteString)
-import Data.Int (Int64)
+import Data.Functor.Contravariant ((>$<))
+import Data.Int (Int16, Int64)
 import Data.Text (Text)
 import qualified Data.Text as T
-import qualified Data.Text.Encoding as T
 import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
 import Hasql.Statement (unpreparable)
-import Surypus.Types (Decimal (..))
+import Surypus.Types (Decimal, fromDecimal)
 
-escapeText :: String -> String
-escapeText = fmap (\c -> if c == '\'' then '\'' else c)
+mutationIdDecoder :: D.Result Int64
+mutationIdDecoder = D.singleRow (D.column (D.nonNullable D.int8))
 
-escapeSql :: String -> String
-escapeSql [] = []
-escapeSql ('\'' : rest) = '\'' : '\'' : escapeSql rest
-escapeSql (c : rest) = c : escapeSql rest
+toInt16 :: Int -> Int16
+toInt16 = fromIntegral
 
-renderMaybeText :: Maybe Text -> String
-renderMaybeText Nothing = "NULL"
-renderMaybeText (Just t) = "'" <> escapeSql (T.unpack t) <> "'"
+toDouble :: Decimal -> Double
+toDouble = fromDecimal
 
-renderMaybeInt64 :: Maybe Int64 -> String
-renderMaybeInt64 Nothing = "NULL"
-renderMaybeInt64 (Just i) = show i
+runMutationReturningId :: Pool -> Text -> E.Params params -> params -> Text -> IO (QueryResult MutationResult)
+runMutationReturningId pool sql encoder payload successMessage = do
+  let stmt = unpreparable sql encoder mutationIdDecoder
+  res <- use pool $ Session.statement payload stmt
+  case res of
+    Right rid -> pure $ QuerySuccess (MutationResult True (Just rid) successMessage)
+    Left err -> pure $ QueryError (T.pack (show err))
 
-renderDecimal :: Decimal -> String
-renderDecimal (Decimal d) = show d
+personInputEncoder :: E.Params PersonInput
+personInputEncoder =
+  (piCode >$< E.param (E.nullable E.text))
+    <> (piName >$< E.param (E.nonNullable E.text))
+    <> (piINN >$< E.param (E.nullable E.text))
+    <> (piKPP >$< E.param (E.nullable E.text))
+    <> (piPersonType >$< E.param (E.nonNullable E.int2))
+    <> (piStatus >$< E.param (E.nonNullable E.int2))
+
+updatePersonEncoder :: E.Params (Int64, PersonInput)
+updatePersonEncoder =
+  (fst >$< E.param (E.nonNullable E.int8))
+    <> ((piCode . snd) >$< E.param (E.nullable E.text))
+    <> ((piName . snd) >$< E.param (E.nonNullable E.text))
+    <> ((piINN . snd) >$< E.param (E.nullable E.text))
+    <> ((piKPP . snd) >$< E.param (E.nullable E.text))
+    <> ((piPersonType . snd) >$< E.param (E.nonNullable E.int2))
+    <> ((piStatus . snd) >$< E.param (E.nonNullable E.int2))
 
 createPerson :: Pool -> PersonInput -> IO (QueryResult MutationResult)
-createPerson pool input = do
-  let codeVal = renderMaybeText (piCode input)
-      nameVal = "'" <> escapeSql (T.unpack (piName input)) <> "'"
-      innVal = renderMaybeText (piINN input)
-      kppVal = renderMaybeText (piKPP input)
-      personTypeVal = show (piPersonType input)
-      statusVal = show (piStatus input)
-
-      sql =
-        T.pack $
-          "INSERT INTO persons.person (code, name, inn, kpp, person_type, status) VALUES ("
-            <> codeVal
-            <> ", "
-            <> nameVal
-            <> ", "
-            <> innVal
-            <> ", "
-            <> kppVal
-            <> ", "
-            <> personTypeVal
-            <> ", "
-            <> statusVal
-            <> ") RETURNING id"
-
-  let stmt = unpreparable sql E.noParams (D.singleRow (D.column (D.nonNullable D.int8)))
-  res <- use pool $ Session.statement () stmt
-  case res of
-    Right pid -> pure $ QuerySuccess (MutationResult True (Just pid) (T.pack "Person created successfully"))
-    Left err -> pure $ QueryError (T.pack $ show err)
+createPerson pool input =
+  runMutationReturningId
+    pool
+    "INSERT INTO persons.person (code, name, inn, kpp, person_type, status) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id"
+    personInputEncoder
+    input
+    "Person created successfully"
 
 updatePerson :: Pool -> Int64 -> PersonInput -> IO (QueryResult MutationResult)
-updatePerson pool pid input = do
-  let codeVal = renderMaybeText (piCode input)
-      nameVal = "'" <> escapeSql (T.unpack (piName input)) <> "'"
-      innVal = renderMaybeText (piINN input)
-      kppVal = renderMaybeText (piKPP input)
-      personTypeVal = show (piPersonType input)
-      statusVal = show (piStatus input)
-
-      sql =
-        T.pack $
-          "UPDATE persons.person SET code = "
-            <> codeVal
-            <> ", name = "
-            <> nameVal
-            <> ", inn = "
-            <> innVal
-            <> ", kpp = "
-            <> kppVal
-            <> ", person_type = "
-            <> personTypeVal
-            <> ", status = "
-            <> statusVal
-            <> " WHERE id = "
-            <> show pid
-            <> " RETURNING id"
-
-  let stmt = unpreparable sql E.noParams (D.singleRow (D.column (D.nonNullable D.int8)))
-  res <- use pool $ Session.statement () stmt
-  case res of
-    Right _ -> pure $ QuerySuccess (MutationResult True (Just pid) (T.pack "Person updated successfully"))
-    Left err -> pure $ QueryError (T.pack $ show err)
+updatePerson pool pid input =
+  runMutationReturningId
+    pool
+    "UPDATE persons.person SET code = $2, name = $3, inn = $4, kpp = $5, person_type = $6, status = $7 WHERE id = $1 RETURNING id"
+    updatePersonEncoder
+    (pid, input)
+    "Person updated successfully"
 
 deletePerson :: Pool -> Int64 -> IO (QueryResult MutationResult)
-deletePerson pool pid = do
-  let sql = T.pack $ "DELETE FROM persons.person WHERE id = " <> show pid <> " RETURNING id"
-  let stmt = unpreparable sql E.noParams (D.singleRow (D.column (D.nonNullable D.int8)))
-  res <- use pool $ Session.statement () stmt
-  case res of
-    Right _ -> pure $ QuerySuccess (MutationResult True (Just pid) (T.pack "Person deleted successfully"))
-    Left err -> pure $ QueryError (T.pack $ show err)
+deletePerson pool pid =
+  runMutationReturningId
+    pool
+    "DELETE FROM persons.person WHERE id = $1 RETURNING id"
+    (E.param (E.nonNullable E.int8))
+    pid
+    "Person deleted successfully"
+
+goodsInputEncoder :: E.Params GoodsInput
+goodsInputEncoder =
+  (giCode >$< E.param (E.nullable E.text))
+    <> (giName >$< E.param (E.nonNullable E.text))
+    <> (giBarcode >$< E.param (E.nullable E.text))
+    <> (giUnitId >$< E.param (E.nonNullable E.int8))
+    <> (giParentId >$< E.param (E.nullable E.int8))
+
+updateGoodsEncoder :: E.Params (Int64, GoodsInput)
+updateGoodsEncoder =
+  (fst >$< E.param (E.nonNullable E.int8))
+    <> ((giCode . snd) >$< E.param (E.nullable E.text))
+    <> ((giName . snd) >$< E.param (E.nonNullable E.text))
+    <> ((giBarcode . snd) >$< E.param (E.nullable E.text))
+    <> ((giUnitId . snd) >$< E.param (E.nonNullable E.int8))
+    <> ((giParentId . snd) >$< E.param (E.nullable E.int8))
 
 createGoods :: Pool -> GoodsInput -> IO (QueryResult MutationResult)
-createGoods pool input = do
-  let codeVal = renderMaybeText (giCode input)
-      nameVal = "'" <> escapeSql (T.unpack (giName input)) <> "'"
-      barcodeVal = renderMaybeText (giBarcode input)
-      unitIdVal = show (giUnitId input)
-      parentIdVal = renderMaybeInt64 (giParentId input)
-
-      sql =
-        T.pack $
-          "INSERT INTO goods (code, name, barcode, unit_id, parent_id) VALUES ("
-            <> codeVal
-            <> ", "
-            <> nameVal
-            <> ", "
-            <> barcodeVal
-            <> ", "
-            <> unitIdVal
-            <> ", "
-            <> parentIdVal
-            <> ") RETURNING id"
-
-  let stmt = unpreparable sql E.noParams (D.singleRow (D.column (D.nonNullable D.int8)))
-  res <- use pool $ Session.statement () stmt
-  case res of
-    Right gid -> pure $ QuerySuccess (MutationResult True (Just gid) (T.pack "Goods created successfully"))
-    Left err -> pure $ QueryError (T.pack $ show err)
+createGoods pool input =
+  runMutationReturningId
+    pool
+    "INSERT INTO goods (code, name, barcode, unit_id, parent_id) VALUES ($1, $2, $3, $4, $5) RETURNING id"
+    goodsInputEncoder
+    input
+    "Goods created successfully"
 
 updateGoods :: Pool -> Int64 -> GoodsInput -> IO (QueryResult MutationResult)
-updateGoods pool gid input = do
-  let codeVal = renderMaybeText (giCode input)
-      nameVal = "'" <> escapeSql (T.unpack (giName input)) <> "'"
-      barcodeVal = renderMaybeText (giBarcode input)
-      unitIdVal = show (giUnitId input)
-      parentIdVal = renderMaybeInt64 (giParentId input)
-
-      sql =
-        T.pack $
-          "UPDATE goods SET code = "
-            <> codeVal
-            <> ", name = "
-            <> nameVal
-            <> ", barcode = "
-            <> barcodeVal
-            <> ", unit_id = "
-            <> unitIdVal
-            <> ", parent_id = "
-            <> parentIdVal
-            <> " WHERE id = "
-            <> show gid
-            <> " RETURNING id"
-
-  let stmt = unpreparable sql E.noParams (D.singleRow (D.column (D.nonNullable D.int8)))
-  res <- use pool $ Session.statement () stmt
-  case res of
-    Right _ -> pure $ QuerySuccess (MutationResult True (Just gid) (T.pack "Goods updated successfully"))
-    Left err -> pure $ QueryError (T.pack $ show err)
+updateGoods pool gid input =
+  runMutationReturningId
+    pool
+    "UPDATE goods SET code = $2, name = $3, barcode = $4, unit_id = $5, parent_id = $6 WHERE id = $1 RETURNING id"
+    updateGoodsEncoder
+    (gid, input)
+    "Goods updated successfully"
 
 deleteGoods :: Pool -> Int64 -> IO (QueryResult MutationResult)
-deleteGoods pool gid = do
-  let sql = T.pack $ "DELETE FROM goods WHERE id = " <> show gid <> " RETURNING id"
-  let stmt = unpreparable sql E.noParams (D.singleRow (D.column (D.nonNullable D.int8)))
-  res <- use pool $ Session.statement () stmt
-  case res of
-    Right _ -> pure $ QuerySuccess (MutationResult True (Just gid) (T.pack "Goods deleted successfully"))
-    Left err -> pure $ QueryError (T.pack $ show err)
+deleteGoods pool gid =
+  runMutationReturningId
+    pool
+    "DELETE FROM goods WHERE id = $1 RETURNING id"
+    (E.param (E.nonNullable E.int8))
+    gid
+    "Goods deleted successfully"
+
+billInputEncoder :: E.Params BillInput
+billInputEncoder =
+  (biCode >$< E.param (E.nullable E.text))
+    <> ((toInt16 . biType) >$< E.param (E.nonNullable E.int2))
+    <> ((toInt16 . biStatus) >$< E.param (E.nonNullable E.int2))
+    <> (biDate >$< E.param (E.nonNullable E.date))
+    <> (biPersonId >$< E.param (E.nullable E.int8))
+    <> (biLocationId >$< E.param (E.nullable E.int8))
+    <> ((toDouble . biTotal) >$< E.param (E.nonNullable E.float8))
+    <> ((toDouble . biDiscount) >$< E.param (E.nonNullable E.float8))
+    <> ((toDouble . biTax) >$< E.param (E.nonNullable E.float8))
 
 createBill :: Pool -> BillInput -> IO (QueryResult MutationResult)
-createBill pool input = do
-  let codeVal = renderMaybeText (biCode input)
-      typeVal = show (biType input)
-      statusVal = show (biStatus input)
-      dateVal = "'" <> show (biDate input) <> "'"
-      personIdVal = renderMaybeInt64 (biPersonId input)
-      locationIdVal = renderMaybeInt64 (biLocationId input)
-      totalVal = renderDecimal (biTotal input)
-      discountVal = renderDecimal (biDiscount input)
-      taxVal = renderDecimal (biTax input)
-
-      sql =
-        T.pack $
-          "INSERT INTO bill (code, bill_type, doc_status, doc_date, person_id, location_id, total, discount_amount, tax_amount) VALUES ("
-            <> codeVal
-            <> ", "
-            <> typeVal
-            <> ", "
-            <> statusVal
-            <> ", "
-            <> dateVal
-            <> ", "
-            <> personIdVal
-            <> ", "
-            <> locationIdVal
-            <> ", "
-            <> totalVal
-            <> ", "
-            <> discountVal
-            <> ", "
-            <> taxVal
-            <> ") RETURNING id"
-
-  let stmt = unpreparable sql E.noParams (D.singleRow (D.column (D.nonNullable D.int8)))
-  res <- use pool $ Session.statement () stmt
-  case res of
-    Right bid -> pure $ QuerySuccess (MutationResult True (Just bid) (T.pack "Bill created successfully"))
-    Left err -> pure $ QueryError (T.pack $ show err)
+createBill pool input =
+  runMutationReturningId
+    pool
+    "INSERT INTO bill (code, bill_type, doc_status, doc_date, person_id, location_id, total, discount_amount, tax_amount) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id"
+    billInputEncoder
+    input
+    "Bill created successfully"
 
 updateBillStatus :: Pool -> Int64 -> Int -> IO (QueryResult MutationResult)
-updateBillStatus pool bid status = do
-  let sql = T.pack $ "UPDATE bill SET doc_status = " <> show status <> " WHERE id = " <> show bid <> " RETURNING id"
-  let stmt = unpreparable sql E.noParams (D.singleRow (D.column (D.nonNullable D.int8)))
-  res <- use pool $ Session.statement () stmt
-  case res of
-    Right _ -> pure $ QuerySuccess (MutationResult True (Just bid) (T.pack "Bill status updated"))
-    Left err -> pure $ QueryError (T.pack $ show err)
+updateBillStatus pool bid status =
+  runMutationReturningId
+    pool
+    "UPDATE bill SET doc_status = $2 WHERE id = $1 RETURNING id"
+    ( (fst >$< E.param (E.nonNullable E.int8))
+        <> (snd >$< E.param (E.nonNullable E.int2))
+    )
+    (bid, toInt16 status)
+    "Bill status updated"
 
 postBill :: Pool -> Int64 -> IO (QueryResult MutationResult)
-postBill pool bid = do
-  let sql = T.pack $ "UPDATE bill SET doc_status = 2 WHERE id = " <> show bid <> " RETURNING id"
-  let stmt = unpreparable sql E.noParams (D.singleRow (D.column (D.nonNullable D.int8)))
-  res <- use pool $ Session.statement () stmt
-  case res of
-    Right _ -> pure $ QuerySuccess (MutationResult True (Just bid) (T.pack "Bill posted successfully"))
-    Left err -> pure $ QueryError (T.pack $ show err)
+postBill pool bid =
+  runMutationReturningId
+    pool
+    "UPDATE bill SET doc_status = 2 WHERE id = $1 RETURNING id"
+    (E.param (E.nonNullable E.int8))
+    bid
+    "Bill posted successfully"
+
+addBillLineEncoder :: E.Params (Int64, BillLineInput)
+addBillLineEncoder =
+  (fst >$< E.param (E.nonNullable E.int8))
+    <> ((bliGoodsId . snd) >$< E.param (E.nonNullable E.int8))
+    <> ((toDouble . bliQtty . snd) >$< E.param (E.nonNullable E.float8))
+    <> ((toDouble . bliPrice . snd) >$< E.param (E.nonNullable E.float8))
+    <> ((toDouble . bliDiscount . snd) >$< E.param (E.nonNullable E.float8))
+    <> ((toDouble . bliAmount . snd) >$< E.param (E.nonNullable E.float8))
 
 addBillLine :: Pool -> Int64 -> BillLineInput -> IO (QueryResult MutationResult)
-addBillLine pool bid input = do
-  let goodsIdVal = show (bliGoodsId input)
-      qttyVal = renderDecimal (bliQtty input)
-      priceVal = renderDecimal (bliPrice input)
-      discountVal = renderDecimal (bliDiscount input)
-      amountVal = renderDecimal (bliAmount input)
-
-      sql =
-        T.pack $
-          "INSERT INTO bill_line (bill_id, goods_id, qtty, price, discount_amount, amount) VALUES ("
-            <> show bid
-            <> ", "
-            <> goodsIdVal
-            <> ", "
-            <> qttyVal
-            <> ", "
-            <> priceVal
-            <> ", "
-            <> discountVal
-            <> ", "
-            <> amountVal
-            <> ") RETURNING id"
-
-  let stmt = unpreparable sql E.noParams (D.singleRow (D.column (D.nonNullable D.int8)))
-  res <- use pool $ Session.statement () stmt
-  case res of
-    Right blid -> pure $ QuerySuccess (MutationResult True (Just blid) (T.pack "Bill line added"))
-    Left err -> pure $ QueryError (T.pack $ show err)
+addBillLine pool bid input =
+  runMutationReturningId
+    pool
+    "INSERT INTO bill_line (bill_id, goods_id, qtty, price, discount_amount, amount) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id"
+    addBillLineEncoder
+    (bid, input)
+    "Bill line added"
 
 deleteBillLine :: Pool -> Int64 -> IO (QueryResult MutationResult)
-deleteBillLine pool blid = do
-  let sql = T.pack $ "DELETE FROM bill_line WHERE id = " <> show blid <> " RETURNING id"
-  let stmt = unpreparable sql E.noParams (D.singleRow (D.column (D.nonNullable D.int8)))
-  res <- use pool $ Session.statement () stmt
-  case res of
-    Right _ -> pure $ QuerySuccess (MutationResult True (Just blid) (T.pack "Bill line deleted"))
-    Left err -> pure $ QueryError (T.pack $ show err)
+deleteBillLine pool blid =
+  runMutationReturningId
+    pool
+    "DELETE FROM bill_line WHERE id = $1 RETURNING id"
+    (E.param (E.nonNullable E.int8))
+    blid
+    "Bill line deleted"
 
 deleteBill :: Pool -> Int64 -> IO (QueryResult MutationResult)
-deleteBill pool bid = do
-  let sql = T.pack $ "DELETE FROM bill WHERE id = " <> show bid <> " RETURNING id"
-  let stmt = unpreparable sql E.noParams (D.singleRow (D.column (D.nonNullable D.int8)))
-  res <- use pool $ Session.statement () stmt
-  case res of
-    Right _ -> pure $ QuerySuccess (MutationResult True (Just bid) (T.pack "Bill deleted"))
-    Left err -> pure $ QueryError (T.pack $ show err)
+deleteBill pool bid =
+  runMutationReturningId
+    pool
+    "DELETE FROM bill WHERE id = $1 RETURNING id"
+    (E.param (E.nonNullable E.int8))
+    bid
+    "Bill deleted"
+
+locationInputEncoder :: E.Params LocationInput
+locationInputEncoder =
+  (liCode >$< E.param (E.nullable E.text))
+    <> (liName >$< E.param (E.nonNullable E.text))
+    <> ((toInt16 . liType) >$< E.param (E.nonNullable E.int2))
+
+updateLocationEncoder :: E.Params (Int64, LocationInput)
+updateLocationEncoder =
+  (fst >$< E.param (E.nonNullable E.int8))
+    <> ((liCode . snd) >$< E.param (E.nullable E.text))
+    <> ((liName . snd) >$< E.param (E.nonNullable E.text))
+    <> ((toInt16 . liType . snd) >$< E.param (E.nonNullable E.int2))
 
 createLocation :: Pool -> LocationInput -> IO (QueryResult MutationResult)
-createLocation pool input = do
-  let codeVal = renderMaybeText (liCode input)
-      nameVal = "'" <> escapeSql (T.unpack (liName input)) <> "'"
-      typeVal = show (liType input)
-
-      sql =
-        T.pack $
-          "INSERT INTO location (code, name, location_type) VALUES ("
-            <> codeVal
-            <> ", "
-            <> nameVal
-            <> ", "
-            <> typeVal
-            <> ") RETURNING id"
-
-  let stmt = unpreparable sql E.noParams (D.singleRow (D.column (D.nonNullable D.int8)))
-  res <- use pool $ Session.statement () stmt
-  case res of
-    Right lid -> pure $ QuerySuccess (MutationResult True (Just lid) (T.pack "Location created successfully"))
-    Left err -> pure $ QueryError (T.pack $ show err)
+createLocation pool input =
+  runMutationReturningId
+    pool
+    "INSERT INTO location (code, name, location_type) VALUES ($1, $2, $3) RETURNING id"
+    locationInputEncoder
+    input
+    "Location created successfully"
 
 updateLocation :: Pool -> Int64 -> LocationInput -> IO (QueryResult MutationResult)
-updateLocation pool lid input = do
-  let codeVal = renderMaybeText (liCode input)
-      nameVal = "'" <> escapeSql (T.unpack (liName input)) <> "'"
-      typeVal = show (liType input)
-
-      sql =
-        T.pack $
-          "UPDATE location SET code = "
-            <> codeVal
-            <> ", name = "
-            <> nameVal
-            <> ", location_type = "
-            <> typeVal
-            <> " WHERE id = "
-            <> show lid
-            <> " RETURNING id"
-
-  let stmt = unpreparable sql E.noParams (D.singleRow (D.column (D.nonNullable D.int8)))
-  res <- use pool $ Session.statement () stmt
-  case res of
-    Right _ -> pure $ QuerySuccess (MutationResult True (Just lid) (T.pack "Location updated successfully"))
-    Left err -> pure $ QueryError (T.pack $ show err)
+updateLocation pool lid input =
+  runMutationReturningId
+    pool
+    "UPDATE location SET code = $2, name = $3, location_type = $4 WHERE id = $1 RETURNING id"
+    updateLocationEncoder
+    (lid, input)
+    "Location updated successfully"
 
 deleteLocation :: Pool -> Int64 -> IO (QueryResult MutationResult)
-deleteLocation pool lid = do
-  let sql = T.pack $ "DELETE FROM location WHERE id = " <> show lid <> " RETURNING id"
-  let stmt = unpreparable sql E.noParams (D.singleRow (D.column (D.nonNullable D.int8)))
-  res <- use pool $ Session.statement () stmt
-  case res of
-    Right _ -> pure $ QuerySuccess (MutationResult True (Just lid) (T.pack "Location deleted successfully"))
-    Left err -> pure $ QueryError (T.pack $ show err)
+deleteLocation pool lid =
+  runMutationReturningId
+    pool
+    "DELETE FROM location WHERE id = $1 RETURNING id"
+    (E.param (E.nonNullable E.int8))
+    lid
+    "Location deleted successfully"
+
+stockQtyEncoder :: E.Params (Decimal, Int64, Int64)
+stockQtyEncoder =
+  ((toDouble . (\(qty, _, _) -> qty)) >$< E.param (E.nonNullable E.float8))
+    <> ((\(_, goodsId, _) -> goodsId) >$< E.param (E.nonNullable E.int8))
+    <> ((\(_, _, locationId) -> locationId) >$< E.param (E.nonNullable E.int8))
 
 updateStock :: Pool -> Int64 -> Int64 -> Decimal -> IO (QueryResult MutationResult)
-updateStock pool goodsId locationId qty = do
-  let sql =
-        T.pack $
-          "UPDATE stock SET qtty = "
-            <> renderDecimal qty
-            <> " WHERE goods_id = "
-            <> show goodsId
-            <> " AND location_id = "
-            <> show locationId
-            <> " RETURNING id"
-  let stmt = unpreparable sql E.noParams (D.singleRow (D.column (D.nonNullable D.int8)))
-  res <- use pool $ Session.statement () stmt
-  case res of
-    Right sid -> pure $ QuerySuccess (MutationResult True (Just sid) (T.pack "Stock updated"))
-    Left err -> pure $ QueryError (T.pack $ show err)
+updateStock pool goodsId locationId qty =
+  runMutationReturningId
+    pool
+    "UPDATE stock SET qtty = $1 WHERE goods_id = $2 AND location_id = $3 RETURNING id"
+    stockQtyEncoder
+    (qty, goodsId, locationId)
+    "Stock updated"
 
 reserveStock :: Pool -> Int64 -> Int64 -> Decimal -> IO (QueryResult MutationResult)
-reserveStock pool goodsId locationId qty = do
-  let sql =
-        T.pack $
-          "UPDATE stock SET resrv_qtty = resrv_qtty + "
-            <> renderDecimal qty
-            <> " WHERE goods_id = "
-            <> show goodsId
-            <> " AND location_id = "
-            <> show locationId
-            <> " RETURNING id"
-  let stmt = unpreparable sql E.noParams (D.singleRow (D.column (D.nonNullable D.int8)))
-  res <- use pool $ Session.statement () stmt
-  case res of
-    Right sid -> pure $ QuerySuccess (MutationResult True (Just sid) (T.pack "Stock reserved"))
-    Left err -> pure $ QueryError (T.pack $ show err)
+reserveStock pool goodsId locationId qty =
+  runMutationReturningId
+    pool
+    "UPDATE stock SET resrv_qtty = resrv_qtty + $1 WHERE goods_id = $2 AND location_id = $3 RETURNING id"
+    stockQtyEncoder
+    (qty, goodsId, locationId)
+    "Stock reserved"
 
 releaseStock :: Pool -> Int64 -> Int64 -> Decimal -> IO (QueryResult MutationResult)
-releaseStock pool goodsId locationId qty = do
-  let sql =
-        T.pack $
-          "UPDATE stock SET resrv_qtty = resrv_qtty - "
-            <> renderDecimal qty
-            <> " WHERE goods_id = "
-            <> show goodsId
-            <> " AND location_id = "
-            <> show locationId
-            <> " AND resrv_qtty >= "
-            <> renderDecimal qty
-            <> " RETURNING id"
-  let stmt = unpreparable sql E.noParams (D.singleRow (D.column (D.nonNullable D.int8)))
-  res <- use pool $ Session.statement () stmt
-  case res of
-    Right sid -> pure $ QuerySuccess (MutationResult True (Just sid) (T.pack "Stock released"))
-    Left err -> pure $ QueryError (T.pack $ show err)
+releaseStock pool goodsId locationId qty =
+  runMutationReturningId
+    pool
+    "UPDATE stock SET resrv_qtty = resrv_qtty - $1 WHERE goods_id = $2 AND location_id = $3 AND resrv_qtty >= $1 RETURNING id"
+    stockQtyEncoder
+    (qty, goodsId, locationId)
+    "Stock released"
+
+orderInputEncoder :: E.Params OrderInput
+orderInputEncoder =
+  (oiCode >$< E.param (E.nullable E.text))
+    <> (oiName >$< E.param (E.nullable E.text))
+    <> (oiDate >$< E.param (E.nonNullable E.date))
+    <> (oiPersonId >$< E.param (E.nullable E.int8))
+    <> (oiLocationId >$< E.param (E.nullable E.int8))
+    <> ((toInt16 . oiStatus) >$< E.param (E.nonNullable E.int2))
+    <> ((toDouble . oiTotal) >$< E.param (E.nonNullable E.float8))
+    <> ((toDouble . oiDiscount) >$< E.param (E.nonNullable E.float8))
+    <> ((toDouble . oiTax) >$< E.param (E.nonNullable E.float8))
 
 createOrder :: Pool -> OrderInput -> IO (QueryResult MutationResult)
-createOrder pool input = do
-  let codeVal = renderMaybeText (oiCode input)
-      nameVal = renderMaybeText (oiName input)
-      dateVal = "'" <> show (oiDate input) <> "'"
-      personIdVal = renderMaybeInt64 (oiPersonId input)
-      locationIdVal = renderMaybeInt64 (oiLocationId input)
-      statusVal = show (oiStatus input)
-      totalVal = renderDecimal (oiTotal input)
-      discountVal = renderDecimal (oiDiscount input)
-      taxVal = renderDecimal (oiTax input)
-
-      sql =
-        T.pack $
-          "INSERT INTO order_head (code, name, doc_date, person_id, location_id, doc_status, total, discount_amount, tax_amount) VALUES ("
-            <> codeVal
-            <> ", "
-            <> nameVal
-            <> ", "
-            <> dateVal
-            <> ", "
-            <> personIdVal
-            <> ", "
-            <> locationIdVal
-            <> ", "
-            <> statusVal
-            <> ", "
-            <> totalVal
-            <> ", "
-            <> discountVal
-            <> ", "
-            <> taxVal
-            <> ") RETURNING id"
-
-  let stmt = unpreparable sql E.noParams (D.singleRow (D.column (D.nonNullable D.int8)))
-  res <- use pool $ Session.statement () stmt
-  case res of
-    Right oid -> pure $ QuerySuccess (MutationResult True (Just oid) (T.pack "Order created successfully"))
-    Left err -> pure $ QueryError (T.pack $ show err)
+createOrder pool input =
+  runMutationReturningId
+    pool
+    "INSERT INTO order_head (code, name, doc_date, person_id, location_id, doc_status, total, discount_amount, tax_amount) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id"
+    orderInputEncoder
+    input
+    "Order created successfully"
 
 updateOrderStatus :: Pool -> Int64 -> Int -> IO (QueryResult MutationResult)
-updateOrderStatus pool oid status = do
-  let sql = T.pack $ "UPDATE order_head SET doc_status = " <> show status <> " WHERE id = " <> show oid <> " RETURNING id"
-  let stmt = unpreparable sql E.noParams (D.singleRow (D.column (D.nonNullable D.int8)))
-  res <- use pool $ Session.statement () stmt
-  case res of
-    Right _ -> pure $ QuerySuccess (MutationResult True (Just oid) (T.pack "Order status updated"))
-    Left err -> pure $ QueryError (T.pack $ show err)
+updateOrderStatus pool oid status =
+  runMutationReturningId
+    pool
+    "UPDATE order_head SET doc_status = $2 WHERE id = $1 RETURNING id"
+    ( (fst >$< E.param (E.nonNullable E.int8))
+        <> (snd >$< E.param (E.nonNullable E.int2))
+    )
+    (oid, toInt16 status)
+    "Order status updated"
 
 deleteOrder :: Pool -> Int64 -> IO (QueryResult MutationResult)
-deleteOrder pool oid = do
-  let sql = T.pack $ "DELETE FROM order_head WHERE id = " <> show oid <> " RETURNING id"
-  let stmt = unpreparable sql E.noParams (D.singleRow (D.column (D.nonNullable D.int8)))
-  res <- use pool $ Session.statement () stmt
-  case res of
-    Right _ -> pure $ QuerySuccess (MutationResult True (Just oid) (T.pack "Order deleted"))
-    Left err -> pure $ QueryError (T.pack $ show err)
+deleteOrder pool oid =
+  runMutationReturningId
+    pool
+    "DELETE FROM order_head WHERE id = $1 RETURNING id"
+    (E.param (E.nonNullable E.int8))
+    oid
+    "Order deleted"
+
+paymentInputEncoder :: E.Params PaymentInput
+paymentInputEncoder =
+  (piBillId >$< E.param (E.nonNullable E.int8))
+    <> (piPayDate >$< E.param (E.nonNullable E.date))
+    <> (piAmount >$< E.param (E.nonNullable E.float8))
+    <> ((toInt16 . piPayMethod) >$< E.param (E.nonNullable E.int2))
+    <> ((toInt16 . piPayStatus) >$< E.param (E.nonNullable E.int2))
+
+updatePaymentEncoder :: E.Params (Int64, PaymentInput)
+updatePaymentEncoder =
+  (fst >$< E.param (E.nonNullable E.int8))
+    <> ((piBillId . snd) >$< E.param (E.nonNullable E.int8))
+    <> ((piPayDate . snd) >$< E.param (E.nonNullable E.date))
+    <> ((piAmount . snd) >$< E.param (E.nonNullable E.float8))
+    <> ((toInt16 . piPayMethod . snd) >$< E.param (E.nonNullable E.int2))
+    <> ((toInt16 . piPayStatus . snd) >$< E.param (E.nonNullable E.int2))
 
 createPayment :: Pool -> PaymentInput -> IO (QueryResult MutationResult)
-createPayment pool input = do
-  let billIdVal = show (piBillId input)
-      payDateVal = "'" <> show (piPayDate input) <> "'"
-      amountVal = show (piAmount input)
-      payMethodVal = show (piPayMethod input)
-      payStatusVal = show (piPayStatus input)
-      sql =
-        T.pack $
-          "INSERT INTO payment (bill_id, pay_date, amount, pay_method, pay_status) VALUES ("
-            <> billIdVal
-            <> ", "
-            <> payDateVal
-            <> ", "
-            <> amountVal
-            <> ", "
-            <> payMethodVal
-            <> ", "
-            <> payStatusVal
-            <> ") RETURNING id"
-  let stmt = unpreparable sql E.noParams (D.singleRow (D.column (D.nonNullable D.int8)))
-  res <- use pool $ Session.statement () stmt
-  case res of
-    Right pid -> pure $ QuerySuccess (MutationResult True (Just pid) (T.pack "Payment created successfully"))
-    Left err -> pure $ QueryError (T.pack $ show err)
+createPayment pool input =
+  runMutationReturningId
+    pool
+    "INSERT INTO payment (bill_id, date, amount, payment_method, payment_status) VALUES ($1, $2, $3, $4, $5) RETURNING id"
+    paymentInputEncoder
+    input
+    "Payment created successfully"
+
+updatePayment :: Pool -> Int64 -> PaymentInput -> IO (QueryResult MutationResult)
+updatePayment pool paymentId input =
+  runMutationReturningId
+    pool
+    "UPDATE payment SET bill_id = $2, date = $3, amount = $4, payment_method = $5, payment_status = $6 WHERE id = $1 RETURNING id"
+    updatePaymentEncoder
+    (paymentId, input)
+    "Payment updated successfully"
+
+deletePayment :: Pool -> Int64 -> IO (QueryResult MutationResult)
+deletePayment pool paymentId =
+  runMutationReturningId
+    pool
+    "DELETE FROM payment WHERE id = $1 RETURNING id"
+    (E.param (E.nonNullable E.int8))
+    paymentId
+    "Payment deleted"
 
 createUser :: Pool -> User -> IO (QueryResult MutationResult)
-createUser _ _ = pure $ QuerySuccess (MutationResult True (Just 0) (T.pack "User stub - not implemented"))
+createUser _ _ = pure $ QuerySuccess (MutationResult True (Just 0) "User stub - not implemented")
 
 updateUser :: Pool -> User -> IO (QueryResult MutationResult)
-updateUser _ _ = pure $ QuerySuccess (MutationResult True Nothing (T.pack "User stub - not implemented"))
+updateUser _ _ = pure $ QuerySuccess (MutationResult True Nothing "User stub - not implemented")
 
 authenticateUser :: Pool -> Text -> Text -> IO (QueryResult (Maybe User))
 authenticateUser _ _ _ = pure $ QuerySuccess Nothing
 
--- Price mutations
+priceInputEncoder :: E.Params PriceInput
+priceInputEncoder =
+  (priGoodsId >$< E.param (E.nonNullable E.int8))
+    <> ((toInt16 . priPriceType) >$< E.param (E.nonNullable E.int2))
+    <> ((toDouble . priPrice) >$< E.param (E.nonNullable E.float8))
+    <> (priCurrencyId >$< E.param (E.nonNullable E.int8))
+    <> (priFromDate >$< E.param (E.nonNullable E.date))
+    <> (priToDate >$< E.param (E.nullable E.date))
+
 createPrice :: Pool -> PriceInput -> IO (QueryResult MutationResult)
-createPrice pool input = do
-  let goodsIdVal = show (priGoodsId input)
-      priceTypeVal = show (priPriceType input)
-      priceVal = renderDecimal (priPrice input)
-      currencyIdVal = show (priCurrencyId input)
-      fromDateVal = "'" <> show (priFromDate input) <> "'"
-      toDateVal = case priToDate input of
-        Just d -> "'" <> show d <> "'"
-        Nothing -> "NULL"
+createPrice pool input =
+  runMutationReturningId
+    pool
+    "INSERT INTO goods_price (goods_id, price_type, price, currency_id, valid_from, valid_to) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id"
+    priceInputEncoder
+    input
+    "Price created"
 
-      sql =
-        T.pack $
-          "INSERT INTO goods_price (goods_id, price_type, price, currency_id, from_date, to_date) VALUES ("
-            <> goodsIdVal
-            <> ", "
-            <> priceTypeVal
-            <> ", "
-            <> priceVal
-            <> ", "
-            <> currencyIdVal
-            <> ", "
-            <> fromDateVal
-            <> ", "
-            <> toDateVal
-            <> ") RETURNING id"
+taxInputEncoder :: E.Params TaxInput
+taxInputEncoder =
+  (tiName >$< E.param (E.nonNullable E.text))
+    <> (tiRate >$< E.param (E.nonNullable E.float8))
+    <> ((toInt16 . tiTaxType) >$< E.param (E.nonNullable E.int2))
+    <> (tiIncluded >$< E.param (E.nonNullable E.bool))
 
-  let stmt = unpreparable sql E.noParams (D.singleRow (D.column (D.nonNullable D.int8)))
-  res <- use pool $ Session.statement () stmt
-  case res of
-    Right pid -> pure $ QuerySuccess (MutationResult True (Just pid) (T.pack "Price created"))
-    Left err -> pure $ QueryError (T.pack $ show err)
+updateTaxEncoder :: E.Params (Int64, TaxInput)
+updateTaxEncoder =
+  (fst >$< E.param (E.nonNullable E.int8))
+    <> ((tiName . snd) >$< E.param (E.nonNullable E.text))
+    <> ((tiRate . snd) >$< E.param (E.nonNullable E.float8))
+    <> ((toInt16 . tiTaxType . snd) >$< E.param (E.nonNullable E.int2))
+    <> ((tiIncluded . snd) >$< E.param (E.nonNullable E.bool))
 
--- Tax mutations
 createTax :: Pool -> TaxInput -> IO (QueryResult MutationResult)
-createTax pool input = do
-  let nameVal = "'" <> escapeSql (T.unpack (tiName input)) <> "'"
-      rateVal = show (tiRate input)
-      taxTypeVal = show (tiTaxType input)
-      includedVal = if tiIncluded input then "TRUE" else "FALSE"
+createTax pool input =
+  runMutationReturningId
+    pool
+    "INSERT INTO tax (name, obj_type, rate, tax_type, is_included) VALUES ($1, 'tax', $2, $3, $4) RETURNING id"
+    taxInputEncoder
+    input
+    "Tax created"
 
-      sql =
-        T.pack $
-          "INSERT INTO tax (name, rate, tax_type, is_included) VALUES ("
-            <> nameVal
-            <> ", "
-            <> rateVal
-            <> ", "
-            <> taxTypeVal
-            <> ", "
-            <> includedVal
-            <> ") RETURNING id"
+updateTax :: Pool -> Int64 -> TaxInput -> IO (QueryResult MutationResult)
+updateTax pool tid input =
+  runMutationReturningId
+    pool
+    "UPDATE tax SET name = $2, rate = $3, tax_type = $4, is_included = $5 WHERE id = $1 RETURNING id"
+    updateTaxEncoder
+    (tid, input)
+    "Tax updated"
 
-  let stmt = unpreparable sql E.noParams (D.singleRow (D.column (D.nonNullable D.int8)))
-  res <- use pool $ Session.statement () stmt
-  case res of
-    Right tid -> pure $ QuerySuccess (MutationResult True (Just tid) (T.pack "Tax created"))
-    Left err -> pure $ QueryError (T.pack $ show err)
+currencyInputEncoder :: E.Params CurrencyInput
+currencyInputEncoder =
+  (ciCode >$< E.param (E.nonNullable E.text))
+    <> (ciName >$< E.param (E.nonNullable E.text))
+    <> (ciSymbol >$< E.param (E.nonNullable E.text))
+    <> (ciRate >$< E.param (E.nonNullable E.float8))
 
--- Currency mutations
+updateCurrencyEncoder :: E.Params (Int64, CurrencyInput)
+updateCurrencyEncoder =
+  (fst >$< E.param (E.nonNullable E.int8))
+    <> ((ciCode . snd) >$< E.param (E.nonNullable E.text))
+    <> ((ciName . snd) >$< E.param (E.nonNullable E.text))
+    <> ((ciSymbol . snd) >$< E.param (E.nonNullable E.text))
+    <> ((ciRate . snd) >$< E.param (E.nonNullable E.float8))
+
 createCurrency :: Pool -> CurrencyInput -> IO (QueryResult MutationResult)
-createCurrency pool input = do
-  let codeVal = "'" <> escapeSql (T.unpack (ciCode input)) <> "'"
-      nameVal = "'" <> escapeSql (T.unpack (ciName input)) <> "'"
-      symbolVal = "'" <> escapeSql (T.unpack (ciSymbol input)) <> "'"
-      rateVal = show (ciRate input)
+createCurrency pool input =
+  runMutationReturningId
+    pool
+    "INSERT INTO currency (code, name, obj_type, symbol, rate_to_base) VALUES ($1, $2, 'currency', $3, $4) RETURNING id"
+    currencyInputEncoder
+    input
+    "Currency created"
 
-      sql =
-        T.pack $
-          "INSERT INTO currency (code, name, symbol, rate) VALUES ("
-            <> codeVal
-            <> ", "
-            <> nameVal
-            <> ", "
-            <> symbolVal
-            <> ", "
-            <> rateVal
-            <> ") RETURNING id"
-
-  let stmt = unpreparable sql E.noParams (D.singleRow (D.column (D.nonNullable D.int8)))
-  res <- use pool $ Session.statement () stmt
-  case res of
-    Right cid -> pure $ QuerySuccess (MutationResult True (Just cid) (T.pack "Currency created"))
-    Left err -> pure $ QueryError (T.pack $ show err)
+updateCurrency :: Pool -> Int64 -> CurrencyInput -> IO (QueryResult MutationResult)
+updateCurrency pool currencyId input =
+  runMutationReturningId
+    pool
+    "UPDATE currency SET code = $2, name = $3, symbol = $4, rate_to_base = $5 WHERE id = $1 RETURNING id"
+    updateCurrencyEncoder
+    (currencyId, input)
+    "Currency updated"
 
 deleteTax :: Pool -> Int64 -> IO (QueryResult MutationResult)
-deleteTax pool tid = do
-  let sql = T.pack $ "DELETE FROM tax WHERE id = " <> show tid <> " RETURNING id"
-  let stmt = unpreparable sql E.noParams (D.singleRow (D.column (D.nonNullable D.int8)))
-  res <- use pool $ Session.statement () stmt
-  case res of
-    Right _ -> pure $ QuerySuccess (MutationResult True Nothing (T.pack "Tax deleted"))
-    Left err -> pure $ QueryError (T.pack $ show err)
+deleteTax pool tid =
+  runMutationReturningId
+    pool
+    "DELETE FROM tax WHERE id = $1 RETURNING id"
+    (E.param (E.nonNullable E.int8))
+    tid
+    "Tax deleted"
 
 deleteCurrency :: Pool -> Int64 -> IO (QueryResult MutationResult)
-deleteCurrency pool cid = do
-  let sql = T.pack $ "DELETE FROM currency WHERE id = " <> show cid <> " RETURNING id"
-  let stmt = unpreparable sql E.noParams (D.singleRow (D.column (D.nonNullable D.int8)))
-  res <- use pool $ Session.statement () stmt
-  case res of
-    Right _ -> pure $ QuerySuccess (MutationResult True Nothing (T.pack "Currency deleted"))
-    Left err -> pure $ QueryError (T.pack $ show err)
+deleteCurrency pool cid =
+  runMutationReturningId
+    pool
+    "DELETE FROM currency WHERE id = $1 RETURNING id"
+    (E.param (E.nonNullable E.int8))
+    cid
+    "Currency deleted"

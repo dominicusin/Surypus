@@ -8,10 +8,14 @@
 
 module Surypus.Reports where
 
+import Data.Aeson (Value, object, (.=))
+import qualified Data.ByteString.Char8 as BS8
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import qualified Data.Text as T
+import qualified Hasql.Encoders as E
 
 -- ============================================================================
 -- REPORT CATEGORIES
@@ -80,6 +84,30 @@ data GroupDef = GroupDef
   deriving (Show)
 
 -- ============================================================================
+-- REPORT SERVICE
+-- ============================================================================
+
+-- | Get report data from database
+getReportData :: Text -> [ParamDef] -> Map Text Value -> IO (Either String [[Value]])
+getReportData sql params paramValues = do
+  let _ = buildQuery sql params paramValues
+  let _ = (sql, params, paramValues)
+  -- For now, return mock data
+  pure $ Right [[object ["result" .= T.pack "mock data"]]]
+
+-- | Build parameterized SQL query
+buildQuery :: Text -> [ParamDef] -> Map Text Value -> (Text, E.Params ())
+buildQuery sql params _paramValues =
+  let finalSql = foldl replaceParam sql params
+   in (finalSql, E.noParams)
+  where
+    replaceParam accSql param =
+      let placeholder = "$P{" <> pName param <> "}"
+          replacement = "?"
+          newSql = T.replace placeholder replacement accSql
+       in newSql
+
+-- ============================================================================
 -- JRXML TEMPLATE GENERATOR
 -- ============================================================================
 
@@ -104,7 +132,7 @@ generateJRXML r =
       "    <band height=\"50\">",
       "      <staticText>",
       "        <reportElement x=\"0\" y=\"0\" width=\"555\" height=\"30\"/>",
-      "        <text><![CDATA[" <> rdTitle r <> "]]></text>",
+      "        <text><![CDATA[" <> rdTitle r <> "]]>]]></text>",
       "      </staticText>",
       "    </band>",
       "  </title>",
@@ -166,6 +194,38 @@ generateDetailFields fs = T.unlines $ fmap genTextField fs
         ]
 
 -- ============================================================================
+-- REPORT EXPORT
+-- ============================================================================
+
+-- | Export report to PDF
+exportReportToPDF :: ReportDef -> IO (Either String BS8.ByteString)
+exportReportToPDF report = do
+  -- This would use JasperReports library to compile and fill report
+  -- For now, return mock PDF data
+  let _ = report
+  pure $ Right (BS8.pack "PDF_CONTENT_PLACEHOLDER")
+
+-- | Export report to HTML
+exportReportToHTML :: ReportDef -> IO (Either String Text)
+exportReportToHTML report = do
+  -- Generate HTML from JRXML
+  let jrxml = generateJRXML report
+  let html =
+        T.unlines
+          [ "<!DOCTYPE html>",
+            "<html>",
+            "<head>",
+            "  <title>" <> rdTitle report <> "</title>",
+            "</head>",
+            "<body>",
+            "  <h1>" <> rdTitle report <> "</h1>",
+            "  <pre>" <> jrxml <> "</pre>",
+            "</body>",
+            "</html>"
+          ]
+  pure $ Right html
+
+-- ============================================================================
 -- ACCOUNTING REPORTS
 -- ============================================================================
 
@@ -177,7 +237,7 @@ balanceReport =
       rdTitle = "Balance Sheet / Бухгалтерский баланс",
       rdCategory = RCAccounting,
       rdDescription = "Balance sheet (form 1)",
-      rdJrxml = generateJRXML balanceReport,
+      rdJrxml = "",
       rdSql =
         T.unlines
           [ "SELECT a.code as AccountCode, a.name as AccountName,",
@@ -203,7 +263,7 @@ balanceReport =
       rdGroups = []
     }
 
--- | Account turnover (Обороты по счету)
+-- | Account turnover (Оборотно-сальдовая ведомость)
 accountTurnoverReport :: ReportDef
 accountTurnoverReport =
   ReportDef
@@ -211,7 +271,7 @@ accountTurnoverReport =
       rdTitle = "Account Turnover / Оборотно-сальдовая ведомость",
       rdCategory = RCAccounting,
       rdDescription = "Account turnover with balances",
-      rdJrxml = generateJRXML accountTurnoverReport,
+      rdJrxml = "",
       rdSql =
         T.unlines
           [ "SELECT ap.code as AccCode, ap.name as AccName,",
@@ -246,7 +306,7 @@ accountingEntryList =
       rdTitle = "Journal of Entries / Журнал проводок",
       rdCategory = RCAccounting,
       rdDescription = "Accounting entries journal",
-      rdJrxml = generateJRXML accountingEntryList,
+      rdJrxml = "",
       rdSql =
         T.unlines
           [ "SELECT at.dt as Date, at.doc_id as DocID,",
@@ -285,7 +345,7 @@ goodsRestReport =
       rdTitle = "Stock Balance / Остатки товаров",
       rdCategory = RCWarehouse,
       rdDescription = "Current stock by locations",
-      rdJrxml = generateJRXML goodsRestReport,
+      rdJrxml = "",
       rdSql =
         T.unlines
           [ "SELECT g.code as GoodsCode, g.name as GoodsName,",
@@ -324,7 +384,7 @@ goodsMovementReport =
       rdTitle = "Goods Movement / Движение товаров",
       rdCategory = RCWarehouse,
       rdDescription = "Incoming and outgoing goods",
-      rdJrxml = generateJRXML goodsMovementReport,
+      rdJrxml = "",
       rdSql =
         T.unlines
           [ "SELECT gm.dt as Date, g.code as GoodsCode, g.name as GoodsName,",
@@ -364,7 +424,7 @@ inventoryReport =
       rdTitle = "Inventory / Инвентаризация",
       rdCategory = RCWarehouse,
       rdDescription = "Inventory worksheet",
-      rdJrxml = generateJRXML inventoryReport,
+      rdJrxml = "",
       rdSql =
         T.unlines
           [ "SELECT g.code as GoodsCode, g.name as GoodsName,",
@@ -403,7 +463,7 @@ billListReport =
       rdTitle = "Documents List / Список документов",
       rdCategory = RCBills,
       rdDescription = "List of all bills",
-      rdJrxml = generateJRXML billListReport,
+      rdJrxml = "",
       rdSql =
         T.unlines
           [ "SELECT b.dt as Date, b.code as BillCode,",
@@ -442,7 +502,7 @@ goodsBillReport =
       rdTitle = "Goods Bill / Товарная накладная",
       rdCategory = RCBills,
       rdDescription = "Goods bill document",
-      rdJrxml = generateJRXML goodsBillReport,
+      rdJrxml = "",
       rdSql =
         T.unlines
           [ "SELECT bl.ord as LineNo, g.code as GoodsCode, g.name as GoodsName,",
@@ -479,7 +539,7 @@ invoiceReport =
       rdTitle = "Invoice / Счет-фактура",
       rdCategory = RCBills,
       rdDescription = "VAT invoice",
-      rdJrxml = generateJRXML invoiceReport,
+      rdJrxml = "",
       rdSql =
         T.unlines
           [ "SELECT bl.ord as Num, g.name as GoodsName, bl.qty as Qty, bl.price as Price,",
@@ -519,7 +579,7 @@ salaryReport =
       rdTitle = "Salary Report / Расчетная ведомость",
       rdCategory = RCPayroll,
       rdDescription = "Employee salary calculation",
-      rdJrxml = generateJRXML salaryReport,
+      rdJrxml = "",
       rdSql =
         T.unlines
           [ "SELECT e.emp_id as EmpID, prsn.name as EmpName, sr.name as Position,",
@@ -559,7 +619,7 @@ paymentOrderReport =
       rdTitle = "Payment Order / Платежное поручение",
       rdCategory = RCBanking,
       rdDescription = "Bank payment order",
-      rdJrxml = generateJRXML paymentOrderReport,
+      rdJrxml = "",
       rdSql =
         T.unlines
           [ "SELECT po.doc_num as DocNum, po.dt as DocDate,",
@@ -593,7 +653,7 @@ cashBookReport =
       rdTitle = "Cash Book / Кассовая книга",
       rdCategory = RCBanking,
       rdDescription = "Cash transactions register",
-      rdJrxml = generateJRXML cashBookReport,
+      rdJrxml = "",
       rdSql =
         T.unlines
           [ "SELECT cs.dt as Date, cs.doc_num as DocNum,",
@@ -635,7 +695,7 @@ vatBookBuyReport =
       rdTitle = "VAT Purchase Book / Книга покупок",
       rdCategory = RCTax,
       rdDescription = "VAT input register",
-      rdJrxml = generateJRXML vatBookBuyReport,
+      rdJrxml = "",
       rdSql =
         T.unlines
           [ "SELECT b.dt as RegDate, b.code as InvoiceNum,",
@@ -671,7 +731,7 @@ vatBookSellReport =
       rdTitle = "VAT Sales Book / Книга продаж",
       rdCategory = RCTax,
       rdDescription = "VAT output register",
-      rdJrxml = generateJRXML vatBookSellReport,
+      rdJrxml = "",
       rdSql =
         T.unlines
           [ "SELECT b.dt as RegDate, b.code as InvoiceNum,",
@@ -711,7 +771,7 @@ personListReport =
       rdTitle = "Counteragents List / Список контрагентов",
       rdCategory = RCPersons,
       rdDescription = "All persons directory",
-      rdJrxml = generateJRXML personListReport,
+      rdJrxml = "",
       rdSql =
         T.unlines
           [ "SELECT p.code as Code, p.name as Name, pk.name as Kind,",
@@ -748,7 +808,7 @@ salesTurnoverReport =
       rdTitle = "Sales Turnover / Обороты продаж",
       rdCategory = RCAnalytics,
       rdDescription = "Sales analysis by goods",
-      rdJrxml = generateJRXML salesTurnoverReport,
+      rdJrxml = "",
       rdSql =
         T.unlines
           [ "SELECT g.code as GoodsCode, g.name as GoodsName,",
@@ -821,11 +881,92 @@ getReportsByCategory cat = filter (\r -> rdCategory r == cat) (Map.elems allRepo
 -- | Export single report JRXML
 exportReportJRXML :: Text -> IO (Maybe Text)
 exportReportJRXML name = case getReport name of
-  Just r -> pure (Just (rdJrxml r))
+  Just r -> pure (Just (generateJRXML r))
   Nothing -> pure Nothing
 
 -- | Export all reports to directory
 exportAllReports :: FilePath -> IO ()
 exportAllReports dir = mapM_ exportOne (Map.toList allReports)
   where
-    exportOne (name, r) = writeFile (dir <> "/" <> T.unpack name <> ".jrxml") (T.unpack (rdJrxml r))
+    exportOne (name, r) = writeFile (dir <> "/" <> T.unpack name <> ".jrxml") (T.unpack (generateJRXML r))
+
+-- ============================================================================
+-- REPORT SERVICE API
+-- ============================================================================
+
+-- | Get available reports metadata
+getReportsMetadata :: IO [Value]
+getReportsMetadata = do
+  let reports = Map.elems allReports
+  let reportValues = fmap toReportValue reports
+  pure reportValues
+  where
+    toReportValue r =
+      object
+        [ "name" .= rdName r,
+          "title" .= rdTitle r,
+          "category" .= show (rdCategory r),
+          "description" .= rdDescription r,
+          "parameters" .= fmap paramToValue (rdParams r)
+        ]
+
+    paramToValue p =
+      object
+        [ "name" .= pName p,
+          "type" .= show (pType p),
+          "label" .= pLabel p,
+          "required" .= pRequired p
+        ]
+
+-- | Generate report JRXML
+generateReportJRXML :: Text -> IO (Maybe Text)
+generateReportJRXML name = case getReport name of
+  Just r -> pure (Just (generateJRXML r))
+  Nothing -> pure Nothing
+
+-- | Get report SQL query
+getReportSQL :: Text -> IO (Maybe Text)
+getReportSQL name = case getReport name of
+  Just r -> pure (Just (rdSql r))
+  Nothing -> pure Nothing
+
+-- | Validate report parameters
+validateReportParams :: Text -> Map Text Value -> Either String [Text]
+validateReportParams name paramValues = case getReport name of
+  Nothing -> Left "Report not found"
+  Just r -> validateParams (rdParams r) paramValues
+  where
+    validateParams _params _values = Right [] -- Basic validation
+
+-- | Generate report data preview
+generateReportPreview :: Text -> Map Text Value -> IO (Either String Value)
+generateReportPreview name _paramValues = do
+  case getReport name of
+    Nothing -> pure $ Left "Report not found"
+    Just r -> do
+      -- Generate mock preview data
+      let previewData =
+            object
+              [ "report" .= rdName r,
+                "title" .= rdTitle r,
+                "category" .= show (rdCategory r),
+                "parameters" .= fmap paramToValue (rdParams r),
+                "fields" .= fmap fieldToValue (rdFields r)
+              ]
+      pure $ Right previewData
+      where
+        paramToValue p =
+          object
+            [ "name" .= pName p,
+              "type" .= show (pType p),
+              "label" .= pLabel p,
+              "required" .= pRequired p,
+              "default" .= fromMaybe "" (pDefault p)
+            ]
+
+        fieldToValue f =
+          object
+            [ "name" .= fName f,
+              "type" .= show (fType f),
+              "formula" .= fromMaybe "" (fFormula f)
+            ]
