@@ -2,149 +2,178 @@
 {-# LANGUAGE RecordWildCards #-}
 
 module DB.Inventory
-  ( listInventoryDocs
-  , getInventoryDoc
-  , createInventoryDoc
-  , listInventoryLines
-  , addInventoryLine
-  , getInventorySummary
-  , updateInventoryStatus
+  ( listInventoryDocs,
+    getInventoryDoc,
+    createInventoryDoc,
+    listInventoryLines,
+    addInventoryLine,
+    getInventorySummary,
+    updateInventoryStatus,
   )
 where
 
-import Core.Inventory.Types.Inventory (InventoryStatus(..))
-import DB.Connection (Pool)
-import Domain.Inventory
-import Domain.Types (Pagination(..))
-import Hasql.Encoders (param)
-import Hasql.Pool (use)
-import Hasql.Statement (Statement (..))
-import qualified Hasql.Decoders as D
-import qualified Hasql.Encoders as E
-import qualified Hasql.Session as Session
+import Core.Inventory.Types.Inventory (InventoryStatus (..))
 import Data.Int (Int32, Int64)
 import Data.Time (Day)
+import Domain.Inventory
+import Domain.Types (Pagination (..))
+import qualified Hasql.Decoders as D
+import qualified Hasql.Encoders as E
+import Hasql.Pool (Pool, use)
+import qualified Hasql.Session as Session
+import Hasql.Statement (unpreparable)
 
 listInventoryDocs :: Pool -> Pagination -> IO [InventoryDocument]
-listInventoryDocs pool Pagination {..} = use pool $ Session.statement (paginationLimit, paginationOffset) stmt
+listInventoryDocs pool Pagination {..} = do
+  result <- use pool $ Session.statement (paginationLimit, paginationOffset) stmt
+  case result of
+    Right x -> pure x
+    Left _ -> pure []
   where
-    stmt = Statement
-      "SELECT id, code, dt, warehouse_id, status, memo, created_by, created_at, updated_at FROM inventory_doc ORDER BY dt DESC LIMIT $1 OFFSET $2"
-      (  E.param (E.nonNullable E.int4)
-      <> E.param (E.nonNullable E.int4)
-      )
-      (D.rowList inventoryDocRow)
-      False
+    stmt =
+      unpreparable
+        "SELECT id, code, dt, warehouse_id, status, memo, created_by, created_at, updated_at FROM inventory_doc ORDER BY dt DESC LIMIT $1 OFFSET $2"
+        ( E.param (E.nonNullable E.int4)
+            <> E.param (E.nonNullable E.int4)
+        )
+        (D.rowList inventoryDocRow)
 
 getInventoryDoc :: Pool -> Int64 -> IO (Maybe InventoryDocument)
-getInventoryDoc pool docId = use pool $ Session.statement docId stmt
+getInventoryDoc pool docId = do
+  result <- use pool $ Session.statement docId stmt
+  case result of
+    Right x -> pure x
+    Left _ -> pure Nothing
   where
-    stmt = Statement
-      "SELECT id, code, dt, warehouse_id, status, memo, created_by, created_at, updated_at FROM inventory_doc WHERE id = $1"
-      (E.param (E.nonNullable E.int8))
-      (D.rowMaybe inventoryDocRow)
-      False
+    stmt =
+      unpreparable
+        "SELECT id, code, dt, warehouse_id, status, memo, created_by, created_at, updated_at FROM inventory_doc WHERE id = $1"
+        (E.param (E.nonNullable E.int8))
+        (D.rowMaybe inventoryDocRow)
 
 createInventoryDoc :: Pool -> InventoryDocumentInput -> IO InventoryDocument
-createInventoryDoc pool InventoryDocumentInput {..} = use pool $ Session.statement params stmt
+createInventoryDoc pool InventoryDocumentInput {..} = do
+  result <- use pool $ Session.statement params stmt
+  case result of
+    Right x -> pure x
+    Left _ -> error "createInventoryDoc failed"
   where
     params = (idiCode, idiDate, idiWarehouseId, inventoryStatusToInt IS_Draft, idiMemo, idiCreatedBy)
-    stmt = Statement
-      "INSERT INTO inventory_doc (code, dt, warehouse_id, status, memo, created_by) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, code, dt, warehouse_id, status, memo, created_by, created_at, updated_at"
-      (  E.param (E.nonNullable E.text)
-      <> E.param (E.nonNullable E.date)
-      <> E.param (E.nonNullable E.int8)
-      <> E.param (E.nonNullable E.int4)
-      <> E.param (E.nullable E.text)
-      <> E.param (E.nullable E.int8)
-      )
-      (D.rowOne inventoryDocRow)
-      False
+    stmt =
+      unpreparable
+        "INSERT INTO inventory_doc (code, dt, warehouse_id, status, memo, created_by) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, code, dt, warehouse_id, status, memo, created_by, created_at, updated_at"
+        ( E.param (E.nonNullable E.text)
+            <> E.param (E.nonNullable E.date)
+            <> E.param (E.nonNullable E.int8)
+            <> E.param (E.nonNullable E.int4)
+            <> E.param (E.nullable E.text)
+            <> E.param (E.nullable E.int8)
+        )
+        (D.rowOne inventoryDocRow)
 
 listInventoryLines :: Pool -> Int64 -> IO [InventoryLine]
-listInventoryLines pool docId = use pool $ Session.statement docId stmt
+listInventoryLines pool docId = do
+  result <- use pool $ Session.statement docId stmt
+  case result of
+    Right x -> pure x
+    Left _ -> pure []
   where
-    stmt = Statement
-      "SELECT id, inventory_id, line_no, goods_id, unit_id, qtty_booked, qtty_fact, diff, diff_amount, price, flags FROM inventory_line WHERE inventory_id = $1 ORDER BY line_no"
-      (E.param (E.nonNullable E.int8))
-      (D.rowList inventoryLineRow)
-      False
+    stmt =
+      unpreparable
+        "SELECT id, inventory_id, line_no, goods_id, unit_id, qtty_booked, qtty_fact, diff, diff_amount, price, flags FROM inventory_line WHERE inventory_id = $1 ORDER BY line_no"
+        (E.param (E.nonNullable E.int8))
+        (D.rowList inventoryLineRow)
 
 addInventoryLine :: Pool -> InventoryLineInput -> IO InventoryLine
-addInventoryLine pool InventoryLineInput {..} = use pool $ Session.statement params stmt
+addInventoryLine pool InventoryLineInput {..} = do
+  result <- use pool $ Session.statement params stmt
+  case result of
+    Right x -> pure x
+    Left _ -> error "addInventoryLine failed"
   where
     params = (iliInventoryId, iliLineNo, iliGoodsId, iliUnitId, iliExpectedQtty, iliActualQtty, iliPrice)
-    stmt = Statement
-      "INSERT INTO inventory_line (inventory_id, line_no, goods_id, unit_id, qtty_booked, qtty_fact, price) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, inventory_id, line_no, goods_id, unit_id, qtty_booked, qtty_fact, diff, diff_amount, price, flags"
-      (  E.param (E.nonNullable E.int8)
-      <> E.param (E.nonNullable E.int4)
-      <> E.param (E.nonNullable E.int8)
-      <> E.param (E.nullable E.int8)
-      <> E.param (E.nonNullable E.float8)
-      <> E.param (E.nonNullable E.float8)
-      <> E.param (E.nonNullable E.float8)
-      )
-      (D.rowOne inventoryLineRow)
-      False
+    stmt =
+      unpreparable
+        "INSERT INTO inventory_line (inventory_id, line_no, goods_id, unit_id, qtty_booked, qtty_fact, price) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, inventory_id, line_no, goods_id, unit_id, qtty_booked, qtty_fact, diff, diff_amount, price, flags"
+        ( E.param (E.nonNullable E.int8)
+            <> E.param (E.nonNullable E.int4)
+            <> E.param (E.nonNullable E.int8)
+            <> E.param (E.nullable E.int8)
+            <> E.param (E.nonNullable E.float8)
+            <> E.param (E.nonNullable E.float8)
+            <> E.param (E.nonNullable E.float8)
+        )
+        (D.rowOne inventoryLineRow)
 
 getInventorySummary :: Pool -> Int64 -> IO (Maybe InventorySummary)
-getInventorySummary pool docId = use pool $ Session.statement docId stmt
+getInventorySummary pool docId = do
+  result <- use pool $ Session.statement docId stmt
+  case result of
+    Right x -> pure x
+    Left _ -> pure Nothing
   where
-    stmt = Statement
-      "SELECT sum_booked::double precision, sum_fact::double precision, sum_diff::double precision, sum_surplus::double precision, sum_shortage::double precision, item_count::int8, surplus_count::int8, shortage_count::int8, exact_count::int8 FROM inventory_summary($1)"
-      (E.param (E.nonNullable E.int8))
-      (D.rowMaybe inventorySummaryRow)
-      False
+    stmt =
+      unpreparable
+        "SELECT sum_booked::double precision, sum_fact::double precision, sum_diff::double precision, sum_surplus::double precision, sum_shortage::double precision, item_count::int8, surplus_count::int8, shortage_count::int8, exact_count::int8 FROM inventory_summary($1)"
+        (E.param (E.nonNullable E.int8))
+        (D.rowMaybe inventorySummaryRow)
 
 updateInventoryStatus :: Pool -> Int64 -> InventoryStatus -> IO Bool
-updateInventoryStatus pool docId status = use pool $ Session.statement params stmt
+updateInventoryStatus pool docId status = do
+  result <- use pool $ Session.statement params stmt
+  case result of
+    Right _ -> pure True
+    Left _ -> pure False
   where
     params = (docId, inventoryStatusToInt status)
-    stmt = Statement
-      "UPDATE inventory_doc SET status = $2, updated_at = NOW() WHERE id = $1 RETURNING id"
-      (  E.param (E.nonNullable E.int8)
-      <> E.param (E.nonNullable E.int4)
-      )
-      (D.rowMaybe (D.column (D.nonNullable D.int8)))
-      False
+    stmt =
+      unpreparable
+        "UPDATE inventory_doc SET status = $2, updated_at = NOW() WHERE id = $1 RETURNING id"
+        ( E.param (E.nonNullable E.int8)
+            <> E.param (E.nonNullable E.int4)
+        )
+        (D.rowMaybe (D.column (D.nonNullable D.int8)))
 
 inventoryDocRow :: D.Row InventoryDocument
-inventoryDocRow = InventoryDocument
-  <$> D.column (D.nonNullable D.int8)
-  <*> D.column (D.nonNullable D.text)
-  <*> D.column (D.nonNullable D.date)
-  <*> D.column (D.nonNullable D.int8)
-  <*> (inventoryStatusFromInt <$> D.column (D.nonNullable D.int4))
-  <*> D.column (D.nullable D.text)
-  <*> D.column (D.nullable D.int8)
-  <*> D.column (D.nullable D.timestamptz)
-  <*> D.column (D.nullable D.timestamptz)
+inventoryDocRow =
+  InventoryDocument
+    <$> D.column (D.nonNullable D.int8)
+    <*> D.column (D.nonNullable D.text)
+    <*> D.column (D.nonNullable D.date)
+    <*> D.column (D.nonNullable D.int8)
+    <*> (inventoryStatusFromInt <$> D.column (D.nonNullable D.int4))
+    <*> D.column (D.nullable D.text)
+    <*> D.column (D.nullable D.int8)
+    <*> D.column (D.nullable D.timestamptz)
+    <*> D.column (D.nullable D.timestamptz)
 
 inventoryLineRow :: D.Row InventoryLine
-inventoryLineRow = InventoryLine
-  <$> D.column (D.nonNullable D.int8)
-  <*> D.column (D.nonNullable D.int8)
-  <*> D.column (D.nonNullable D.int4)
-  <*> D.column (D.nonNullable D.int8)
-  <*> D.column (D.nullable D.int8)
-  <*> D.column (D.nonNullable D.float8)
-  <*> D.column (D.nonNullable D.float8)
-  <*> D.column (D.nonNullable D.float8)
-  <*> D.column (D.nonNullable D.float8)
-  <*> D.column (D.nonNullable D.float8)
-  <*> D.column (D.nonNullable D.int4)
+inventoryLineRow =
+  InventoryLine
+    <$> D.column (D.nonNullable D.int8)
+    <*> D.column (D.nonNullable D.int8)
+    <*> D.column (D.nonNullable D.int4)
+    <*> D.column (D.nonNullable D.int8)
+    <*> D.column (D.nullable D.int8)
+    <*> D.column (D.nonNullable D.float8)
+    <*> D.column (D.nonNullable D.float8)
+    <*> D.column (D.nonNullable D.float8)
+    <*> D.column (D.nonNullable D.float8)
+    <*> D.column (D.nonNullable D.float8)
+    <*> D.column (D.nonNullable D.int4)
 
 inventorySummaryRow :: D.Row InventorySummary
-inventorySummaryRow = InventorySummary
-  <$> D.column (D.nonNullable D.float8)
-  <*> D.column (D.nonNullable D.float8)
-  <*> D.column (D.nonNullable D.float8)
-  <*> D.column (D.nonNullable D.float8)
-  <*> D.column (D.nonNullable D.float8)
-  <*> (fromIntegral <$> D.column (D.nonNullable D.int8))
-  <*> (fromIntegral <$> D.column (D.nonNullable D.int8))
-  <*> (fromIntegral <$> D.column (D.nonNullable D.int8))
-  <*> (fromIntegral <$> D.column (D.nonNullable D.int8))
+inventorySummaryRow =
+  InventorySummary
+    <$> D.column (D.nonNullable D.float8)
+    <*> D.column (D.nonNullable D.float8)
+    <*> D.column (D.nonNullable D.float8)
+    <*> D.column (D.nonNullable D.float8)
+    <*> D.column (D.nonNullable D.float8)
+    <*> (fromIntegral <$> D.column (D.nonNullable D.int8))
+    <*> (fromIntegral <$> D.column (D.nonNullable D.int8))
+    <*> (fromIntegral <$> D.column (D.nonNullable D.int8))
+    <*> (fromIntegral <$> D.column (D.nonNullable D.int8))
 
 inventoryStatusFromInt :: Int32 -> InventoryStatus
 inventoryStatusFromInt 0 = IS_Draft

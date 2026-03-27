@@ -18,7 +18,7 @@ import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
-import Hasql.Statement (Statement (..))
+import Hasql.Statement (unpreparable)
 
 listRegisters :: Pool -> Pagination -> DocumentRegisterFilter -> IO [DocumentRegister]
 listRegisters pool (Pagination limit offset) DocumentRegisterFilter {..} =
@@ -33,7 +33,7 @@ listRegisters pool (Pagination limit offset) DocumentRegisterFilter {..} =
       stmt
   where
     stmt =
-      Statement
+      unpreparable
         "SELECT id, person_id, type_id, series, number, issue_date, expiry_date, issuer, flags, auto_number \
         \FROM document_register \
         \WHERE ($1 IS NULL OR person_id = $1) \
@@ -47,7 +47,7 @@ listRegisters pool (Pagination limit offset) DocumentRegisterFilter {..} =
             <> E.param (E.nonNullable E.int4)
         )
         (D.rowList documentRegisterRow)
-        False
+
 
 getRegister :: Pool -> Int64 -> IO (Maybe DocumentRegister)
 getRegister pool rid =
@@ -55,11 +55,11 @@ getRegister pool rid =
     Session.statement rid stmt
   where
     stmt =
-      Statement
+      unpreparable
         "SELECT id, person_id, type_id, series, number, issue_date, expiry_date, issuer, flags, auto_number FROM document_register WHERE id = $1"
         (E.param (E.nonNullable E.int8))
         (D.rowMaybe documentRegisterRow)
-        False
+
 
 createRegister :: Pool -> DocumentRegister -> IO Int64
 createRegister pool DocumentRegister {..} =
@@ -78,7 +78,7 @@ createRegister pool DocumentRegister {..} =
       stmt
   where
     stmt =
-      Statement
+      unpreparable
         "SELECT create_document_register_entry($1,$2,$3,$4,$5,$6,$7,$8,$9)"
         ( E.param (E.nonNullable E.int8)
             <> E.param (E.nonNullable E.int8)
@@ -91,7 +91,7 @@ createRegister pool DocumentRegister {..} =
             <> E.param (E.nullable E.bool)
         )
         (D.singleRow $ D.column (D.nonNullable D.int8))
-        False
+
 
 updateRegister :: Pool -> Int64 -> DocumentRegister -> IO Bool
 updateRegister pool rid DocumentRegister {..} =
@@ -111,7 +111,7 @@ updateRegister pool rid DocumentRegister {..} =
       stmt
   where
     stmt =
-      Statement
+      unpreparable
         "SELECT update_document_register_entry($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)"
         ( E.param (E.nonNullable E.int8)
             <> E.param (E.nonNullable E.int8)
@@ -125,7 +125,7 @@ updateRegister pool rid DocumentRegister {..} =
             <> E.param (E.nullable E.bool)
         )
         (D.singleRow $ D.column (D.nonNullable D.bool))
-        False
+
 
 deleteRegister :: Pool -> Int64 -> IO Bool
 deleteRegister pool rid = do
@@ -133,8 +133,8 @@ deleteRegister pool rid = do
   pure $ Data.Maybe.isJust mb
   where
     stmt =
-      Statement
+      unpreparable
         "DELETE FROM document_register WHERE id = $1 RETURNING id"
         (E.param (E.nonNullable E.int8))
         (D.rowMaybe (D.column (D.nonNullable D.int8)))
-        False
+

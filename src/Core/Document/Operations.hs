@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 -- | Document Operations with Formal Verification
 -- Модуль содержит инварианты и проверенные операции для работы с документами
 module Core.Document.Operations
@@ -22,8 +24,15 @@ module Core.Document.Operations
 where
 
 import Core.Document.Types
+  ( DocumentOpCounter (..),
+    DocumentRegister (..),
+    DocumentRegisterFlag (..),
+    DocumentRegisterType (..),
+  )
+import qualified Core.Document.Types as CDT
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
+import qualified Data.Text as T
 import Data.Time (Day)
 
 -- | Document operation result
@@ -43,57 +52,57 @@ data DocumentOpResult
 -- | Validate document register
 -- Инвариант: номер не пустой, дата выдачи не позже срока действия (если задан)
 validateDocumentRegister :: DocumentRegister -> Either Text DocumentRegister
-validateDocumentRegister = Core.Document.Types.validateDocumentRegister
+validateDocumentRegister = CDT.validateDocumentRegister
 
 -- | Validate document register type
 -- Инвариант: название не пустое, код не длиннее 32 символов
 validateDocumentRegisterType :: DocumentRegisterType -> Either Text DocumentRegisterType
-validateDocumentRegisterType = Core.Document.Types.validateDocumentRegisterType
+validateDocumentRegisterType = CDT.validateDocumentRegisterType
 
 -- | Validate document operation counter
 -- Инвариант: префикс не длиннее 16 символов
 validateDocumentOpCounter :: DocumentOpCounter -> Either Text DocumentOpCounter
-validateDocumentOpCounter = Core.Document.Types.validateDocumentOpCounter
+validateDocumentOpCounter = CDT.validateDocumentOpCounter
 
 -- | Check if document register type allows duplicate numbers
 -- Инвариант: результат - булево значение
 documentRegisterTypeAllowsDuplicateNumbers :: DocumentRegisterType -> Bool
-documentRegisterTypeAllowsDuplicateNumbers = Core.Document.Types.documentRegisterTypeAllowsDuplicateNumbers
+documentRegisterTypeAllowsDuplicateNumbers = CDT.documentRegisterTypeAllowsDuplicateNumbers
 
 -- | Check if document register type is for location
 -- Инвариант: результат - булево значение
 documentRegisterTypeForLocation :: DocumentRegisterType -> Bool
-documentRegisterTypeForLocation = Core.Document.Types.documentRegisterTypeForLocation
+documentRegisterTypeForLocation = CDT.documentRegisterTypeForLocation
 
 -- | Check if document register type inserts on create
 -- Инвариант: результат - булево значение
 documentRegisterTypeInsertOnCreate :: DocumentRegisterType -> Bool
-documentRegisterTypeInsertOnCreate = Core.Document.Types.documentRegisterTypeInsertOnCreate
+documentRegisterTypeInsertOnCreate = CDT.documentRegisterTypeInsertOnCreate
 
 -- | Check if document register type only uses number (no series)
 -- Инвариант: результат - булево значение
 documentRegisterTypeOnlyNumber :: DocumentRegisterType -> Bool
-documentRegisterTypeOnlyNumber = Core.Document.Types.documentRegisterTypeOnlyNumber
+documentRegisterTypeOnlyNumber = CDT.documentRegisterTypeOnlyNumber
 
 -- | Check if document register type requires unique number
 -- Инвариант: результат - булево значение
 documentRegisterTypeRequiresUnique :: DocumentRegisterType -> Bool
-documentRegisterTypeRequiresUnique = Core.Document.Types.documentRegisterTypeRequiresUnique
+documentRegisterTypeRequiresUnique = CDT.documentRegisterTypeRequiresUnique
 
 -- | Check if document register type warns on absence
 -- Инвариант: результат - булево значение
 documentRegisterTypeWarnsAbsence :: DocumentRegisterType -> Bool
-documentRegisterTypeWarnsAbsence = Core.Document.Types.documentRegisterTypeWarnsAbsence
+documentRegisterTypeWarnsAbsence = CDT.documentRegisterTypeWarnsAbsence
 
 -- | Check if document register type warns on expiry
 -- Инвариант: результат - булево значение
 documentRegisterTypeWarnsExpiry :: DocumentRegisterType -> Bool
-documentRegisterTypeWarnsExpiry = Core.Document.Types.documentRegisterTypeWarnsExpiry
+documentRegisterTypeWarnsExpiry = CDT.documentRegisterTypeWarnsExpiry
 
 -- | Check if document register type has flag
 -- Инвариант: результат - булево значение
 documentRegisterTypeHasFlag :: DocumentRegisterType -> DocumentRegisterFlag -> Bool
-documentRegisterTypeHasFlag = Core.Document.Types.documentRegisterTypeHasFlag
+documentRegisterTypeHasFlag = CDT.documentRegisterTypeHasFlag
 
 -- ============================================================================
 -- DOCUMENT OPERATIONS
@@ -104,7 +113,7 @@ documentRegisterTypeHasFlag = Core.Document.Types.documentRegisterTypeHasFlag
 generateDocumentNumber :: DocumentRegisterType -> Maybe Text -> Int -> Text
 generateDocumentNumber drt seriesCounter counter =
   let series = fromMaybe "" seriesCounter
-      number = show counter
+      number = T.pack (show counter)
       prefix = case drtCode drt of
         Just c -> c <> "-"
         Nothing -> ""
@@ -118,7 +127,7 @@ generateDocumentNumber drt seriesCounter counter =
 -- | Calculate document total from lines
 -- Инвариант: результат >= 0
 calculateDocumentTotal :: [(Double, Double, Double)] -> Double
-calculateDocumentTotal lines = sum $ fmap (\(price, qty, discount) -> (price * qty) - discount) lines
+calculateDocumentTotal docLines' = sum $ fmap (\(price, qty, discount) -> (price * qty) - discount) docLines'
 
 -- | Validate document amounts
 -- Инвариант: сумма >= 0, НДС >= 0 и <= сумма, скидка >= 0 и <= сумма

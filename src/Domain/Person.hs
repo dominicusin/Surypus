@@ -29,7 +29,6 @@ import Core.Refined (clampNonNeg, clampPercentage)
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Char (isDigit)
 import Data.Int (Int64)
-import Data.Maybe (isJust)
 import Data.Scientific (Scientific)
 import Data.Text (Text)
 import qualified Data.Text as T

@@ -12,26 +12,20 @@
 
 module Surypus.Foreign.QML where
 
-import Control.Concurrent (forkIO, threadDelay)
-import qualified Control.Exception as Exception
-import Control.Monad (forM_, join, void, when)
+import Control.Monad (forM_, void)
 import Control.Monad.IO.Class (MonadIO, liftIO)
-import Data.Aeson (FromJSON, ToJSON, Value (..), decode, defaultOptions, encode, genericToJSON, object, (.=))
-import Data.Aeson.TH (defaultOptions, deriveJSON, fieldLabelModifier)
+import Data.Aeson (FromJSON, ToJSON, Value (..), decode, defaultOptions, encode, object, (.=))
+import Data.Aeson.TH (deriveJSON, fieldLabelModifier)
 import Data.Char (isDigit)
 import Data.IORef (IORef, modifyIORef, newIORef, readIORef, writeIORef)
 import Data.Int (Int64)
-import Data.Maybe (fromMaybe, mapMaybe)
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import Data.Time (Day, getCurrentTime, utctDay)
-import Data.Time.Clock (NominalDiffTime, diffUTCTime, getCurrentTime)
-import qualified Data.Vector as V
+import Data.Time.Clock (NominalDiffTime, diffUTCTime)
 import GHC.Generics (Generic)
 import Numeric (showFFloat)
-import System.Environment (getEnv, setEnv)
-import System.IO (hPutStrLn, stderr)
 
 -- ============================================================================
 -- CORE TYPES
@@ -688,9 +682,9 @@ samplePersons =
 
 sampleGoods :: [Goods]
 sampleGoods =
-  [ Goods 1 "G001" "Стройматериалы" (Just "Стройматериалы общестроительные") Nothing GoodsProduct "кг" 20.00 100.0 75.0 Nothing Nothing StatusActive (Just 25.5) (Just 0.5) 100 Nothing (Just "Основные строительные материалы"),
-    Goods 2 "G002" "Инструменты" Nothing (Just "4601234567890") GoodsProduct "шт" 20.00 250.0 180.0 Nothing Nothing StatusActive (Just 2.5) (Just 1.2) 50 Nothing Nothing,
-    Goods 3 "G003" "Крепёж" (Just "Крепёжные изделия") Nothing GoodsProduct "кг" 20.00 50.0 35.0 Nothing Nothing StatusActive (Just 0.5) Nothing 1000 Nothing Nothing
+  [ Goods 1 "G001" "Стройматериалы" (Just "Стройматериалы общестроительные") Nothing GoodsProduct "кг" 20.00 100.0 75.0 Nothing Nothing StatusActive (Just 25.5) (Just 0.5) 100 Nothing Nothing (Just "Основные строительные материалы"),
+    Goods 2 "G002" "Инструменты" Nothing (Just "4601234567890") GoodsProduct "шт" 20.00 250.0 180.0 Nothing Nothing StatusActive (Just 2.5) (Just 1.2) 50 Nothing Nothing Nothing,
+    Goods 3 "G003" "Крепёж" (Just "Крепёжные изделия") Nothing GoodsProduct "кг" 20.00 50.0 35.0 Nothing Nothing StatusActive (Just 0.5) Nothing 1000 Nothing Nothing Nothing
   ]
 
 sampleLocations :: [Location]

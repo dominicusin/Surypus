@@ -295,9 +295,11 @@ library
       Surypus.QML
       Surypus.Reports
       Surypus.Reports.Conversion.CrystalToJasper
-      Surypus.Reports.Conversion.CrystalToPdfSlave
-      Surypus.Reports.Conversion.CrystalTypes
-      Surypus.Reports.Templates
+       Surypus.Reports.Conversion.CrystalToPdfSlave
+       Surypus.Reports.Conversion.CrystalTypes
+       Surypus.Reports.Templates
+
+    hs-source-dirs: src
 
     build-depends:
       base >=4.12 && <5
@@ -306,6 +308,7 @@ library
       , bytestring >=0.10
       , aeson >=2.0
       , base64-bytestring >=0.1
+      , base16-bytestring >=0.1
       , scotty >=0.14
       , warp >=3.3
       , wai >=3.2
@@ -319,6 +322,7 @@ library
       , hspec >=2.10
       , QuickCheck >=2.14
       , cryptonite >=0.30
+      , memory >=0.18
       , postgresql-simple >=0.6
       , resource-pool >=0.3
       , network >=3.1
@@ -333,6 +337,7 @@ library
       , scientific >=0.3
       , stm >=2.5
       , transformers >=0.5
+      , profunctors >=5.6
 
     default-language: Haskell2010
     ghc-options: -Wall

@@ -18,6 +18,8 @@ module Surypus.Validation
     validatePriceInput,
     validateTaxInput,
     validateCurrencyInput,
+    validateAccPlanInput,
+    validateAccTurnInput,
   )
 where
 

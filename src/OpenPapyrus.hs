@@ -1,5 +1,5 @@
 -- |  - Formally verified ERP system core
-module Surypus
+module OpenPapyrus
   ( module Core.Tax,
     module Core.Warehouse,
     module Surypus.Types,

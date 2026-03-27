@@ -748,3 +748,453 @@ TextField {
         }
     }
 }
+
+// --------------------------------------
+// DataTable - Data Table Component
+// --------------------------------------
+Rectangle {
+    property var columns: []
+    property var model: ListModel {}
+    
+    width: parent.width
+    height: 200
+    color: "white"
+    border.width: 1
+    border.color: "#E0E0E0"
+    radius: 4
+    
+    ColumnLayout {
+        anchors.fill: parent
+        
+        // Header
+        RowLayout {
+            height: 40
+            Layout.fillWidth: true
+            spacing: 1
+            Repeater {
+                model: columns
+                Text {
+                    text: modelData.title
+                    font.bold: true
+                    font.pixelSize: 12
+                    color: "#757575"
+                    Layout.fillWidth: true
+                    leftPadding: 12
+                }
+            }
+        }
+        
+        Rectangle { height: 1; color: "#E0E0E0"; Layout.fillWidth: true }
+        
+        // Body
+        ListView {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            model: parent.model
+            delegate: RowLayout {
+                height: 36
+                Layout.fillWidth: true
+                spacing: 1
+                Repeater {
+                    model: parent.model.columns
+                    Text {
+                        text: modelData.role
+                        font.pixelSize: 13
+                        leftPadding: 12
+                        Layout.fillWidth: true
+                    }
+                }
+            }
+        }
+    }
+}
+
+// --------------------------------------
+// ChartLine - Line Chart Component
+// --------------------------------------
+Rectangle {
+    property var dataPoints: []
+    property string title: ""
+    
+    width: parent.width
+    height: 200
+    color: "white"
+    border.width: 1
+    border.color: "#E0E0E0"
+    radius: 4
+    
+    ColumnLayout {
+        anchors.fill: parent
+        anchors.margins: 16
+        
+        Text {
+            text: title
+            font.bold: true
+            font.pixelSize: 14
+        }
+        
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            
+            Rectangle {
+                Layout.fillHeight: true
+                Layout.fillWidth: true
+                color: "transparent"
+                
+                Canvas {
+                    anchors.fill: parent
+                    onPaint: {
+                        var ctx = getContext('2d')
+                        ctx.strokeStyle = "#1976D2"
+                        ctx.lineWidth = 2
+                        ctx.beginPath()
+                        var maxVal = Math.max(...dataPoints)
+                        for (var i = 0; i < dataPoints.length; i++) {
+                            var x = (i / (dataPoints.length - 1)) * width
+                            var y = height - (dataPoints[i] / maxVal) * height
+                            if (i === 0) ctx.moveTo(x, y)
+                            else ctx.lineTo(x, y)
+                        }
+                        ctx.stroke()
+                    }
+                }
+            }
+        }
+    }
+}
+
+// --------------------------------------
+// TreeNode - Tree View Node
+// --------------------------------------
+ColumnLayout {
+    property string nodeText: ""
+    property string nodeIcon: ""
+    property bool expanded: false
+    property var children: []
+    
+    width: parent.width
+    
+    RowLayout {
+        height: 32
+        spacing: 4
+        
+        Text {
+            text: expanded ? "▼" : "▶"
+            font.pixelSize: 10
+            width: 20
+            color: "#757575"
+        }
+        
+        Text {
+            text: nodeIcon
+            font.pixelSize: 14
+        }
+        
+        Text {
+            text: nodeText
+            font.pixelSize: 13
+        }
+    }
+    
+    ColumnLayout {
+        visible: expanded
+        leftPadding: 24
+       Repeater {
+            model: children
+            delegate: TreeNode {
+                nodeText: modelData.text
+                nodeIcon: modelData.icon || ""
+            }
+        }
+    }
+}
+
+// --------------------------------------
+// ProgressRing - Circular Progress
+// --------------------------------------
+Item {
+    property real progress: 0
+    property string color: "#1976D2"
+    property string label: ""
+    
+    width: 80
+    height: 100
+    
+    Canvas {
+        anchors.centerIn: parent
+        width: 60
+        height: 60
+        
+        onPaint: {
+            var ctx = getContext('2d')
+            var centerX = width / 2
+            var centerY = height / 2
+            var radius = 25
+            
+            ctx.beginPath()
+            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI)
+            ctx.strokeStyle = "#E0E0E0"
+            ctx.lineWidth = 6
+            ctx.stroke()
+            
+            ctx.beginPath()
+            ctx.arc(centerX, centerY, radius, -Math.PI/2, -Math.PI/2 + (progress/100) * 2 * Math.PI)
+            ctx.strokeStyle = color
+            ctx.lineWidth = 6
+            ctx.stroke()
+        }
+    }
+    
+    Text {
+        anchors.centerIn: parent
+        text: Math.round(progress) + "%"
+        font.bold: true
+        font.pixelSize: 14
+    }
+    
+    Text {
+        anchors.top: parent.top
+        anchors.topMargin: 70
+        anchors.horizontalCenter: parent.horizontalCenter
+        text: label
+        font.pixelSize: 10
+        color: "#757575"
+    }
+}
+
+// --------------------------------------
+// Stepper - Number Stepper
+// --------------------------------------
+RowLayout {
+    property int value: 0
+    property int minValue: 0
+    property int maxValue: 100
+    property int step: 1
+    signal valueChanged(int newValue)
+    
+    spacing: 4
+    
+    Button {
+        text: "−"
+        width: 36
+        height: 36
+        onClicked: {
+            if (value > minValue) {
+                value -= step
+                valueChanged(value)
+            }
+        }
+    }
+    
+    TextField {
+        text: value
+        horizontalAlignment: TextInput.AlignHCenter
+        width: 60
+        validator: IntValidator { }
+    }
+    
+    Button {
+        text: "+"
+        width: 36
+        height: 36
+        onClicked: {
+            if (value < maxValue) {
+                value += step
+                valueChanged(value)
+            }
+        }
+    }
+}
+
+// --------------------------------------
+// SideSheet - Side Panel
+// --------------------------------------
+Drawer {
+    id: sideSheet
+    property string sheetTitle: ""
+    
+    width: 300
+    height: parent.height
+    edge: Qt.RightEdge
+    
+    ColumnLayout {
+        anchors.fill: parent
+        
+        Rectangle {
+            height: 48
+            color: "#FAFAFA"
+            
+            RowLayout {
+                anchors.fill: parent
+                anchors.margins: 12
+                
+                Text {
+                    text: sheetTitle
+                    font.bold: true
+                    font.pixelSize: 16
+                    Layout.fillWidth: true
+                }
+                
+                Button {
+                    text: "✕"
+                    flat: true
+                    onClicked: sideSheet.close()
+                }
+            }
+        }
+        
+        Loader {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+        }
+    }
+}
+
+// --------------------------------------
+// Snackbar - Toast Notification
+// --------------------------------------
+Rectangle {
+    property string message: ""
+    property bool visible: false
+    property string actionText: ""
+    signal actionClicked()
+    
+    visible: visible
+    width: parent.width
+    height: 48
+    color: "#323232"
+    radius: 4
+    
+    RowLayout {
+        anchors.fill: parent
+        anchors.margins: 12
+        
+        Text {
+            text: message
+            color: "white"
+            font.pixelSize: 13
+            Layout.fillWidth: true
+        }
+        
+        Button {
+            text: actionText
+            flat: true
+            textColor: "#FFC107"
+            visible: actionText !== ""
+            onClicked: {
+                actionClicked()
+                visible = false
+            }
+        }
+        
+        Button {
+            text: "✕"
+            flat: true
+            textColor: "white"
+            onClicked: visible = false
+        }
+    }
+    
+    Timer {
+        interval: 3000
+        running: visible
+        onTriggered: visible = false
+    }
+}
+
+// --------------------------------------
+// Divider - Divider Line
+// --------------------------------------
+Rectangle {
+    height: 1
+    color: "#E0E0E0"
+    width: parent.width
+}
+
+// --------------------------------------
+// Avatar - User Avatar
+// --------------------------------------
+Item {
+    property string initials: ""
+    property string imageSource: ""
+    property int size: 40
+    
+    width: size
+    height: size
+    
+    Rectangle {
+        width: size
+        height: size
+        radius: size / 2
+        color: "#1976D2"
+        
+        Image {
+            source: imageSource
+            width: size
+            height: size
+            visible: imageSource !== ""
+        }
+        
+        Text {
+            text: initials
+            font.bold: true
+            font.pixelSize: size / 2.5
+            color: "white"
+            anchors.centerIn: parent
+            visible: imageSource === ""
+        }
+    }
+}
+
+// --------------------------------------
+// Chip - Tag Chip
+// --------------------------------------
+Rectangle {
+    property string text: ""
+    property bool selected: false
+    property string icon: ""
+    
+    height: 28
+    radius: 14
+    color: selected ? "#1976D2" : "#F5F5F5"
+    border.width: 1
+    border.color: selected ? "#1976D2" : "#E0E0E0"
+    
+    RowLayout {
+        anchors.fill: parent
+        anchors.margins: 12
+        spacing: 4
+        
+        Text {
+            text: icon
+            visible: icon !== ""
+            font.pixelSize: 12
+        }
+        
+        Text {
+            text: text
+            font.pixelSize: 12
+            color: selected ? "white" : "#212121"
+        }
+    }
+}
+
+// --------------------------------------
+// Skeleton - Loading Skeleton
+// --------------------------------------
+Rectangle {
+    property int skeletonWidth: 100
+    property int skeletonHeight: 16
+    
+    width: skeletonWidth
+    height: skeletonHeight
+    radius: 4
+    color: "#E0E0E0"
+    
+    SequentialAnimation on opacity {
+        loops: Animation.Infinite
+        PropertyAnimation { from: 0.3; to: 0.7; duration: 800 }
+        PropertyAnimation { from: 0.7; to: 0.3; duration: 800 }
+    }
+}

@@ -226,6 +226,187 @@ ApplicationWindow {
             badge: 0
         }
     }
+
+    // Dashboard statistics
+    property var stats: ({
+        persons: "125",
+        goods: "1 234",
+        bills: "89",
+        jobs: "12",
+        locations: "5",
+        revenue: "2.4M",
+        expenses: "1.8M",
+        profit: "600K"
+    })
+
+    // Recent documents model
+    ListModel {
+        id: recentDocsModel
+        ListElement { number: "INV-2026-089"; date: "27.03.2026"; customer: "ООО ТехноСтрой"; total: "50 000 ₽"; status: "Проведён" }
+        ListElement { number: "INV-2026-088"; date: "26.03.2026"; customer: "ИП Иванов"; total: "25 000 ₽"; status: "На утверждении" }
+        ListElement { number: "INV-2026-087"; date: "25.03.2026"; customer: "ООО МегаТрейд"; total: "75 000 ₽"; status: "Черновик" }
+        ListElement { number: "PL-001"; date: "24.03.2026"; customer: "ООО ТехноСтрой"; total: "50 000 ₽"; status: "Проведён" }
+        ListElement { number: "ACT-003"; date: "23.03.2026"; customer: "ИП Петров"; total: "15 000 ₽"; status: "Проведён" }
+    }
+
+    // Pending tasks model
+    ListModel {
+        id: pendingTasksModel
+        ListElement { taskTitle: "Отправить отчёт"; taskPriority: "Высокий"; taskDueDate: "28.03.2026"; taskStatus: "Ожидает" }
+        ListElement { taskTitle: "Обработать платежи"; taskPriority: "Высокий"; taskDueDate: "27.03.2026"; taskStatus: "В работе" }
+        ListElement { taskTitle: "Сформировать накладную"; taskPriority: "Средний"; taskDueDate: "27.03.2026"; taskStatus: "Ожидает" }
+    }
+
+    // Persons model
+    ListModel {
+        id: personsModel
+        ListElement { code: "P001"; name: "ООО ТехноСтрой"; inn: "7701234567890"; kpp: "770101001"; type: "Юр. лицо"; phone: "+7 495 123-4567"; email: "info@tehnostroy.ru"; status: "Активен" }
+        ListElement { code: "P002"; name: "ИП Иванов И.И."; inn: "7709876543210"; kpp: ""; type: "ИП"; phone: "+7 916 123-4567"; email: "ivanov@mail.ru"; status: "Активен" }
+        ListElement { code: "P003"; name: "ООО МегаТрейд"; inn: "7705555555555"; kpp: "770201001"; type: "Юр. лицо"; phone: "+7 495 987-6543"; email: "info@megatrade.ru"; status: "Активен" }
+    }
+
+    // Goods model
+    ListModel {
+        id: goodsModel
+        ListElement { code: "G001"; name: "Стройматериалы"; unit: "кг"; price: "100"; quantity: "500"; group: "Стройматериалы"; vatRate: "20"; status: "Активен" }
+        ListElement { code: "G002"; name: "Инструменты"; unit: "шт"; price: "250"; quantity: "100"; group: "Инструменты"; vatRate: "20"; status: "Активен" }
+        ListElement { code: "G003"; name: "Крепёж"; unit: "кг"; price: "50"; quantity: "1000"; group: "Крепёж"; vatRate: "20"; status: "Активен" }
+    }
+
+    // Bills model
+    ListModel {
+        id: billsModel
+        ListElement { number: "INV-2026-089"; date: "27.03.2026"; type: "Счёт"; customer: "ООО ТехноСтрой"; total: "50 000"; vat: "8 333"; location: "Основной"; status: "Проведён"; author: "admin" }
+        ListElement { number: "INV-2026-088"; date: "26.03.2026"; type: "Счёт"; customer: "ИП Иванов"; total: "25 000"; vat: "4 167"; location: "Основной"; status: "На утвержд."; author: "admin" }
+        ListElement { number: "INV-2026-087"; date: "25.03.2026"; type: "Счёт"; customer: "ООО МегаТрейд"; total: "75 000"; vat: "12 500"; location: "Розничный"; status: "Черновик"; author: "buh" }
+    }
+
+    // Locations model
+    ListModel {
+        id: locationsModel
+        ListElement { name: "Основной склад"; type: "warehouse"; address: "г. Москва, ул. Промышленная, д. 10"; stockCount: "850" }
+        ListElement { name: "Розничный магазин №1"; type: "shop"; address: "г. Москва, ул. Центральная, д. 25"; stockCount: "320" }
+        ListElement { name: "Склад запчастей"; type: "warehouse"; address: "г. Москва, ул. Заводская, д. 5"; stockCount: "64" }
+    }
+
+    // Employees model
+    ListModel {
+        id: employeesModel
+        ListElement { tabNum: "001"; name: "Петров А.С."; position: "Директор"; department: "Администрация"; salary: "80 000"; status: "Работает" }
+        ListElement { tabNum: "002"; name: "Сидорова Е.П."; position: "Бухгалтер"; department: "Бухгалтерия"; salary: "55 000"; status: "Работает" }
+        ListElement { tabNum: "003"; name: "Козлов М.И."; position: "Менеджер"; department: "Продажи"; salary: "45 000"; status: "В отпуске" }
+    }
+
+    // Report templates model
+    ListModel {
+        id: reportTemplatesModel
+        ListElement { name: "Продажи"; type: "sales"; icon: "chart" }
+        ListElement { name: "Прибыльность"; type: "profitability"; icon: "money" }
+        ListElement { name: "Остатки"; type: "stock"; icon: "box" }
+        ListElement { name: "Дебиторы"; type: "debtors"; icon: "people" }
+    }
+
+    // Notifications model
+    ListModel {
+        id: notificationsModel
+        ListElement { title: "Новый счёт"; text: "Создан счёт INV-2026-090"; time: "10:30" }
+        ListElement { title: "Задача выполнена"; text: "Обработаны платежи"; time: "09:15" }
+        ListElement { title: "Низкий остаток"; text: "Крепёж: 50 кг"; time: "Вчера" }
+    }
+
+    // Accounts model for accounting
+    ListModel {
+        id: accountsModel
+        ListElement { code: "50"; name: "Касса" }
+        ListElement { code: "51"; name: "Расчётный счёт" }
+        ListElement { code: "60"; name: "Расчёты с поставщиками" }
+        ListElement { code: "62"; name: "Расчёты с покупателями" }
+        ListElement { code: "41"; name: "Товары" }
+    }
+
+    // Pagination properties
+    property int personPage: 1
+    property int personTotalPages: 5
+
+    // Bill totals
+    property string billTotalSum: "150 000"
+    property string billTotalVat: "25 000"
+
+    // User info
+    property string userName: "Администратор"
+    property string userEmail: "admin@surypus.local"
+    property string userStatus: "Онлайн"
+    property string companyName: "ООО ТехноСтрой"
+
+    // Page state
+    property string currentPage: "dashboard"
+
+    // HTTP request function
+    function httpRequest(method, path, payload, onSuccess, onError) {
+        var xhr = new XMLHttpRequest()
+        xhr.open(method, apiBaseUrl + path)
+        xhr.setRequestHeader("Content-Type", "application/json")
+        if (jwtToken.length > 0) {
+            xhr.setRequestHeader("Authorization", "Bearer " + jwtToken)
+        }
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === XMLHttpRequest.DONE) {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    var parsed = JSON.parse(xhr.responseText)
+                    if (parsed.status === "ok" && onSuccess) {
+                        onSuccess(parsed)
+                    } else if (onError) {
+                        onError(xhr.status, parsed)
+                    }
+                } else if (onError) {
+                    onError(xhr.status, xhr.responseText)
+                }
+            }
+        }
+        xhr.send(payload ? JSON.stringify(payload) : null)
+    }
+
+    // CRUD functions
+    function loadPersons() { console.log("Loading persons...") }
+    function filterPersons() { console.log("Filtering persons...") }
+    function createPerson() { personDialog.open() }
+    function editPerson(person) { console.log("Editing:", person); personDialog.open() }
+    function savePerson() { console.log("Saving person..."); personDialog.close() }
+    function importPersons() { console.log("Importing persons...") }
+    function exportPersons() { console.log("Exporting persons...") }
+
+    function createGoods() { goodsDialog.open() }
+    function createBill() { billDialog.open() }
+    function createInvoice() { console.log("Creating invoice...") }
+    function createWaybill() { console.log("Creating waybill...") }
+    function createAct() { console.log("Creating act...") }
+
+    function createJob() { console.log("Creating job..."); jobDialog.open() }
+    function hireDialog() { console.log("Opening hire dialog..."); employeeDialog.open() }
+    function calculatePayroll() { console.log("Calculating payroll...") }
+    function paySalary() { console.log("Paying salary...") }
+
+    function showStock() { console.log("Showing stock...") }
+    function groupsDialog() { console.log("Opening groups dialog...") }
+    function templatesDialog() { console.log("Opening templates dialog...") }
+    function openLocationDialog() { locationDialog.open() }
+    function openShopDialog() { shopDialog.open() }
+    function openJobDialog() { jobDialog.open() }
+    function openPaymentDialog() { paymentDialog.open() }
+    function openCurrencyDialog() { currencyDialog.open() }
+    function openTaxDialog() { taxDialog.open() }
+    function openAccountDialog() { accountDialog.open() }
+    function openReportScheduleDialog() { reportScheduleDialog.open() }
+    function openEmployeeDialog() { employeeDialog.open() }
+    
+    // Save functions
+    function saveLocation() { console.log("Saving location..."); locationDialog.close() }
+    function savePayment() { console.log("Saving payment..."); paymentDialog.close() }
+    function saveEmployee() { console.log("Saving employee..."); employeeDialog.close() }
+    function saveReportSchedule() { console.log("Saving report schedule..."); reportScheduleDialog.close() }
+    function saveCurrency() { console.log("Saving currency..."); currencyDialog.close() }
+    function saveTax() { console.log("Saving tax..."); taxDialog.close() }
+    function saveAccount() { console.log("Saving account..."); accountDialog.close() }
     
     // ========================================
     // MAIN CONTENT AREA
@@ -1045,4 +1226,312 @@ ApplicationWindow {
     Dialog { id: profileDialog; title: "Профиль"; width: 400; height: 300 }
     Dialog { id: settingsDialog; title: "Настройки"; width: 600; height: 500 }
     Dialog { id: helpDialog; title: "Справка"; width: 800; height: 600 }
+    
+    // ========================================
+    // ADDITIONAL DIALOGS
+    // ========================================
+    
+    // Location Dialog
+    Dialog {
+        id: locationDialog
+        title: "Склад / Магазин"
+        width: 500
+        height: 550
+        
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 24
+            spacing: 16
+            
+            RowLayout {
+                spacing: 8
+                Text { text: "Тип:"; width: 100 }
+                ComboBox {
+                    width: 200
+                    model: ["Склад", "Магазин"]
+                    onCurrentTextChanged: console.log("Selected:", currentText)
+                }
+            }
+            
+            TextField { id: locCodeF; label: "Код *" }
+            TextField { id: locNameF; label: "Наименование *" }
+            TextField { id: locAddressF; label: "Адрес" }
+            TextField { id: locPhoneF; label: "Телефон" }
+            TextField { id: locContactF; label: "Контактное лицо" }
+            TextField { id: locCapacityF; label: "Площадь (м²)" }
+            
+            RowLayout {
+                CheckBox { id: locActiveF; text: "Активен"; checked: true }
+            }
+            
+            TextArea { id: locMemoF; label: "Примечание"; height: 60 }
+            
+            RowLayout {
+                Item { Layout.fillWidth: true }
+                Button { text: "Отмена"; onClicked: locationDialog.close() }
+                Button { text: "Сохранить"; onClicked: saveLocation() }
+            }
+        }
+    }
+    
+    // Payment Dialog
+    Dialog {
+        id: paymentDialog
+        title: "Платёж"
+        width: 500
+        height: 450
+        
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 24
+            spacing: 16
+            
+            RowLayout {
+                spacing: 8
+                Text { text: "Тип:"; width: 80 }
+                ComboBox {
+                    width: 180
+                    model: ["Приход", "Расход"]
+                }
+            }
+            
+            DateField { id: payDateF; label: "Дата платежа" }
+            ComboBox { id: payBillF; label: "Документ"; width: 200; model: billsModel }
+            ComboBox { id: payPersonF; label: "Контрагент"; width: 200; model: personsModel }
+            TextField { id: payAmountF; label: "Сумма *" }
+            
+            RowLayout {
+                spacing: 8
+                Text { text: "Валюта:"; width: 80 }
+                ComboBox {
+                    width: 180
+                    model: ["RUB", "USD", "EUR"]
+                }
+            }
+            
+            TextField { id: payRateF; label: "Курс" }
+            TextField { id: payRefF; label: "Номер документа" }
+            ComboBox { id: payMethodF; label: "Способ оплаты"; width: 200; model: ["Наличные", "Безналичные", "Карта"] }
+            TextArea { id: payMemoF; label: "Примечание"; height: 60 }
+            
+            RowLayout {
+                Item { Layout.fillWidth: true }
+                Button { text: "Отмена"; onClicked: paymentDialog.close() }
+                Button { text: "Сохранить"; onClicked: savePayment() }
+            }
+        }
+    }
+    
+    // Job Dialog
+    Dialog {
+        id: jobDialog
+        title: "Задача"
+        width: 550
+        height: 500
+        
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 24
+            spacing: 16
+            
+            TextField { id: jobCodeF; label: "Код" }
+            TextField { id: jobNameF; label: "Название *" }
+            
+            RowLayout {
+                spacing: 8
+                Text { text: "Тип:"; width: 80 }
+                ComboBox {
+                    width: 180
+                    model: ["ETL", "Отчёт", "Синхронизация", "Уведомление"]
+                }
+            }
+            
+            ComboBox { id: jobPriorityF; label: "Приоритет"; width: 200; model: ["1-Высокий", "3-Средний", "5-Обычный", "9-Низкий"] }
+            DateField { id: jobScheduledF; label: "Запланировано" }
+            
+            TextArea { id: jobPayloadF; label: "Параметры (JSON)"; height: 100 }
+            TextArea { id: jobMemoF; label: "Примечание"; height: 80 }
+            
+            RowLayout {
+                Item { Layout.fillWidth: true }
+                Button { text: "Отмена"; onClicked: jobDialog.close() }
+                Button { text: "Создать"; onClicked: createJob() }
+            }
+        }
+    }
+    
+    // Employee Dialog
+    Dialog {
+        id: employeeDialog
+        title: "Сотрудник"
+        width: 550
+        height: 550
+        
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 24
+            spacing: 16
+            
+            TextField { id: empCodeF; label: "Табельный № *" }
+            ComboBox { id: empPersonF; label: "Физ. лицо"; width: 200; model: personsModel }
+            TextField { id: empPositionF; label: "Должность" }
+            TextField { id: empDeptF; label: "Подразделение" }
+            TextField { id: empSalaryF; label: "Оклад" }
+            DateField { id: empHireF; label: "Дата приёма" }
+            
+            RowLayout {
+                spacing: 8
+                Text { text: "Статус:"; width: 80 }
+                ComboBox {
+                    width: 180
+                    model: ["Работает", "В отпуске", "Больничный", "Уволен"]
+                }
+            }
+            
+            TextField { id: empPhoneF; label: "Телефон" }
+            TextField { id: empEmailF; label: "Email" }
+            TextArea { id: empMemoF; label: "Примечание"; height: 60 }
+            
+            RowLayout {
+                Item { Layout.fillWidth: true }
+                Button { text: "Отмена"; onClicked: employeeDialog.close() }
+                Button { text: "Сохранить"; onClicked: saveEmployee() }
+            }
+        }
+    }
+    
+    // Report Schedule Dialog
+    Dialog {
+        id: reportScheduleDialog
+        title: "Расписание отчёта"
+        width: 500
+        height: 450
+        
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 24
+            spacing: 16
+            
+            TextField { id: rsNameF; label: "Название *" }
+            ComboBox { id: rsReportF; label: "Отчёт"; width: 200; model: reportTemplatesModel }
+            TextField { id: rsCronF; label: "Cron (0 0 * * *)" }
+            TextArea { id: rsParamsF; label: "Параметры (JSON)"; height: 100 }
+            
+            RowLayout {
+                CheckBox { id: rsEnabledF; text: "Включено"; checked: true }
+            }
+            
+            RowLayout {
+                Item { Layout.fillWidth: true }
+                Button { text: "Отмена"; onClicked: reportScheduleDialog.close() }
+                Button { text: "Сохранить"; onClicked: saveReportSchedule() }
+            }
+        }
+    }
+    
+    // Currency Dialog
+    Dialog {
+        id: currencyDialog
+        title: "Валюта"
+        width: 450
+        height: 400
+        
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 24
+            spacing: 16
+            
+            TextField { id: currCodeF; label: "Код (ISO 4217) *" }
+            TextField { id: currNameF; label: "Наименование *" }
+            TextField { id: currSymbolF; label: "Символ" }
+            TextField { id: currRateF; label: "Курс к базовой валюте" }
+            
+            RowLayout {
+                CheckBox { id: currBaseF; text: "Базовая валюта" }
+                CheckBox { id: currActiveF; text: "Активна"; checked: true }
+            }
+            
+            RowLayout {
+                Item { Layout.fillWidth: true }
+                Button { text: "Отмена"; onClicked: currencyDialog.close() }
+                Button { text: "Сохранить"; onClicked: saveCurrency() }
+            }
+        }
+    }
+    
+    // Tax Dialog
+    Dialog {
+        id: taxDialog
+        title: "Налог"
+        width: 450
+        height: 400
+        
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 24
+            spacing: 16
+            
+            TextField { id: taxNameF; label: "Наименование *" }
+            TextField { id: taxRateF; label: "Ставка (%)" }
+            
+            RowLayout {
+                spacing: 8
+                Text { text: "Тип:"; width: 80 }
+                ComboBox {
+                    width: 180
+                    model: ["НДС", "Акциз", "Налог на прибыль", "УСН"]
+                }
+            }
+            
+            RowLayout {
+                CheckBox { id: taxActiveF; text: "Активен"; checked: true }
+            }
+            
+            RowLayout {
+                Item { Layout.fillWidth: true }
+                Button { text: "Отмена"; onClicked: taxDialog.close() }
+                Button { text: "Сохранить"; onClicked: saveTax() }
+            }
+        }
+    }
+    
+    // Account Dialog (Accounting)
+    Dialog {
+        id: accountDialog
+        title: "Счёт (План счетов)"
+        width: 500
+        height: 450
+        
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 24
+            spacing: 16
+            
+            TextField { id: accCodeF; label: "Код счёта *" }
+            TextField { id: accNameF; label: "Наименование *" }
+            
+            RowLayout {
+                spacing: 8
+                Text { text: "Тип:"; width: 80 }
+                ComboBox {
+                    width: 180
+                    model: ["Активный", "Пассивный", "Активно-Пассивный", "Забалансовый"]
+                }
+            }
+            
+            ComboBox { id: accParentF; label: "Родительский счёт"; width: 200; model: accountsModel }
+            
+            RowLayout {
+                CheckBox { id: accActiveF; text: "Активен"; checked: true }
+            }
+            
+            TextArea { id: accMemoF; label: "Описание"; height: 80 }
+            
+            RowLayout {
+                Item { Layout.fillWidth: true }
+                Button { text: "Отмена"; onClicked: accountDialog.close() }
+                Button { text: "Сохранить"; onClicked: saveAccount() }
+            }
+        }
+    }
 }

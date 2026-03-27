@@ -3,15 +3,16 @@
 
 -- | JWT helpers for authentication
 module Core.Auth.JWT
-  ( JWTConfig(..)
-  , TokenClaims(..)
-  , createToken
-  , verifyToken
-  ) where
+  ( JWTConfig (..),
+    TokenClaims (..),
+    createToken,
+    verifyToken,
+  )
+where
 
 import Crypto.Hash.Algorithms (SHA256)
 import Crypto.MAC.HMAC (HMAC, hmac, hmacGetDigest)
-import Data.Aeson (FromJSON, ToJSON, Value, eitherDecodeStrict', encode, object, toJSON, (.=))
+import Data.Aeson (FromJSON, ToJSON, Value, eitherDecodeStrict', encode, object, parseJSON, toJSON, (.=))
 import Data.Aeson.Types (defaultOptions, fieldLabelModifier, genericParseJSON, genericToJSON)
 import Data.Bifunctor (first)
 import Data.ByteArray (convert)
@@ -28,38 +29,41 @@ import GHC.Generics (Generic)
 
 -- | JWT configuration
 data JWTConfig = JWTConfig
-  { jwtSecret :: ByteString
-  , jwtIssuer :: Text
-  , jwtTTL    :: Int -- ^ seconds
+  { jwtSecret :: ByteString,
+    jwtIssuer :: Text,
+    -- | seconds
+    jwtTTL :: Int
   }
 
 -- | Token payload
 data TokenClaims = TokenClaims
-  { tcUserId    :: Int64
-  , tcRole      :: Text
-  , tcIssuedAt  :: Int64
-  , tcExpiresAt :: Int64
-  , tcIssuer    :: Text
-  } deriving (Eq, Show, Generic)
+  { tcUserId :: Int64,
+    tcRole :: Text,
+    tcIssuedAt :: Int64,
+    tcExpiresAt :: Int64,
+    tcIssuer :: Text
+  }
+  deriving (Eq, Show, Generic)
 
 instance ToJSON TokenClaims where
-  toJSON = genericToJSON defaultOptions { fieldLabelModifier = drop 2 }
+  toJSON = genericToJSON defaultOptions {fieldLabelModifier = drop 2}
 
 instance FromJSON TokenClaims where
-  parseJSON = genericParseJSON defaultOptions { fieldLabelModifier = drop 2 }
+  parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = drop 2}
 
 -- | Build a token for a given user
 createToken :: JWTConfig -> Int64 -> Text -> IO Text
 createToken cfg uid role = do
   now <- round <$> getPOSIXTime
   let expires = now + fromIntegral (jwtTTL cfg)
-      claims = TokenClaims
-        { tcUserId = uid
-        , tcRole = role
-        , tcIssuedAt = now
-        , tcExpiresAt = expires
-        , tcIssuer = jwtIssuer cfg
-        }
+      claims =
+        TokenClaims
+          { tcUserId = uid,
+            tcRole = role,
+            tcIssuedAt = now,
+            tcExpiresAt = expires,
+            tcIssuer = jwtIssuer cfg
+          }
   pure $ signToken cfg claims
 
 signToken :: JWTConfig -> TokenClaims -> Text
@@ -74,12 +78,12 @@ objectHeader :: Value
 objectHeader = object ["alg" .= ("HS256" :: Text), "typ" .= ("JWT" :: Text)]
 
 encodeSegment :: Value -> ByteString
-encodeSegment = B64.encodeBase64Unpadded . LBS.toStrict . encode
+encodeSegment = B64.encode . LBS.toStrict . encode
 
 makeSignature :: ByteString -> ByteString -> ByteString
 makeSignature secret payload =
   let digest = hmac secret payload :: HMAC SHA256
-   in B64.encodeBase64Unpadded (convert (hmacGetDigest digest))
+   in B64.encodeUnpadded (convert (hmacGetDigest digest))
 
 -- | Verify token and load claims
 verifyToken :: JWTConfig -> Text -> IO (Either Text TokenClaims)
@@ -92,12 +96,14 @@ verifyToken cfg token =
           | guardSignature (jwtSecret cfg) signedInput sigBytes -> do
               let parsed = first T.pack (eitherDecodeStrict' payloadBytes)
               now <- round <$> getPOSIXTime
-              pure $ parsed >>= \tc ->
-                if tcExpiresAt tc < now
-                  then Left "token expired"
-                  else if tcIssuer tc /= jwtIssuer cfg
-                    then Left "invalid issuer"
-                    else Right tc
+              pure $
+                parsed >>= \tc ->
+                  if tcExpiresAt tc < now
+                    then Left "token expired"
+                    else
+                      if tcIssuer tc /= jwtIssuer cfg
+                        then Left "invalid issuer"
+                        else Right tc
           | otherwise -> pure $ Left "invalid signature"
         (Left err, _, _) -> pure $ Left err
         (_, Left err, _) -> pure $ Left err
@@ -105,7 +111,7 @@ verifyToken cfg token =
     _ -> pure $ Left "invalid token format"
 
 decodeSegment :: Text -> Either Text ByteString
-decodeSegment txt = first T.pack (B64.decodeBase64Unpadded (TE.encodeUtf8 txt))
+decodeSegment txt = first T.pack (B64.decode (TE.encodeUtf8 txt))
 
 guardSignature :: ByteString -> ByteString -> ByteString -> Bool
 guardSignature secret payload sig = makeSignature secret payload == sig

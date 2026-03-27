@@ -13,7 +13,6 @@ where
 import Control.Concurrent (forkIO, threadDelay)
 import Control.Exception (SomeException, try)
 import Control.Monad (forever, void)
-import qualified Data.Text as T
 import Data.Time.Clock (getCurrentTime)
 import Hasql.Pool (Pool)
 

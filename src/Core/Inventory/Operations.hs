@@ -11,11 +11,9 @@ module Core.Inventory.Operations
   )
 where
 
-import Core.Inventory.Types.Lot
-import Core.Inventory.Types.Stock
+import Core.Inventory.Types.Lot (Lot (..))
 import Data.Int (Int64)
 import Data.Text (Text)
-import Data.Time (Day)
 
 -- | Stock operation result
 data StockOpResult
@@ -35,7 +33,7 @@ validateStockOperation qty
 -- | Process goods receipt (приход)
 -- Постусловие: остаток увеличивается на qty
 processReceipt :: Double -> Double -> Double -> StockOpResult
-processReceipt current qty _
+processReceipt _current qty _
   | qty <= 0 = StockOpInvalidQuantity
   | otherwise = StockOpSuccess
 

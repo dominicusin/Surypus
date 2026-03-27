@@ -14,8 +14,7 @@ where
 
 import Data.Text (Text)
 import qualified Data.Text as T
-import Data.Time (UTCTime, getCurrentTime)
-import Numeric (readHex)
+import Data.Time (UTCTime)
 
 data APIKeyPermission
   = APIRead
@@ -60,12 +59,12 @@ hashAPIKey key = key
 verifyAPIKey :: APIKey -> Text -> UTCTime -> Bool
 verifyAPIKey apiKey inputKey now
   | not (akActive apiKey) = False
-  | Just exp <- akExpiresAt apiKey = exp > now && inputKey == akKey apiKey
+  | Just expTime <- akExpiresAt apiKey = expTime > now && inputKey == akKey apiKey
   | otherwise = inputKey == akKey apiKey
 
 validateAPIKey :: APIKey -> Maybe UTCTime -> Bool
 validateAPIKey _apiKey Nothing = True
 validateAPIKey apiKey (Just now)
   | not (akActive apiKey) = False
-  | Just exp <- akExpiresAt apiKey = exp > now
+  | Just expTime <- akExpiresAt apiKey = expTime > now
   | otherwise = True

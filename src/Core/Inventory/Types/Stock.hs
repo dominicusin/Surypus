@@ -2,7 +2,6 @@
 module Core.Inventory.Types.Stock where
 
 import Data.Int (Int64)
-import Data.Text (Text)
 
 -- | Stock - Current stock balance
 data Stock = Stock

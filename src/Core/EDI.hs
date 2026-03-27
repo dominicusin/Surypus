@@ -1,20 +1,20 @@
 -- | EDI module - Electronic data interchange
 module Core.EDI where
 
-import           Data.Int  (Int64)
-import           Data.Text (Text)
-import           Data.Time (Day)
+import Data.Int (Int64)
+import Data.Time (Day)
 
 -- | EDIExchange - EDI exchange
 data EDIExchange = EDIExchange
-  { ediId         :: Int64
-  , ediProviderId :: Int64
-  , ediType       :: EDIType
-  , ediDirection  :: EDIDirection
-  , ediStatus     :: EDIStatus
-  , ediDate       :: Day
-  , ediDocId      :: Int64
-  } deriving (Show, Eq)
+  { ediId :: Int64,
+    ediProviderId :: Int64,
+    ediType :: EDIType,
+    ediDirection :: EDIDirection,
+    ediStatus :: EDIStatus,
+    ediDate :: Day,
+    ediDocId :: Int64
+  }
+  deriving (Show, Eq)
 
 data EDIType = EDIOrder | EDIInvoice | EDIDesadv | EDIRecadv
   deriving (Show, Eq)

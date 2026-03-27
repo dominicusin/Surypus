@@ -3,7 +3,6 @@ module Core.Person.Contact where
 
 import Data.Int (Int64)
 import Data.Text (Text)
-import Data.Time (Day)
 
 -- | Contact - Contact information for person
 data Contact = Contact

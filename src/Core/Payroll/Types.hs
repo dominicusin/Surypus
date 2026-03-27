@@ -7,7 +7,7 @@ module Core.Payroll.Types where
 
 import Data.Int (Int64)
 import Data.Text (Text)
-import Data.Time (Day, DiffTime)
+import Data.Time (Day)
 
 -- ============================================================================
 -- SALARY TYPES (from salary.cpp)

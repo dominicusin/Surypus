@@ -17,30 +17,36 @@ import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
-import Hasql.Statement (Statement (..))
+import Hasql.Statement (unpreparable)
 
 registerPayrollSnapshot :: Pool -> Day -> Day -> IO Int64
-registerPayrollSnapshot pool start end = use pool $ Session.statement params stmt
+registerPayrollSnapshot pool start end = do
+  result <- use pool $ Session.statement params stmt
+  case result of
+    Right x -> pure x
+    Left _ -> pure 0
   where
     params = (start, end)
     stmt =
-      Statement
+      unpreparable
         "SELECT log_hr_payroll_snapshot($1, $2)"
         ( E.param (E.nonNullable E.date)
             <> E.param (E.nonNullable E.date)
         )
         (D.singleRow $ D.column (D.nonNullable D.int8))
-        False
 
 listPayrollSnapshots :: Pool -> IO [PayrollSnapshotRecord]
-listPayrollSnapshots pool = use pool $ Session.statement () stmt
+listPayrollSnapshots pool = do
+  result <- use pool $ Session.statement () stmt
+  case result of
+    Right x -> pure x
+    Left _ -> pure []
   where
     stmt =
-      Statement
+      unpreparable
         "SELECT id, period_start, period_end, created_at, summary::text FROM v_hr_payroll_snapshot"
         E.noParams
         (D.rowList payrollSnapshotRow)
-        False
 
 payrollSnapshotRow :: D.Row PayrollSnapshotRecord
 payrollSnapshotRow = do

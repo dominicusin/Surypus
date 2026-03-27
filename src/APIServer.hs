@@ -15,6 +15,8 @@ import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Except (runExceptT)
 import DAL.Queries
 import DAL.Repository (Repository (find), RepositoryError (..))
+import DAL.Repository.AccPlan (createAccPlanRepo, deleteAccPlanRepo, listAccPlansRepo, updateAccPlanRepo)
+import DAL.Repository.AccTurn (createAccTurnRepo, deleteAccTurnRepo, listAccTurnsRepo, updateAccTurnRepo)
 import DAL.Repository.Bill (createBillRepo, deleteBillRepo, listBillsPage, updateBillStatusRepo)
 import DAL.Repository.Container (RepositoryContainer (..), mkRepositoryContainer)
 import DAL.Repository.Currency (createCurrencyRepo, deleteCurrencyRepo, listCurrenciesRepo, updateCurrencyRepo)
@@ -264,6 +266,8 @@ runServer cfg = do
       priceRepo = rcPriceRepository repositories
       billRepo = rcBillRepository repositories
       orderRepo = rcOrderRepository repositories
+      accPlanRepo = rcAccPlanRepository repositories
+      accTurnRepo = rcAccTurnRepository repositories
 
   Scotty.scotty port $ do
     middleware (metricsMiddleware metricsRef)
@@ -794,9 +798,81 @@ runServer cfg = do
       result <- liftIO $ getAccPlanById pool pid
       json $ toJSONResult result
 
+    -- Create AccPlan
+    post "/api/v1/accounting/accounts" $ do
+      input <- jsonData :: ActionM AccPlanInput
+      repoResult <- liftIO $ runExceptT $ createAccPlanRepo accPlanRepo input
+      case repoResult of
+        Left repoErr -> respondRepositoryError repoErr
+        Right accPlanVal -> do
+          liftIO $ publishWebSocketEvent wsHub NTAccountingChanged "account_plan.created" (object ["id" .= apId accPlanVal])
+          json $ object ["success" .= True, "data" .= accPlanVal]
+
+    -- Update AccPlan
+    put "/api/v1/accounting/accounts/:id" $ do
+      pid <- captureParam "id"
+      input <- jsonData :: ActionM AccPlanInput
+      repoResult <- liftIO $ runExceptT $ updateAccPlanRepo accPlanRepo pid input
+      case repoResult of
+        Left repoErr -> respondRepositoryError repoErr
+        Right accPlanVal -> do
+          liftIO $ publishWebSocketEvent wsHub NTAccountingChanged "account_plan.updated" (object ["id" .= apId accPlanVal])
+          json $ object ["success" .= True, "data" .= accPlanVal]
+
+    -- Delete AccPlan
+    delete "/api/v1/accounting/accounts/:id" $ do
+      pid <- captureParam "id"
+      repoResult <- liftIO $ runExceptT $ deleteAccPlanRepo accPlanRepo pid
+      case repoResult of
+        Left repoErr -> respondRepositoryError repoErr
+        Right () -> do
+          liftIO $ publishWebSocketEvent wsHub NTAccountingChanged "account_plan.deleted" (object ["id" .= pid])
+          json $ object ["success" .= True]
+
+    -- Accounting entries (turns)
     get "/api/v1/accounting/entries" $ do
       result <- liftIO $ getAccTurns pool
       json $ toJSONResult result
+
+    -- Get AccTurn by ID
+    get "/api/v1/accounting/entries/:id" $ do
+      turnId <- captureParam "id"
+      repoResult <- liftIO $ runExceptT $ find accTurnRepo turnId
+      case repoResult of
+        Left repoErr -> respondRepositoryError repoErr
+        Right Nothing -> respondRepositoryError (NotFound "Accounting entry not found")
+        Right (Just accTurnVal) -> json $ object ["success" .= True, "data" .= accTurnVal]
+
+    -- Create AccTurn
+    post "/api/v1/accounting/entries" $ do
+      input <- jsonData :: ActionM AccTurnInput
+      repoResult <- liftIO $ runExceptT $ createAccTurnRepo accTurnRepo input
+      case repoResult of
+        Left repoErr -> respondRepositoryError repoErr
+        Right accTurnVal -> do
+          liftIO $ publishWebSocketEvent wsHub NTAccountingChanged "account_entry.created" (object ["id" .= atId accTurnVal])
+          json $ object ["success" .= True, "data" .= accTurnVal]
+
+    -- Update AccTurn
+    put "/api/v1/accounting/entries/:id" $ do
+      turnId <- captureParam "id"
+      input <- jsonData :: ActionM AccTurnInput
+      repoResult <- liftIO $ runExceptT $ updateAccTurnRepo accTurnRepo turnId input
+      case repoResult of
+        Left repoErr -> respondRepositoryError repoErr
+        Right accTurnVal -> do
+          liftIO $ publishWebSocketEvent wsHub NTAccountingChanged "account_entry.updated" (object ["id" .= atId accTurnVal])
+          json $ object ["success" .= True, "data" .= accTurnVal]
+
+    -- Delete AccTurn
+    delete "/api/v1/accounting/entries/:id" $ do
+      turnId <- captureParam "id"
+      repoResult <- liftIO $ runExceptT $ deleteAccTurnRepo accTurnRepo turnId
+      case repoResult of
+        Left repoErr -> respondRepositoryError repoErr
+        Right () -> do
+          liftIO $ publishWebSocketEvent wsHub NTAccountingChanged "account_entry.deleted" (object ["id" .= turnId])
+          json $ object ["success" .= True]
 
     -- Payroll
     get "/api/v1/payroll" $ do

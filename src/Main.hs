@@ -1,7 +1,9 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 -- | Main entry point for Surypus API server
 module Main where
 
-import API.Server (ServerConfig (..), runServer)
+import APIServer (RateLimitConfig (..), ServerConfig (..), defaultRateLimit, runServer)
 import Core.Service
   ( ServiceCommand (..),
     initialServiceState,
@@ -12,14 +14,16 @@ import Core.Service
   )
 import Core.ServiceManager (runDaemon)
 import DB.Connection
-  ( Pool,
-    PoolConfig (..),
+  ( PoolConfig (..),
     closePool,
     createPool,
+    defaultPoolConfig,
     initSchema,
   )
+import Data.Text (Text)
 import qualified Data.Text as T
-import System.Environment (getArgs, getEnv, getEnvironment)
+import Hasql.Pool (Pool)
+import System.Environment (getArgs)
 import System.IO (hPutStrLn, stderr)
 
 main :: IO ()
@@ -30,62 +34,42 @@ main = do
   putStrLn "  Version 0.1.0"
   putStrLn "========================================="
 
-  -- Load configuration from environment
-  host <- getEnvDefault "SURYPUS_HOST" "0.0.0.0"
-  port <- read <$> getEnvDefault "SURYPUS_PORT" "3000"
-  pgHost <- getEnvDefault "SURYPUS_PG_HOST" "localhost"
-  pgPort <- read <$> getEnvDefault "SURYPUS_PG_PORT" "5432"
-  pgUser <- getEnvDefault "SURYPUS_PG_USER" "surypus"
-  pgPass <- getEnvDefault "SURYPUS_PG_PASSWORD" "surypus"
-  pgDb <- getEnvDefault "SURYPUS_PG_DATABASE" "surypus"
-
   let poolCfg =
         PoolConfig
-          { pcHost = pgHost,
-            pcPort = pgPort,
-            pcUser = pgUser,
-            pcPassword = pgPass,
-            pcDatabase = pgDb,
-            pcConnections = 10,
-            pcStripes = 1,
-            pcIdleTime = 60
+          { pcHost = "localhost",
+            pcPort = 5432,
+            pcUser = "surypus",
+            pcPassword = "surypus",
+            pcDatabase = "surypus",
+            pcConnections = 10
           }
 
-      serverCfg =
-        ServerConfig
-          { scPort = port,
-            scHost = host,
-            scPoolConfig = poolCfg
-          }
-
-  putStrLn $ "Database: " <> pgHost <> ":" <> show pgPort <> "/" <> pgDb
-  putStrLn $ "Server: " <> host <> ":" <> show port
-
-  -- Create connection pool
   putStrLn "Creating database connection pool..."
   pool <- createPool poolCfg
 
-  -- Initialize schema (only if tables don't exist)
   putStrLn "Initializing database schema..."
   initSchema pool
+
+  rateLimit <- defaultRateLimit
+
+  let serverCfg =
+        ServerConfig
+          { scHost = "0.0.0.0",
+            scPort = 3000,
+            scLogRequests = True,
+            scJwtSecret = "surypus-secret-key",
+            scRateLimit = rateLimit,
+            scPool = pool,
+            scWebSocketHub = Nothing
+          }
 
   case parseServiceCommand args of
     Just cmd -> runServiceMode serverCfg pool cmd
     Nothing -> do
-      -- Run server
       putStrLn "Starting API server..."
-      runServer serverCfg pool
+      runServer serverCfg
 
-  -- Cleanup on exit
   closePool pool
-
--- | Get environment variable with default
-getEnvDefault :: String -> String -> IO String
-getEnvDefault name defaultVal = do
-  val <- tryGetEnv name
-  pure $ fromMaybe defaultVal val
-  where
-    tryGetEnv n = lookup n <$> getEnvironment
 
 runServiceMode :: ServerConfig -> Pool -> ServiceCommand -> IO ()
 runServiceMode _ _ CmdHelp = putStrLn (T.unpack serviceCommandHelp)
@@ -96,7 +80,7 @@ runServiceMode serverCfg pool cmd = case transition initialServiceState cmd of
     case cmd of
       CmdRun -> do
         putStrLn "Executing ppws run command"
-        runServer serverCfg pool
+        runServer serverCfg
       CmdInstall login pw -> do
         putStrLn $ "Installing service (login=" <> show login <> ", password=" <> show pw <> ")"
       CmdUninstall ->

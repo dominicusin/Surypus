@@ -12,7 +12,6 @@ where
 
 import Core.Inventory.Types
 import Data.Int (Int64)
-import Data.Text (Text)
 import Data.Time (Day)
 
 -- | Validate lot: quantity >= 0

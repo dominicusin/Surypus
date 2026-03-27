@@ -70,5 +70,5 @@ instance FromJSON TSession
 
 -- | Calculate material consumption
 calcMaterialConsumption :: Tech -> [(Int64, Double)] -> Double
-calcMaterialConsumption tech materials =
+calcMaterialConsumption _ materials =
   sum (fmap snd materials)

@@ -484,6 +484,324 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+        
+        /* Charts */
+        .chart-container {
+            height: 300px;
+            padding: 20px;
+        }
+        
+        .chart-bar {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-around;
+            height: 200px;
+            padding: 20px 0;
+        }
+        
+        .chart-bar-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .chart-bar-fill {
+            width: 40px;
+            background: linear-gradient(to top, var(--primary), var(--primary-light));
+            border-radius: 4px 4px 0 0;
+            transition: height 0.3s;
+        }
+        
+        .chart-bar-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+        
+        /* Kanban Board */
+        .kanban-board {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .kanban-column {
+            background: var(--surface);
+            border-radius: 8px;
+            min-height: 400px;
+            border: 1px solid var(--divider);
+        }
+        
+        .kanban-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--divider);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .kanban-header.todo { background: #FFF3E0; color: #E65100; }
+        .kanban-header.in-progress { background: #E3F2FD; color: #0D47A1; }
+        .kanban-header.done { background: #E8F5E9; color: #1B5E20; }
+        .kanban-header.blocked { background: #FFEBEE; color: #B71C1C; }
+        
+        .kanban-body {
+            padding: 12px;
+            min-height: 340px;
+        }
+        
+        .kanban-card {
+            background: white;
+            border: 1px solid var(--divider);
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 8px;
+            cursor: grab;
+            transition: all 0.2s;
+        }
+        
+        .kanban-card:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transform: translateY(-1px);
+        }
+        
+        .kanban-card-title {
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        
+        .kanban-card-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+        
+        .kanban-card-priority {
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+        }
+        
+        .priority-high { background: #FFEBEE; color: #C62828; }
+        .priority-medium { background: #FFF3E0; color: #E65100; }
+        .priority-low { background: #E8F5E9; color: #2E7D32; }
+        
+        /* Tabs */
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--divider);
+            margin-bottom: 20px;
+        }
+        
+        .tab {
+            padding: 12px 20px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+        
+        .tab:hover {
+            color: var(--text-primary);
+        }
+        
+        .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+        
+        /* Tree View */
+        .tree-view {
+            padding: 8px 0;
+        }
+        
+        .tree-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+        
+        .tree-item:hover {
+            background: #F5F5F5;
+        }
+        
+        .tree-item.selected {
+            background: #E3F2FD;
+        }
+        
+        .tree-toggle {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: var(--text-secondary);
+        }
+        
+        .tree-children {
+            padding-left: 28px;
+        }
+        
+        /* Timeline */
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+        
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 10px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--divider);
+        }
+        
+        .timeline-item {
+            position: relative;
+            padding-bottom: 20px;
+        }
+        
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -24px;
+            top: 4px;
+            width: 10px;
+            height: 10px;
+            background: var(--primary);
+            border-radius: 50%;
+        }
+        
+        .timeline-date {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+        
+        .timeline-content {
+            background: var(--surface);
+            border: 1px solid var(--divider);
+            border-radius: 6px;
+            padding: 12px;
+        }
+        
+        /* Progress */
+        .progress-bar {
+            height: 8px;
+            background: var(--divider);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--success));
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
+        
+        /* Tooltip */
+        .tooltip {
+            position: relative;
+        }
+        
+        .tooltip::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s;
+        }
+        
+        .tooltip:hover::after {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        /* Pagination */
+        .pagination {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 16px;
+        }
+        
+        .pagination-btn {
+            width: 32px;
+            height: 32px;
+            border: 1px solid var(--divider);
+            background: var(--surface);
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        .pagination-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+        
+        .pagination-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        
+        /* Filter */
+        .filter-bar {
+            display: flex;
+            gap: 12px;
+            padding: 12px 16px;
+            background: #FAFAFA;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: white;
+            border: 1px solid var(--divider);
+            border-radius: 16px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        
+        .filter-chip:hover {
+            border-color: var(--primary);
+        }
+        
+        .filter-chip.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
     </style>
 </head>
 <body>
@@ -539,6 +857,10 @@
             <div class="nav-item" data-page="stock" onclick="navigateTo('stock')">
                 <span class="nav-icon">📈</span>
                 <span>Складской учёт</span>
+            </div>
+            <div class="nav-item" data-page="locations" onclick="navigateTo('locations')">
+                <span class="nav-icon">🏪</span>
+                <span>Склады</span>
             </div>
             <div class="nav-item" data-page="accounting" onclick="navigateTo('accounting')">
                 <span class="nav-icon">💰</span>
@@ -874,28 +1196,677 @@
             </div>
         </div>
         
+        <!-- Accounting Page -->
+        <div id="page-accounting" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <h1>Бухгалтерия</h1>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-secondary">📊 Оборотно-сальдовая</button>
+                    <button class="btn btn-primary" onclick="openModal('entryModal')">➕ Проводка</button>
+                </div>
+            </div>
+            
+            <div class="tabs">
+                <div class="tab active">Проводки</div>
+                <div class="tab">Счета</div>
+                <div class="tab">Журнал операций</div>
+                <div class="tab">Баланс</div>
+            </div>
+            
+            <div class="filter-bar">
+                <input type="text" class="form-input" style="width: 200px;" placeholder="Поиск...">
+                <select class="form-input" style="width: 150px;">
+                    <option>Все счета</option>
+                    <option>50</option>
+                    <option>51</option>
+                    <option>60</option>
+                    <option>62</option>
+                </select>
+                <input type="date" class="form-input" style="width: 150px;" value="2026-03-01">
+                <input type="date" class="form-input" style="width: 150px;" value="2026-03-27">
+                <button class="btn btn-primary">Применить</button>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Журнал проводок</span>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary">Экспорт</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Дата</th>
+                                <th>Документ</th>
+                                <th>Дебет</th>
+                                <th>Кредит</th>
+                                <th>Сумма</th>
+                                <th>Содержание</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>2026-03-27</td>
+                                <td>INV-2026-089</td>
+                                <td>62.1</td>
+                                <td>90.1</td>
+                                <td>50 000 ₽</td>
+                                <td>Продажа ООО ТехноСтрой</td>
+                            </tr>
+                            <tr>
+                                <td>2026-03-27</td>
+                                <td>INV-2026-089</td>
+                                <td>90.3</td>
+                                <td>68.2</td>
+                                <td>7 627 ₽</td>
+                                <td>НДС 20%</td>
+                            </tr>
+                            <tr>
+                                <td>2026-03-26</td>
+                                <td>ПЛ-001</td>
+                                <td>51</td>
+                                <td>62.1</td>
+                                <td>50 000 ₽</td>
+                                <td>Поступление оплаты</td>
+                            </tr>
+                            <tr>
+                                <td>2026-03-25</td>
+                                <td>ПО-003</td>
+                                <td>41.1</td>
+                                <td>60.1</td>
+                                <td>30 000 ₽</td>
+                                <td>Поступление товара</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 24px;">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">Обороты за март</span>
+                    </div>
+                    <div class="card-body" style="padding: 20px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                            <span>Дебет:</span>
+                            <span style="font-weight: bold; color: var(--primary);">450 000 ₽</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                            <span>Кредит:</span>
+                            <span style="font-weight: bold; color: var(--success);">380 000 ₽</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 84%;"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">Сальдо</span>
+                    </div>
+                    <div class="card-body" style="padding: 20px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                            <span>Активы:</span>
+                            <span style="font-weight: bold;">1 250 000 ₽</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>Пассивы:</span>
+                            <span style="font-weight: bold;">1 180 000 ₽</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">НДС к уплате</span>
+                    </div>
+                    <div class="card-body" style="padding: 20px; text-align: center;">
+                        <div style="font-size: 28px; font-weight: bold; color: var(--warning);">45 200 ₽</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">К уплате до 25.04</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Payroll Page -->
+        <div id="page-payroll" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <h1>Зарплата и кадры</h1>
+                <button class="btn btn-primary" onclick="openModal('salaryModal')">➕ Начисление</button>
+            </div>
+            
+            <div class="tabs">
+                <div class="tab active">Сотрудники</div>
+                <div class="tab">Начисления</div>
+                <div class="tab">Расчётные листы</div>
+                <div class="tab">Штатное расписание</div>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #E3F2FD; color: #1976D2;">👥</div>
+                    <div class="stat-value">24</div>
+                    <div class="stat-label">Сотрудников</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #E8F5E9; color: #4CAF50;">💰</div>
+                    <div class="stat-value">380 000 ₽</div>
+                    <div class="stat-label">Фонд зарплаты</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #FFF3E0; color: #FF9800;">📅</div>
+                    <div class="stat-value">15 833 ₽</div>
+                    <div class="stat-label">Средняя зарплата</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #FCE4EC; color: #E91E63;">⏰</div>
+                    <div class="stat-value">3</div>
+                    <div class="stat-label">В отпуске</div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Сотрудники</span>
+                    <div class="card-actions">
+                        <input type="text" class="form-input" style="width: 200px;" placeholder="Поиск...">
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Таб. №</th>
+                                <th>ФИО</th>
+                                <th>Должность</th>
+                                <th>Подразделение</th>
+                                <th>Оклад</th>
+                                <th>Статус</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>001</td>
+                                <td>Петров А.С.</td>
+                                <td>Директор</td>
+                                <td>Администрация</td>
+                                <td>80 000 ₽</td>
+                                <td><span class="status-badge status-active">Работает</span></td>
+                            </tr>
+                            <tr>
+                                <td>002</td>
+                                <td>Сидорова Е.П.</td>
+                                <td>Бухгалтер</td>
+                                <td>Бухгалтерия</td>
+                                <td>55 000 ₽</td>
+                                <td><span class="status-badge status-active">Работает</span></td>
+                            </tr>
+                            <tr>
+                                <td>003</td>
+                                <td>Козлов М.И.</td>
+                                <td>Менеджер</td>
+                                <td>Продажи</td>
+                                <td>45 000 ₽</td>
+                                <td><span class="status-badge" style="background: #FFF3E0; color: #FF9800;">В отпуске</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="card" style="margin-top: 24px;">
+                <div class="card-header">
+                    <span class="card-title">Календарь отпусков</span>
+                </div>
+                <div class="card-body" style="padding: 20px;">
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <div class="timeline-date">10.03.2026 - 25.03.2026</div>
+                            <div class="timeline-content">
+                                <strong>Козлов М.И.</strong> - Ежегодный отпуск (14 дней)
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-date">01.04.2026 - 14.04.2026</div>
+                            <div class="timeline-content">
+                                <strong>Петров А.С.</strong> - Ежегодный отпуск (14 дней)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Stock Page -->
+        <div id="page-stock" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <h1>Складской учёт</h1>
+                <button class="btn btn-primary" onclick="openModal('stockModal')">➕ Перемещение</button>
+            </div>
+            
+            <div class="tabs">
+                <div class="tab active">Остатки</div>
+                <div class="tab">Движения</div>
+                <div class="tab">Инвентаризация</div>
+                <div class="tab">Заказы</div>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #E8F5E9; color: #4CAF50;">📦</div>
+                    <div class="stat-value">1 234</div>
+                    <div class="stat-label">Наименований</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #E3F2FD; color: #1976D2;">🏭</div>
+                    <div class="stat-value">5</div>
+                    <div class="stat-label">Складов</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #FFF3E0; color: #FF9800;">⚠️</div>
+                    <div class="stat-value">12</div>
+                    <div class="stat-label">Ниже минимума</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #FCE4EC; color: #E91E63;">📊</div>
+                    <div class="stat-value">2.4 млн ₽</div>
+                    <div class="stat-label">Стоимость</div>
+                </div>
+            </div>
+            
+            <div class="filter-bar">
+                <input type="text" class="form-input" style="width: 200px;" placeholder="Поиск товара...">
+                <select class="form-input" style="width: 150px;">
+                    <option>Все склады</option>
+                    <option>Основной</option>
+                    <option>Розничный</option>
+                </select>
+                <select class="form-input" style="width: 150px;">
+                    <option>Все группы</option>
+                    <option>Стройматериалы</option>
+                    <option>Инструменты</option>
+                </select>
+                <label style="display: flex; align-items: center; gap: 6px;">
+                    <input type="checkbox"> Только ниже минимума
+                </label>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Остатки товаров</span>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary">📊 Отчёт</button>
+                        <button class="btn btn-secondary">📤 Экспорт</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Код</th>
+                                <th>Наименование</th>
+                                <th>Склад</th>
+                                <th>Остаток</th>
+                                <th>Мин.</th>
+                                <th>Макс.</th>
+                                <th>Цена</th>
+                                <th>Сумма</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>G001</td>
+                                <td>Стройматериалы</td>
+                                <td>Основной</td>
+                                <td>500 кг</td>
+                                <td>100</td>
+                                <td>1000</td>
+                                <td>100 ₽</td>
+                                <td>50 000 ₽</td>
+                            </tr>
+                            <tr>
+                                <td>G002</td>
+                                <td>Инструменты</td>
+                                <td>Основной</td>
+                                <td>100 шт</td>
+                                <td>20</td>
+                                <td>200</td>
+                                <td>250 ₽</td>
+                                <td>25 000 ₽</td>
+                            </tr>
+                            <tr style="background: #FFF3E0;">
+                                <td>G003</td>
+                                <td>Крепёж</td>
+                                <td>Основной</td>
+                                <td>50 кг</td>
+                                <td>100</td>
+                                <td>500</td>
+                                <td>50 ₽</td>
+                                <td>2 500 ₽</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Locations Page -->
+        <div id="page-locations" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <h1>Склады и магазины</h1>
+                <button class="btn btn-primary" onclick="openModal('locationModal')">➕ Добавить</button>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #E3F2FD; color: #1976D2;">🏭</div>
+                    <div class="stat-value">3</div>
+                    <div class="stat-label">Склады</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #E8F5E9; color: #4CAF50;">🏪</div>
+                    <div class="stat-value">2</div>
+                    <div class="stat-label">Магазины</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #FFF3E0; color: #FF9800;">📍</div>
+                    <div class="stat-value">5</div>
+                    <div class="stat-label">Точек</div>
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">🏭 Основной склад</span>
+                        <span class="status-badge status-active">Активен</span>
+                    </div>
+                    <div class="card-body" style="padding: 20px;">
+                        <p style="margin-bottom: 12px; color: var(--text-secondary);">г. Москва, ул. Промышленная, д. 10</p>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+                            <div>
+                                <div style="font-size: 12px; color: var(--text-secondary);">Товаров</div>
+                                <div style="font-size: 20px; font-weight: bold;">850</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 12px; color: var(--text-secondary);">Площадь</div>
+                                <div style="font-size: 20px; font-weight: bold;">500 м²</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">🏪 Розничный магазин №1</span>
+                        <span class="status-badge status-active">Активен</span>
+                    </div>
+                    <div class="card-body" style="padding: 20px;">
+                        <p style="margin-bottom: 12px; color: var(--text-secondary);">г. Москва, ул. Центральная, д. 25</p>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+                            <div>
+                                <div style="font-size: 12px; color: var(--text-secondary);">Товаров</div>
+                                <div style="font-size: 20px; font-weight: bold;">320</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 12px; color: var(--text-secondary);">Площадь</div>
+                                <div style="font-size: 20px; font-weight: bold;">120 м²</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">🏭 Склад запчастей</span>
+                        <span class="status-badge status-active">Активен</span>
+                    </div>
+                    <div class="card-body" style="padding: 20px;">
+                        <p style="margin-bottom: 12px; color: var(--text-secondary);">г. Москва, ул. Заводская, д. 5</p>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+                            <div>
+                                <div style="font-size: 12px; color: var(--text-secondary);">Товаров</div>
+                                <div style="font-size: 20px; font-weight: bold;">64</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 12px; color: var(--text-secondary);">Площадь</div>
+                                <div style="font-size: 20px; font-weight: bold;">300 м²</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Reports Page -->
+        <div id="page-reports" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <h1>Отчёты</h1>
+            </div>
+            
+            <div class="filter-bar">
+                <button class="filter-chip active">Все</button>
+                <button class="filter-chip">Финансовые</button>
+                <button class="filter-chip">Складские</button>
+                <button class="filter-chip">Кадровые</button>
+                <button class="filter-chip">Продажи</button>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+                <div class="card">
+                    <div class="card-body" style="padding: 24px; text-align: center; cursor: pointer;" onclick="alert('Формирование отчёта...')">
+                        <div style="font-size: 40px; margin-bottom: 16px;">📊</div>
+                        <h3 style="margin-bottom: 8px;">Продажи</h3>
+                        <p style="font-size: 12px; color: var(--text-secondary);">Анализ продаж за период</p>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-body" style="padding: 24px; text-align: center; cursor: pointer;" onclick="alert('Формирование отчёта...')">
+                        <div style="font-size: 40px; margin-bottom: 16px;">💰</div>
+                        <h3 style="margin-bottom: 8px;">Прибыльность</h3>
+                        <p style="font-size: 12px; color: var(--text-secondary);">Рентабельность по товарам</p>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-body" style="padding: 24px; text-align: center; cursor: pointer;" onclick="alert('Формирование отчёта...')">
+                        <div style="font-size: 40px; margin-bottom: 16px;">📦</div>
+                        <h3 style="margin-bottom: 8px;">Остатки</h3>
+                        <p style="font-size: 12px; color: var(--text-secondary);">Складские остатки</p>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-body" style="padding: 24px; text-align: center; cursor: pointer;" onclick="alert('Формирование отчёта...')">
+                        <div style="font-size: 40px; margin-bottom: 16px;">👥</div>
+                        <h3 style="margin-bottom: 8px;">Дебиторы</h3>
+                        <p style="font-size: 12px; color: var(--text-secondary);">Задолженность контрагентов</p>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-body" style="padding: 24px; text-align: center; cursor: pointer;" onclick="alert('Формирование отчёта...')">
+                        <div style="font-size: 40px; margin-bottom: 16px;">🧾</div>
+                        <h3 style="margin-bottom: 8px;">НДС</h3>
+                        <p style="font-size: 12px; color: var(--text-secondary);">Книга покупок/продаж</p>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-body" style="padding: 24px; text-align: center; cursor: pointer;" onclick="alert('Формирование отчёта...')">
+                        <div style="font-size: 40px; margin-bottom: 16px;">👨‍💼</div>
+                        <h3 style="margin-bottom: 8px;">Зарплата</h3>
+                        <p style="font-size: 12px; color: var(--text-secondary);">Фонд оплаты труда</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card" style="margin-top: 24px;">
+                <div class="card-header">
+                    <span class="card-title">История формирования</span>
+                </div>
+                <div class="card-body">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Дата</th>
+                                <th>Отчёт</th>
+                                <th>Период</th>
+                                <th>Статус</th>
+                                <th>Файл</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>27.03.2026 15:30</td>
+                                <td>Продажи</td>
+                                <td>Март 2026</td>
+                                <td><span class="status-badge status-completed">Готов</span></td>
+                                <td><button class="btn btn-secondary" style="padding: 4px 8px;">📥</button></td>
+                            </tr>
+                            <tr>
+                                <td>27.03.2026 10:00</td>
+                                <td>Остатки</td>
+                                <td>26.03.2026</td>
+                                <td><span class="status-badge status-completed">Готов</span></td>
+                                <td><button class="btn btn-secondary" style="padding: 4px 8px;">📥</button></td>
+                            </tr>
+                            <tr>
+                                <td>26.03.2026 18:00</td>
+                                <td>НДС</td>
+                                <td>Февраль 2026</td>
+                                <td><span class="status-badge status-completed">Готов</span></td>
+                                <td><button class="btn btn-secondary" style="padding: 4px 8px;">📥</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
         <!-- Settings Page -->
         <div id="page-settings" style="display: none;">
             <h1 style="margin-bottom: 24px;">Настройки</h1>
             
-            <div class="card">
-                <div class="card-header">
-                    <span class="card-title">Общие настройки</span>
+            <div class="tabs">
+                <div class="tab active">Общие</div>
+                <div class="tab">Пользователи</div>
+                <div class="tab">Интеграции</div>
+                <div class="tab">Уведомления</div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">Организация</span>
+                    </div>
+                    <div class="card-body" style="padding: 20px;">
+                        <div class="form-group">
+                            <label class="form-label">Название организации</label>
+                            <input type="text" class="form-input" value="ООО ТехноСтрой">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">ИНН</label>
+                            <input type="text" class="form-input" value="7701234567890">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">КПП</label>
+                            <input type="text" class="form-input" value="770101001">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">ОГРН</label>
+                            <input type="text" class="form-input" value="1167746701245">
+                        </div>
+                        <button class="btn btn-primary">Сохранить</button>
+                    </div>
                 </div>
-                <div class="card-body" style="padding: 20px;">
-                    <div class="form-group">
-                        <label class="form-label">Название организации</label>
-                        <input type="text" class="form-input" value="ООО ТехноСтрой">
+                
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">Система</span>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">ИНН</label>
-                        <input type="text" class="form-input" value="7701234567890">
+                    <div class="card-body" style="padding: 20px;">
+                        <div class="form-group">
+                            <label class="form-label">Валюта</label>
+                            <select class="form-input">
+                                <option>Рубль (RUB)</option>
+                                <option>Доллар (USD)</option>
+                                <option>Евро (EUR)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Часовой пояс</label>
+                            <select class="form-input">
+                                <option>Москва (UTC+3)</option>
+                                <option>Екатеринбург (UTC+5)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">НДС по умолчанию</label>
+                            <select class="form-input">
+                                <option>20%</option>
+                                <option>18%</option>
+                                <option>10%</option>
+                                <option>Без НДС</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">КПП</label>
-                        <input type="text" class="form-input" value="770101001">
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">Пользователи</span>
                     </div>
-                    <button class="btn btn-primary">Сохранить</button>
+                    <div class="card-body">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Пользователь</th>
+                                    <th>Роль</th>
+                                    <th>Статус</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>admin</td>
+                                    <td>Администратор</td>
+                                    <td><span class="status-badge status-active">Активен</span></td>
+                                </tr>
+                                <tr>
+                                    <td>buh</td>
+                                    <td>Бухгалтер</td>
+                                    <td><span class="status-badge status-active">Активен</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">Подключения</span>
+                    </div>
+                    <div class="card-body" style="padding: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--divider);">
+                            <div>
+                                <div style="font-weight: 500;">PostgreSQL</div>
+                                <div style="font-size: 12px; color: var(--text-secondary);">localhost:5432</div>
+                            </div>
+                            <span class="status-badge status-active">Подключено</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--divider);">
+                            <div>
+                                <div style="font-weight: 500;">API Server</div>
+                                <div style="font-size: 12px; color: var(--text-secondary);">localhost:8080</div>
+                            </div>
+                            <span class="status-badge status-active">Подключено</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -955,6 +1926,191 @@
         </div>
     </div>
     
+    <!-- Modal: Accounting Entry -->
+    <div class="modal-overlay" id="entryModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">Новая проводка</span>
+                <button class="modal-close" onclick="closeModal('entryModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Дата *</label>
+                    <input type="date" class="form-input" value="2026-03-27">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Документ</label>
+                    <input type="text" class="form-input" placeholder="Номер документа">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Дебет *</label>
+                    <select class="form-input">
+                        <option value="">Выберите счёт</option>
+                        <option>50 - Касса</option>
+                        <option>51 - Расчётный счёт</option>
+                        <option>60 - Расчёты с поставщиками</option>
+                        <option>62 - Расчёты с покупателями</option>
+                        <option>41 - Товары</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Кредит *</label>
+                    <select class="form-input">
+                        <option value="">Выберите счёт</option>
+                        <option>50 - Касса</option>
+                        <option>51 - Расчётный счёт</option>
+                        <option>60 - Расчёты с поставщиками</option>
+                        <option>62 - Расчёты с покупателями</option>
+                        <option>90 - Продажи</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Сумма *</label>
+                    <input type="number" class="form-input" placeholder="0.00">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Содержание</label>
+                    <textarea class="form-input" rows="3" placeholder="Описание операции"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('entryModal')">Отмена</button>
+                <button class="btn btn-primary" onclick="closeModal('entryModal')">Провести</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal: Salary -->
+    <div class="modal-overlay" id="salaryModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">Начисление зарплаты</span>
+                <button class="modal-close" onclick="closeModal('salaryModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Сотрудник *</label>
+                    <select class="form-input">
+                        <option value="">Выберите сотрудника</option>
+                        <option>Петров А.С. - Директор</option>
+                        <option>Сидорова Е.П. - Бухгалтер</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Период *</label>
+                    <input type="month" class="form-input" value="2026-03">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Вид начисления</label>
+                    <select class="form-input">
+                        <option>Оклад</option>
+                        <option>Премия</option>
+                        <option>Отпускные</option>
+                        <option>Больничный</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Сумма *</label>
+                    <input type="number" class="form-input" placeholder="0.00">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Комментарий</label>
+                    <textarea class="form-input" rows="2" placeholder="Примечание"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('salaryModal')">Отмена</button>
+                <button class="btn btn-primary" onclick="closeModal('salaryModal')">Начислить</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal: Stock Movement -->
+    <div class="modal-overlay" id="stockModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">Перемещение товара</span>
+                <button class="modal-close" onclick="closeModal('stockModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Тип операции</label>
+                    <select class="form-input">
+                        <option>Перемещение между складами</option>
+                        <option>Поступление</option>
+                        <option>Списание</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Склад отправитель</label>
+                    <select class="form-input">
+                        <option>Основной склад</option>
+                        <option>Склад запчастей</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Склад получатель</label>
+                    <select class="form-input">
+                        <option>Розничный магазин №1</option>
+                        <option>Розничный магазин №2</option>
+                        <option>Основной склад</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Товар</label>
+                    <input type="text" class="form-input" placeholder="Поиск товара...">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Количество</label>
+                    <input type="number" class="form-input" placeholder="0">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('stockModal')">Отмена</button>
+                <button class="btn btn-primary" onclick="closeModal('stockModal')">Переместить</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal: Location -->
+    <div class="modal-overlay" id="locationModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">Новое место хранения</span>
+                <button class="modal-close" onclick="closeModal('locationModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Тип</label>
+                    <select class="form-input">
+                        <option>Склад</option>
+                        <option>Магазин</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Название *</label>
+                    <input type="text" class="form-input" placeholder="Наименование">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Адрес</label>
+                    <input type="text" class="form-input" placeholder="Адрес">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Площадь (м²)</label>
+                    <input type="number" class="form-input" placeholder="0">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Ответственный</label>
+                    <input type="text" class="form-input" placeholder="ФИО">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('locationModal')">Отмена</button>
+                <button class="btn btn-primary" onclick="closeModal('locationModal')">Создать</button>
+            </div>
+        </div>
+    </div>
+    
     <script>
         // Navigation
         function navigateTo(page) {
@@ -1002,6 +2158,24 @@
                 if (e.target === this) {
                     this.classList.remove('active');
                 }
+            });
+        });
+        
+        // Tabs functionality
+        document.querySelectorAll('.tabs').forEach(tabsContainer => {
+            tabsContainer.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    tabsContainer.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
+        });
+        
+        // Filter chips
+        document.querySelectorAll('.filter-chip').forEach(chip => {
+            chip.addEventListener('click', function() {
+                this.parentElement.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+                this.classList.add('active');
             });
         });
     </script>

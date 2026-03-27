@@ -13,7 +13,6 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Text (Text)
 import qualified Data.Text as T
-import Numeric (showFFloat)
 import Text.Printf (printf)
 
 -- ============================================================================

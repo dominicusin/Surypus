@@ -2,7 +2,7 @@
 module Core.Price where
 
 import Data.Int (Int64)
-import Data.List (minimumBy, sortBy)
+import Data.List (minimumBy)
 import Data.Text (Text)
 import Data.Time (Day)
 

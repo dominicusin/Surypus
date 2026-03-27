@@ -2,7 +2,6 @@
 module Core.WarehouseOps where
 
 import Data.Int (Int64)
-import Data.Text (Text)
 
 -- | WarehouseOps - Warehouse operation
 data WarehouseOps = WarehouseOps

@@ -1,7 +1,7 @@
 -- | Ledger types - Accounting journal entries
 module Core.Accounting.Ledger where
 
-import Core.Accounting.Account (Account (..), AccountType (..))
+import Core.Accounting.Account (Account (..))
 import Data.Int (Int64)
 import Data.Text (Text)
 

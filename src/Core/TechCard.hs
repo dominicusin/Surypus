@@ -2,7 +2,6 @@
 module Core.TechCard where
 
 import Data.Int (Int64)
-import Data.Time (Day)
 
 -- | TechCard - Tech card
 data TechCard = TechCard

@@ -16,10 +16,7 @@ where
 
 import Data.Text (Text)
 import qualified Data.Text as T
-import qualified Data.Text.IO as TIO
-import qualified Data.Yaml as Yaml
 import GHC.Generics (Generic)
-import System.Directory (listDirectory)
 import System.FilePath ((</>))
 
 -- ============================================================================
@@ -64,7 +61,7 @@ templateTypeToName CashOut = "Расходный кассовый ордер"
 templateTypeToName (Custom name) = name
 
 -- ============================================================================
--- TEMPLATE STRUCTURE (simplified YAML)
+-- TEMPLATE STRUCTURE (simplified)
 -- ============================================================================
 
 data ReportTemplate = ReportTemplate
@@ -78,8 +75,6 @@ data ReportTemplate = ReportTemplate
   }
   deriving (Show, Generic)
 
-instance Yaml.FromJSON ReportTemplate
-
 data TemplateMeta = TemplateMeta
   { tmTitle :: Text,
     tmAuthor :: Text,
@@ -88,8 +83,6 @@ data TemplateMeta = TemplateMeta
     tmCreator :: Text
   }
   deriving (Show, Generic)
-
-instance Yaml.FromJSON TemplateMeta
 
 data TemplatePage = TemplatePage
   { tpPaperSize :: Text,
@@ -101,8 +94,6 @@ data TemplatePage = TemplatePage
   }
   deriving (Show, Generic)
 
-instance Yaml.FromJSON TemplatePage
-
 data TemplateSection = TemplateSection
   { tsHeight :: Double,
     tsRepeat :: Maybe Bool,
@@ -110,16 +101,12 @@ data TemplateSection = TemplateSection
   }
   deriving (Show, Generic)
 
-instance Yaml.FromJSON TemplateSection
-
 data TemplateElement
   = TextElement TemplateText
   | TableElement TemplateTable
   | LineElement TemplateLine
   | RectElement TemplateRect
   deriving (Show, Generic)
-
-instance Yaml.FromJSON TemplateElement
 
 data TemplateText = TemplateText
   { ttxtX :: Double,
@@ -136,8 +123,6 @@ data TemplateText = TemplateText
   }
   deriving (Show, Generic)
 
-instance Yaml.FromJSON TemplateText
-
 data TemplateTable = TemplateTable
   { ttblX :: Double,
     ttblY :: Double,
@@ -148,15 +133,11 @@ data TemplateTable = TemplateTable
   }
   deriving (Show, Generic)
 
-instance Yaml.FromJSON TemplateTable
-
 data TemplateColumn = TemplateColumn
   { tcolWidth :: Double,
     tcolAlign :: Text
   }
   deriving (Show, Generic)
-
-instance Yaml.FromJSON TemplateColumn
 
 data TemplateCell = TemplateCell
   { tcellText :: Text,
@@ -167,8 +148,6 @@ data TemplateCell = TemplateCell
   }
   deriving (Show, Generic)
 
-instance Yaml.FromJSON TemplateCell
-
 data TemplateLine = TemplateLine
   { tlX1 :: Double,
     tlY1 :: Double,
@@ -177,8 +156,6 @@ data TemplateLine = TemplateLine
     tlStrokeWidth :: Maybe Double
   }
   deriving (Show, Generic)
-
-instance Yaml.FromJSON TemplateLine
 
 data TemplateRect = TemplateRect
   { trX :: Double,
@@ -191,16 +168,13 @@ data TemplateRect = TemplateRect
   }
   deriving (Show, Generic)
 
-instance Yaml.FromJSON TemplateRect
-
 -- ============================================================================
--- LOADER FUNCTIONS
+-- LOADER FUNCTIONS (stubbed - yaml/directory not available)
 -- ============================================================================
 
 -- | Get template directory path
 getTemplateDir :: IO FilePath
-getTemplateDir = do
-  pure "templates/reports"
+getTemplateDir = pure "templates/reports"
 
 -- | Get full path to template file
 getTemplatePath :: TemplateType -> IO FilePath
@@ -208,27 +182,17 @@ getTemplatePath tpl = do
   dir <- getTemplateDir
   pure $ dir </> T.unpack (templateTypeToFile tpl)
 
--- | Load template by type
+-- | Load template by type (stub - yaml dependency not available)
 loadTemplate :: TemplateType -> IO (Either String ReportTemplate)
-loadTemplate tpl = do
-  path <- getTemplatePath tpl
-  loadTemplateFromFile path
+loadTemplate _tpl = pure $ Left "YAML parsing not available (missing yaml dependency)"
 
--- | Load template from file path
+-- | Load template from file path (stub)
 loadTemplateFromFile :: FilePath -> IO (Either String ReportTemplate)
-loadTemplateFromFile path = do
-  content <- TIO.readFile path
-  pure $ Yaml.decodeEither content
+loadTemplateFromFile _path = pure $ Left "YAML parsing not available (missing yaml dependency)"
 
--- | List all available templates
+-- | List all available templates (stub - directory dependency not available)
 listTemplates :: IO [(TemplateType, Text)]
-listTemplates = do
-  dir <- getTemplateDir
-  files <- listDirectory dir
-  pure $ fmap (\f -> (Custom (T.pack (dropExtension f)), T.pack f)) files
-  where
-    dropExtension :: String -> String
-    dropExtension = reverse . drop1 . reverse . dropWhile (/= '.')
+listTemplates = pure []
 
 -- ============================================================================
 -- TEMPLATE INFO

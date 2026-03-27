@@ -8,8 +8,3 @@ where
 
 import Core.HR.Employee
 import Core.HR.Position
-import Data.Time (Day)
-
--- | Calculate tenure in days
-calcTenure :: Employee -> Day -> Int
-calcTenure emp today = fromEnum today - fromEnum (empHireDate emp)

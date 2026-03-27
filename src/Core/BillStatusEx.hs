@@ -1,17 +1,17 @@
 -- | BillStatusEx module - Extended bill status
 module Core.BillStatusEx where
 
-import           Data.Int  (Int64)
-import           Data.Text (Text)
+import Data.Int (Int64)
 
 -- | BillStatusEx - Extended bill status
 data BillStatusEx = BillStatusEx
-  { bseId        :: Int64
-  , bseBillId    :: Int64
-  , bseStatus    :: BillStatEx
-  , bseChangedAt :: Int64
-  , bseChangedBy :: Int64
-  } deriving (Show, Eq)
+  { bseId :: Int64,
+    bseBillId :: Int64,
+    bseStatus :: BillStatEx,
+    bseChangedAt :: Int64,
+    bseChangedBy :: Int64
+  }
+  deriving (Show, Eq)
 
 data BillStatEx = BSEDraft | BSERegistered | BSEPosted | BSEAnnuled
   deriving (Show, Eq)

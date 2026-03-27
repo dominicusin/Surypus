@@ -1,10 +1,7 @@
 -- | Payroll Calculations - Salary computation logic
 module Core.Payroll.Calculation where
 
-import Core.Payroll.Types
-import Core.Refined
-import Data.Time (Day)
-import qualified Data.Time as T
+import Data.Time (Day, diffDays)
 
 -- ============================================================================
 -- TAX CALCULATIONS
@@ -29,7 +26,7 @@ calcNDFL = calcIncomeTax
 calcSocialTax :: Double -> Double
 calcSocialTax gross
   | gross <= 0 = 0
-  | otherwise = min gross 876000 * 0.30  -- 30% up to limit
+  | otherwise = min gross 876000 * 0.30 -- 30% up to limit
 
 calcInsurancePremium :: Double -> Double
 calcInsurancePremium gross = gross * 0.022 -- 2.2% for medical
@@ -54,7 +51,7 @@ calcTotalCompensation salary bonuses = salary + bonuses
 -- ============================================================================
 
 calcVacationDays :: Day -> Day -> Int
-calcVacationDays start end = fromIntegral (T.diffDays end start) + 1
+calcVacationDays start end = fromIntegral (diffDays end start) + 1
 
 calcVacationPay :: Double -> Int -> Double
 calcVacationPay dailyRate days = dailyRate * fromIntegral days

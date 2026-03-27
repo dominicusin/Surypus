@@ -19,8 +19,8 @@ import Domain.HR (SalarySummary (..))
 import GHC.Generics (Generic)
 
 data PayrollSnapshotRequest = PayrollSnapshotRequest
-  { psrPeriodStart :: Day,
-    psrPeriodEnd :: Day
+  { psreqPeriodStart :: Day,
+    psreqPeriodEnd :: Day
   }
   deriving (Eq, Show, Generic)
 
@@ -40,10 +40,12 @@ instance ToJSON PayrollSnapshotPayload
 
 data PayrollSnapshotRecord = PayrollSnapshotRecord
   { psrId :: Int64,
+    psrPeriodStart :: Day,
+    psrPeriodEnd :: Day,
     psrCreatedAt :: UTCTime,
     psrSummary :: [SalarySummary]
   }
-  deriving (Eq, Show, Generic)
+  deriving (Generic)
 
 instance ToJSON PayrollSnapshotRecord
 
@@ -51,6 +53,6 @@ instance FromJSON PayrollSnapshotRecord
 
 validatePayrollSnapshotRequest :: PayrollSnapshotRequest -> Either Text PayrollSnapshotRequest
 validatePayrollSnapshotRequest req@PayrollSnapshotRequest {..}
-  | psrPeriodEnd < psrPeriodStart = Left "period end must be after period start"
-  | diffDays psrPeriodEnd psrPeriodStart > 366 = Left "snapshot range cannot exceed one year"
+  | psreqPeriodEnd < psreqPeriodStart = Left "period end must be after period start"
+  | diffDays psreqPeriodEnd psreqPeriodStart > 366 = Left "snapshot range cannot exceed one year"
   | otherwise = Right req

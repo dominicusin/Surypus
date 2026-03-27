@@ -34,6 +34,7 @@ data NotificationType
   | NTPaymentChanged
   | NTTaxChanged
   | NTCurrencyChanged
+  | NTAccountingChanged
   | NTSystem
   deriving (Show, Eq, Generic)
 
@@ -46,6 +47,7 @@ instance ToJSON NotificationType where
     NTPaymentChanged -> toJSON ("payment_changed" :: Text)
     NTTaxChanged -> toJSON ("tax_changed" :: Text)
     NTCurrencyChanged -> toJSON ("currency_changed" :: Text)
+    NTAccountingChanged -> toJSON ("accounting_changed" :: Text)
     NTSystem -> toJSON ("system" :: Text)
 
 data WebSocketMessage = WebSocketMessage

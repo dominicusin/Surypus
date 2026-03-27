@@ -16,13 +16,10 @@
 module Surypus.Core where
 
 import Data.Int (Int64)
-import Data.Map (Map)
-import qualified Data.Map as Map
 import Data.Set (Set)
-import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as T
-import Data.Time (Day, DiffTime, UTCTime)
+import Data.Time (Day, UTCTime)
 import Data.UUID (UUID)
 import GHC.Generics (Generic)
 
@@ -558,7 +555,7 @@ validatePhone phone =
 
 -- | Create new person
 mkPerson :: Int64 -> Text -> PersonKind -> Text -> Person
-mkPerson id name kind inn =
+mkPerson pId pName pKind pInn =
   Person
     { pId = id,
       pCode = Nothing,

@@ -10,14 +10,14 @@ module DB.TechCard
 where
 
 import Core.Production.Types (TechCard (..), TechLine (..))
-import Data.Int (Int64)
+import Data.Int (Int32, Int64)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
-import Hasql.Pool (Pool, use)
+import Hasql.Pool (Pool, UsageError, use)
 import qualified Hasql.Session as Session
-import Hasql.Statement (Statement (..))
+import Hasql.Statement (Statement, unpreparable)
 
 techCardRow :: D.Row TechCard
 techCardRow =
@@ -25,54 +25,58 @@ techCardRow =
     <$> (Just <$> D.column (D.nonNullable D.int8))
     <*> D.column (D.nonNullable D.int8)
     <*> D.column (D.nonNullable D.int8)
-    <*> D.column (D.nonNullable D.int4)
+    <*> (fromIntegral <$> D.column (D.nonNullable D.int4))
     <*> D.column (D.nonNullable D.text)
-    <*> D.column (D.nonNullable D.int4)
+    <*> (fromIntegral <$> D.column (D.nonNullable D.int4))
     <*> D.column (D.nullable D.text)
 
 techLineRow :: D.Row TechLine
 techLineRow =
   TechLine
     <$> D.column (D.nonNullable D.int8)
-    <*> D.column (D.nonNullable D.int4)
+    <*> (fromIntegral <$> D.column (D.nonNullable D.int4))
     <*> D.column (D.nonNullable D.int8)
     <*> D.column (D.nonNullable D.float8)
-    <*> D.column (D.nonNullable D.int4)
+    <*> (fromIntegral <$> D.column (D.nonNullable D.int4))
     <*> D.column (D.nullable D.text)
     <*> D.column (D.nonNullable D.float8)
     <*> D.column (D.nonNullable D.float8)
 
 listTechCards :: Pool -> IO [TechCard]
-listTechCards pool =
-  use pool $
-    Session.statement () stmt
+listTechCards pool = do
+  result <- use pool $ Session.statement () stmt
+  case result of
+    Right x -> pure x
+    Left _ -> pure []
   where
     stmt =
-      Statement
+      unpreparable
         "SELECT id, processor_id, goods_group_id, kind, code, flags, formula FROM tech_card ORDER BY id"
         E.noParams
         (D.rowList techCardRow)
-        False
 
 getTechCard :: Pool -> Int64 -> IO (Maybe TechCard)
-getTechCard pool tid =
-  use pool $
-    Session.statement tid stmt
+getTechCard pool tid = do
+  result <- use pool $ Session.statement tid stmt
+  case result of
+    Right x -> pure x
+    Left _ -> pure Nothing
   where
     stmt =
-      Statement
+      unpreparable
         "SELECT id, processor_id, goods_group_id, kind, code, flags, formula FROM tech_card WHERE id = $1"
         (E.param (E.nonNullable E.int8))
         (D.rowMaybe techCardRow)
-        False
 
-createTechCard :: Pool -> Int64 -> Int64 -> Int -> Maybe Text -> IO Int64
-createTechCard pool pid gid kind formula =
-  use pool $
-    Session.statement (pid, gid, kind, formula) stmt
+createTechCard :: Pool -> Int64 -> Int64 -> Int32 -> Maybe Text -> IO Int64
+createTechCard pool pid gid kind formula = do
+  result <- use pool $ Session.statement (pid, gid, kind, formula) stmt
+  case result of
+    Right x -> pure x
+    Left _ -> pure 0
   where
     stmt =
-      Statement
+      unpreparable
         "SELECT create_tech_card($1,$2,$3,$4)"
         ( E.param (E.nonNullable E.int8)
             <> E.param (E.nonNullable E.int8)
@@ -80,17 +84,19 @@ createTechCard pool pid gid kind formula =
             <> E.param (E.nullable E.text)
         )
         (D.singleRow $ D.column (D.nonNullable D.int8))
-        False
 
-addTechLine :: Pool -> Int64 -> Maybe Int -> Int64 -> Double -> Int -> Maybe Text -> Maybe Double -> Maybe Double -> IO ()
-addTechLine pool techId lineNo goodsId qty sign formula lineTime lineCost =
-  use pool $
-    Session.statement (techId, lineNo, goodsId, qty, sign, formula, lineTime', lineCost') stmt Data.Functor.$> ()
+addTechLine :: Pool -> Int64 -> Maybe Int32 -> Int64 -> Double -> Int32 -> Maybe Text -> Maybe Double -> Maybe Double -> IO ()
+addTechLine pool techId lineNo goodsId qty sign formula lineTime lineCost = do
+  result <- use pool $ Session.statement params stmt
+  case result of
+    Right _ -> pure ()
+    Left _ -> pure ()
   where
     lineTime' = fromMaybe 0 lineTime -- hlint: ignore
     lineCost' = fromMaybe 0 lineCost -- hlint: ignore
+    params = (techId, lineNo, goodsId, qty, sign, formula, lineTime', lineCost')
     stmt =
-      Statement
+      unpreparable
         "SELECT add_tech_line($1,$2,$3,$4,$5,$6,$7,$8)"
         ( E.param (E.nonNullable E.int8)
             <> E.param (E.nullable E.int4)
@@ -102,17 +108,17 @@ addTechLine pool techId lineNo goodsId qty sign formula lineTime lineCost =
             <> E.param (E.nonNullable E.float8)
         )
         D.noResult
-        False
 
 listTechLines :: Pool -> Int64 -> IO [TechLine]
-listTechLines pool techId =
-  use pool $
-    Session.statement techId stmt
+listTechLines pool techId = do
+  result <- use pool $ Session.statement techId stmt
+  case result of
+    Right x -> pure x
+    Left _ -> pure []
   where
     stmt =
-      Statement
+      unpreparable
         "SELECT tech_card_id, line_no, goods_id, qty, sign, formula, line_time, line_cost \
         \FROM tech_line WHERE tech_card_id = $1 ORDER BY line_no"
         (E.param (E.nonNullable E.int8))
         (D.rowList techLineRow)
-        False

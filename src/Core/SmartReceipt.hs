@@ -40,6 +40,6 @@ data SmartReceiptLine = SmartReceiptLine
 
 -- | Calculate receipt total
 calcReceiptTotal :: [SmartReceiptLine] -> Double
-calcReceiptTotal lines = sum (fmap lineTotal lines)
+calcReceiptTotal receiptLines = sum (fmap lineTotal receiptLines)
   where
     lineTotal l = srlQtty l * srlPrice l * (1 - srlDiscount l / 100)

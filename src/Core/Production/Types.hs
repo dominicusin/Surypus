@@ -5,23 +5,24 @@
 {-@ LIQUID "--reflection" @-}
 
 module Core.Production.Types
-  ( TechCard(..)
-  , TechLine(..)
-  , WorkOrder(..)
-  , WorkOrderStatusCode(..)
-  , mkWorkOrder
-  , validateTechCard
-  , validateTechLine
-  , validateWorkOrderCore
-  , toWorkOrderStatus
-  ) where
+  ( TechCard (..),
+    TechLine (..),
+    WorkOrder (..),
+    WorkOrderStatusCode (..),
+    mkWorkOrder,
+    validateTechCard,
+    validateTechLine,
+    validateWorkOrderCore,
+    toWorkOrderStatus,
+  )
+where
 
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Int (Int64)
 import Data.Text (Text)
+import qualified Data.Text as T
 import Data.Time (UTCTime)
 import GHC.Generics (Generic)
-import qualified Data.Text as T
 
 {-@ type NonNegQty = {v:Double | v >= 0} @-}
 {-@ type NonNegCost = {v:Double | v >= 0} @-}
@@ -36,16 +37,18 @@ import qualified Data.Text as T
   , tcFormula :: Maybe Text
   } @-}
 data TechCard = TechCard
-  { tcId :: Maybe Int64
-  , tcProcessorId :: Int64
-  , tcGoodsGroupId :: Int64
-  , tcKind :: Int
-  , tcCode :: Text
-  , tcFlags :: Int
-  , tcFormula :: Maybe Text
-  } deriving (Show, Eq, Generic)
+  { tcId :: Maybe Int64,
+    tcProcessorId :: Int64,
+    tcGoodsGroupId :: Int64,
+    tcKind :: Int,
+    tcCode :: Text,
+    tcFlags :: Int,
+    tcFormula :: Maybe Text
+  }
+  deriving (Show, Eq, Generic)
 
 instance ToJSON TechCard
+
 instance FromJSON TechCard
 
 {-@ data TechLine = TechLine
@@ -59,27 +62,33 @@ instance FromJSON TechCard
   , tlLineCost :: NonNegCost
   } @-}
 data TechLine = TechLine
-  { tlTechCardId :: Int64
-  , tlLineNo :: Int
-  , tlGoodsId :: Int64
-  , tlQtty :: Double
-  , tlSign :: Int
-  , tlFormula :: Maybe Text
-  , tlLineTime :: Double
-  , tlLineCost :: Double
-  } deriving (Show, Eq, Generic)
+  { tlTechCardId :: Int64,
+    tlLineNo :: Int,
+    tlGoodsId :: Int64,
+    tlQtty :: Double,
+    tlSign :: Int,
+    tlFormula :: Maybe Text,
+    tlLineTime :: Double,
+    tlLineCost :: Double
+  }
+  deriving (Show, Eq, Generic)
 
 instance ToJSON TechLine
+
 instance FromJSON TechLine
 
 {-@ data WorkOrderStatusCode = WODraft | WOReleased | WOInProgress | WOCompleted | WOCancelled @-}
-data WorkOrderStatusCode =
-    WODraft
+data WorkOrderStatusCode
+  = WODraft
   | WOReleased
   | WOInProgress
   | WOCompleted
   | WOCancelled
-  deriving (Eq, Show, Enum)
+  deriving (Eq, Show, Enum, Generic)
+
+instance ToJSON WorkOrderStatusCode
+
+instance FromJSON WorkOrderStatusCode
 
 {-@ data WorkOrder = WorkOrder
   { woId :: Maybe Int64
@@ -94,23 +103,25 @@ data WorkOrderStatusCode =
   , woEndAt :: Maybe UTCTime
   } @-}
 data WorkOrder = WorkOrder
-  { woId :: Maybe Int64
-  , woCode :: Text
-  , woProcessorId :: Int64
-  , woProductId :: Int64
-  , woQtyPlan :: Double
-  , woQtyReleased :: Double
-  , woStatus :: WorkOrderStatusCode
-  , woScheduledAt :: UTCTime
-  , woStartAt :: Maybe UTCTime
-  , woEndAt :: Maybe UTCTime
-  } deriving (Show, Eq, Generic)
+  { woId :: Maybe Int64,
+    woCode :: Text,
+    woProcessorId :: Int64,
+    woProductId :: Int64,
+    woQtyPlan :: Double,
+    woQtyReleased :: Double,
+    woStatus :: WorkOrderStatusCode,
+    woScheduledAt :: UTCTime,
+    woStartAt :: Maybe UTCTime,
+    woEndAt :: Maybe UTCTime
+  }
+  deriving (Show, Eq, Generic)
 
 instance ToJSON WorkOrder
+
 instance FromJSON WorkOrder
 
 validateTechCard :: TechCard -> Either Text TechCard
-validateTechCard tc@TechCard{..}
+validateTechCard tc@TechCard {..}
   | tcKind < 0 || tcKind > 1 = Left "tech kind must be 0 or 1"
   | T.null (T.strip tcCode) = Left "tech code cannot be empty"
   | tcProcessorId <= 0 = Left "processor id must be positive"
@@ -118,7 +129,7 @@ validateTechCard tc@TechCard{..}
   | otherwise = Right tc
 
 validateTechLine :: TechLine -> Either Text TechLine
-validateTechLine line@TechLine{..}
+validateTechLine line@TechLine {..}
   | tlQtty < 0 = Left "tech line quantity must be non-negative"
   | tlLineTime < 0 = Left "line time must be non-negative"
   | tlLineCost < 0 = Left "line cost must be non-negative"
@@ -126,7 +137,7 @@ validateTechLine line@TechLine{..}
   | otherwise = Right line
 
 validateWorkOrderCore :: WorkOrder -> Either Text WorkOrder
-validateWorkOrderCore wo@WorkOrder{..}
+validateWorkOrderCore wo@WorkOrder {..}
   | T.null (T.strip woCode) = Left "work order code must be set"
   | woQtyPlan < 0 = Left "planned quantity must be non-negative"
   | woQtyReleased < 0 = Left "released quantity cannot be negative"
@@ -134,8 +145,8 @@ validateWorkOrderCore wo@WorkOrder{..}
   | otherwise = Right wo
 
 mkWorkOrder :: Text -> Int64 -> Int64 -> Double -> UTCTime -> WorkOrder
-mkWorkOrder code processor product qty scheduled =
-  WorkOrder Nothing code processor product qty 0 WODraft scheduled Nothing Nothing
+mkWorkOrder code processor prodId qty scheduled =
+  WorkOrder Nothing code processor prodId qty 0 WODraft scheduled Nothing Nothing
 
 toWorkOrderStatus :: Int -> Maybe WorkOrderStatusCode
 toWorkOrderStatus n

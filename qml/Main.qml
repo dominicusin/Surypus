@@ -612,8 +612,15 @@ ApplicationWindow {
                 Rectangle { Layout.fillHeight: true }
 
                 NavigationItem {
+                    icon: "📊"
+                    text: "Отчёты"
+                    onActivate: contentStack.push(reportsPage)
+                }
+
+                NavigationItem {
                     icon: "⚙️"
                     text: "Настройки"
+                    onActivate: contentStack.push(settingsPage)
                 }
                 NavigationItem {
                     icon: "💼"
@@ -732,26 +739,224 @@ Component {
 
             StatCard {
                 title: "Продажи сегодня"
-                value: "0.00 ₽"
+                value: "125 000 ₽"
                 color: "#4CAF50"
             }
 
             StatCard {
                 title: "Заказов сегодня"
-                value: "0"
+                value: "15"
                 color: "#2196F3"
             }
 
             StatCard {
                 title: "Товаров в наличии"
-                value: "0"
+                value: "1 234"
                 color: "#FF9800"
             }
 
             StatCard {
                 title: "Ниже минимума"
-                value: "0"
+                value: "12"
                 color: "#F44336"
+            }
+        }
+
+        // Charts row
+        RowLayout {
+            spacing: 16
+            Layout.fillWidth: true
+
+            Rectangle {
+                Layout.fillWidth: true
+                height: 200
+                color: surfaceColor
+                radius: 8
+                border.color: borderColor
+
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 16
+
+                    Text {
+                        text: "Продажи по дням"
+                        font.bold: true
+                        font.pixelSize: 14
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        spacing: 8
+
+                        Rectangle {
+                            Layout.fillHeight: true
+                            Layout.fillWidth: true
+                            color: "#E3F2FD"
+                            radius: 4
+
+                            Column {
+                                anchors.bottom: parent.bottom
+                                anchors.bottomMargin: 8
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                spacing: 4
+
+                                Text {
+                                    text: "Пн"
+                                    font.pixelSize: 10
+                                    color: secondaryTextColor
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            Layout.fillHeight: true
+                            Layout.fillWidth: true
+                            color: "#BBDEFB"
+                            radius: 4
+
+                            Column {
+                                anchors.bottom: parent.bottom
+                                anchors.bottomMargin: 8
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                spacing: 4
+
+                                Text {
+                                    text: "Вт"
+                                    font.pixelSize: 10
+                                    color: secondaryTextColor
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            Layout.fillHeight: true
+                            Layout.fillWidth: true
+                            color: "#90CAF9"
+                            radius: 4
+
+                            Column {
+                                anchors.bottom: parent.bottom
+                                anchors.bottomMargin: 8
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                spacing: 4
+
+                                Text {
+                                    text: "Ср"
+                                    font.pixelSize: 10
+                                    color: secondaryTextColor
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            Layout.fillHeight: true
+                            Layout.fillWidth: true
+                            color: "#64B5F6"
+                            radius: 4
+
+                            Column {
+                                anchors.bottom: parent.bottom
+                                anchors.bottomMargin: 8
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                spacing: 4
+
+                                Text {
+                                    text: "Чт"
+                                    font.pixelSize: 10
+                                    color: secondaryTextColor
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            Layout.fillHeight: true
+                            Layout.fillWidth: true
+                            color: "#42A5F5"
+                            radius: 4
+
+                            Column {
+                                anchors.bottom: parent.bottom
+                                anchors.bottomMargin: 8
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                spacing: 4
+
+                                Text {
+                                    text: "Пт"
+                                    font.pixelSize: 10
+                                    color: secondaryTextColor
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            Layout.fillHeight: true
+                            Layout.fillWidth: true
+                            color: "#1E88E5"
+                            radius: 4
+
+                            Column {
+                                anchors.bottom: parent.bottom
+                                anchors.bottomMargin: 8
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                spacing: 4
+
+                                Text {
+                                    text: "Сб"
+                                    font.pixelSize: 10
+                                    color: secondaryTextColor
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                height: 200
+                color: surfaceColor
+                radius: 8
+                border.color: borderColor
+
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 16
+
+                    Text {
+                        text: "Топ товаров"
+                        font.bold: true
+                        font.pixelSize: 14
+                    }
+
+                    ColumnLayout {
+                        spacing: 8
+
+                        RowLayout {
+                            Text { text: "1."; color: secondaryTextColor; width: 20 }
+                            Text { text: "Стройматериалы"; Layout.fillWidth: true }
+                            Text { text: "45 000 ₽"; color: primaryColor }
+                        }
+
+                        RowLayout {
+                            Text { text: "2."; color: secondaryTextColor; width: 20 }
+                            Text { text: "Инструменты"; Layout.fillWidth: true }
+                            Text { text: "32 500 ₽"; color: primaryColor }
+                        }
+
+                        RowLayout {
+                            Text { text: "3."; color: secondaryTextColor; width: 20 }
+                            Text { text: "Крепёж"; Layout.fillWidth: true }
+                            Text { text: "18 200 ₽"; color: primaryColor }
+                        }
+
+                        RowLayout {
+                            Text { text: "4."; color: secondaryTextColor; width: 20 }
+                            Text { text: "Смеси"; Layout.fillWidth: true }
+                            Text { text: "12 800 ₽"; color: primaryColor }
+                        }
+                    }
+                }
             }
         }
 
@@ -1662,6 +1867,304 @@ Component {
                         TableViewColumn { role: "hours"; title: "Доступные ч"; width: 120 }
                     }
                 }
+            }
+        }
+    }
+}
+
+Component {
+    id: reportsPage
+
+    ScrollView {
+        anchors.fill: parent
+        ColumnLayout {
+            width: parent.width
+            spacing: 16
+
+            RowLayout {
+                spacing: 8
+                Text {
+                    text: "Отчёты"
+                    font.pixelSize: 22
+                    font.bold: true
+                }
+                Button {
+                    text: "Назад"
+                    onClicked: contentStack.pop()
+                }
+            }
+
+            RowLayout {
+                spacing: 12
+                Layout.fillWidth: true
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 120
+                    color: surfaceColor
+                    radius: 8
+                    border.color: borderColor
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 16
+
+                        Text {
+                            text: "📊"
+                            font.pixelSize: 32
+                        }
+
+                        Text {
+                            text: "Продажи"
+                            font.bold: true
+                        }
+
+                        Text {
+                            text: "Анализ продаж за период"
+                            font.pixelSize: 12
+                            color: secondaryTextColor
+                        }
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: console.log("Open sales report")
+                    }
+                }
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 120
+                    color: surfaceColor
+                    radius: 8
+                    border.color: borderColor
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 16
+
+                        Text {
+                            text: "💰"
+                            font.pixelSize: 32
+                        }
+
+                        Text {
+                            text: "Прибыльность"
+                            font.bold: true
+                        }
+
+                        Text {
+                            text: "Рентабельность по товарам"
+                            font.pixelSize: 12
+                            color: secondaryTextColor
+                        }
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: console.log("Open profitability report")
+                    }
+                }
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 120
+                    color: surfaceColor
+                    radius: 8
+                    border.color: borderColor
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 16
+
+                        Text {
+                            text: "📦"
+                            font.pixelSize: 32
+                        }
+
+                        Text {
+                            text: "Остатки"
+                            font.bold: true
+                        }
+
+                        Text {
+                            text: "Складские остатки"
+                            font.pixelSize: 12
+                            color: secondaryTextColor
+                        }
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: console.log("Open stock report")
+                    }
+                }
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                color: surfaceColor
+                radius: 8
+                border.color: borderColor
+
+                ColumnLayout {
+                    anchors.margins: 16
+
+                    Text {
+                        text: "История отчётов"
+                        font.bold: true
+                        font.pixelSize: 16
+                    }
+
+                    TableView {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 200
+
+                        TableViewColumn { title: "Дата"; width: 180 }
+                        TableViewColumn { title: "Отчёт"; width: 200 }
+                        TableViewColumn { title: "Период"; width: 150 }
+                        TableViewColumn { title: "Статус"; width: 100 }
+                    }
+                }
+            }
+        }
+    }
+}
+
+Component {
+    id: settingsPage
+
+    ScrollView {
+        anchors.fill: parent
+        ColumnLayout {
+            width: parent.width
+            spacing: 16
+
+            RowLayout {
+                spacing: 8
+                Text {
+                    text: "Настройки"
+                    font.pixelSize: 22
+                    font.bold: true
+                }
+                Button {
+                    text: "Назад"
+                    onClicked: contentStack.pop()
+                }
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                color: surfaceColor
+                radius: 8
+                border.color: borderColor
+
+                ColumnLayout {
+                    anchors.margins: 16
+                    spacing: 12
+
+                    Text {
+                        text: "Организация"
+                        font.bold: true
+                        font.pixelSize: 16
+                    }
+
+                    TextField {
+                        placeholderText: "Название организации"
+                        text: "ООО ТехноСтрой"
+                    }
+
+                    TextField {
+                        placeholderText: "ИНН"
+                        text: "7701234567890"
+                    }
+
+                    TextField {
+                        placeholderText: "КПП"
+                        text: "770101001"
+                    }
+                }
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                color: surfaceColor
+                radius: 8
+                border.color: borderColor
+
+                ColumnLayout {
+                    anchors.margins: 16
+                    spacing: 12
+
+                    Text {
+                        text: "Система"
+                        font.bold: true
+                        font.pixelSize: 16
+                    }
+
+                    RowLayout {
+                        spacing: 8
+
+                        Text { text: "Валюта:" }
+                        ComboBox {
+                            width: 150
+                            model: ["RUB", "USD", "EUR"]
+                        }
+                    }
+
+                    RowLayout {
+                        spacing: 8
+
+                        Text { text: "НДС:" }
+                        ComboBox {
+                            width: 150
+                            model: ["20%", "18%", "10%", "Без НДС"]
+                        }
+                    }
+                }
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                color: surfaceColor
+                radius: 8
+                border.color: borderColor
+
+                ColumnLayout {
+                    anchors.margins: 16
+                    spacing: 12
+
+                    Text {
+                        text: "Подключения"
+                        font.bold: true
+                        font.pixelSize: 16
+                    }
+
+                    RowLayout {
+                        spacing: 8
+
+                        Text { text: "PostgreSQL:" }
+                        Text {
+                            text: "localhost:5432"
+                            color: "#4CAF50"
+                        }
+                    }
+
+                    RowLayout {
+                        spacing: 8
+
+                        Text { text: "API Server:" }
+                        Text {
+                            text: "localhost:8080"
+                            color: "#4CAF50"
+                        }
+                    }
+                }
+            }
+
+            Button {
+                text: "Сохранить настройки"
+                onClicked: console.log("Settings saved")
             }
         }
     }

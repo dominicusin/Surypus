@@ -241,6 +241,147 @@
         /* Page sections */
         .page { display: none; }
         .page.active { display: block; }
+        
+        /* Chart */
+        .mini-chart {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            height: 60px;
+            padding: 8px;
+        }
+        
+        .mini-chart-bar {
+            width: 8px;
+            background: var(--primary);
+            border-radius: 2px;
+        }
+        
+        /* Swipe actions */
+        .swipe-action {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+        }
+        
+        .swipe-left { right: 0; background: #4CAF50; }
+        .swipe-right { left: 0; background: #F44336; }
+        
+        /* Pull to refresh */
+        .pull-refresh {
+            text-align: center;
+            padding: 16px;
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+        
+        /* Notification badge */
+        .badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: var(--error);
+            color: white;
+            font-size: 10px;
+            padding: 2px 5px;
+            border-radius: 10px;
+            min-width: 16px;
+            text-align: center;
+        }
+        
+        /* Modal mobile */
+        .modal-mobile {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: flex-end;
+            z-index: 2000;
+        }
+        
+        .modal-mobile.active { display: flex; }
+        
+        .modal-mobile-content {
+            background: var(--surface);
+            width: 100%;
+            border-radius: 16px 16px 0 0;
+            padding: 20px;
+            animation: slideUp 0.3s ease;
+        }
+        
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        
+        /* Form mobile */
+        .form-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        
+        .form-row .form-group { flex: 1; }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            background: #FAFAFA;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        
+        /* Action sheet */
+        .action-sheet {
+            background: var(--surface);
+            border-radius: 16px 16px 0 0;
+            padding: 16px;
+        }
+        
+        .action-sheet-item {
+            padding: 14px;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+        }
+        
+        .action-sheet-item:last-child { border-bottom: none; }
+        
+        .action-sheet-cancel {
+            margin-top: 8px;
+            background: #F5F5F5;
+            border-radius: 8px;
+        }
+        
+        /* Offline indicator */
+        .offline-banner {
+            background: var(--warning);
+            color: #333;
+            text-align: center;
+            padding: 8px;
+            font-size: 12px;
+        }
+        
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+        }
+        
+        .empty-icon { font-size: 48px; margin-bottom: 16px; }
     </style>
 </head>
 <body>
@@ -491,6 +632,190 @@
         </div>
     </div>
     
+    <!-- Accounting Page -->
+    <div id="page-accounting" class="page">
+        <header class="header">
+            <button class="header-btn" onclick="showPage('home')">←</button>
+            <h1>Бухгалтерия</h1>
+            <button class="header-btn">+</button>
+        </header>
+        
+        <div class="stats-scroll">
+            <div class="stat-card">
+                <div class="stat-value" style="color: var(--success);">+450K</div>
+                <div class="stat-label">Доходы</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" style="color: var(--error);">-380K</div>
+                <div class="stat-label">Расходы</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" style="color: var(--warning);">45K</div>
+                <div class="stat-label">НДС</div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">Последние проводки</div>
+            <div class="card-body">
+                <div class="list-item">
+                    <div class="item-content">
+                        <div class="item-title">Дт 62.1 - Кт 90.1</div>
+                        <div class="item-subtitle">Продажа</div>
+                    </div>
+                    <div class="item-value" style="color: var(--success);">+50 000 ₽</div>
+                </div>
+                <div class="list-item">
+                    <div class="item-content">
+                        <div class="item-title">Дт 51 - Кт 62.1</div>
+                        <div class="item-subtitle">Оплата</div>
+                    </div>
+                    <div class="item-value" style="color: var(--success);">+50 000 ₽</div>
+                </div>
+                <div class="list-item">
+                    <div class="item-content">
+                        <div class="item-title">Дт 41.1 - Кт 60.1</div>
+                        <div class="item-subtitle">Поступление</div>
+                    </div>
+                    <div class="item-value" style="color: var(--error);">-30 000 ₽</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Stock Page -->
+    <div id="page-stock" class="page">
+        <header class="header">
+            <button class="header-btn" onclick="showPage('home')">←</button>
+            <h1>Склад</h1>
+            <button class="header-btn">+</button>
+        </header>
+        
+        <div class="tabs" style="padding: 12px 16px; background: var(--surface);">
+            <div class="tab active" style="flex: 1; text-align: center;">Остатки</div>
+            <div class="tab" style="flex: 1; text-align: center;">Движения</div>
+        </div>
+        
+        <div class="card">
+            <div class="card-body">
+                <div class="list-item">
+                    <span class="item-icon">📦</span>
+                    <div class="item-content">
+                        <div class="item-title">Стройматериалы</div>
+                        <div class="item-subtitle">500 кг</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div class="item-value">100 ₽</div>
+                        <div style="font-size: 11px; color: var(--success);">В наличии</div>
+                    </div>
+                </div>
+                <div class="list-item" style="background: #FFF3E0;">
+                    <span class="item-icon">⚠️</span>
+                    <div class="item-content">
+                        <div class="item-title">Крепёж</div>
+                        <div class="item-subtitle">50 кг</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div class="item-value">50 ₽</div>
+                        <div style="font-size: 11px; color: var(--warning);">Мало</div>
+                    </div>
+                </div>
+                <div class="list-item">
+                    <span class="item-icon">🔧</span>
+                    <div class="item-content">
+                        <div class="item-title">Инструменты</div>
+                        <div class="item-subtitle">100 шт</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div class="item-value">250 ₽</div>
+                        <div style="font-size: 11px; color: var(--success);">В наличии</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Reports Page -->
+    <div id="page-reports" class="page">
+        <header class="header">
+            <button class="header-btn" onclick="showPage('home')">←</button>
+            <h1>Отчёты</h1>
+        </header>
+        
+        <div class="card" style="margin: 16px;">
+            <div class="card-body" style="padding: 20px; text-align: center; cursor: pointer;">
+                <div style="font-size: 32px; margin-bottom: 12px;">📊</div>
+                <div style="font-weight: 600; margin-bottom: 4px;">Продажи</div>
+                <div style="font-size: 12px; color: var(--text-secondary);">за Март 2026</div>
+            </div>
+        </div>
+        
+        <div class="card" style="margin: 16px; margin-top: 0;">
+            <div class="card-body" style="padding: 20px; text-align: center; cursor: pointer;">
+                <div style="font-size: 32px; margin-bottom: 12px;">💰</div>
+                <div style="font-weight: 600; margin-bottom: 4px;">Прибыльность</div>
+                <div style="font-size: 12px; color: var(--text-secondary);">за Март 2026</div>
+            </div>
+        </div>
+        
+        <div class="card" style="margin: 16px; margin-top: 0;">
+            <div class="card-header">Готовые отчёты</div>
+            <div class="card-body">
+                <div class="list-item">
+                    <span class="item-icon">📄</span>
+                    <div class="item-content">
+                        <div class="item-title">Продажи</div>
+                        <div class="item-subtitle">Март 2026</div>
+                    </div>
+                    <button class="btn" style="padding: 6px 12px; background: var(--primary); color: white; border: none; border-radius: 4px;">📥</button>
+                </div>
+                <div class="list-item">
+                    <span class="item-icon">📄</span>
+                    <div class="item-content">
+                        <div class="item-title">Остатки</div>
+                        <div class="item-subtitle">26.03.2026</div>
+                    </div>
+                    <button class="btn" style="padding: 6px 12px; background: var(--primary); color: white; border: none; border-radius: 4px;">📥</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Settings Page -->
+    <div id="page-settings" class="page">
+        <header class="header">
+            <button class="header-btn" onclick="showPage('home')">←</button>
+            <h1>Настройки</h1>
+        </header>
+        
+        <div class="card">
+            <div class="menu-list">
+                <div class="menu-item"><span class="menu-icon">🏢</span><span class="menu-text">Организация</span><span>→</span></div>
+                <div class="menu-item"><span class="menu-icon">👥</span><span class="menu-text">Пользователи</span><span>→</span></div>
+                <div class="menu-item"><span class="menu-icon">🔔</span><span class="menu-text">Уведомления</span><span>→</span></div>
+                <div class="menu-item"><span class="menu-icon">🔗</span><span class="menu-text">Интеграции</span><span>→</span></div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">О системе</div>
+            <div class="card-body" style="padding: 16px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <span style="color: var(--text-secondary);">Версия</span>
+                    <span>0.1.0</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <span style="color: var(--text-secondary);">База данных</span>
+                    <span style="color: var(--success);">Подключена</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: var(--text-secondary);">API</span>
+                    <span style="color: var(--success);">Онлайн</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <!-- Bottom Navigation -->
     <nav class="bottom-nav">
         <a href="#" class="nav-item active" onclick="showPage('home')">
@@ -509,9 +834,9 @@
             <span class="nav-icon">📋</span>
             <span>Документы</span>
         </a>
-        <a href="#" class="nav-item" onclick="showPage('profile')">
-            <span class="nav-icon">👤</span>
-            <span>Профиль</span>
+        <a href="#" class="nav-item" onclick="showPage('settings')">
+            <span class="nav-icon">⚙️</span>
+            <span>Ещё</span>
         </a>
     </nav>
     

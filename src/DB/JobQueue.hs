@@ -11,22 +11,15 @@ module DB.JobQueue
 where
 
 import Data.Int (Int64)
-import Data.Maybe (fromMaybe)
 import Data.Text (Text)
-import Data.Time.Clock (UTCTime)
 import Domain.Job
   ( JobFilter (..),
     JobRecord (..),
     JobRequest (..),
     JobStatus (..),
     jobStatusFromText,
-    jobStatusText,
   )
 import qualified Hasql.Decoders as D
-import qualified Hasql.Encoders as E
-import Hasql.Pool (Pool, use)
-import qualified Hasql.Session as Session
-import Hasql.Statement (Statement (..))
 
 jobRow :: D.Row JobRecord
 jobRow =

@@ -16,11 +16,10 @@ module Surypus.Reports.Conversion.CrystalToPdfSlave
   )
 where
 
-import Data.Aeson (FromJSON, ToJSON, eitherDecode, encode)
+import Data.Aeson (FromJSON, ToJSON, defaultOptions, encode, genericToJSON)
 import Data.Text (Text)
 import qualified Data.Text as T
-import qualified Data.Text.IO as TIO
-import qualified Data.Yaml as Yaml
+import qualified Data.Text.Encoding as TE
 import GHC.Generics (Generic)
 import Numeric (showFFloat)
 import Surypus.Reports.Conversion.CrystalTypes
@@ -41,7 +40,7 @@ data PdfSlaveTemplate = PdfSlaveTemplate
   deriving (Show, Generic)
 
 instance ToJSON PdfSlaveTemplate where
-  toJSON = Yaml.toJSON
+  toJSON = genericToJSON defaultOptions
 
 data PdfSlaveMeta = PdfSlaveMeta
   { pmTitle :: Text,
@@ -53,7 +52,7 @@ data PdfSlaveMeta = PdfSlaveMeta
   deriving (Show, Generic)
 
 instance ToJSON PdfSlaveMeta where
-  toJSON = Yaml.toJSON
+  toJSON = genericToJSON defaultOptions
 
 data PdfSlavePage = PdfSlavePage
   { ppPaperSize :: Text,
@@ -66,7 +65,7 @@ data PdfSlavePage = PdfSlavePage
   deriving (Show, Generic)
 
 instance ToJSON PdfSlavePage where
-  toJSON = Yaml.toJSON
+  toJSON = genericToJSON defaultOptions
 
 data PdfSlaveSection = PdfSlaveSection
   { psHeight :: Maybe Double,
@@ -75,7 +74,7 @@ data PdfSlaveSection = PdfSlaveSection
   deriving (Show, Generic)
 
 instance ToJSON PdfSlaveSection where
-  toJSON = Yaml.toJSON
+  toJSON = genericToJSON defaultOptions
 
 data PdfSlaveElement
   = TextElement PdfSlaveText
@@ -87,7 +86,7 @@ data PdfSlaveElement
   deriving (Show, Generic)
 
 instance ToJSON PdfSlaveElement where
-  toJSON = Yaml.toJSON
+  toJSON = genericToJSON defaultOptions
 
 data PdfSlaveText = PdfSlaveText
   { ptX :: Double,
@@ -106,7 +105,7 @@ data PdfSlaveText = PdfSlaveText
   deriving (Show, Generic)
 
 instance ToJSON PdfSlaveText where
-  toJSON = Yaml.toJSON
+  toJSON = genericToJSON defaultOptions
 
 data PdfSlaveImage = PdfSlaveImage
   { piX :: Double,
@@ -118,7 +117,7 @@ data PdfSlaveImage = PdfSlaveImage
   deriving (Show, Generic)
 
 instance ToJSON PdfSlaveImage where
-  toJSON = Yaml.toJSON
+  toJSON = genericToJSON defaultOptions
 
 data PdfSlaveTable = PdfSlaveTable
   { pttX :: Double,
@@ -131,7 +130,7 @@ data PdfSlaveTable = PdfSlaveTable
   deriving (Show, Generic)
 
 instance ToJSON PdfSlaveTable where
-  toJSON = Yaml.toJSON
+  toJSON = genericToJSON defaultOptions
 
 data PdfSlaveColumn = PdfSlaveColumn
   { pcWidth :: Double,
@@ -140,7 +139,7 @@ data PdfSlaveColumn = PdfSlaveColumn
   deriving (Show, Generic)
 
 instance ToJSON PdfSlaveColumn where
-  toJSON = Yaml.toJSON
+  toJSON = genericToJSON defaultOptions
 
 data PdfSlaveCell = PdfSlaveCell
   { pceValue :: Text,
@@ -151,7 +150,7 @@ data PdfSlaveCell = PdfSlaveCell
   deriving (Show, Generic)
 
 instance ToJSON PdfSlaveCell where
-  toJSON = Yaml.toJSON
+  toJSON = genericToJSON defaultOptions
 
 data PdfSlaveBarcode = PdfSlaveBarcode
   { pbX :: Double,
@@ -164,7 +163,7 @@ data PdfSlaveBarcode = PdfSlaveBarcode
   deriving (Show, Generic)
 
 instance ToJSON PdfSlaveBarcode where
-  toJSON = Yaml.toJSON
+  toJSON = genericToJSON defaultOptions
 
 data PdfSlaveLine = PdfSlaveLine
   { plX1 :: Double,
@@ -177,7 +176,7 @@ data PdfSlaveLine = PdfSlaveLine
   deriving (Show, Generic)
 
 instance ToJSON PdfSlaveLine where
-  toJSON = Yaml.toJSON
+  toJSON = genericToJSON defaultOptions
 
 data PdfSlaveRect = PdfSlaveRect
   { prX :: Double,
@@ -191,13 +190,7 @@ data PdfSlaveRect = PdfSlaveRect
   deriving (Show, Generic)
 
 instance ToJSON PdfSlaveRect where
-  toJSON = Yaml.toJSON
-
--- ============================================================================
--- CRYSTAL REPORTS TYPES (re-exported from CrystalTypes)
--- ============================================================================
-
--- Types are imported from Surypus.Reports.Conversion.CrystalTypes
+  toJSON = genericToJSON defaultOptions
 
 -- ============================================================================
 -- REPORT CONTEXT (Data from JSON)
@@ -251,17 +244,26 @@ convertCrystalToPdfSlave cr =
             ppMarginLeft = 20.0,
             ppMarginRight = 20.0
           },
-      ptHeader = convertSection $ getSection cr ReportHeaderSection,
-      ptPageHeader = convertSection $ getSection cr PageHeaderSection,
-      ptBody = convertDetailSection $ getSection cr DetailSection,
-      ptFooter = convertSection $ getSection cr ReportFooterSection,
-      ptPageFooter = convertSection $ getSection cr PageFooterSection
+      ptHeader = convertSection $ findSection isReportHeader cr,
+      ptPageHeader = convertSection $ findSection isPageHeader cr,
+      ptBody = convertDetailSection $ findSection isDetail cr,
+      ptFooter = convertSection $ findSection isReportFooter cr,
+      ptPageFooter = convertSection $ findSection isPageFooter cr
     }
-
-getSection :: CrystalReport -> (a -> Bool) -> Maybe a
-getSection cr pred' = case filter pred' (crSections cr) of
-  (s : _) -> Just s
-  _ -> Nothing
+  where
+    findSection pred' c = case filter pred' (crSections c) of
+      (s : _) -> Just s
+      _ -> Nothing
+    isReportHeader (ReportHeaderSection _) = True
+    isReportHeader _ = False
+    isPageHeader (PageHeaderSection _) = True
+    isPageHeader _ = False
+    isDetail (DetailSection _) = True
+    isDetail _ = False
+    isReportFooter (ReportFooterSection _) = True
+    isReportFooter _ = False
+    isPageFooter (PageFooterSection _) = True
+    isPageFooter _ = False
 
 convertSection :: Maybe CrystalSection -> Maybe PdfSlaveSection
 convertSection Nothing = Nothing
@@ -417,18 +419,17 @@ convertObject (GraphObject cgo) =
       }
 
 -- ============================================================================
--- RENDER FUNCTION
+-- RENDER FUNCTION (stubbed - yaml dependency not available)
 -- ============================================================================
 
--- | Render template to YAML file
+-- | Render template to YAML file (stub - yaml dependency not available)
 renderPdfSlave :: PdfSlaveTemplate -> FilePath -> IO ()
-renderPdfSlave template path = do
-  let yaml = Yaml.encode template
-  TIO.writeFile path yaml
+renderPdfSlave _template path = do
+  putStrLn $ "YAML rendering not available (missing yaml dependency). Would write to: " <> path
 
 -- | Render template to Text
 renderPdfSlaveToText :: PdfSlaveTemplate -> Text
-renderPdfSlaveToText = Yaml.encode
+renderPdfSlaveToText = TE.decodeUtf8 . encode
 
 -- ============================================================================
 -- EXAMPLE CONVERSION

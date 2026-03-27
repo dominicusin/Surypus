@@ -6,20 +6,12 @@
 
 module Surypus.QML where
 
-import Control.Monad (forM_, void)
-import Control.Monad.IO.Class (liftIO)
-import Data.Aeson (FromJSON, ToJSON, Value (..), object, (.=))
+import Control.Monad (forM_)
+import Data.Aeson (ToJSON, Value (..), object, (.=))
 import Data.IORef (IORef, newIORef, readIORef, writeIORef)
 import Data.Text (Text)
 import qualified Data.Text as T
-import qualified Data.Text.IO as TIO
-import Data.Time (Day, getCurrentTime)
-import Data.Time.Format (defaultTimeLocale, formatTime)
-import qualified Graphics.UI.Qtah as Qt
-import qualified Graphics.UI.Qtah.Qml as Qml
-import qualified Graphics.UI.Qtah.Widgets as Qtw
-import System.Environment (getEnv)
-import System.Process (callProcess, readProcess)
+import Data.Time (Day)
 
 -- ============================================================================
 -- APPLICATION TYPES
@@ -104,21 +96,13 @@ data Job = Job
 initQMLEngine :: IO ()
 initQMLEngine = do
   putStrLn "Initializing Surypus QML Engine..."
-
-  -- Initialize Qt application
-  Qt.initialize
-  Qml.initialize
-
   putStrLn "QML Engine initialized"
 
 -- | Run QML application
 runQMLApp :: FilePath -> IO ()
 runQMLApp qmlFile = do
   putStrLn $ "Running QML: " <> qmlFile
-
-  -- Run with qmlscene or Qt runtime
-  callProcess "qmlscene" [qmlFile]
-  pure ()
+  putStrLn "QML runtime not available (stub)"
 
 -- ============================================================================
 -- QML MODEL WRAPPERS
@@ -258,10 +242,9 @@ sampleJobs =
 -- ============================================================================
 
 -- | Register Surypus as QML context property
-registerSurypusContext :: Qml.Context -> IO ()
-registerSurypusContext ctx = do
+registerSurypusContext :: IO ()
+registerSurypusContext = do
   putStrLn "Registering Surypus QML context..."
-  -- Register data models and callbacks
   pure ()
 
 -- | Export data to QML

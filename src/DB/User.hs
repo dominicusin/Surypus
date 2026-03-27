@@ -23,15 +23,15 @@ import Hasql.Encoders (param)
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
-import Hasql.Statement (Statement (..))
+import Hasql.Statement (unpreparable)
 
 data AppUser = AppUser
   { appUserId :: Int64,
     appUserLogin :: Text,
     appUserName :: Text,
     appUserPassword :: Text,
-    appUserFlags :: Int,
-    appUserStatus :: Int
+    appUserFlags :: Int64,
+    appUserStatus :: Int64
   }
   deriving (Eq, Show)
 
@@ -45,7 +45,7 @@ userRow =
     <*> column (D.nonNullable D.int4)
     <*> column (D.nonNullable D.int4)
 
-rolesFromFlags :: Int -> Text
+rolesFromFlags :: Int64 -> Text
 rolesFromFlags flags
   | flags .&. 1 /= 0 = "admin"
   | otherwise = "user"
@@ -56,16 +56,17 @@ appUserRole usr
   | otherwise = rolesFromFlags (appUserFlags usr)
 
 getUserByLogin :: Pool -> Text -> IO (Maybe AppUser)
-getUserByLogin pool login =
-  use pool $
-    Session.statement login stmt
+getUserByLogin pool login = do
+  result <- use pool $ Session.statement login stmt
+  case result of
+    Right x -> pure x
+    Left _ -> pure Nothing
   where
     stmt =
-      Statement
+      unpreparable
         "SELECT id, login, name, password, flags, status FROM users WHERE login = $1 AND status >= 0"
         (param (E.nonNullable E.text))
         (rowMaybe userRow)
-        False
 
 verifyUserCredentials :: Pool -> Text -> Text -> IO (Maybe AppUser)
 verifyUserCredentials pool login password = do

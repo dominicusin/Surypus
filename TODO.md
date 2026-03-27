@@ -5,7 +5,7 @@
 ### Architecture
 - [x] Migrate to proper Hasql parameterized queries (avoid string interpolation for security)
 - [x] Add database connection pooling with proper error handling
-- [ ] Implement repository pattern for DAL layer
+- [x] Implement repository pattern for DAL layer
 - [x] Add input validation layer (validate requests before DB operations)
 
 ### Business Logic
@@ -61,6 +61,8 @@
 - [x] Add document types endpoint (GET /document-types)
 - [x] Add stock summary endpoint (GET /stock/summary)
 - [x] Add RBAC types and roles endpoint (GET /roles)
+- [x] Implement repository pattern for DAL layer
+- [x] Add report generation with JasperReports integration
 
 ## Medium Priority
 
@@ -69,12 +71,13 @@
 - [x] Add goods prices CRUD endpoints
 - [x] Add taxes CRUD endpoints
 - [x] Add currencies CRUD endpoints
+- [x] Implement API versioning strategy
 
 ## Low Priority
 
 - [x] Run hlint and fix warnings
-- [ ] Add hlint to CI pipeline
-- [ ] Add pgformatter for SQL formatting
+- [x] Add hlint to CI pipeline
+- [x] Add pgformatter for SQL formatting
 
 ## Code Quality Tools
 
@@ -84,6 +87,48 @@
 - [x] Configure hlint rules in .hlint.yaml
 
 ### SQL (pgformatter) - Available: /usr/bin/pg_format
-- [ ] Format SQL files in config/
-- [ ] Add pre-commit hook for SQL formatting
-- [ ] Add pgformatter to CI pipeline
+- [x] Format SQL files in config/
+- [x] Add pre-commit hook for SQL formatting
+- [x] Add pgformatter to CI pipeline
+
+---
+
+## Frontend Development
+
+### Web Interface
+- [x] Expand web/index.html with more pages (Accounting, Payroll, Stock, Locations, Reports)
+- [x] Add charts and visualizations
+- [x] Add modals for data entry
+- [x] Add filter and pagination UI
+
+### Mobile Web Interface
+- [x] Expand mobile.html with more pages
+- [x] Add responsive design features
+
+### QML Desktop Interface
+- [x] Expand Components.qml with reusable components
+- [x] Expand Main.qml with dashboard and pages
+- [x] Expand main.qml with full application features
+- [x] Add CRUD dialogs for entities
+
+---
+
+## New Development Tasks
+
+### Business Logic
+- [x] Add multi-currency support
+- [x] Add import/export functionality (CSV, Excel)
+- [ ] Add barcode scanning support
+- [ ] Add email notifications
+
+### API Development
+- [x] API versioning strategy implemented
+- [ ] GraphQL API support
+- [ ] WebSocket real-time updates
+- [ ] Rate limiting improvements
+
+### Infrastructure
+- [x] Add Prometheus metrics
+- [x] Add database migrations (flyway)
+- [ ] Add integration tests
+- [ ] Add performance/load tests

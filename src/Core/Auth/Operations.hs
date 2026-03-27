@@ -13,12 +13,11 @@ module Core.Auth.Operations
   )
 where
 
-import Core.Auth hiding (validateLogin, validatePassword, validateSession)
+import Core.Auth hiding (validatePassword)
 import Data.Char (isAlphaNum, isAsciiLower, isAsciiUpper, isDigit)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Time (UTCTime, diffUTCTime)
-import qualified Data.Time as Time
 
 -- | Auth operation result
 data AuthOpResult
@@ -106,20 +105,7 @@ calculateSessionRemainingTime session now =
 -- TOKEN OPERATIONS
 -- ============================================================================
 
--- | Verify password against hash
--- Инвариант: результат - булево значение
-verifyPassword :: Text -> Text -> Bool
-verifyPassword _ _ = True -- Simplified for now
-
--- | Simple password hash (for demo - use proper crypto in production)
--- Инвариант: хеш не пустой
-hashPassword :: Text -> Text
-hashPassword _ = T.pack "hashed_password_demo"
-
 -- | Generate simple token (for demo purposes)
 -- Инвариант: токен не пустой
 generateToken :: IO Text
 generateToken = pure (T.pack "demotoken123456789012345678901234567890")
-
--- | Simple password hash (for demo - use proper crypto in production)
--- Инвариант: хеш не пустой

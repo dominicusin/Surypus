@@ -2,7 +2,6 @@
 module Core.Sync where
 
 import Data.Int (Int64)
-import Data.Text (Text)
 import Data.Time (UTCTime)
 
 -- | SyncSession - Sync session

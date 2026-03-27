@@ -626,3 +626,63 @@ data AuditLog = AuditLog
   deriving (Show, Eq, Generic)
 
 instance ToJSON AuditLog
+
+-- ============================================================================
+-- MISSING INPUT TYPES
+-- ============================================================================
+
+-- | Employee input for creation/update
+data EmployeeInput = EmployeeInput
+  { eiCode :: Maybe Text,
+    eiName :: Text,
+    eiEmail :: Maybe Text,
+    eiPosition :: Maybe Text,
+    eiStatus :: Int
+  }
+  deriving (Show, Eq, Generic)
+
+instance FromJSON EmployeeInput
+
+-- | Report template input
+data ReportTemplateInput = ReportTemplateInput
+  { rtiCode :: Text,
+    rtiName :: Text,
+    rtiReportType :: Int,
+    rtiJasperFile :: Text,
+    rtiOutputFormat :: Text
+  }
+  deriving (Show, Eq, Generic)
+
+instance FromJSON ReportTemplateInput
+
+-- | Order line input
+data OrderLineInput = OrderLineInput
+  { oliGoodsId :: Int64,
+    oliQtty :: Double,
+    oliPrice :: Double,
+    oliDiscount :: Double,
+    oliAmount :: Double
+  }
+  deriving (Show, Eq, Generic)
+
+instance FromJSON OrderLineInput
+
+-- | Stock adjustment input
+data StockAdjustInput = StockAdjustInput
+  { saiGoodsId :: Int64,
+    saiLocationId :: Int64,
+    saiQtty :: Double,
+    saiReason :: Maybe Text
+  }
+  deriving (Show, Eq, Generic)
+
+instance FromJSON StockAdjustInput
+
+-- | Job input for creation
+data JobInput = JobInput
+  { jiName :: Text,
+    jiStatus :: Text
+  }
+  deriving (Show, Eq, Generic)
+
+instance FromJSON JobInput

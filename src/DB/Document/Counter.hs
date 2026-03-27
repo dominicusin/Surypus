@@ -13,6 +13,7 @@ where
 
 import Core.Document.Types (DocumentOpCounter (..))
 import Data.Int (Int64)
+import Data.Maybe (isJust)
 import Data.Semigroup ((<>))
 import Data.Text (Text)
 import Domain.Types (Pagination (..))
@@ -20,7 +21,7 @@ import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
-import Hasql.Statement (Statement (..))
+import Hasql.Statement (unpreparable)
 
 counterRow :: D.Row DocumentOpCounter
 counterRow =
@@ -32,47 +33,49 @@ counterRow =
     <*> D.column (D.nonNullable D.int4)
 
 listDocumentCounters :: Pool -> Pagination -> IO [DocumentOpCounter]
-listDocumentCounters pool (Pagination limit offset) =
-  use pool $
-    Session.statement
-      (limit, offset)
-      stmt
+listDocumentCounters pool (Pagination limit offset) = do
+  result <- use pool $ Session.statement (limit, offset) stmt
+  case result of
+    Right x -> pure x
+    Left _ -> pure []
   where
     stmt =
-      Statement
+      unpreparable
         "SELECT id, name, op_kind_id, prefix, flags FROM document_op_counter \
         \ORDER BY id LIMIT $1 OFFSET $2"
         ( E.param (E.nonNullable E.int4)
             <> E.param (E.nonNullable E.int4)
         )
         (D.rowList counterRow)
-        False
 
 getDocumentCounter :: Pool -> Int64 -> IO (Maybe DocumentOpCounter)
-getDocumentCounter pool cid =
-  use pool $
-    Session.statement cid stmt
+getDocumentCounter pool cid = do
+  result <- use pool $ Session.statement cid stmt
+  case result of
+    Right x -> pure x
+    Left _ -> pure Nothing
   where
     stmt =
-      Statement
+      unpreparable
         "SELECT id, name, op_kind_id, prefix, flags FROM document_op_counter WHERE id = $1"
         (E.param (E.nonNullable E.int8))
         (D.rowMaybe counterRow)
-        False
 
 createDocumentCounter :: Pool -> DocumentOpCounter -> IO Int64
-createDocumentCounter pool DocumentOpCounter {..} =
-  use pool $
-    Session.statement
+createDocumentCounter pool DocumentOpCounter {..} = do
+  result <- use pool $ Session.statement params stmt
+  case result of
+    Right x -> pure x
+    Left _ -> pure 0
+  where
+    params =
       ( docCounterName,
         docCounterOpKindId,
         docCounterPrefix,
         docCounterFlags
       )
-      stmt
-  where
     stmt =
-      Statement
+      unpreparable
         "INSERT INTO document_op_counter (name, op_kind_id, prefix, flags) VALUES ($1,$2,$3,$4) RETURNING id"
         ( E.param (E.nonNullable E.text)
             <> E.param (E.nonNullable E.int4)
@@ -80,24 +83,23 @@ createDocumentCounter pool DocumentOpCounter {..} =
             <> E.param (E.nonNullable E.int4)
         )
         (D.singleRow $ D.column (D.nonNullable D.int8))
-        False
 
 updateDocumentCounter :: Pool -> Int64 -> DocumentOpCounter -> IO Bool
 updateDocumentCounter pool cid DocumentOpCounter {..} = do
-  mb <-
-    use pool $
-      Session.statement
-        ( cid,
-          docCounterName,
-          docCounterOpKindId,
-          docCounterPrefix,
-          docCounterFlags
-        )
-        stmt
-  pure $ Data.Maybe.isJust mb
+  result <- use pool $ Session.statement params stmt
+  case result of
+    Right mb -> pure $ isJust mb
+    Left _ -> pure False
   where
+    params =
+      ( cid,
+        docCounterName,
+        docCounterOpKindId,
+        docCounterPrefix,
+        docCounterFlags
+      )
     stmt =
-      Statement
+      unpreparable
         "UPDATE document_op_counter SET name = $2, op_kind_id = $3, prefix = $4, flags = $5 WHERE id = $1 RETURNING id"
         ( E.param (E.nonNullable E.int8)
             <> E.param (E.nonNullable E.text)
@@ -106,28 +108,29 @@ updateDocumentCounter pool cid DocumentOpCounter {..} = do
             <> E.param (E.nonNullable E.int4)
         )
         (D.rowMaybe (D.column (D.nonNullable D.int8)))
-        False
 
 deleteDocumentCounter :: Pool -> Int64 -> IO Bool
 deleteDocumentCounter pool cid = do
-  mb <- use pool $ Session.statement cid stmt
-  pure $ Data.Maybe.isJust mb
+  result <- use pool $ Session.statement cid stmt
+  case result of
+    Right mb -> pure $ isJust mb
+    Left _ -> pure False
   where
     stmt =
-      Statement
+      unpreparable
         "DELETE FROM document_op_counter WHERE id = $1 RETURNING id"
         (E.param (E.nonNullable E.int8))
         (D.rowMaybe (D.column (D.nonNullable D.int8)))
-        False
 
 getNextDocumentNumber :: Pool -> Int -> IO Text
-getNextDocumentNumber pool counterId =
-  use pool $
-    Session.statement counterId stmt
+getNextDocumentNumber pool counterId = do
+  result <- use pool $ Session.statement counterId stmt
+  case result of
+    Right x -> pure x
+    Left _ -> pure ""
   where
     stmt =
-      Statement
+      unpreparable
         "SELECT document_get_next_doc_number($1)"
         (E.param (E.nonNullable E.int4))
         (D.singleRow $ D.column (D.nonNullable D.text))
-        False

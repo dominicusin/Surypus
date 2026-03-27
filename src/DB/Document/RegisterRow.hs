@@ -17,6 +17,5 @@ documentRegisterRow =
     <*> column (nonNullable date)
     <*> column (nullable date)
     <*> column (nullable text)
-    <*> column (nonNullable int4)
+    <*> (fromIntegral <$> column (nonNullable int4))
     <*> column (nullable bool)
-    <*> pure Nothing

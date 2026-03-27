@@ -37,7 +37,7 @@ data LineStatus = LSPending | LSReserved | LSShipped | LSReturned
 
 -- | Calculate order total
 calcOrderTotal :: [OrderLine] -> Double
-calcOrderTotal lines = sum (fmap calcLineTotal lines)
+calcOrderTotal orderLines = sum (fmap calcLineTotal orderLines)
 
 calcLineTotal :: OrderLine -> Double
 calcLineTotal ol = olQtty ol * olPrice ol * (1 - olDiscount ol / 100)

@@ -1,13 +1,19 @@
--- | Domain Module - Переработанная архитектура
--- Использует мощь PostgreSQL и безопасность Haskell
--- Расширено на основе реинжиниринга C<> кода 
+-- | Domain Module - Re-exports all domain types and operations
 module Domain
-  ( module Domain.Core
-  , module Domain.Types
-  , module Domain.Person
-  , module Domain.Goods
-  , module Domain.Location
-  , module Domain.Bill
-  , module Domain.Stock
-  ) where
+  ( module Domain.Bill,
+    module Domain.Core,
+    module Domain.Goods,
+    module Domain.Location,
+    module Domain.Person,
+    module Domain.Stock,
+    module Domain.Types,
+  )
+where
 
+import Domain.Bill
+import Domain.Core
+import Domain.Goods
+import Domain.Location
+import Domain.Person
+import Domain.Stock
+import Domain.Types

@@ -3,8 +3,6 @@
 module Core.Person.Operations
   ( PersonOpResult (..),
     validatePerson,
-    validateINN,
-    validateKPP,
     validatePhone,
     validateEmail,
     validateinn,

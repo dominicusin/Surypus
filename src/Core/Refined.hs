@@ -9,8 +9,6 @@ module Core.Refined
   )
 where
 
-import Data.Int (Int64)
-
 {-@ type NonNegDouble = {v:Double | v >= 0} @-}
 {-@ type PositiveDouble = {v:Double | v > 0} @-}
 {-@ type Percentage = {v:Double | 0 <= v && v <= 100} @-}

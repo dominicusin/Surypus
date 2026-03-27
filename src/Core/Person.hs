@@ -4,13 +4,11 @@ module Core.Person
   ( module Core.Person.Person,
     module Core.Person.Contact,
     module Core.Person.Relation,
-    validateINN,
-    validateKPP,
+    module Core.Person.Operations,
   )
 where
 
 import Core.Person.Contact
+import Core.Person.Operations
 import Core.Person.Person
 import Core.Person.Relation
-import Data.Text (Text)
-import qualified Data.Text as T
