@@ -42,8 +42,8 @@ userRow =
     <*> column (D.nonNullable D.text)
     <*> column (D.nonNullable D.text)
     <*> column (D.nonNullable D.text)
-    <*> column (D.nonNullable D.int4)
-    <*> column (D.nonNullable D.int4)
+    <*> column (D.nonNullable D.int8)
+    <*> column (D.nonNullable D.int8)
 
 rolesFromFlags :: Int64 -> Text
 rolesFromFlags flags

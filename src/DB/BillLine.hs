@@ -48,6 +48,7 @@ createBillLine pool bid BillLine {..} = do
     Right x -> pure x
     Left _ -> pure 0
   where
+    params :: (Int64, Int64, Double, Double, Double, Double, Double, Double)
     params =
       ( bid,
         billLineGoodsId,
@@ -61,14 +62,13 @@ createBillLine pool bid BillLine {..} = do
     stmt =
       unpreparable
         "SELECT create_bill_line($1,$2,$3,$4,$5,$6,$7,$8)"
-        ( (\(a, b, c, d, e, f, g, h) -> (a, b, c, d, e, f, g, h))
-            >$< E.param (E.nonNullable E.int8)
-              <> E.param (E.nonNullable E.int8)
-              <> E.param (E.nonNullable E.float8)
-              <> E.param (E.nonNullable E.float8)
-              <> E.param (E.nonNullable E.float8)
-              <> E.param (E.nonNullable E.float8)
-              <> E.param (E.nonNullable E.float8)
-              <> E.param (E.nonNullable E.float8)
+        ( E.param (E.nonNullable E.int8)
+            <> E.param (E.nonNullable E.int8)
+            <> E.param (E.nonNullable E.float8)
+            <> E.param (E.nonNullable E.float8)
+            <> E.param (E.nonNullable E.float8)
+            <> E.param (E.nonNullable E.float8)
+            <> E.param (E.nonNullable E.float8)
+            <> E.param (E.nonNullable E.float8)
         )
         (D.singleRow $ D.column (D.nonNullable D.int8))

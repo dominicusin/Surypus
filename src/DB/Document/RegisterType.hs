@@ -10,14 +10,15 @@ module DB.Document.RegisterType
 where
 
 import Core.Document.Types (DocumentRegisterType (..))
-import Data.Int (Int64)
+import Data.Functor.Contravariant ((>$<))
+import Data.Int (Int32, Int64)
 import Data.Maybe (isJust)
 import Data.Text (Text)
 import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
-import Hasql.Statement (Statement (..))
+import Hasql.Statement (unpreparable)
 
 registerTypeRow :: D.Row DocumentRegisterType
 registerTypeRow =
@@ -25,7 +26,7 @@ registerTypeRow =
     <$> (Just <$> D.column (D.nonNullable D.int8))
     <*> D.column (D.nonNullable D.text)
     <*> D.column (D.nullable D.text)
-    <*> D.column (D.nonNullable D.int4)
+    <*> (fromIntegral <$> D.column (D.nonNullable D.int4))
 
 listRegisterTypes :: Pool -> IO [DocumentRegisterType]
 listRegisterTypes pool = do
@@ -42,7 +43,7 @@ listRegisterTypes pool = do
 
 getRegisterType :: Pool -> Int64 -> IO (Maybe DocumentRegisterType)
 getRegisterType pool rid = do
-  result <- use pool $ Session.statement (rid,) stmt
+  result <- use pool $ Session.statement rid stmt
   case result of
     Right x -> pure x
     Left _ -> pure Nothing
@@ -50,97 +51,53 @@ getRegisterType pool rid = do
     stmt =
       unpreparable
         "SELECT id, name, code, flags FROM document_register_type WHERE id = $1"
-        (fst >$< E.param (E.nonNullable E.int8))
-        (D.rowMaybe registerTypeRow)
-
-getRegisterTypeByCode :: Pool -> Text -> IO (Maybe DocumentRegisterType)
-getRegisterTypeByCode pool code =
-  use pool $
-    Session.statement code stmt
-  where
-    stmt =
-      Statement
-        "SELECT id, name, code, flags FROM document_register_type WHERE upper(code) = upper($1)"
-        (E.param (E.nonNullable E.text))
-        (D.rowMaybe registerTypeRow)
-        False
-
-getNextRegisterNumber :: Pool -> Int64 -> IO Text
-getNextRegisterNumber pool typeId =
-  use pool $
-    Session.statement typeId stmt
-  where
-    stmt =
-      Statement
-        "SELECT document_get_next_register_number($1)"
         (E.param (E.nonNullable E.int8))
-        (D.singleRow $ D.column (D.nonNullable D.text))
-        False
-
-getRegisterTypeFlags :: Pool -> Int64 -> IO (Maybe Int)
-getRegisterTypeFlags pool rid =
-  use pool $
-    Session.statement rid stmt
-  where
-    stmt =
-      Statement
-        "SELECT flags FROM document_register_type WHERE id = $1"
-        (E.param (E.nonNullable E.int8))
-        (D.rowMaybe (D.column (D.nonNullable D.int4)))
-        False
+        (D.rowMaybe registerTypeRow)
 
 createRegisterType :: Pool -> DocumentRegisterType -> IO Int64
-createRegisterType pool DocumentRegisterType {drtName = name, drtCode = code, drtFlags = flags} =
-  use pool $
-    Session.statement
-      ( drtName,
-        drtCode,
-        drtFlags
-      )
-      stmt
+createRegisterType pool doc = do
+  result <- use pool $ Session.statement params stmt
+  case result of
+    Right x -> pure x
+    Left _ -> pure 0
   where
+    params = (drtName doc, drtCode doc, fromIntegral (drtFlags doc) :: Int32)
     stmt =
-      Statement
+      unpreparable
         "INSERT INTO document_register_type (name, code, flags) VALUES ($1, $2, $3) RETURNING id"
-        ( E.param (E.nonNullable E.text)
-            <> E.param (E.nullable E.text)
-            <> E.param (E.nonNullable E.int4)
+        ( ((\(a, _, _) -> a) >$< E.param (E.nonNullable E.text))
+            <> ((\(_, b, _) -> b) >$< E.param (E.nullable E.text))
+            <> ((\(_, _, c) -> c) >$< E.param (E.nonNullable E.int4))
         )
         (D.singleRow $ D.column (D.nonNullable D.int8))
-        False
 
 updateRegisterType :: Pool -> Int64 -> DocumentRegisterType -> IO Bool
-updateRegisterType pool rid DocumentRegisterType {drtName = name, drtCode = code, drtFlags = flags} = do
-  mb <-
-    use pool $
-      Session.statement
-        ( rid,
-          drtName,
-          drtCode,
-          drtFlags
-        )
-        stmt
-  pure $ Data.Maybe.isJust mb
+updateRegisterType pool rid doc = do
+  result <- use pool $ Session.statement params stmt
+  case result of
+    Right mb -> pure $ isJust mb
+    Left _ -> pure False
   where
+    params = (rid, drtName doc, drtCode doc, drtFlags doc)
     stmt =
-      Statement
+      unpreparable
         "UPDATE document_register_type SET name = $2, code = $3, flags = $4 WHERE id = $1 RETURNING id"
-        ( E.param (E.nonNullable E.int8)
-            <> E.param (E.nonNullable E.text)
-            <> E.param (E.nullable E.text)
-            <> E.param (E.nonNullable E.int4)
+        ( ((\(a, _, _, _) -> a) >$< E.param (E.nonNullable E.int8))
+            <> ((\(_, b, _, _) -> b) >$< E.param (E.nonNullable E.text))
+            <> ((\(_, _, c, _) -> c) >$< E.param (E.nullable E.text))
+            <> ((\(_, _, _, d) -> d) >$< E.param (E.nonNullable E.int4))
         )
         (D.rowMaybe (D.column (D.nonNullable D.int8)))
-        False
 
 deleteRegisterType :: Pool -> Int64 -> IO Bool
 deleteRegisterType pool rid = do
-  mb <- use pool $ Session.statement rid stmt
-  pure $ Data.Maybe.isJust mb
+  result <- use pool $ Session.statement rid stmt
+  case result of
+    Right mb -> pure $ isJust mb
+    Left _ -> pure False
   where
     stmt =
-      Statement
+      unpreparable
         "DELETE FROM document_register_type WHERE id = $1 RETURNING id"
         (E.param (E.nonNullable E.int8))
         (D.rowMaybe (D.column (D.nonNullable D.int8)))
-        False

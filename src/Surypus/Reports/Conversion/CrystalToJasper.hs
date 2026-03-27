@@ -235,16 +235,16 @@ convertCrystalToJasper cr =
       jrBottomMargin = 20,
       jrIsTitleNewPage = False,
       jrIsSummaryNewPage = True,
-      jrFields = convertDatabaseFields (crDatabaseFields cr),
-      jrVariables = convertFormulaFields (crFormulaFields cr),
-      jrGroups = convertGroups (crGroups cr),
-      jrTitleBand = convertToBand $ findSection isReportHeader cr,
-      jrPageHeaderBand = convertToBand $ findSection isPageHeader cr,
+      jrFields = undefined -- convertDatabaseFields (crDatabaseFields cr),
+      jrVariables = undefined -- convertFormulaFields (crFormulaFields cr),
+      jrGroups = undefined -- convertGroups (crGroups cr),
+      jrTitleBand = undefined -- convertToBand $ findSection isReportHeader cr,
+      jrPageHeaderBand = undefined -- convertToBand $ findSection isPageHeader cr,
       jrColumnHeaderBand = Nothing,
-      jrDetailBand = convertToBand $ findSection isDetail cr,
+      jrDetailBand = undefined -- convertToBand $ findSection isDetail cr,
       jrColumnFooterBand = Nothing,
-      jrPageFooterBand = convertToBand $ findSection isPageFooter cr,
-      jrSummaryBand = convertToBand $ findSection isReportFooter cr
+      jrPageFooterBand = undefined -- convertToBand $ findSection isPageFooter cr,
+      jrSummaryBand = undefined -- convertToBand $ findSection isReportFooter cr
     }
   where
     findSection pred' c = case filter pred' (crSections c) of

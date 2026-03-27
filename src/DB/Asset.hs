@@ -12,6 +12,7 @@ module DB.Asset
   )
 where
 
+import Data.Functor.Contravariant ((>$<))
 import Data.Int (Int32, Int64)
 import Data.Maybe (isJust)
 import Data.Text (Text)
@@ -100,7 +101,7 @@ createAsset pool AssetInput {..} = do
             <> E.param (E.nullable E.date)
             <> E.param (E.nullable E.date)
         )
-        (D.rowOne assetRow)
+        (D.singleRow assetRow)
 
 depreciateAsset :: Pool -> Int64 -> Day -> IO Bool
 depreciateAsset pool assetId period = do

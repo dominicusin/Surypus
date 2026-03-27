@@ -11,14 +11,15 @@ module DB.TechCard
 where
 
 import Core.Production.Types (TechCard (..), TechLine (..))
+import Data.Functor.Contravariant ((>$<))
 import Data.Int (Int32, Int64)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
-import Hasql.Pool (Pool, UsageError, use)
+import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
-import Hasql.Statement (Statement, unpreparable)
+import Hasql.Statement (unpreparable)
 
 techCardRow :: D.Row TechCard
 techCardRow =
@@ -79,10 +80,10 @@ createTechCard pool pid gid kind formula = do
     stmt =
       unpreparable
         "SELECT create_tech_card($1,$2,$3,$4)"
-        ( E.param (E.nonNullable E.int8)
-            <> E.param (E.nonNullable E.int8)
-            <> E.param (E.nonNullable E.int4)
-            <> E.param (E.nullable E.text)
+        ( ((\(a, _, _, _) -> a) >$< E.param (E.nonNullable E.int8))
+            <> ((\(_, b, _, _) -> b) >$< E.param (E.nonNullable E.int8))
+            <> ((\(_, _, c, _) -> c) >$< E.param (E.nonNullable E.int4))
+            <> ((\(_, _, _, d) -> d) >$< E.param (E.nullable E.text))
         )
         (D.singleRow $ D.column (D.nonNullable D.int8))
 
@@ -93,20 +94,20 @@ addTechLine pool techId lineNo goodsId qty sign formula lineTime lineCost = do
     Right _ -> pure ()
     Left _ -> pure ()
   where
-    lineTime' = fromMaybe 0 lineTime -- hlint: ignore
-    lineCost' = fromMaybe 0 lineCost -- hlint: ignore
+    lineTime' = fromMaybe 0 lineTime
+    lineCost' = fromMaybe 0 lineCost
     params = (techId, lineNo, goodsId, qty, sign, formula, lineTime', lineCost')
     stmt =
       unpreparable
         "SELECT add_tech_line($1,$2,$3,$4,$5,$6,$7,$8)"
-        ( E.param (E.nonNullable E.int8)
-            <> E.param (E.nullable E.int4)
-            <> E.param (E.nonNullable E.int8)
-            <> E.param (E.nonNullable E.float8)
-            <> E.param (E.nonNullable E.int4)
-            <> E.param (E.nullable E.text)
-            <> E.param (E.nonNullable E.float8)
-            <> E.param (E.nonNullable E.float8)
+        ( ((\(a, _, _, _, _, _, _, _) -> a) >$< E.param (E.nonNullable E.int8))
+            <> ((\(_, b, _, _, _, _, _, _) -> b) >$< E.param (E.nullable E.int4))
+            <> ((\(_, _, c, _, _, _, _, _) -> c) >$< E.param (E.nonNullable E.int8))
+            <> ((\(_, _, _, d, _, _, _, _) -> d) >$< E.param (E.nonNullable E.float8))
+            <> ((\(_, _, _, _, e, _, _, _) -> e) >$< E.param (E.nonNullable E.int4))
+            <> ((\(_, _, _, _, _, f, _, _) -> f) >$< E.param (E.nullable E.text))
+            <> ((\(_, _, _, _, _, _, g, _) -> g) >$< E.param (E.nonNullable E.float8))
+            <> ((\(_, _, _, _, _, _, _, h) -> h) >$< E.param (E.nonNullable E.float8))
         )
         D.noResult
 
