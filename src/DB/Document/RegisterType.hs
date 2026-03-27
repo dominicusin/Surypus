@@ -11,6 +11,7 @@ where
 
 import Core.Document.Types (DocumentRegisterType (..))
 import Data.Int (Int64)
+import Data.Maybe (isJust)
 import Data.Text (Text)
 import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
@@ -27,28 +28,30 @@ registerTypeRow =
     <*> D.column (D.nonNullable D.int4)
 
 listRegisterTypes :: Pool -> IO [DocumentRegisterType]
-listRegisterTypes pool =
-  use pool $
-    Session.statement () stmt
+listRegisterTypes pool = do
+  result <- use pool $ Session.statement () stmt
+  case result of
+    Right x -> pure x
+    Left _ -> pure []
   where
     stmt =
-      Statement
+      unpreparable
         "SELECT id, name, code, flags FROM document_register_type ORDER BY id"
         E.noParams
         (D.rowList registerTypeRow)
-        False
 
 getRegisterType :: Pool -> Int64 -> IO (Maybe DocumentRegisterType)
-getRegisterType pool rid =
-  use pool $
-    Session.statement rid stmt
+getRegisterType pool rid = do
+  result <- use pool $ Session.statement (rid,) stmt
+  case result of
+    Right x -> pure x
+    Left _ -> pure Nothing
   where
     stmt =
-      Statement
+      unpreparable
         "SELECT id, name, code, flags FROM document_register_type WHERE id = $1"
-        (E.param (E.nonNullable E.int8))
+        (fst >$< E.param (E.nonNullable E.int8))
         (D.rowMaybe registerTypeRow)
-        False
 
 getRegisterTypeByCode :: Pool -> Text -> IO (Maybe DocumentRegisterType)
 getRegisterTypeByCode pool code =
@@ -87,7 +90,7 @@ getRegisterTypeFlags pool rid =
         False
 
 createRegisterType :: Pool -> DocumentRegisterType -> IO Int64
-createRegisterType pool DocumentRegisterType {..} =
+createRegisterType pool DocumentRegisterType {drtName = name, drtCode = code, drtFlags = flags} =
   use pool $
     Session.statement
       ( drtName,
@@ -107,7 +110,7 @@ createRegisterType pool DocumentRegisterType {..} =
         False
 
 updateRegisterType :: Pool -> Int64 -> DocumentRegisterType -> IO Bool
-updateRegisterType pool rid DocumentRegisterType {..} = do
+updateRegisterType pool rid DocumentRegisterType {drtName = name, drtCode = code, drtFlags = flags} = do
   mb <-
     use pool $
       Session.statement

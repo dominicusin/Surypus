@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TupleSections #-}
 
 module DB.TechCard
   ( listTechCards,
