@@ -467,3 +467,99 @@ deleteCurrency pool cid =
     (E.param (E.nonNullable E.int8))
     cid
     "Currency deleted"
+
+-- | Create accounting plan
+accPlanInputEncoder :: E.Params AccPlanInput
+accPlanInputEncoder =
+  (apiCode >$< E.param (E.nonNullable E.text))
+    <> (apiName >$< E.param (E.nonNullable E.text))
+    <> ((toInt16 . apiType) >$< E.param (E.nonNullable E.int2))
+    <> (apiParentCode >$< E.param (E.nullable E.text))
+    <> ((toInt16 . apiKind) >$< E.param (E.nonNullable E.int2))
+    <> (apiIsAnalytical >$< E.param (E.nonNullable E.bool))
+
+createAccPlan :: Pool -> AccPlanInput -> IO (QueryResult MutationResult)
+createAccPlan pool input =
+  runMutationReturningId
+    pool
+    "INSERT INTO acc_plan (code, name, acc_type, parent_code, kind, is_analytical, obj_type) \
+    \VALUES ($1, $2, $3, $4, $5, $6, 'account_plan') RETURNING id"
+    accPlanInputEncoder
+    input
+    "Account plan created"
+
+updateAccPlanEncoder :: E.Params (Int64, AccPlanInput)
+updateAccPlanEncoder =
+  (fst >$< E.param (E.nonNullable E.int8))
+    <> ((apiCode . snd) >$< E.param (E.nonNullable E.text))
+    <> ((apiName . snd) >$< E.param (E.nonNullable E.text))
+    <> (((toInt16 . apiType) . snd) >$< E.param (E.nonNullable E.int2))
+    <> ((apiParentCode . snd) >$< E.param (E.nullable E.text))
+    <> (((toInt16 . apiKind) . snd) >$< E.param (E.nonNullable E.int2))
+    <> ((apiIsAnalytical . snd) >$< E.param (E.nonNullable E.bool))
+
+updateAccPlan :: Pool -> Int64 -> AccPlanInput -> IO (QueryResult MutationResult)
+updateAccPlan pool planId input =
+  runMutationReturningId
+    pool
+    "UPDATE acc_plan SET code = $2, name = $3, acc_type = $4, parent_code = $5, kind = $6, is_analytical = $7 \
+    \WHERE id = $1 RETURNING id"
+    updateAccPlanEncoder
+    (planId, input)
+    "Account plan updated"
+
+deleteAccPlan :: Pool -> Int64 -> IO (QueryResult MutationResult)
+deleteAccPlan pool planId =
+  runMutationReturningId
+    pool
+    "DELETE FROM acc_plan WHERE id = $1 RETURNING id"
+    (E.param (E.nonNullable E.int8))
+    planId
+    "Account plan deleted"
+
+-- | Create accounting turn
+accTurnInputEncoder :: E.Params AccTurnInput
+accTurnInputEncoder =
+  (atiDbtAccId >$< E.param (E.nonNullable E.int8))
+    <> (atiCrdAccId >$< E.param (E.nonNullable E.int8))
+    <> (atiAmount >$< E.param (E.nonNullable E.float8))
+    <> (atiDate >$< E.param (E.nonNullable E.date))
+    <> (atiBillId >$< E.param (E.nullable E.int8))
+
+createAccTurn :: Pool -> AccTurnInput -> IO (QueryResult MutationResult)
+createAccTurn pool input =
+  runMutationReturningId
+    pool
+    "INSERT INTO acc_turn (dbt_acc_id, crd_acc_id, amount, date, bill_id) \
+    \VALUES ($1, $2, $3, $4, $5) RETURNING id"
+    accTurnInputEncoder
+    input
+    "Accounting entry created"
+
+updateAccTurnEncoder :: E.Params (Int64, AccTurnInput)
+updateAccTurnEncoder =
+  (fst >$< E.param (E.nonNullable E.int8))
+    <> ((atiDbtAccId . snd) >$< E.param (E.nonNullable E.int8))
+    <> ((atiCrdAccId . snd) >$< E.param (E.nonNullable E.int8))
+    <> ((atiAmount . snd) >$< E.param (E.nonNullable E.float8))
+    <> ((atiDate . snd) >$< E.param (E.nonNullable E.date))
+    <> ((atiBillId . snd) >$< E.param (E.nullable E.int8))
+
+updateAccTurn :: Pool -> Int64 -> AccTurnInput -> IO (QueryResult MutationResult)
+updateAccTurn pool turnId input =
+  runMutationReturningId
+    pool
+    "UPDATE acc_turn SET dbt_acc_id = $2, crd_acc_id = $3, amount = $4, date = $5, bill_id = $6 \
+    \WHERE id = $1 RETURNING id"
+    updateAccTurnEncoder
+    (turnId, input)
+    "Accounting entry updated"
+
+deleteAccTurn :: Pool -> Int64 -> IO (QueryResult MutationResult)
+deleteAccTurn pool turnId =
+  runMutationReturningId
+    pool
+    "DELETE FROM acc_turn WHERE id = $1 RETURNING id"
+    (E.param (E.nonNullable E.int8))
+    turnId
+    "Accounting entry deleted"

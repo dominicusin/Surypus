@@ -987,3 +987,17 @@ getCurrencyById pool currencyId = do
     Right (Just currency) -> pure $ QuerySuccess currency
     Right Nothing -> pure $ QueryError "Not Found"
     Left err -> pure $ QueryError (T.pack $ show err)
+
+-- | Get accounting turn by id
+getAccTurnById :: Pool -> Int64 -> IO (QueryResult AccTurn)
+getAccTurnById pool turnId = do
+  let stmt =
+        unpreparable
+          "SELECT id, bill_id, dbt_acc_id, crd_acc_id, amount, date FROM acc_turn WHERE id = $1"
+          (E.param (E.nonNullable E.int8))
+          (D.rowMaybe accTurnRowDecoder)
+  res <- use pool $ Session.statement turnId stmt
+  case res of
+    Right (Just turn) -> pure $ QuerySuccess turn
+    Right Nothing -> pure $ QueryError "Not Found"
+    Left err -> pure $ QueryError (T.pack $ show err)

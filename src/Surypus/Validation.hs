@@ -141,3 +141,18 @@ validateCurrencyInput input
   | T.length (ciSymbol input) < 1 = Left [ValidationError "Symbol is required"]
   | ciRate input <= 0 = Left [ValidationError "Rate must be positive"]
   | otherwise = Right input
+
+validateAccPlanInput :: Validator AccPlanInput
+validateAccPlanInput input
+  | T.length (apiCode input) < 1 = Left [ValidationError "Code is required"]
+  | T.length (apiName input) < 1 = Left [ValidationError "Name is required"]
+  | apiType input < 0 || apiType input > 4 = Left [ValidationError "Type must be 0-4"]
+  | apiKind input < 0 = Left [ValidationError "Kind must be non-negative"]
+  | otherwise = Right input
+
+validateAccTurnInput :: Validator AccTurnInput
+validateAccTurnInput input
+  | atiDbtAccId input <= 0 = Left [ValidationError "Debit account ID must be positive"]
+  | atiCrdAccId input <= 0 = Left [ValidationError "Credit account ID must be positive"]
+  | atiAmount input <= 0 = Left [ValidationError "Amount must be positive"]
+  | otherwise = Right input

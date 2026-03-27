@@ -536,6 +536,31 @@ data CurrencyInput = CurrencyInput
 
 instance FromJSON CurrencyInput
 
+-- | Accounting plan input
+data AccPlanInput = AccPlanInput
+  { apiCode :: Text,
+    apiName :: Text,
+    apiType :: Int,
+    apiParentCode :: Maybe Text,
+    apiKind :: Int,
+    apiIsAnalytical :: Bool
+  }
+  deriving (Show, Eq, Generic)
+
+instance FromJSON AccPlanInput
+
+-- | Accounting turn input
+data AccTurnInput = AccTurnInput
+  { atiDbtAccId :: Int64,
+    atiCrdAccId :: Int64,
+    atiAmount :: Double,
+    atiDate :: Day,
+    atiBillId :: Maybe Int64
+  }
+  deriving (Show, Eq, Generic)
+
+instance FromJSON AccTurnInput
+
 -- ============================================================================
 -- RBAC TYPES
 -- ============================================================================

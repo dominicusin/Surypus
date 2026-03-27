@@ -4,6 +4,8 @@ module DAL.Repository.Container
   )
 where
 
+import DAL.Repository.AccPlan
+import DAL.Repository.AccTurn
 import DAL.Repository.Bill
 import DAL.Repository.Currency
 import DAL.Repository.Goods
@@ -24,7 +26,9 @@ data RepositoryContainer = RepositoryContainer
     rcCurrencyRepository :: CurrencyRepository,
     rcPriceRepository :: PriceRepository,
     rcBillRepository :: BillRepository,
-    rcOrderRepository :: OrderRepository
+    rcOrderRepository :: OrderRepository,
+    rcAccPlanRepository :: AccPlanRepository,
+    rcAccTurnRepository :: AccTurnRepository
   }
 
 mkRepositoryContainer :: Pool -> RepositoryContainer
@@ -38,5 +42,7 @@ mkRepositoryContainer pool =
       rcCurrencyRepository = mkCurrencyRepository pool,
       rcPriceRepository = mkPriceRepository pool,
       rcBillRepository = mkBillRepository pool,
-      rcOrderRepository = mkOrderRepository pool
+      rcOrderRepository = mkOrderRepository pool,
+      rcAccPlanRepository = mkAccPlanRepository pool,
+      rcAccTurnRepository = mkAccTurnRepository pool
     }
