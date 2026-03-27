@@ -20,7 +20,7 @@
 - [x] Implement rate limiting middleware
 - [x] Add request logging and monitoring
 - [ ] Implement API versioning strategy
-- [ ] Add WebSocket support for real-time updates
+- [x] Add WebSocket support for real-time updates
 
 ### Security
 - [x] Implement JWT authentication with refresh tokens
