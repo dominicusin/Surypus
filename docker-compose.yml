@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:16-alpine
+    container_name: surypus-db
+    environment:
+      POSTGRES_DB: surypus
+      POSTGRES_USER: surypus
+      POSTGRES_PASSWORD: surypus_password
+    volumes:
+      - surypus_db_data:/var/lib/postgresql/data
+      - ./sql:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U surypus"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Surypus API Server
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: surypus-api
+    environment:
+      PORT: 8080
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: surypus
+      DB_USER: surypus
+      DB_PASSWORD: surypus_password
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Job Worker (background tasks)
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: surypus-worker
+    command: surypus-job-worker
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: surypus
+      DB_USER: surypus
+      DB_PASSWORD: surypus_password
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  surypus_db_data:

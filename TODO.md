@@ -10,9 +10,9 @@
 
 ### Business Logic
 - [x] Implement full accounting module (double-entry bookkeeping)
-- [ ] Implement inventory/stock management with lot tracking
-- [ ] Implement VAT calculations with multi-rate support
-- [ ] Add payroll module integration
+- [x] Implement inventory/stock management with lot tracking
+- [x] Implement VAT calculations with multi-rate support
+- [x] Add payroll module integration
 - [ ] Add report generation (JasperReports integration)
 
 ### API
@@ -35,7 +35,7 @@
 - [ ] Add performance/load tests
 
 ### DevOps
-- [ ] Add Docker configuration
+- [x] Add Docker configuration
 - [ ] Add CI/CD pipeline
 - [ ] Add database migrations (flyway/schema migrations)
 - [x] Add health check endpoints

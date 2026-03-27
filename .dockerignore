@@ -1,0 +1,17 @@
+.stack-work
+dist-newstyle
+*.o
+*.hi
+.hlint.yaml
+test
+.git
+.github
+.vscode
+*.md
+config/*.sql
+sql/*.sql
+vendor
+efactor
+hints.md
+report.html
+os-string-2.0.6.tar.gz
