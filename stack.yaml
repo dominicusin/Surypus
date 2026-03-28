@@ -5,7 +5,7 @@ packages:
   - .
 
 ghc-options:
-  "$locals": -Wall
+  "$locals": -Wall -Werror
 
 allow-newer: true
 allow-newer-deps:

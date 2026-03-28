@@ -16,9 +16,9 @@ module Domain.HR
 where
 
 import Core.HR.Types
-  ( SalaryCharge,
+  ( SalaryCharge (..),
     SalaryChargeInput (..),
-    SalaryRecord,
+    SalaryRecord (..),
     SalarySummary (..),
     calcPeriodDays,
     calcSalaryPerDay,

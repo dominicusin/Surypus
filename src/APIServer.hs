@@ -785,10 +785,6 @@ runServer cfg = do
       json $ toJSONResult result
 
     -- Accounting
-    get "/api/v1/accounting" $ do
-      result <- liftIO $ getAccPlans pool
-      json $ toJSONResult result
-
     get "/api/v1/accounting/accounts" $ do
       result <- liftIO $ getAccPlans pool
       json $ toJSONResult result
