@@ -46,11 +46,17 @@ instance Repository GoodsRepository Goods where
       QuerySuccess goods -> pure goods
       QueryError err -> throwE (DatabaseError err)
 
-  create repo goods = createGoodsRepo repo (toGoodsInput goods)
+  create repo goods = do
+    created <- createGoodsRepo repo (toGoodsInput goods)
+    pure (gId created)
 
-  update repo goodsId goods = updateGoodsRepo repo goodsId (toGoodsInput goods)
+  update repo goodsId goods = do
+    updated <- updateGoodsRepo repo goodsId (toGoodsInput goods)
+    pure (Just updated)
 
-  delete = deleteGoodsRepo
+  delete repo goodsId = do
+    deleteGoodsRepo repo goodsId
+    pure Nothing
 
 listGoodsPage :: GoodsRepository -> GoodsFilter -> Pagination -> Maybe GoodsSortBy -> Maybe SortDir -> ExceptT RepositoryError IO (PaginatedResult Goods)
 listGoodsPage repo goodsFilter pagination sortBy sortDir = do

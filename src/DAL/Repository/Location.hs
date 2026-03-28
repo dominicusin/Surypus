@@ -44,11 +44,17 @@ instance Repository LocationRepository Location where
       QuerySuccess locations -> pure locations
       QueryError err -> throwE (DatabaseError err)
 
-  create repo location = createLocationRepo repo (toLocationInput location)
+  create repo location = do
+    created <- createLocationRepo repo (toLocationInput location)
+    pure (lId created)
 
-  update repo locationId location = updateLocationRepo repo locationId (toLocationInput location)
+  update repo locationId location = do
+    updated <- updateLocationRepo repo locationId (toLocationInput location)
+    pure (Just updated)
 
-  delete = deleteLocationRepo
+  delete repo locationId = do
+    deleteLocationRepo repo locationId
+    pure Nothing
 
 listLocationsRepo :: LocationRepository -> ExceptT RepositoryError IO [Location]
 listLocationsRepo = findAll

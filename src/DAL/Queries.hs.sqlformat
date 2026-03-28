@@ -14,7 +14,7 @@ import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
-import Hasql.Statement (preparable)
+import Hasql.Statement (preparable, unpreparable)
 import Surypus.Types (Decimal (..))
 
 personRowDecoder :: D.Row Person

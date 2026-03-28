@@ -45,11 +45,17 @@ instance Repository PersonRepository Person where
       QuerySuccess persons -> pure persons
       QueryError err -> throwE (DatabaseError err)
 
-  create repo person = createPersonRepo repo (toPersonInput person)
+  create repo person = do
+    created <- createPersonRepo repo (toPersonInput person)
+    pure (pId created)
 
-  update repo pid person = updatePersonRepo repo pid (toPersonInput person)
+  update repo pid person = do
+    updated <- updatePersonRepo repo pid (toPersonInput person)
+    pure (Just updated)
 
-  delete = deletePersonRepo
+  delete repo pid = do
+    deletePersonRepo repo pid
+    pure Nothing
 
 listPersonsPage :: PersonRepository -> PersonFilter -> Pagination -> Maybe PersonSortBy -> Maybe SortDir -> ExceptT RepositoryError IO (PaginatedResult Person)
 listPersonsPage repo personFilter pagination sortBy sortDir = do

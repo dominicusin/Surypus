@@ -1,0 +1,15 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'surypus'
+    static_configs:
+      - targets: ['api:8080']
+    metrics_path: '/metrics'
+    scrape_interval: 5s
+
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['db:9187']  # postgres exporter would run on this port
+    # For now, we'll rely on postgres built-in metrics or add exporter later

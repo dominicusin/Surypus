@@ -45,11 +45,17 @@ instance Repository CurrencyRepository Currency where
       QuerySuccess currencies -> pure currencies
       QueryError err -> throwE (DatabaseError err)
 
-  create repo currency = createCurrencyRepo repo (toCurrencyInput currency)
+  create repo currency = do
+    created <- createCurrencyRepo repo (toCurrencyInput currency)
+    pure (currId created)
 
-  update repo currencyId currency = updateCurrencyRepo repo currencyId (toCurrencyInput currency)
+  update repo currencyId currency = do
+    updated <- updateCurrencyRepo repo currencyId (toCurrencyInput currency)
+    pure (Just updated)
 
-  delete = deleteCurrencyRepo
+  delete repo currencyId = do
+    deleteCurrencyRepo repo currencyId
+    pure Nothing
 
 listCurrenciesRepo :: CurrencyRepository -> ExceptT RepositoryError IO [Currency]
 listCurrenciesRepo = findAll

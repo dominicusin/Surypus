@@ -45,7 +45,9 @@ instance Repository BillRepository Bill where
       QuerySuccess bills -> pure bills
       QueryError err -> throwE (DatabaseError err)
 
-  create repo bill = createBillRepo repo (toBillInput bill)
+  create repo bill = do
+    created <- createBillRepo repo (toBillInput bill)
+    pure (bId created)
 
   update repo billId bill = do
     _ <- updateBillStatusRepo repo billId (bStatus bill)
@@ -54,7 +56,9 @@ instance Repository BillRepository Bill where
       Just updatedBill -> pure updatedBill
       Nothing -> throwE (NotFound "Updated bill was not found")
 
-  delete = deleteBillRepo
+  delete repo billId = do
+    deleteBillRepo repo billId
+    pure Nothing
 
 listBillsPage :: BillRepository -> BillFilter -> Pagination -> Maybe BillSortBy -> Maybe SortDir -> ExceptT RepositoryError IO (PaginatedResult Bill)
 listBillsPage repo billFilter pagination sortBy sortDir = do
