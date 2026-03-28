@@ -23,7 +23,7 @@ import Data.Int (Int64)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Hasql.Pool (Pool)
-import Surypus.Types (fromDecimal, toDecimal)
+import Surypus.Types (fromDecimal)
 import qualified Surypus.Validation as Validation
 
 data AccTurnRepository = AccTurnRepository

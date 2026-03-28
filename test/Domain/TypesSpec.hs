@@ -3,9 +3,7 @@
 module Domain.TypesSpec where
 
 import Test.Hspec
-import Test.QuickCheck
 import Domain.Types
-import Data.Int (Int64)
 
 spec :: Spec
 spec = do

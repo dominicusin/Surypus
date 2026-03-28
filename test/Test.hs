@@ -14,7 +14,6 @@ import Data.Time (fromGregorian)
 import Surypus.Types (Decimal (..))
 import Test.Hspec
 import Test.Hspec.QuickCheck (prop)
-import Test.QuickCheck
 
 -- ============================================================================
 -- MAIN
@@ -222,7 +221,7 @@ main = hspec $ do
   describe "Template Loading" $ do
     it "template count is 9" $ do
       -- 9 PDF templates defined in templates/reports/
-      9 `shouldBe` 9
+      (9 :: Int) `shouldBe` (9 :: Int)
 
     it "template types defined" $ do
       -- Template types exist

@@ -13,7 +13,6 @@ where
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Int (Int64)
 import Data.Text (Text)
-import qualified Data.Text as T
 import Data.Time (Day, UTCTime, diffDays)
 import Domain.HR (SalarySummary (..))
 import GHC.Generics (Generic)

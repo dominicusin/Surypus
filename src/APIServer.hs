@@ -2,6 +2,28 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
+-- | API Server module for the Surypus ERP system.
+--
+-- This module defines the HTTP API server using the Scotty web framework.
+-- It includes configuration types, route definitions, and server startup logic.
+--
+-- The server exposes RESTful endpoints for managing entities such as persons,
+-- goods, bills, orders, payments, and more. It also includes middleware for
+-- CORS, rate limiting, and JSON request/response handling.
+--
+-- Example usage:
+-- @
+-- main :: IO ()
+-- main = do
+--   pool <- createConnectionPool
+--   let config = ServerConfig
+--         { scHost = "127.0.0.1"
+--         , scPort = 8080
+--         , scPool = pool
+--         , scWebSocketHub = undefined -- TODO: Initialize WebSocket hub
+--         }
+--   runServer config
+-- @
 module APIServer
   ( ServerConfig (..),
     RateLimitConfig (..),

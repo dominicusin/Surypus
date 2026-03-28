@@ -1,6 +1,70 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 
+-- | Bill repository interface and implementation.
+--
+-- This module defines the repository pattern for Bill entities, providing
+-- CRUD operations and query functions. It abstracts the database access
+-- layer and allows for easy mocking in tests.
+--
+-- The repository is parameterized over a pool type, allowing different
+-- connection pool implementations to be used.
+--
+-- === Examples
+--
+-- Creating a repository and finding a bill by ID:
+-- @
+-- import DAL.Repository.Bill (BillRepository, mkBillRepository, runBillRepository)
+-- import DAL.Types (Bill)
+-- import Hasql.Pool (Pool)
+--
+-- -- Assuming you have a connection pool
+-- let pool :: Pool = undefined -- See issue: https://github.com/dominicusin/Surypus/issues/123
+-- let repo :: BillRepository = mkBillRepository pool
+--
+-- -- Find a bill by ID
+-- result <- runBillRepository repo $ find 123
+-- case result of
+--   Right (Just bill) -> print (bill :: Bill)
+--   Right Nothing  -> putStrLn "Bill not found"
+--   Left err       -> putStrLn $ "Error: " ++ err
+-- @
+--
+-- Listing bills with pagination:
+-- @
+-- import DAL.Repository.Bill (BillRepository, mkBillRepository, runBillRepository)
+-- import DAL.Types (BillFilter, Pagination, BillSortBy, SortDir)
+-- import Hasql.Pool (Pool)
+--
+-- -- Assuming you have a connection pool
+-- let pool :: Pool = undefined -- See issue: https://github.com/dominicusin/Surypus/issues/123
+-- let repo :: BillRepository = mkBillRepository pool
+-- let filter = BillFilter Nothing Nothing Nothing Nothing Nothing Nothing Nothing -- No filtering
+-- let pagination = Pagination 10 0 -- First page, 10 items per page
+--
+-- result <- runBillRepository repo $ listBillsPage filter pagination Nothing Nothing
+-- case result of
+--   Right paginated -> mapM_ print (prItems paginated)
+--   Left err       -> putStrLn $ "Error: " ++ err
+-- @
+--
+-- Updating bill status:
+-- @
+-- import DAL.Repository.Bill (BillRepository, mkBillRepository, runBillRepository)
+-- import DAL.Types (Bill)
+-- import Hasql.Pool (Pool)
+--
+-- -- Assuming you have a connection pool
+-- let pool :: Pool = undefined -- See issue: https://github.com/dominicusin/Surypus/issues/123
+-- let repo :: BillRepository = mkBillRepository pool
+--
+-- -- Update bill status to 2 (posted)
+-- result <- runBillRepository repo $ updateBillStatusRepo 123 2
+-- case result of
+--   Right (Just bill) -> putStrLn "Bill status updated successfully"
+--   Right Nothing  -> putStrLn "Bill not found"
+--   Left err       -> putStrLn $ "Error: " ++ err
+-- @
 module DAL.Repository.Bill
   ( BillRepository (..),
     HasBillRepository (..),
