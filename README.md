@@ -17,7 +17,6 @@
 ### Сборка
 
 ```bash
-cd Surypus
 stack build
 ```
 
