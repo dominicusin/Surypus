@@ -20,6 +20,7 @@ import Domain.Job
     jobStatusFromText,
   )
 import qualified Hasql.Decoders as D
+import Hasql.Pool (Pool)
 
 jobRow :: D.Row JobRecord
 jobRow =

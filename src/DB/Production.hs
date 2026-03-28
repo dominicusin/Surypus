@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 
@@ -30,7 +31,7 @@ import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import Data.Text.Lazy.Encoding (decodeUtf8, encodeUtf8)
 import Data.Time (Day, UTCTime, utctDay)
-import Domain.Production (TechFilter (..))
+import Domain.Production (BOMEntry (..), MRPNeed (..), MRPPlanItem (..), ProductionPlanSnapshot (..), TechFilter (..))
 import GHC.Generics (Generic)
 import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E

@@ -21,7 +21,6 @@ import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
-import qualified Hasql.Statement as Statement
 
 -- | Audit event parameters type
 -- (user_id, action, entity, entity_id, details, timestamp, ip)
@@ -47,7 +46,7 @@ logAuditEvent pool action entityName mUserId mEntityId mDetails mIP = do
         "INSERT INTO audit_log (user_id, action, entity, entity_id, details, timestamp, ip) \
         \VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id"
       stmt =
-        Statement.unpreparable
+        unpreparable
           sql
           auditEncoder
           (D.singleRow (D.column (D.nonNullable D.int8)))

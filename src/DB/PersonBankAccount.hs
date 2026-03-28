@@ -9,6 +9,7 @@ module DB.PersonBankAccount
   )
 where
 
+import Data.Functor.Contravariant ((>$<))
 import Data.Int (Int64)
 import Domain.Person (PersonBankAccount (..))
 import qualified Hasql.Decoders as D
@@ -59,12 +60,12 @@ createPersonBankAccount pool personId PersonBankAccount {..} = do
     stmt =
       unpreparable
         "INSERT INTO personbankaccount (person_id, bank_name, bank_bik, account, corr_account, is_default) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id"
-        ( E.param (E.nonNullable E.int8)
-            <> E.param (E.nonNullable E.text)
-            <> E.param (E.nonNullable E.text)
-            <> E.param (E.nonNullable E.text)
-            <> E.param (E.nullable E.text)
-            <> E.param (E.nonNullable E.bool)
+        ( ((\(a, _, _, _, _, _) -> a) >$< E.param (E.nonNullable E.int8))
+            <> ((\(_, b, _, _, _, _) -> b) >$< E.param (E.nonNullable E.text))
+            <> ((\(_, _, c, _, _, _) -> c) >$< E.param (E.nonNullable E.text))
+            <> ((\(_, _, _, d, _, _) -> d) >$< E.param (E.nonNullable E.text))
+            <> ((\(_, _, _, _, e, _) -> e) >$< E.param (E.nullable E.text))
+            <> ((\(_, _, _, _, _, f) -> f) >$< E.param (E.nonNullable E.bool))
         )
         (D.singleRow $ D.column (D.nonNullable D.int8))
 
@@ -89,13 +90,13 @@ updatePersonBankAccount pool personId ba@PersonBankAccount {..} = case pbaId of
       stmt =
         unpreparable
           "UPDATE personbankaccount SET person_id = $2, bank_name = $3, bank_bik = $4, account = $5, corr_account = $6, is_default = $7 WHERE id = $1"
-          ( E.param (E.nonNullable E.int8)
-              <> E.param (E.nonNullable E.int8)
-              <> E.param (E.nonNullable E.text)
-              <> E.param (E.nonNullable E.text)
-              <> E.param (E.nonNullable E.text)
-              <> E.param (E.nullable E.text)
-              <> E.param (E.nonNullable E.bool)
+          ( ((\(a, _, _, _, _, _, _) -> a) >$< E.param (E.nonNullable E.int8))
+              <> ((\(_, b, _, _, _, _, _) -> b) >$< E.param (E.nonNullable E.int8))
+              <> ((\(_, _, c, _, _, _, _) -> c) >$< E.param (E.nonNullable E.text))
+              <> ((\(_, _, _, d, _, _, _) -> d) >$< E.param (E.nonNullable E.text))
+              <> ((\(_, _, _, _, e, _, _) -> e) >$< E.param (E.nonNullable E.text))
+              <> ((\(_, _, _, _, _, f, _) -> f) >$< E.param (E.nullable E.text))
+              <> ((\(_, _, _, _, _, _, g) -> g) >$< E.param (E.nonNullable E.bool))
           )
           D.noResult
 

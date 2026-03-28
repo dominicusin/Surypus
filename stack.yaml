@@ -13,6 +13,7 @@ allow-newer-deps:
   - file-io
   - filepath
   - hasql
+  - hasql-pool
   - postgresql-libpq
   - vector
   - directory
