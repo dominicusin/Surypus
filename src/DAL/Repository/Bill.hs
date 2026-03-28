@@ -53,7 +53,7 @@ instance Repository BillRepository Bill where
     _ <- updateBillStatusRepo repo billId (bStatus bill)
     mBill <- find repo billId
     case mBill of
-      Just updatedBill -> pure updatedBill
+      Just updatedBill -> pure (Just updatedBill)
       Nothing -> throwE (NotFound "Updated bill was not found")
 
   delete repo billId = do

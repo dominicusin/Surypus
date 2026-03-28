@@ -1,6 +1,34 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 
+-- | Person repository interface and implementation.
+--
+-- This module defines the repository pattern for Person entities, providing
+-- CRUD operations and query functions. It abstracts the database access
+-- layer and allows for easy mocking in tests.
+--
+-- The repository is parameterized over a pool type, allowing different
+-- connection pool implementations to be used.
+--
+-- === Examples
+--
+-- Creating a repository and finding a person:
+-- @
+-- import DAL.Repository.Person (PersonRepository, mkPersonRepository, runPersonRepository)
+-- import DAL.Types (Person)
+-- import Hasql.Pool (Pool)
+--
+-- -- Assuming you have a connection pool
+-- let pool :: Pool = undefined -- TODO: Initialize pool
+-- let repo :: PersonRepository = mkPersonRepository pool
+--
+-- -- Find a person by ID
+-- result <- runPersonRepository repo $ find 123
+-- case result of
+--   Right (Just person) -> print (person :: Person)
+--   Right Nothing  -> putStrLn "Person not found"
+--   Left err       -> putStrLn $ "Error: " ++ err
+-- @
 module DAL.Repository.Person
   ( PersonRepository (..),
     HasPersonRepository (..),

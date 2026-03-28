@@ -35,7 +35,7 @@ class Repository repo entity | repo -> entity where
   update :: repo -> Int64 -> entity -> RepositoryM (Maybe entity)
   delete :: repo -> Int64 -> RepositoryM (Maybe entity)
 
-data RepositoryContext = RepositoryContext { rcPool :: Pool }
+data RepositoryContext = RepositoryContext {rcPool :: Pool}
 
 defaultRepositoryContext :: Pool -> RepositoryContext
 defaultRepositoryContext = RepositoryContext

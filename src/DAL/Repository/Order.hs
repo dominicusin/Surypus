@@ -52,7 +52,7 @@ instance Repository OrderRepository Order where
     _ <- updateOrderStatusRepo repo orderId (oStatus orderVal)
     mOrder <- find repo orderId
     case mOrder of
-      Just updatedOrder -> pure updatedOrder
+      Just updatedOrder -> pure (Just updatedOrder)
       Nothing -> throwE (NotFound "Updated order was not found")
 
   delete repo orderId = do
