@@ -13,7 +13,7 @@ import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
-import Hasql.Statement (unpreparable)
+import Hasql.Statement (preparable, unpreparable)
 
 salaryChargeRow :: D.Row SalaryCharge
 salaryChargeRow =
