@@ -1,36 +1,35 @@
 {-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE KindSignatures #-}
 
--- | Generic Repository interface for DAL implementation
--- This module defines a typeclass-based repository pattern
--- that can be implemented with Hasql (or other DB backends).
-module DAL.Repository where
+module DAL.Repository
+  ( Repository (..),
+    Pagination (..),
+    Filters (..),
+    defaultPagination,
+  )
+where
 
+import Data.Int (Int64)
 import Hasql.Pool (Pool)
-import Surypus.Error (AppError)
 
--- | Associated types provide entity-specific metadata
-class Repository f entity | f -> entity where
-  -- | ID type for the given entity
-  type Id entity :: *
+class Repository m entity | entity -> m where
+  findById :: Pool -> Int64 -> m (Maybe entity)
+  findAll :: Pool -> Pagination -> Filters -> m [entity]
+  create :: Pool -> entity -> m Int64
+  update :: Pool -> Int64 -> entity -> m Bool
+  delete :: Pool -> Int64 -> m Bool
 
-  -- | Pagination/filtering types for listing entities
-  type Pagination entity :: *
+data Pagination = Pagination
+  { pageOffset :: Int64,
+    pageLimit :: Int64
+  }
+  deriving (Show, Eq)
 
-  type Filters entity :: *
+defaultPagination :: Pagination
+defaultPagination = Pagination 0 50
 
-  -- | Find by primary key
-  findById :: Pool -> Id entity -> IO (Either AppError (Maybe entity))
-
-  -- | List with pagination/filters
-  findAll :: Pool -> Pagination entity -> Filters entity -> IO (Either AppError [entity])
-
-  -- | Create new entity
-  create :: Pool -> entity -> IO (Either AppError entity)
-
-  -- | Update existing entity by ID
-  update :: Pool -> Id entity -> entity -> IO (Either AppError entity)
-
-  -- | Delete by ID
-  delete :: Pool -> Id entity -> IO (Either AppError ())
+data Filters = Filters
+  { filterText :: Maybe String,
+    filterStatus :: Maybe Int
+  }
+  deriving (Show, Eq)

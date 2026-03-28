@@ -18,7 +18,7 @@ import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
-import Hasql.Statement (unpreparable)
+import Hasql.Statement (Statement)
 
 data DocumentRegisterDuplicate = DocumentRegisterDuplicate
   { drdTypeId :: Int64,
@@ -36,8 +36,9 @@ findExpiringRegisters pool lookaheadDays = do
     Right x -> pure x
     Left _ -> pure []
   where
+    stmt :: Statement Int32 [DocumentRegister]
     stmt =
-      unpreparable
+      Statement
         "SELECT id, person_id, type_id, series, number, issue_date, expiry_date, issuer, flags, auto_number \
         \FROM document_register \
         \WHERE expiry_date IS NOT NULL \
@@ -45,6 +46,7 @@ findExpiringRegisters pool lookaheadDays = do
         \ORDER BY expiry_date ASC"
         (E.param (E.nonNullable E.int4))
         (D.rowList documentRegisterRow)
+        True
 
 findDuplicateRegisterNumbers :: Pool -> IO [DocumentRegisterDuplicate]
 findDuplicateRegisterNumbers pool = do
@@ -53,8 +55,9 @@ findDuplicateRegisterNumbers pool = do
     Right x -> pure x
     Left _ -> pure []
   where
+    stmt :: Statement () [DocumentRegisterDuplicate]
     stmt =
-      unpreparable
+      Statement
         "SELECT type_id, number, COUNT(*)::bigint AS total \
         \FROM document_register \
         \GROUP BY type_id, number \
@@ -62,6 +65,7 @@ findDuplicateRegisterNumbers pool = do
         \ORDER BY type_id, number"
         E.noParams
         (D.rowList duplicateRow)
+        True
 
 duplicateRow :: D.Row DocumentRegisterDuplicate
 duplicateRow =
