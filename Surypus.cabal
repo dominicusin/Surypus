@@ -78,9 +78,11 @@ library
         , cryptonite >=0.30
         , memory >=0.18
         , transformers >=0.5
+        , hasql >=1.10
+        , hasql-pool >=1.4
 
     default-language: Haskell2010
-    ghc-options: -Wall -Wwarn
+    ghc-options: -Wall -Werror
 
 executable surypus
   main-is: Main.hs
@@ -116,4 +118,6 @@ test-suite test
       , aeson >=2.0
       , containers >=0.6
       , vector >=0.12
+      , hasql >=1.10
+      , hasql-pool >=1.4
   default-language: Haskell2010
