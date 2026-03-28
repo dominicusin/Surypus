@@ -37,7 +37,34 @@ listSalaryCharges pool = do
         (D.rowList salaryChargeRow)
 
 createSalaryCharge :: Pool -> SalaryChargeInput -> IO Int64
-createSalaryCharge _pool _input = pure 0
+createSalaryCharge pool SalaryChargeInput {sciName = name, sciCode = code, sciFlags = flags} = do
+  let params = (name, code, flags)
+      stmt =
+        unpreparable
+          "INSERT INTO hr_salary_charge (name, code, flags) VALUES ($1, $2, $3) RETURNING id"
+          ( E.param (E.nonNullable E.text)
+              <> E.param (E.nullable E.text)
+              <> E.param (E.nonNullable E.int4)
+          )
+          (D.singleRow $ D.column (D.nonNullable D.int8))
+  res <- use pool $ Session.statement params stmt
+  case res of
+    Right x -> pure x
+    Left _ -> pure 0
 
 updateSalaryCharge :: Pool -> Int64 -> SalaryChargeInput -> IO (Maybe SalaryCharge)
-updateSalaryCharge _pool _chargeId _input = pure Nothing
+updateSalaryCharge pool chargeId SalaryChargeInput {sciName = name, sciCode = code, sciFlags = flags} = do
+  let params = (name, code, flags, chargeId)
+      stmt =
+        unpreparable
+          "UPDATE hr_salary_charge SET name = $1, code = $2, flags = $3 WHERE id = $4 RETURNING id, name, code, flags"
+          ( E.param (E.nonNullable E.text)
+              <> E.param (E.nullable E.text)
+              <> E.param (E.nonNullable E.int4)
+              <> E.param (E.nonNullable E.int8)
+          )
+          (D.rowMaybe salaryChargeRow)
+  res <- use pool $ Session.statement params stmt
+  case res of
+    Right mb -> pure mb
+    Left _ -> pure Nothing
