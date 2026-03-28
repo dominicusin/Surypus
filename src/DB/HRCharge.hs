@@ -7,8 +7,8 @@ module DB.HRCharge
   )
 where
 
-import Core.HR.Types (SalaryCharge (..), SalaryChargeInput (..))
 import Data.Int (Int64)
+import Domain.HR (SalaryCharge (..), SalaryChargeInput (..))
 import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
