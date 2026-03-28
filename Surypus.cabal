@@ -15,12 +15,17 @@ library
         Core.Document
         Core.Document.Types
         Core.Person
+        Core.Person.Contact
+        Core.Person.Person
+        Core.Person.Relation
         Core.Person.Operations
         Core.Warehouse
         Core.Auth
         Core.Auth.Operations
         Core.Commerce
         Core.HR
+        Core.HR.Employee
+        Core.HR.Position
         Core.HR.Types
         Core.Unit
         Core.Inventory
@@ -46,6 +51,7 @@ library
         Core.Invoice.Operations
         Core.Price
         Core.Price.Operations
+        Core.Refined
         DAL.Types
         Surypus.Types
         Surypus.Error
