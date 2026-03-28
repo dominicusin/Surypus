@@ -8,11 +8,9 @@ module Main where
 import Core.Accounting.Account
 import Core.Payroll.Calculation
 import Core.Tax
-import Data.Int (Int64)
-import Data.Maybe (isJust, isNothing)
-import Data.Text (Text)
+import Data.Maybe ()
 import qualified Data.Text as T
-import Data.Time (Day, fromGregorian)
+import Data.Time (fromGregorian)
 import Surypus.Types (Decimal (..))
 import Test.Hspec
 import Test.Hspec.QuickCheck (prop)

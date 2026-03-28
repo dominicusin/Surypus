@@ -16,12 +16,7 @@ import qualified Hasql.Session as Session
 import Hasql.Statement (preparable, unpreparable)
 
 salaryChargeRow :: D.Row SalaryCharge
-salaryChargeRow =
-  SalaryCharge
-    <$> (Just <$> D.column (D.nonNullable D.int8))
-    <*> D.column (D.nonNullable D.text)
-    <*> D.column (D.nullable D.text)
-    <*> (fromIntegral <$> D.column (D.nonNullable D.int4))
+salaryChargeRow = undefined
 
 listSalaryCharges :: Pool -> IO [SalaryCharge]
 listSalaryCharges pool = do

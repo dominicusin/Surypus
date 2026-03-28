@@ -41,7 +41,7 @@ import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
-import Hasql.Statement (unpreparable)
+import Hasql.Statement (Statement)
 import qualified Network.HTTP.Types as HTTP
 import Network.Wai (Middleware, rawPathInfo, requestHeaders, requestMethod, responseLBS, responseStatus)
 import Surypus.JWT (JWTPayload (..), defaultJWTConfig, generateSimpleToken)
@@ -934,7 +934,8 @@ healthStatus = pure "healthy"
 
 isDatabaseReady :: Pool -> IO Bool
 isDatabaseReady pool = do
-  let stmt = unpreparable "SELECT 1" E.noParams (D.singleRow (D.column (D.nonNullable D.int8)))
+  let stmt :: Statement () Int
+      stmt = Statement "SELECT 1" E.noParams (D.singleRow (D.column (D.nonNullable D.int8))) True
   result <- use pool $ Session.statement () stmt
   case result of
     Left _ -> pure False
