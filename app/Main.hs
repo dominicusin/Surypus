@@ -2,7 +2,6 @@
 
 module Main where
 
-import Data.Text (Text)
 import System.Environment (lookupEnv)
 import System.IO (hFlush, stdout)
 

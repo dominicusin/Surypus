@@ -101,12 +101,12 @@ calculateLineTotal price quantity discountPercent
 -- | Calculate bill total from lines
 -- Инвариант: total >= 0
 calculateBillTotal :: [(Double, Double, Double)] -> Double
-calculateBillTotal lines = sum (fmap (\(p, q, d) -> calculateLineTotal p q d) lines)
+calculateBillTotal billLines = sum (fmap (\(p, q, d) -> calculateLineTotal p q d) billLines)
 
 -- | Calculate total discount for bill
 -- Инвариант: total >= 0
 calculateTotalDiscount :: [(Double, Double, Double)] -> Double
-calculateTotalDiscount lines = sum (fmap (\(p, q, d) -> calculateDiscount (p * q) d) lines)
+calculateTotalDiscount billLines = sum (fmap (\(p, q, d) -> calculateDiscount (p * q) d) billLines)
 
 -- ============================================================================
 -- PRICE VERIFICATION

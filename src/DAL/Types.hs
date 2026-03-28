@@ -4,8 +4,8 @@
 -- | Database Types
 module DAL.Types where
 
-import Data.Aeson (FromJSON, Object, ToJSON, object, toJSON, (.=))
-import Data.Int (Int16, Int32, Int64)
+import Data.Aeson (FromJSON, ToJSON, object, toJSON, (.=))
+import Data.Int (Int16, Int64)
 import Data.Text (Text)
 import Data.Time (Day, UTCTime)
 import GHC.Generics (Generic)
