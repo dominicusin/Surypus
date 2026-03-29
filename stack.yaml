@@ -23,6 +23,7 @@ allow-newer-deps:
 flags: {}
 
 extra-deps:
+  - jose-0.10
   - websockets-0.13.0.0
   - hashtables-1.4.1
   - hasql-1.10.3@sha256:f1e9d616ed73290096a75271d01d9f5490b30ee26dca1cbe604afbd4827c24e8,9971
