@@ -124,6 +124,9 @@ library
         , warp >=3.3
         , wai >=3.2
         , http-types >=0.12
+        , servant >=0.20
+        , servant-server >=0.20
+        , servant-client >=0.20
 
     default-language: Haskell2010
     ghc-options: -Wall
@@ -162,6 +165,10 @@ test-suite test
       Domain.PayrollSpec
       Domain.PersonSpec
       Domain.TypesSpec
+      Integration.CrudSpec
+      Integration.NegativeSpec
+      Integration.PropertySpec
+      TestFixtures
   build-depends:
         base >=4.12 && <5
       , Surypus
