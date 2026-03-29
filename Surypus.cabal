@@ -165,6 +165,10 @@ test-suite test
       Domain.PayrollSpec
       Domain.PersonSpec
       Domain.TypesSpec
+      Integration.CrudSpec
+      Integration.NegativeSpec
+      Integration.PropertySpec
+      TestFixtures
   build-depends:
         base >=4.12 && <5
       , Surypus
