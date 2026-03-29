@@ -5,6 +5,13 @@
 
 packages:
 - completed:
+    hackage: websockets-0.13.0.0@sha256:9b3680ba5055e0b34ab29c341b21d70084bf067519fc059af0e597cd90a4a05a,7567
+    pantry-tree:
+      sha256: 5f1ab27ecaf9c6fcabe5d86fb6fa55d79c8c506a216a0d088a60436643ec9f07
+      size: 2736
+  original:
+    hackage: websockets-0.13.0.0
+- completed:
     hackage: hashtables-1.4.1@sha256:339615e16b705492d10a86aa34b64232a4d32d77939950c87443ce50994183e6,10390
     pantry-tree:
       sha256: 87defdb8876d77001d98b5fd1a3c3b9a1b0b3b74049e671fb38eecc0c93d69a6
