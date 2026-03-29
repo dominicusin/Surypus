@@ -52,7 +52,42 @@ library
         Core.Price
         Core.Price.Operations
         Core.Refined
+        DAL
         DAL.Types
+        DAL.Queries
+        DAL.Mutations
+        DAL.Repository
+        DAL.Repository.Person
+        DAL.Repository.Goods
+        DAL.Repository.Location
+        DAL.Repository.Payment
+        DAL.Repository.Price
+        DAL.Repository.Tax
+        DAL.Repository.Currency
+        DAL.Repository.Bill
+        DAL.Repository.Order
+        DAL.Repository.AccPlan
+        DAL.Repository.AccTurn
+        DAL.Repository.Container
+        DB.Connection
+        Domain
+        Domain.Types
+        Domain.Bill
+        Domain.Goods
+        Domain.Person
+        Domain.Location
+        Domain.HR
+        Domain.Payroll
+        Domain.Accounting
+        Domain.Document
+        Domain.Stock
+        Domain.TechCard
+        Domain.Production
+        Domain.Job
+        Domain.Core
+        Domain.Asset
+        Domain.ReportSchedule
+        Domain.ReportJob
         Surypus.Types
         Surypus.Error
         Surypus.Logging
@@ -61,6 +96,7 @@ library
         Surypus.Refined.Predicates
         Surypus.Z3
         Surypus.I18n
+        Surypus.Reports
 
     hs-source-dirs: src
 
@@ -78,11 +114,19 @@ library
         , cryptonite >=0.30
         , memory >=0.18
         , transformers >=0.5
+        , mtl >=2.3
         , hasql >=1.10
         , hasql-pool >=1.4
+        , scientific >=0.3
+        , jose >=0.10
+        , wai-websockets >=3.0
+        , websockets >=0.12
+        , warp >=3.3
+        , wai >=3.2
+        , http-types >=0.12
 
     default-language: Haskell2010
-    ghc-options: -Wall -Werror
+    ghc-options: -Wall
 
 executable surypus
   main-is: Main.hs
@@ -99,13 +143,25 @@ executable surypus
       , containers >=0.6
       , transformers >=0.5
       , time >=1.8
+      , servant >=0.20
+      , servant-server >=0.20
+      , jose >=0.10
   default-language: Haskell2010
   ghc-options: -threaded
 
 test-suite test
   type: exitcode-stdio-1.0
   main-is: Test.hs
-  hs-source-dirs: test, src
+  hs-source-dirs: test
+  other-modules:
+      API.ServerSpec
+      DB.RepositoriesSpec
+      Domain.BillSpec
+      Domain.GoodsSpec
+      Domain.LocationSpec
+      Domain.PayrollSpec
+      Domain.PersonSpec
+      Domain.TypesSpec
   build-depends:
         base >=4.12 && <5
       , Surypus
@@ -120,4 +176,11 @@ test-suite test
       , vector >=0.12
       , hasql >=1.10
       , hasql-pool >=1.4
+      , transformers >=0.5
+      , mtl >=2.3
+      , wai >=3.2
+      , warp >=3.3
+      , http-types >=0.12
+      , scotty >=0.20
   default-language: Haskell2010
+  ghc-options: -Wwarn

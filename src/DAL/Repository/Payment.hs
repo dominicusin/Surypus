@@ -46,11 +46,17 @@ instance Repository PaymentRepository Payment where
       QuerySuccess payments -> pure payments
       QueryError err -> throwE (DatabaseError err)
 
-  create repo payment = createPaymentRepo repo (toPaymentInput payment)
+  create repo payment = do
+    created <- createPaymentRepo repo (toPaymentInput payment)
+    pure (payId created)
 
-  update repo paymentId payment = updatePaymentRepo repo paymentId (toPaymentInput payment)
+  update repo paymentId payment = do
+    updated <- updatePaymentRepo repo paymentId (toPaymentInput payment)
+    pure (Just updated)
 
-  delete = deletePaymentRepo
+  delete repo paymentId = do
+    deletePaymentRepo repo paymentId
+    pure Nothing
 
 listPaymentsRepo :: PaymentRepository -> ExceptT RepositoryError IO [Payment]
 listPaymentsRepo = findAll

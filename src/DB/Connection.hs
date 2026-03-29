@@ -26,7 +26,9 @@ data PoolConfig = PoolConfig
     pcUser :: String,
     pcPassword :: String,
     pcDatabase :: String,
-    pcConnections :: Int
+    pcConnections :: Int,
+    pcStripes :: Int,
+    pcIdleTime :: Int
   }
   deriving (Eq, Show)
 
@@ -38,7 +40,9 @@ defaultPoolConfig =
       pcUser = "surypus",
       pcPassword = "surypus",
       pcDatabase = "surypus",
-      pcConnections = 10
+      pcConnections = 10,
+      pcStripes = 1,
+      pcIdleTime = 60
     }
 
 poolConfigFromEnv :: IO PoolConfig
@@ -56,7 +60,9 @@ poolConfigFromEnv = do
         pcUser = user,
         pcPassword = password,
         pcDatabase = database,
-        pcConnections = max 1 connections
+        pcConnections = max 1 connections,
+        pcStripes = pcStripes defaultPoolConfig,
+        pcIdleTime = pcIdleTime defaultPoolConfig
       }
   where
     getEnvOrDefault :: String -> String -> IO String

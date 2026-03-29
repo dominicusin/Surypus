@@ -45,11 +45,17 @@ instance Repository TaxRepository Tax where
       QuerySuccess taxes -> pure taxes
       QueryError err -> throwE (DatabaseError err)
 
-  create repo taxVal = createTaxRepo repo (toTaxInput taxVal)
+  create repo taxVal = do
+    created <- createTaxRepo repo (toTaxInput taxVal)
+    pure (taxId created)
 
-  update repo tid taxVal = updateTaxRepo repo tid (toTaxInput taxVal)
+  update repo tid taxVal = do
+    updated <- updateTaxRepo repo tid (toTaxInput taxVal)
+    pure (Just updated)
 
-  delete = deleteTaxRepo
+  delete repo tid = do
+    deleteTaxRepo repo tid
+    pure Nothing
 
 listTaxesRepo :: TaxRepository -> ExceptT RepositoryError IO [Tax]
 listTaxesRepo = findAll

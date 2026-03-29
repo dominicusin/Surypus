@@ -4,10 +4,6 @@
 module DB.RepositoriesSpec where
 
 import DB.Connection (PoolConfig (..))
-import Domain.Bill
-import Domain.Goods
-import Domain.Location
-import Domain.Person
 import Test.Hspec
 
 spec :: Spec

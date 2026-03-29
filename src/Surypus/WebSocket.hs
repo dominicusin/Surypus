@@ -9,22 +9,27 @@ module Surypus.WebSocket
     newWebSocketHub,
     runWebSocketServer,
     broadcastMessage,
+    jwtWebSocketApp,
+    runWebSocketServerWithAuth,
   )
 where
 
 import Control.Concurrent.STM
 import Control.Exception (SomeException, catch)
-import Control.Monad (forM, forever, when)
-import Data.Aeson (ToJSON, Value, encode, toJSON)
+import Control.Monad (forM, forever, void, when)
+import Data.Aeson (FromJSON, ToJSON, Value, encode, toJSON)
 import Data.Maybe (catMaybes)
 import Data.Text (Text)
+import qualified Data.Text as T
 import Data.Time.Clock (UTCTime)
 import GHC.Generics (Generic)
-import Network.HTTP.Types (status400)
-import Network.Wai (Application, responseLBS)
-import Network.Wai.Handler.Warp (run)
+import Network.HTTP.Types (status400, status401)
+import Network.Wai (Application, Request, responseLBS)
+import qualified Network.Wai as Wai
+import Network.Wai.Handler.Warp (runSettings, setPort)
 import Network.Wai.Handler.WebSockets (websocketsOr)
 import qualified Network.WebSockets as WS
+import Surypus.JWT (JWTConfig, JWTPayload, validateAccessToken)
 
 data NotificationType
   = NTPersonChanged
@@ -62,7 +67,7 @@ instance ToJSON WebSocketMessage
 
 data WebSocketHub = WebSocketHub
   { wshNextId :: TVar Int,
-    wshClients :: TVar [(Int, WS.Connection)]
+    wshClients :: TVar [(Int, WS.Connection, Maybe JWTPayload)]
   }
 
 newWebSocketHub :: IO WebSocketHub
@@ -72,21 +77,71 @@ newWebSocketHub = do
   pure $ WebSocketHub nextIdVar clientsVar
 
 runWebSocketServer :: Int -> WebSocketHub -> IO ()
-runWebSocketServer port hub = do
-  putStrLn $ "WebSocket server listening on port " <> show port
-  run port app
-  where
-    app :: Application
-    app =
-      websocketsOr
-        WS.defaultConnectionOptions
-        (webSocketApp hub)
-        (\_ respond -> respond (responseLBS status400 [("Content-Type", "text/plain")] "WebSocket endpoint"))
+runWebSocketServer port hub = runWebSocketServerWithAuth port hub Nothing
 
-webSocketApp :: WebSocketHub -> WS.ServerApp
-webSocketApp hub pendingConnection = do
+runWebSocketServerWithAuth :: Int -> WebSocketHub -> Maybe JWTConfig -> IO ()
+runWebSocketServerWithAuth port hub mConfig = do
+  putStrLn $ "WebSocket server listening on port " <> show port
+  let settings = setPort port defaultSettings
+  runSettings settings app
+  where
+    defaultSettings = Network.Wai.Handler.Warp.defaultSettings
+    app :: Application
+    app req respond = case Wai.pathInfo req of
+      ["ws"] ->
+        websocketsOr
+          WS.defaultConnectionOptions
+          (jwtWebSocketApp hub mConfig)
+          (\_ respond' -> respond' (responseLBS status400 [] "WebSocket endpoint expected"))
+      ["ws", subPath] ->
+        websocketsOr
+          WS.defaultConnectionOptions
+          (jwtWebSocketAppWithPath hub mConfig (T.intercalate "/" subPath))
+          (\_ respond' -> respond' (responseLBS status400 [] "WebSocket endpoint expected"))
+      _ -> respond (responseLBS status400 [] "Unknown endpoint")
+
+jwtWebSocketApp :: WebSocketHub -> Maybe JWTConfig -> WS.ServerApp
+jwtWebSocketApp hub mConfig pendingConnection = do
+  let request = WS.pendingRequest pendingConnection
+  case mConfig of
+    Nothing -> acceptConnection hub Nothing pendingConnection
+    Just config -> case getTokenFromRequest request of
+      Nothing -> void $ WS.rejectRequest pendingConnection "Missing token"
+      Just token ->
+        case validateAccessToken config token of
+          Left _ -> void $ WS.rejectRequest pendingConnection "Invalid token"
+          Right payload -> acceptConnection hub (Just payload) pendingConnection
+
+jwtWebSocketAppWithPath :: WebSocketHub -> Maybe JWTConfig -> Text -> WS.ServerApp
+jwtWebSocketAppWithPath hub mConfig path pendingConnection = do
+  let request = WS.pendingRequest pendingConnection
+  case mConfig of
+    Nothing -> acceptConnectionWithPath hub Nothing path pendingConnection
+    Just config -> case getTokenFromRequest request of
+      Nothing -> void $ WS.rejectRequest pendingConnection "Missing token"
+      Just token ->
+        case validateAccessToken config token of
+          Left _ -> void $ WS.rejectRequest pendingConnection "Invalid token"
+          Right payload -> acceptConnectionWithPath hub (Just payload) path pendingConnection
+
+getTokenFromRequest :: WS.RequestHead -> Maybe Text
+getTokenFromRequest request = do
+  let query = T.pack (WS.requestPath request)
+  case T.splitOn "?" query of
+    [path, params] -> do
+      let pairs = T.splitOn "&" params
+      tokenPair <- find (\p -> T.isPrefixOf "token=" p) pairs
+      let token = T.drop 5 tokenPair
+      if T.null token then Nothing else Just token
+    _ -> Nothing
+  where
+    find _ [] = Nothing
+    find f (x : xs) = if f x then Just x else find f xs
+
+acceptConnection :: WebSocketHub -> Maybe JWTPayload -> WS.ServerApp
+acceptConnection hub mPayload pendingConnection = do
   connection <- WS.acceptRequest pendingConnection
-  clientId <- registerClient hub connection
+  clientId <- registerClient hub connection mPayload
   putStrLn $ "WebSocket client connected: " <> show clientId
   ( forever $ do
       _ <- WS.receiveDataMessage connection
@@ -96,24 +151,66 @@ webSocketApp hub pendingConnection = do
   unregisterClient hub clientId
   putStrLn $ "WebSocket client disconnected: " <> show clientId
 
-registerClient :: WebSocketHub -> WS.Connection -> IO Int
-registerClient hub connection = atomically $ do
+acceptConnectionWithPath :: WebSocketHub -> Maybe JWTPayload -> Text -> WS.ServerApp
+acceptConnectionWithPath hub mPayload path pendingConnection = do
+  connection <- WS.acceptRequest pendingConnection
+  clientId <- registerClient hub connection mPayload
+  putStrLn $ "WebSocket client connected: " <> show clientId <> " path: " <> T.unpack path
+  ( forever $ do
+      msg <- WS.receiveDataMessage connection
+      handleMessage hub clientId path msg
+    )
+    `catch` \(_ :: SomeException) -> pure ()
+  unregisterClient hub clientId
+  putStrLn $ "WebSocket client disconnected: " <> show clientId
+
+handleMessage :: WebSocketHub -> Int -> Text -> WS.DataMessage -> IO ()
+handleMessage hub clientId path msg = do
+  clients <- readTVarIO (wshClients hub)
+  let filteredClients = filter (\(_, _, mPayload) -> canReceive path mPayload) clients
+  forM_ filteredClients $ \(_, connection, _) ->
+    WS.sendTextData connection (WS.DataMessage msg) `catch` \(_ :: SomeException) -> pure ()
+  where
+    canReceive _ Nothing = True
+    canReceive "admin" (Just _) = True
+    canReceive _ (Just payload) = jwtRole payload `elem` ["admin", "manager"]
+
+registerClient :: WebSocketHub -> WS.Connection -> Maybe JWTPayload -> IO Int
+registerClient hub connection mPayload = atomically $ do
   currentId <- readTVar (wshNextId hub)
   modifyTVar' (wshNextId hub) (+ 1)
-  modifyTVar' (wshClients hub) ((currentId, connection) :)
+  modifyTVar' (wshClients hub) ((currentId, connection, mPayload) :)
   pure currentId
 
 unregisterClient :: WebSocketHub -> Int -> IO ()
 unregisterClient hub clientId =
-  atomically $ modifyTVar' (wshClients hub) (filter (\(cid, _) -> cid /= clientId))
+  atomically $ modifyTVar' (wshClients hub) (filter (\(cid, _, _) -> cid /= clientId))
 
 broadcastMessage :: WebSocketHub -> WebSocketMessage -> IO ()
 broadcastMessage hub message = do
   clients <- readTVarIO (wshClients hub)
   failedClientIds <-
-    fmap catMaybes . forM clients $ \(clientId, connection) -> do
+    fmap catMaybes . forM clients $ \(clientId, connection, _mPayload) -> do
       (WS.sendTextData connection (encode message) >> pure Nothing)
         `catch` \(_ :: SomeException) -> pure (Just clientId)
   when (not (null failedClientIds)) $
     atomically $
-      modifyTVar' (wshClients hub) (filter (\(cid, _) -> cid `notElem` failedClientIds))
+      modifyTVar' (wshClients hub) (filter (\(cid, _, _) -> cid `notElem` failedClientIds))
+
+broadcastToRole :: WebSocketHub -> Text -> WebSocketMessage -> IO ()
+broadcastToRole hub role message = do
+  clients <- readTVarIO (wshClients hub)
+  let targetClients =
+        filter
+          ( \(_, _, mPayload) -> case mPayload of
+              Nothing -> False
+              Just p -> jwtRole p == role || jwtRole p == "admin"
+          )
+          clients
+  failedClientIds <-
+    fmap catMaybes . forM targetClients $ \(clientId, connection, _) -> do
+      (WS.sendTextData connection (encode message) >> pure Nothing)
+        `catch` \(_ :: SomeException) -> pure (Just clientId)
+  when (not (null failedClientIds)) $
+    atomically $
+      modifyTVar' (wshClients hub) (filter (\(cid, _, _) -> cid `notElem` failedClientIds))

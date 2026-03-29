@@ -1,6 +1,52 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 
+-- | Goods repository interface and implementation.
+--
+-- This module defines the repository pattern for Goods entities, providing
+-- CRUD operations and query functions. It abstracts the database access
+-- layer and allows for easy mocking in tests.
+--
+-- The repository is parameterized over a pool type, allowing different
+-- connection pool implementations to be used.
+--
+-- === Examples
+--
+-- Creating a repository and finding goods by ID:
+-- @
+-- import DAL.Repository.Goods (GoodsRepository, mkGoodsRepository, runGoodsRepository)
+-- import DAL.Types (Goods)
+-- import Hasql.Pool (Pool)
+--
+-- -- Assuming you have a connection pool
+-- let pool :: Pool = undefined -- TODO: Initialize pool
+-- let repo :: GoodsRepository = mkGoodsRepository pool
+--
+-- -- Find goods by ID
+-- result <- runGoodsRepository repo $ find 123
+-- case result of
+--   Right (Just goods) -> print (goods :: Goods)
+--   Right Nothing  -> putStrLn "Goods not found"
+--   Left err       -> putStrLn $ "Error: " ++ err
+-- @
+--
+-- Listing goods with pagination:
+-- @
+-- import DAL.Repository.Goods (GoodsRepository, mkGoodsRepository, runGoodsRepository)
+-- import DAL.Types (GoodsFilter, Pagination)
+-- import Hasql.Pool (Pool)
+--
+-- -- Assuming you have a connection pool
+-- let pool :: Pool = undefined -- TODO: Initialize pool
+-- let repo :: GoodsRepository = mkGoodsRepository pool
+-- let filter = GoodsFilter Nothing Nothing Nothing -- No filtering
+-- let pagination = Pagination 10 0 -- First page, 10 items per page
+--
+-- result <- runGoodsRepository repo $ listGoodsPage filter pagination Nothing Nothing
+-- case result of
+--   Right paginated -> mapM_ print (prItems paginated)
+--   Left err       -> putStrLn $ "Error: " ++ err
+-- @
 module DAL.Repository.Goods
   ( GoodsRepository (..),
     HasGoodsRepository (..),
@@ -46,11 +92,17 @@ instance Repository GoodsRepository Goods where
       QuerySuccess goods -> pure goods
       QueryError err -> throwE (DatabaseError err)
 
-  create repo goods = createGoodsRepo repo (toGoodsInput goods)
+  create repo goods = do
+    created <- createGoodsRepo repo (toGoodsInput goods)
+    pure (gId created)
 
-  update repo goodsId goods = updateGoodsRepo repo goodsId (toGoodsInput goods)
+  update repo goodsId goods = do
+    updated <- updateGoodsRepo repo goodsId (toGoodsInput goods)
+    pure (Just updated)
 
-  delete = deleteGoodsRepo
+  delete repo goodsId = do
+    deleteGoodsRepo repo goodsId
+    pure Nothing
 
 listGoodsPage :: GoodsRepository -> GoodsFilter -> Pagination -> Maybe GoodsSortBy -> Maybe SortDir -> ExceptT RepositoryError IO (PaginatedResult Goods)
 listGoodsPage repo goodsFilter pagination sortBy sortDir = do

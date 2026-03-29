@@ -23,7 +23,7 @@ import Data.Int (Int64)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Hasql.Pool (Pool)
-import Surypus.Types (fromDecimal, toDecimal)
+import Surypus.Types (fromDecimal)
 import qualified Surypus.Validation as Validation
 
 data AccTurnRepository = AccTurnRepository
@@ -45,11 +45,17 @@ instance Repository AccTurnRepository AccTurn where
       QuerySuccess turns -> pure turns
       QueryError err -> throwE (DatabaseError err)
 
-  create repo turn = createAccTurnRepo repo (toAccTurnInput turn)
+  create repo turn = do
+    created <- createAccTurnRepo repo (toAccTurnInput turn)
+    pure (atId created)
 
-  update repo turnId turn = updateAccTurnRepo repo turnId (toAccTurnInput turn)
+  update repo turnId turn = do
+    updated <- updateAccTurnRepo repo turnId (toAccTurnInput turn)
+    pure (Just updated)
 
-  delete = deleteAccTurnRepo
+  delete repo turnId = do
+    deleteAccTurnRepo repo turnId
+    pure Nothing
 
 listAccTurnsRepo :: AccTurnRepository -> ExceptT RepositoryError IO [AccTurn]
 listAccTurnsRepo = findAll

@@ -1,6 +1,49 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 
+-- | Location repository interface and implementation.
+--
+-- This module defines the repository pattern for Location entities, providing
+-- CRUD operations and query functions. It abstracts the database access
+-- layer and allows for easy mocking in tests.
+--
+-- The repository is parameterized over a pool type, allowing different
+-- connection pool implementations to be used.
+--
+-- === Examples
+--
+-- Creating a repository and finding a location by ID:
+-- @
+-- import DAL.Repository.Location (LocationRepository, mkLocationRepository, runLocationRepository)
+-- import DAL.Types (Location)
+-- import Hasql.Pool (Pool)
+--
+-- -- Assuming you have a connection pool
+-- let pool :: Pool = undefined -- See issue: https://github.com/dominicusin/Surypus/issues/123
+-- let repo :: LocationRepository = mkLocationRepository pool
+--
+-- -- Find a location by ID
+-- result <- runLocationRepository repo $ find 123
+-- case result of
+--   Right (Just location) -> print (location :: Location)
+--   Right Nothing  -> putStrLn "Location not found"
+--   Left err       -> putStrLn $ "Error: " ++ err
+-- @
+--
+-- Listing all locations:
+-- @
+-- import DAL.Repository.Location (LocationRepository, mkLocationRepository, runLocationRepository)
+-- import Hasql.Pool (Pool)
+--
+-- -- Assuming you have a connection pool
+-- let pool :: Pool = undefined -- See issue: https://github.com/dominicusin/Surypus/issues/123
+-- let repo :: LocationRepository = mkLocationRepository pool
+--
+-- result <- runLocationRepository repo $ findAll
+-- case result of
+--   Right locations -> mapM_ print locations
+--   Left err       -> putStrLn $ "Error: " ++ err
+-- @
 module DAL.Repository.Location
   ( LocationRepository (..),
     HasLocationRepository (..),
@@ -44,11 +87,17 @@ instance Repository LocationRepository Location where
       QuerySuccess locations -> pure locations
       QueryError err -> throwE (DatabaseError err)
 
-  create repo location = createLocationRepo repo (toLocationInput location)
+  create repo location = do
+    created <- createLocationRepo repo (toLocationInput location)
+    pure (lId created)
 
-  update repo locationId location = updateLocationRepo repo locationId (toLocationInput location)
+  update repo locationId location = do
+    updated <- updateLocationRepo repo locationId (toLocationInput location)
+    pure (Just updated)
 
-  delete = deleteLocationRepo
+  delete repo locationId = do
+    deleteLocationRepo repo locationId
+    pure Nothing
 
 listLocationsRepo :: LocationRepository -> ExceptT RepositoryError IO [Location]
 listLocationsRepo = findAll

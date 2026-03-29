@@ -1,44 +1,52 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE KindSignatures #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module DAL.Repository
   ( Repository (..),
     RepositoryError (..),
-    Pagination (..),
-    Filters (..),
-    defaultPagination,
+    RepositoryT,
+    HasRepository (..),
+    isNotFoundMessage,
+    runRepository,
+    defaultRepositoryContext,
+    RepositoryContext (..),
   )
 where
 
+import Control.Monad.Trans.Except (ExceptT, runExceptT)
 import Data.Int (Int64)
+import Data.Text (Text)
+import qualified Data.Text as T
 import Hasql.Pool (Pool)
 
 data RepositoryError
-  = NotFound String
-  | DatabaseError String
-  | ValidationError String
+  = NotFound Text
+  | DatabaseError Text
+  | ValidationError Text
   deriving (Show, Eq)
 
-class Repository m entity | entity -> m where
-  findById :: Pool -> Int64 -> m (Maybe entity)
-  findAll :: Pool -> Pagination -> Filters -> m [entity]
-  create :: Pool -> entity -> m Int64
-  update :: Pool -> Int64 -> entity -> m (Maybe entity)
-  delete :: Pool -> Int64 -> m (Maybe entity)
+type RepositoryM = ExceptT RepositoryError IO
 
-data Pagination = Pagination
-  { pageOffset :: Int64,
-    pageLimit :: Int64
-  }
-  deriving (Show, Eq)
+class Repository repo entity | repo -> entity where
+  find :: repo -> Int64 -> RepositoryM (Maybe entity)
+  findAll :: repo -> RepositoryM [entity]
+  create :: repo -> entity -> RepositoryM Int64
+  update :: repo -> Int64 -> entity -> RepositoryM (Maybe entity)
+  delete :: repo -> Int64 -> RepositoryM (Maybe entity)
 
-defaultPagination :: Pagination
-defaultPagination = Pagination 0 50
+data RepositoryContext = RepositoryContext {rcPool :: Pool}
 
-data Filters = Filters
-  { filterText :: Maybe String,
-    filterStatus :: Maybe Int
-  }
-  deriving (Show, Eq)
+defaultRepositoryContext :: Pool -> RepositoryContext
+defaultRepositoryContext = RepositoryContext
+
+type RepositoryT = ExceptT RepositoryError
+
+class HasRepository a pool | a -> pool where
+  getRepository :: a -> pool
+
+isNotFoundMessage :: Text -> Bool
+isNotFoundMessage msg = "Not Found" `T.isInfixOf` msg
+
+runRepository :: RepositoryContext -> RepositoryT IO a -> IO (Either RepositoryError a)
+runRepository _ctx action = runExceptT action

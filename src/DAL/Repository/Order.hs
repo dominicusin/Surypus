@@ -44,16 +44,20 @@ instance Repository OrderRepository Order where
       QuerySuccess orders -> pure orders
       QueryError err -> throwE (DatabaseError err)
 
-  create repo orderVal = createOrderRepo repo (toOrderInput orderVal)
+  create repo orderVal = do
+    created <- createOrderRepo repo (toOrderInput orderVal)
+    pure (oId created)
 
   update repo orderId orderVal = do
     _ <- updateOrderStatusRepo repo orderId (oStatus orderVal)
     mOrder <- find repo orderId
     case mOrder of
-      Just updatedOrder -> pure updatedOrder
+      Just updatedOrder -> pure (Just updatedOrder)
       Nothing -> throwE (NotFound "Updated order was not found")
 
-  delete = deleteOrderRepo
+  delete repo orderId = do
+    deleteOrderRepo repo orderId
+    pure Nothing
 
 listOrdersPage :: OrderRepository -> OrderFilter -> Pagination -> Maybe OrderSortBy -> Maybe SortDir -> ExceptT RepositoryError IO (PaginatedResult Order)
 listOrdersPage repo orderFilter pagination sortBy sortDir = do

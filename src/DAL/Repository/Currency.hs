@@ -1,6 +1,71 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 
+-- | Currency repository interface and implementation.
+--
+-- This module defines the repository pattern for Currency entities, providing
+-- CRUD operations and query functions. It abstracts the database access
+-- layer and allows for easy mocking in tests.
+--
+-- The repository is parameterized over a pool type, allowing different
+-- connection pool implementations to be used.
+--
+-- === Examples
+--
+-- Creating a repository and finding a currency by ID:
+-- @
+-- import DAL.Repository.Currency (CurrencyRepository, mkCurrencyRepository, runCurrencyRepository)
+-- import DAL.Types (Currency)
+-- import Hasql.Pool (Pool)
+--
+-- -- Assuming you have a connection pool
+-- let pool :: Pool = undefined -- TODO: Initialize pool
+-- let repo :: CurrencyRepository = mkCurrencyRepository pool
+--
+-- -- Find a currency by ID
+-- result <- runCurrencyRepository repo $ find 123
+-- case result of
+--   Right (Just currency) -> print (currency :: Currency)
+--   Right Nothing  -> putStrLn "Currency not found"
+--   Left err       -> putStrLn $ "Error: " ++ err
+-- @
+--
+-- Listing all currencies:
+-- @
+-- import DAL.Repository.Currency (CurrencyRepository, mkCurrencyRepository, runCurrencyRepository)
+-- import Hasql.Pool (Pool)
+--
+-- -- Assuming you have a connection pool
+-- let pool :: Pool = undefined -- TODO: Initialize pool
+-- let repo :: CurrencyRepository = mkCurrencyRepository pool
+--
+-- result <- runCurrencyRepository repo $ listCurrenciesRepo
+-- case result of
+--   Right currencies -> mapM_ print currencies
+--   Left err       -> putStrLn $ "Error: " ++ err
+-- @
+--
+-- Creating a new currency:
+-- @
+-- import DAL.Repository.Currency (CurrencyRepository, mkCurrencyRepository, runCurrencyRepository)
+-- import DAL.Types (CurrencyInput)
+-- import Hasql.Pool (Pool)
+--
+-- -- Assuming you have a connection pool
+-- let pool :: Pool = undefined -- TODO: Initialize pool
+-- let repo :: CurrencyRepository = mkCurrencyRepository pool
+-- let input = CurrencyInput
+--       { ciCode = "USD"
+--       , ciName = "US Dollar"
+--       , ciSymbol = "$"
+--       , ciRate = 1.0
+--       }
+--
+-- result <- runCurrencyRepository repo $ createCurrencyRepo input
+-- case result of
+--   Right currencyId -> putStrLn $ "Created currency with ID: " ++ show currencyId
+--   Left err     -> putStrLn $ "Error: " ++ err
+-- @
 module DAL.Repository.Currency
   ( CurrencyRepository (..),
     HasCurrencyRepository (..),
@@ -45,11 +110,17 @@ instance Repository CurrencyRepository Currency where
       QuerySuccess currencies -> pure currencies
       QueryError err -> throwE (DatabaseError err)
 
-  create repo currency = createCurrencyRepo repo (toCurrencyInput currency)
+  create repo currency = do
+    created <- createCurrencyRepo repo (toCurrencyInput currency)
+    pure (currId created)
 
-  update repo currencyId currency = updateCurrencyRepo repo currencyId (toCurrencyInput currency)
+  update repo currencyId currency = do
+    updated <- updateCurrencyRepo repo currencyId (toCurrencyInput currency)
+    pure (Just updated)
 
-  delete = deleteCurrencyRepo
+  delete repo currencyId = do
+    deleteCurrencyRepo repo currencyId
+    pure Nothing
 
 listCurrenciesRepo :: CurrencyRepository -> ExceptT RepositoryError IO [Currency]
 listCurrenciesRepo = findAll

@@ -81,3 +81,7 @@
 - ignore: {name: "Use foldMap", within: [DAL.Queries]}
 - ignore: {name: "Use sum", within: [DB.TechCard]}
 - ignore: {name: "Eta reduce", within: [Domain.Asset]}
+
+# Ignore false positive warnings for APIServer
+- ignore: {name: "Use <>", within: [APIServer]}
+- ignore: {name: "Redundant $", within: [APIServer]}
