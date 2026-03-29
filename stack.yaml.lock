@@ -5,6 +5,69 @@
 
 packages:
 - completed:
+    hackage: th-abstraction-0.7.0.0@sha256:4d80fe53ed140866018278c81e1c0c9bc8fc73d8f2a530321a588f24be491fc4,2248
+    pantry-tree:
+      sha256: dd0e6b079d29f4a9415b420343809066d8287d6d1c1e3b31a14bb0a5f3c60447
+      size: 672
+  original:
+    hackage: th-abstraction-0.7.0.0
+- completed:
+    hackage: lens-5.3@sha256:89db4cd521dd5fcfad68a0cc8e002216b925f33f7660009689684333acd6de70,15229
+    pantry-tree:
+      sha256: 0d7f6db27f7e6319069daf66b0de42027f189e701c473599d603b51e7a2e58a3
+      size: 8350
+  original:
+    hackage: lens-5.3
+- completed:
+    hackage: aeson-2.2.3.0@sha256:7d48c2395ef168d2c2070fdb02c7998384be27d31a03bb35d1740af4a19a857b,6368
+    pantry-tree:
+      sha256: 7c5ca620e1407b4bd0fbf3bf4cb20dc58eb194d49caa8a6cd1c349462989143a
+      size: 83371
+  original:
+    hackage: aeson-2.2.3.0
+- completed:
+    hackage: character-ps-0.1@sha256:b38ed1c07ae49e7461e44ca1d00c9ca24d1dcb008424ccd919916f92fd48d9fe,1315
+    pantry-tree:
+      sha256: 22d98d7c8b4c2bb9cb7fe429adf52bfed0c18269eac146b1e591c5941e26161a
+      size: 382
+  original:
+    hackage: character-ps-0.1
+- completed:
+    hackage: time-1.12.2@sha256:88e8493d9130038d3b9968a2530a0900141cd3d938483c83dde56e12b875ebc8,6510
+    pantry-tree:
+      sha256: de0ab314661da3788b5dad20254e44929b1659b00d32b5a0cd54922a05e006e8
+      size: 7264
+  original:
+    hackage: time-1.12.2
+- completed:
+    hackage: jose-0.10@sha256:fddc06fefe1ee2a7a5776d4cbc58f2ede6220d25fdeeb12c741c8c3477b6cbcc,3212
+    pantry-tree:
+      sha256: 55ba40a1c4c4bc816e70244cc11ad28a7323b5c475e7d3a4bf2e8cac2ae4d68c
+      size: 2154
+  original:
+    hackage: jose-0.10
+- completed:
+    hackage: liquidhaskell-0.9.10.1.2@sha256:1723831f2c215d56359113f014f42c95eaa2d0f2a6355ce6123c78a12757b984,3600
+    pantry-tree:
+      sha256: 6d3d026de069d8359a8e6dc44aaec53bf966572c4659bad6c71b2b128c33d27d
+      size: 3366
+  original:
+    hackage: liquidhaskell-0.9.10.1.2
+- completed:
+    hackage: liquidhaskell-boot-0.9.10.1.2@sha256:6176ec6c8a4eef82504b674fa5da86f15a2e3e76811eb477f7243ad293e4dd03,10486
+    pantry-tree:
+      sha256: 1b9f11bd713d076a8368ead7f4c58da1bb52bfeb1de8f1e1de33634ce1ef6ade
+      size: 7991
+  original:
+    hackage: liquidhaskell-boot-0.9.10.1.2
+- completed:
+    hackage: liquid-fixpoint-0.9.6.3.2@sha256:79fc88e13d7ba4484549a8a07f2ba32865eccfec085096fc42450d4fc595a22e,9567
+    pantry-tree:
+      sha256: 599659f4c3ef95a37aeb325955a0b21b728cef68de70a812c2d259c858c1bd07
+      size: 16605
+  original:
+    hackage: liquid-fixpoint-0.9.6.3.2
+- completed:
     hackage: websockets-0.13.0.0@sha256:9b3680ba5055e0b34ab29c341b21d70084bf067519fc059af0e597cd90a4a05a,7567
     pantry-tree:
       sha256: 5f1ab27ecaf9c6fcabe5d86fb6fa55d79c8c506a216a0d088a60436643ec9f07

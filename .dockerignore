@@ -3,7 +3,6 @@ dist-newstyle
 *.o
 *.hi
 .hlint.yaml
-test
 .git
 .github
 .vscode

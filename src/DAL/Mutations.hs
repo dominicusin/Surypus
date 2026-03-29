@@ -3,6 +3,7 @@
 -- | Database Mutations (Write operations)
 module DAL.Mutations where
 
+import Control.Monad (forM, forM_)
 import DAL.Types
 import Data.Functor.Contravariant ((>$<))
 import Data.Int (Int16, Int64)
@@ -12,7 +13,7 @@ import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
-import Hasql.Statement (unpreparable)
+import Hasql.Statement (Statement, unpreparable)
 import Surypus.Types (Decimal, fromDecimal)
 
 mutationIdDecoder :: D.Result Int64
@@ -30,6 +31,17 @@ runMutationReturningId pool sql encoder payload successMessage = do
   res <- use pool $ Session.statement payload stmt
   case res of
     Right rid -> pure $ QuerySuccess (MutationResult True (Just rid) successMessage)
+    Left err -> pure $ QueryError (T.pack (show err))
+
+-- | Execute a mutation multiple times in a single transaction and return a list of generated IDs.
+-- This is more efficient than running each mutation separately as it reduces round-trips to the database.
+runMutationReturningIds :: Pool -> Text -> E.Params params -> [params] -> Text -> IO (QueryResult [Int64])
+runMutationReturningIds pool sql encoder payloads successMessage = do
+  let stmt = unpreparable sql encoder mutationIdDecoder
+  res <- use pool $ Session.transaction Session.ReadCommitted Session.Write $ do
+    mapM (Session.statement stmt) payloads
+  case res of
+    Right ids -> pure $ QuerySuccess ids
     Left err -> pure $ QueryError (T.pack (show err))
 
 personInputEncoder :: E.Params PersonInput

@@ -1,5 +1,7 @@
 # stack.yaml for Surypus
 resolver: lts-22.30
+compiler: ghc-9.10.3
+compiler-check: match-exact
 
 packages:
   - .
@@ -19,11 +21,88 @@ allow-newer-deps:
   - directory
   - unix
   - cabal-doctest
+  - uuid
+  - uuid-types
+  - vault
+  - vector-stream
+  - websockets
+  - witherable
+  - zlib
+  - time
+  - template-haskell
+  - base
+  - containers
+  - ghc-prim
+  - ghc-boot
+  - Cabal
+  - Cabal-syntax
+  - OneTuple
+  - adjunctions
+  - aeson
+  - assoc
+  - async
+  - attoparsec-iso8601
+  - attoparsec
+  - bifunctors
+  - boring
+  - comonad
+  - cryptohash-md5
+  - cryptohash-sha1
+  - data-fix
+  - dec
+  - free
+  - generically
+  - hashable
+  - http-api-data
+  - http-media
+  - http2
+  - indexed-traversable
+  - indexed-traversable-instances
+  - integer-conversion
+  - integer-logarithms
+  - invariant
+  - jose
+  - kan-extensions
+  - lens
+  - megaparsec
+  - os-string
+  - parallel
+  - parsec
+  - primitive
+  - scientific
+  - semialign
+  - semigroupoids
+  - servant
+  - servant-client
+  - servant-client-core
+  - servant-server
+  - singleton-bool
+  - some
+  - sop-core
+  - splitmix
+  - tagged
+  - text
+  - text-short
+  - th-abstraction
+  - th-compat
+  - these
+  - time-compat
+  - unordered-containers
+  - quickcheck-instances
+  - ghc-lib-parser
 
 flags: {}
 
 extra-deps:
+  - th-abstraction-0.7.0.0
+  - lens-5.3
+  - aeson-2.2.3.0
+  - character-ps-0.1
+  - time-1.12.2
   - jose-0.10
+  - liquidhaskell-0.9.10.1.2
+  - liquidhaskell-boot-0.9.10.1.2
+  - liquid-fixpoint-0.9.6.3.2
   - websockets-0.13.0.0
   - hashtables-1.4.1
   - hasql-1.10.3@sha256:f1e9d616ed73290096a75271d01d9f5490b30ee26dca1cbe604afbd4827c24e8,9971

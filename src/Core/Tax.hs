@@ -1,3 +1,5 @@
+{-# LANGUAGE StrictData #-}
+
 -- | Tax Calculation Module - GTaxVect equivalent from  C<>
 -- Supports: VAT, Excise, Sales Tax with forward/backward calculation
 --
