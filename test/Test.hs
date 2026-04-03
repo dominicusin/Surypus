@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 -- ============================================================================
 -- COMPREHENSIVE SURYPUS TEST SUITE
 -- ============================================================================
@@ -11,6 +12,7 @@ import Core.Tax
 import Data.Maybe ()
 import qualified Data.Text as T
 import Data.Time (fromGregorian)
+import Surypus.RBAC
 import Surypus.Types (Decimal (..))
 import Test.Hspec
 import Test.Hspec.QuickCheck (prop)
@@ -334,3 +336,95 @@ main = hspec $ do
     describe "QuickCheck Properties" $ do
       prop "VAT is non-negative" $
         \amount rate -> prop_vat_nonnegative amount rate
+
+    -- ========================================================================
+    -- RBAC TESTS
+    -- ========================================================================
+    describe "RBAC (Role-Based Access Control)" $ do
+      describe "Roles" $ do
+        it "RoleAdmin has all permissions" $ do
+          hasPermission RoleAdmin PersonRead `shouldBe` True
+          hasPermission RoleAdmin PersonWrite `shouldBe` True
+          hasPermission RoleAdmin PersonDelete `shouldBe` True
+          hasPermission RoleAdmin AdminAccess `shouldBe` True
+          hasPermission RoleAdmin UsersWrite `shouldBe` True
+
+        it "RoleManager has manager permissions" $ do
+          hasPermission RoleManager PersonRead `shouldBe` True
+          hasPermission RoleManager PersonWrite `shouldBe` True
+          hasPermission RoleManager BillWrite `shouldBe` True
+          hasPermission RoleManager PersonDelete `shouldBe` False
+          hasPermission RoleManager AdminAccess `shouldBe` False
+
+        it "RoleUser has limited permissions" $ do
+          hasPermission RoleUser PersonRead `shouldBe` True
+          hasPermission RoleUser GoodsRead `shouldBe` True
+          hasPermission RoleUser PersonWrite `shouldBe` False
+          hasPermission RoleUser BillWrite `shouldBe` False
+
+        it "RoleViewer only has read permissions" $ do
+          hasPermission RoleViewer PersonRead `shouldBe` True
+          hasPermission RoleViewer ReportsRead `shouldBe` True
+          hasPermission RoleViewer PersonWrite `shouldBe` False
+          hasPermission RoleViewer BillWrite `shouldBe` False
+          hasPermission RoleViewer AdminAccess `shouldBe` False
+
+      describe "checkPermission function" $ do
+        it "admin can access AdminAccess" $
+          checkPermission "admin" AdminAccess `shouldBe` Right ()
+
+        it "manager cannot access AdminAccess" $
+          checkPermission "manager" AdminAccess `shouldSatisfy` \case
+            Left _ -> True
+            Right () -> False
+
+        it "user can read bills" $
+          checkPermission "user" BillRead `shouldBe` Right ()
+
+        it "user cannot write bills" $
+          checkPermission "user" BillWrite `shouldSatisfy` \case
+            Left _ -> True
+            Right () -> False
+
+        it "viewer cannot write persons" $
+          checkPermission "viewer" PersonWrite `shouldSatisfy` \case
+            Left _ -> True
+            Right () -> False
+
+      describe "roleFromText function" $ do
+        it "converts admin text to RoleAdmin" $
+          roleFromText "admin" `shouldBe` RoleAdmin
+
+        it "converts manager text to RoleManager" $
+          roleFromText "manager" `shouldBe` RoleManager
+
+        it "converts user text to RoleUser" $
+          roleFromText "user" `shouldBe` RoleUser
+
+        it "converts viewer text to RoleViewer" $
+          roleFromText "viewer" `shouldBe` RoleViewer
+
+        it "invalid role defaults to RoleViewer" $
+          roleFromText "invalid" `shouldBe` RoleViewer
+
+        it "empty string defaults to RoleViewer" $
+          roleFromText "" `shouldBe` RoleViewer
+
+      describe "Permission coverage" $ do
+        it "all roles have permissions defined" $ do
+          length (rpPermissions adminRole) `shouldSatisfy` (> 0)
+          length (rpPermissions managerRole) `shouldSatisfy` (> 0)
+          length (rpPermissions userRole) `shouldSatisfy` (> 0)
+          length (rpPermissions viewerRole) `shouldSatisfy` (> 0)
+
+        it "admin has more permissions than manager" $
+          length (rpPermissions adminRole)
+            `shouldSatisfy` (> length (rpPermissions managerRole))
+
+        it "manager has more permissions than user" $
+          length (rpPermissions managerRole)
+            `shouldSatisfy` (> length (rpPermissions userRole))
+
+        it "user has more permissions than viewer" $
+          length (rpPermissions userRole)
+            `shouldSatisfy` (> length (rpPermissions viewerRole))
