@@ -297,8 +297,8 @@ buildAppEnv cfg = do
    let hub = if enableWS then scWebSocketHub cfg else Nothing
    jobQueue <- newTQueueIO
    let repos = mkRepositoryContainer (scPool cfg)
-        services = mkServiceContainer repos
-    pure AppEnv
+       services = mkServiceContainer repos
+   in pure AppEnv
       { aePool = scPool cfg
       , aeCache = cache
       , aeConfig = AppConfig

@@ -90,7 +90,7 @@ import qualified Data.Text as T
 import Hasql.Pool (Pool)
 import qualified Surypus.Validation as Validation
 
-data BillRepository = BillRepository
+newtype BillRepository = BillRepository
   { brPool :: Pool
   }
 
