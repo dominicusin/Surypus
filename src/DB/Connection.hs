@@ -1,4 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
+
+-- | Database Connection Pool Management
+--
+-- This module provides compatibility with legacy code by re-exporting
+-- from 'Surypus.Database.Pool'. New code should use 'Surypus.Database.Pool' directly.
 module DB.Connection
   ( PoolConfig (..),
     defaultPoolConfig,
@@ -10,8 +15,17 @@ module DB.Connection
   )
 where
 
-import Control.Exception (bracket)
 import Data.Maybe (fromMaybe)
+import Hasql.Pool (Pool)
+import Surypus.Database.Pool
+  ( DatabasePoolConfig (..),
+    createDatabasePool,
+    databasePoolConfigFromEnv,
+    defaultDatabasePoolConfig,
+    releaseDatabasePool,
+    runMigrations,
+    withDatabasePool,
+  )
 import System.Environment (lookupEnv)
 import Text.Read (readMaybe)
 
@@ -64,23 +78,34 @@ poolConfigFromEnv = do
       value <- lookupEnv key
       pure $ maybe fallback (fromMaybe fallback . readMaybe) value
 
--- Placeholder pool type
-data Pool = Pool String Int
-
--- | Create a pool (placeholder implementation)
 createPool :: PoolConfig -> IO Pool
-createPool _cfg = pure (Pool "mock" 10)
+createPool cfg =
+  createDatabasePool
+    DatabasePoolConfig
+      { dpcHost = pcHost cfg,
+        dpcPort = pcPort cfg,
+        dpcUser = pcUser cfg,
+        dpcPassword = pcPassword cfg,
+        dpcDatabase = pcDatabase cfg,
+        dpcPoolSize = pcConnections cfg
+      }
 
--- | Close the pool (no-op)
 closePool :: Pool -> IO ()
-closePool _ = pure ()
+closePool = releaseDatabasePool
 
--- | Initialize database schema
 initSchema :: Pool -> IO ()
 initSchema _pool = pure ()
 
--- | Convenience wrapper
 withPool :: (Pool -> IO a) -> IO a
 withPool action = do
   cfg <- poolConfigFromEnv
-  bracket (createPool cfg) closePool $ \pool -> action pool
+  createDatabasePool
+    DatabasePoolConfig
+      { dpcHost = pcHost cfg,
+        dpcPort = pcPort cfg,
+        dpcUser = pcUser cfg,
+        dpcPassword = pcPassword cfg,
+        dpcDatabase = pcDatabase cfg,
+        dpcPoolSize = pcConnections cfg
+      }
+    >>= action
