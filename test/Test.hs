@@ -15,6 +15,7 @@ import Core.Analytics
 import Core.Asset
 import Core.CreditNote
 import Core.Document.Operations
+import Core.GoodsTaxEx
 import Core.Loyalty.Bonus
 import Core.Order
 import Core.Payroll.Calculation
@@ -23,6 +24,7 @@ import Core.Quotation
 import Core.RetBill
 import Core.SmartReceipt
 import Core.Tax
+import Core.TaxInvoice
 import Core.Transfer
 import Core.Warehouse
 import Data.Maybe ()
@@ -391,6 +393,8 @@ main = hspec $ do
       prop "Asset value non-negative" prop_assetValueNonNeg
       prop "Analytics profit non-negative" prop_profitBounded
       prop "Analytics margin bounded" prop_marginBounded
+      prop "TaxInvoice tax amount non-negative" prop_taxAmountNonNeg
+      prop "GoodsTaxEx tax amount non-negative" prop_goodsTaxAmountNonNeg
 
     -- ========================================================================
     -- RBAC TESTS
