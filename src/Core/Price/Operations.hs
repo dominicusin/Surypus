@@ -16,15 +16,23 @@ module Core.Price.Operations
     getActivePriceList,
     calcPriceFromList,
     calcTotalDiscount,
+    prop_calcLineTotalNonNeg,
+    prop_calcBillTotalNonNeg,
   )
 where
 
+-- LiquidHaskell refinement types
+{-@ type NonNegDouble = {v:Double | v >= 0} @-}
+{-@ type PosDouble = {v:Double | v > 0} @-}
+{-@ type Discount = {v:Double | v >= 0 && v <= 100} @-}
+
 import Core.Inventory.Types.Stock (Stock (..))
-import Core.Price hiding (convertCurrency, validatePrice, calcFinalPrice)
+import Core.Price hiding (calcFinalPrice, convertCurrency, validatePrice)
 import Data.Int (Int64)
 import Data.Maybe (fromMaybe)
 import Data.Time (Day)
 import Surypus.Refined.Predicates ()
+import Test.QuickCheck
 
 -- | Price operation result
 data PriceOpResult
@@ -87,6 +95,8 @@ verifyDiscountBounded discount
 
 -- | Calculate line total (price * quantity - discount)
 -- Инвариант: result >= 0
+
+{-@ calcLineTotal :: price:NonNegDouble -> qty:PosDouble -> discount:Discount -> NonNegDouble @-}
 calcLineTotal :: Double -> Double -> Double -> Double
 calcLineTotal price quantity discountPercent
   | price < 0 || quantity < 0 = 0
@@ -98,6 +108,8 @@ calcLineTotal price quantity discountPercent
 
 -- | Calculate bill total from lines
 -- Инвариант: total >= 0
+
+{-@ calcBillTotal :: [{PosDouble, PosDouble, Discount}] -> NonNegDouble @-}
 calcBillTotal :: [(Double, Double, Double)] -> Double
 calcBillTotal billLines = sum (fmap (\(p, q, d) -> calcLineTotal p q d) billLines)
 
@@ -162,3 +174,29 @@ getActivePriceList date priceLists = do
 calcPriceFromList :: [(Int64, Double)] -> Int64 -> Double -> Double
 calcPriceFromList goodsPrices goodsId defaultPrice =
   fromMaybe defaultPrice (lookup goodsId goodsPrices)
+
+-- ============================================================================
+-- QUICKCHECK PROPERTIES
+-- ============================================================================
+
+-- | Property: calcLineTotal returns non-negative value
+prop_calcLineTotalNonNeg :: Property
+prop_calcLineTotalNonNeg =
+  forAll (tripletGen `suchThat` validTriplet) $ \(price, qty, disc) ->
+    calcLineTotal price qty disc >= 0
+
+-- | Property: calcBillTotal returns non-negative value
+prop_calcBillTotalNonNeg :: Property
+prop_calcBillTotalNonNeg =
+  forAll (listOf tripletGen `suchThat` (not . null)) $ \lines ->
+    calcBillTotal (fmap (\(p, q, d) -> (p, q, d)) lines) >= 0
+
+tripletGen :: Gen (Double, Double, Double)
+tripletGen = do
+  p <- suchThat arbitrary (> 0)
+  q <- suchThat arbitrary (> 0)
+  d <- choose (0, 100 :: Double)
+  pure (p, q, d)
+
+validTriplet :: (Double, Double, Double) -> Bool
+validTriplet (p, q, d) = p > 0 && q > 0 && d >= 0 && d <= 100

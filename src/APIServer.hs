@@ -53,10 +53,10 @@ import DAL.Types
 import Data.Aeson (FromJSON, ToJSON, Value (..), object, (.=))
 import qualified Data.ByteString.Lazy.Char8 as LBS8
 import Data.IORef (IORef, atomicModifyIORef', newIORef, readIORef, writeIORef)
-import Data.Int (Int64)
+import Data.Int (Int16, Int64)
 import Data.Text (Text)
 import qualified Data.Text as T
-import Data.Time (diffUTCTime, getCurrentTime, utctDayTime)
+import Data.Time (Day, diffUTCTime, fromGregorian, getCurrentTime, utctDay, utctDayTime)
 import GHC.Generics (Generic)
 import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
@@ -318,6 +318,11 @@ publishWebSocketEvent Nothing _ _ _ = pure ()
 publishWebSocketEvent (Just hub) eventType eventName payload = do
   now <- getCurrentTime
   broadcastMessage hub (WebSocketMessage eventType eventName payload now)
+
+parseDate :: Text -> Day
+parseDate s = case reads (T.unpack s) of
+  [(d, "")] -> d
+  _ -> fromGregorian 2024 1 1
 
 -- ============================================================================
 -- SERVER
@@ -761,6 +766,47 @@ runServer cfg = do
             liftIO $ publishWebSocketEvent wsHub NTPaymentChanged "payment.deleted" (object ["id" .= paymentId])
             json $ object ["success" .= True]
 
+        -- Get payments by status
+        get
+        "/api/v1/payments/status/:status"
+       $ do
+          statusVal <- captureParam "status"
+          let status = read (T.unpack statusVal) :: Int16
+          result <- liftIO $ getPaymentsByStatus (aePool env) status
+          case result of
+            Left appErr -> respondAppError appErr
+            Right payments -> json $ object ["success" .= True, "data" .= payments]
+
+        -- Get payments for a specific bill
+        get
+        "/api/v1/bills/:id/payments"
+       $ do
+          billId <- captureParam "id"
+          result <- liftIO $ getPaymentsByBill (aePool env) billId
+          case result of
+            Left appErr -> respondAppError appErr
+            Right payments -> json $ object ["success" .= True, "data" .= payments]
+
+        -- Get total payments for a bill
+        get
+        "/api/v1/bills/:id/payments/total"
+       $ do
+          billId <- captureParam "id"
+          result <- liftIO $ getPaymentTotalByBill (aePool env) billId
+          case result of
+            Left appErr -> respondAppError appErr
+            Right total -> json $ object ["success" .= True, "data" .= total]
+
+        -- Get unpaid bills (accounts receivable)
+        get
+        "/api/v1/bills/unpaid"
+       $ do
+          checkPermissions [PermRead EntityBills]
+          result <- liftIO $ getUnpaidBills (aePool env)
+          case result of
+            Left appErr -> respondAppError appErr
+            Right bills -> json $ object ["success" .= True, "data" .= bills]
+
         -- Orders (with pagination)
         get
         "/api/v1/orders"
@@ -829,12 +875,26 @@ runServer cfg = do
          gid <- captureParam "id"
          result <- liftIO $ runAppM env $ do
            priceService <- getPriceService
-           listPricesByGoods priceService gid
-         case result of
-           Left appErr -> respondAppError appErr
-           Right prices -> json $ object ["success" .= True, "data" .= prices]
+            listPricesByGoods priceService gid
+          case result of
+            Left appErr -> respondAppError appErr
+            Right prices -> json $ object ["success" .= True, "data" .= prices]
 
-       -- Create Price
+        -- Get effective price for goods on a specific date
+        get
+        "/api/v1/goods/:id/price"
+       $ do
+           gid <- captureParam "id"
+           dateStr <- queryParamWithDef "date" "" :: ActionM Text
+           effectiveDate <- if T.null dateStr 
+                             then liftIO getCurrentTime >>= \t -> pure (utctDay t)
+                             else pure (parseDate dateStr)
+           result <- liftIO $ getGoodsPriceEffective (aePool env) gid effectiveDate
+           case result of
+             Left appErr -> respondAppError appErr
+             Right price -> json $ object ["success" .= True, "data" .= price]
+
+        -- Create Price
        post
        "/api/v1/goods/prices"
       $ do

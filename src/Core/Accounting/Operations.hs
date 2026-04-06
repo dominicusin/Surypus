@@ -23,11 +23,14 @@ module Core.Accounting.Operations
     verifyDoubleEntry,
     calcAccountBalance,
     calcTurnover,
+    prop_doubleEntryBalance,
   )
 where
 
 import Core.Accounting.Types
 import Data.Text (Text)
+import Data.Time (fromGregorian)
+import Test.QuickCheck
 
 -- | Result of an accounting operation
 --
@@ -76,6 +79,8 @@ verifyBalance debit credit
 -- @∑Debit = ∑Credit@
 --
 -- Returns 'AccOpSuccess' if balanced, 'AccOpDoubleEntryError' otherwise.
+
+{-@ verifyDoubleEntry :: [AccTurn] -> AccOpResult @-}
 verifyDoubleEntry :: [AccTurn] -> AccOpResult
 verifyDoubleEntry entries
   | totalDebit == totalCredit = AccOpSuccess
@@ -109,3 +114,17 @@ calcTurnover entries = (debitTurnover, creditTurnover)
   where
     debitTurnover = sum [abs a | a <- fmap atAmount entries, a > 0]
     creditTurnover = sum [abs a | a <- fmap atAmount entries, a < 0]
+
+-- ============================================================================
+-- QUICKCHECK PROPERTIES
+-- ============================================================================
+
+instance Arbitrary AccTurn where
+  arbitrary = do
+    amt <- suchThat arbitrary (> 0)
+    dbtAmt <- suchThat arbitrary (>= 0)
+    crdAmt <- suchThat arbitrary (>= 0)
+    pure $ AccTurn 0 0 0 (fromGregorian 2024 1 1) amt 0 1.0 0 0 0 dbtAmt crdAmt
+
+prop_doubleEntryBalance :: [AccTurn] -> Bool
+prop_doubleEntryBalance entries = verifyDoubleEntry entries == AccOpSuccess

@@ -8,7 +8,10 @@ module Main where
 
 import qualified API.ServerSpec
 import Core.Accounting.Account
+import Core.Accounting.Operations
+import Core.BillLine
 import Core.Payroll.Calculation
+import Core.Price.Operations
 import Core.Tax
 import Data.Maybe ()
 import qualified Data.Text as T
@@ -342,6 +345,11 @@ main = hspec $ do
       prop "Tax vector total is non-negative" prop_tax_vector_total_nonneg
       prop "Tax vector gross >= net" prop_tax_vector_gross_ge_net
       prop "Tax vector invariants hold" prop_tax_vector_valid
+      prop "BillLine total is non-negative" prop_lineTotalNonNeg
+      prop "BillLine discount calculation correct" prop_lineTotalDiscountBound
+      prop "Price calcLineTotal non-negative" prop_calcLineTotalNonNeg
+      prop "Price calcBillTotal non-negative" prop_calcBillTotalNonNeg
+      prop "Accounting double-entry balanced" prop_doubleEntryBalance
 
     -- ========================================================================
     -- RBAC TESTS

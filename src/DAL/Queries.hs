@@ -941,6 +941,49 @@ getPaymentsByBill pool billId = do
     Right rows -> pure $ QuerySuccess rows
     Left err -> pure $ QueryError (T.pack $ show err)
 
+-- | Get payments by status (e.g., pending, completed)
+getPaymentsByStatus :: Pool -> Int16 -> IO (QueryResult [Payment])
+getPaymentsByStatus pool statusVal = do
+  let stmt =
+        preparable
+          "SELECT id, bill_id, date, amount, payment_method, payment_status FROM payment WHERE payment_status = $1 ORDER BY date DESC, id DESC"
+          (E.param (E.nonNullable E.int2))
+          (D.rowList paymentRowDecoder)
+  res <- use pool $ Session.statement statusVal stmt
+  case res of
+    Right rows -> pure $ QuerySuccess rows
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- | Get total payments amount for a bill
+getPaymentTotalByBill :: Pool -> Int64 -> IO (QueryResult Decimal)
+getPaymentTotalByBill pool billId = do
+  let stmt =
+        preparable
+          "SELECT COALESCE(SUM(amount), 0) FROM payment WHERE bill_id = $1 AND payment_status = 1"
+          (E.param (E.nonNullable E.int8))
+          (D.singleRow (Decimal . round <$> D.column (D.nonNullable D.numeric)))
+  res <- use pool $ Session.statement billId stmt
+  case res of
+    Right total -> pure $ QuerySuccess total
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- | Get bills with pending payments (accounts receivable)
+getUnpaidBills :: Pool -> IO (QueryResult [Bill])
+getUnpaidBills pool = do
+  let stmt =
+        preparable
+          "SELECT b.id, b.code, b.bill_type, b.status, b.date, b.person_id, b.location_id, b.total, b.discount, b.tax \
+          \FROM bill b \
+          \WHERE b.status = 1 \
+          \  AND EXISTS (SELECT 1 FROM payment p WHERE p.bill_id = b.id AND p.payment_status = 0) \
+          \ORDER BY b.date DESC, b.id DESC"
+          E.noParams
+          (D.rowList billRowDecoder)
+  res <- use pool $ Session.statement () stmt
+  case res of
+    Right rows -> pure $ QuerySuccess rows
+    Left err -> pure $ QueryError (T.pack $ show err)
+
 -- | Get low stock goods
 getLowStockGoods :: Pool -> IO (QueryResult [(Int64, Text, Decimal, Decimal)])
 getLowStockGoods pool = do
@@ -1144,6 +1187,26 @@ getGoodsPriceByGoods pool goodsId = do
   res <- use pool $ Session.statement goodsId stmt
   case res of
     Right rows -> pure $ QuerySuccess rows
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- | Get goods price effective on a specific date
+getGoodsPriceEffective :: Pool -> Int64 -> Day -> IO (QueryResult GoodsPrice)
+getGoodsPriceEffective pool goodsId effectiveDate = do
+  let stmt =
+        preparable
+          "SELECT id, goods_id, price_type, price, min_qtty, valid_from, valid_to \
+          \FROM goods_price \
+          \WHERE goods_id = $1 \
+          \  AND (valid_from IS NULL OR valid_from <= $2) \
+          \  AND (valid_to IS NULL OR valid_to >= $2) \
+          \ORDER BY price_type, min_qtty \
+          \LIMIT 1"
+          ((fst >$< E.param (E.nonNullable E.int8)) <> (snd >$< E.param (E.nonNullable E.date)))
+          (D.rowMaybe goodsPriceRowDecoder)
+  res <- use pool $ Session.statement (goodsId, effectiveDate) stmt
+  case res of
+    Right (Just priceVal) -> pure $ QuerySuccess priceVal
+    Right Nothing -> pure $ QueryError "No effective price found for given date"
     Left err -> pure $ QueryError (T.pack $ show err)
 
 getGoodsPriceById :: Pool -> Int64 -> IO (QueryResult GoodsPrice)
