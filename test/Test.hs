@@ -14,6 +14,7 @@ import Core.Agent
 import Core.Analytics
 import Core.Asset
 import Core.CreditNote
+import Core.Currency.Operations
 import Core.Discount
 import Core.Document.Operations
 import Core.GoodsTaxEx
@@ -400,6 +401,7 @@ main = hspec $ do
       prop "TaxInvoice tax amount non-negative" prop_taxAmountNonNeg
       prop "GoodsTaxEx tax amount non-negative" prop_goodsTaxAmountNonNeg
       prop "Discount amount non-negative" prop_discountAmountNonNeg
+      prop "Currency rounding in bounds" prop_roundToPrecisionInBounds
 
     -- ========================================================================
     -- RBAC TESTS

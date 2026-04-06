@@ -15,12 +15,14 @@ module Core.Currency.Operations
     calcTotalInBaseCurrency,
     findBestRate,
     calcAverageRate,
+    prop_roundToPrecisionInBounds,
   )
 where
 
 import Core.Currency
 import Data.Text (Text)
 import qualified Data.Text as T
+import Test.QuickCheck
 
 -- | Currency operation result
 data CurrencyOpResult
@@ -159,3 +161,14 @@ find _ [] = Nothing
 find p (x : xs)
   | p x = Just x
   | otherwise = find p xs
+
+-- ============================================================================
+-- QUICKCHECK PROPERTIES
+-- ============================================================================
+
+-- | Property: rounding preserves approximate value
+prop_roundToPrecisionInBounds :: Double -> Property
+prop_roundToPrecisionInBounds amount =
+  forAll (choose (0, 6)) $ \prec ->
+    let rounded = roundToPrecision prec amount
+     in abs (rounded - amount) < 0.5 / (10 ^ prec)
