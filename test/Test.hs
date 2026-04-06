@@ -11,10 +11,15 @@ import Core.Accounting.Account
 import Core.Accounting.Operations
 import Core.AdvanceInvoice
 import Core.Agent
+import Core.Analytics
+import Core.Asset
 import Core.CreditNote
 import Core.Document.Operations
+import Core.Loyalty.Bonus
 import Core.Order
 import Core.Payroll.Calculation
+import Core.Production
+import Core.Quotation
 import Core.RetBill
 import Core.SmartReceipt
 import Core.Tax
@@ -380,6 +385,12 @@ main = hspec $ do
       prop "Transfer amount non-negative" prop_transferAmountNonNeg
       prop "Document total non-negative" prop_documentTotalNonNeg
       prop "Document amounts validation" prop_validateDocumentAmounts
+      prop "Quotation total non-negative" prop_quotationTotalNonNeg
+      prop "Production material consumption non-negative" prop_materialConsumptionNonNeg
+      prop "Loyalty bonus balance valid" prop_bonusBalanceBounded
+      prop "Asset value non-negative" prop_assetValueNonNeg
+      prop "Analytics profit non-negative" prop_profitBounded
+      prop "Analytics margin bounded" prop_marginBounded
 
     -- ========================================================================
     -- RBAC TESTS
