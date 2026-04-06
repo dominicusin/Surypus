@@ -18,7 +18,7 @@ import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
-import Hasql.Statement (unpreparable)
+import Hasql.Statement (unStatement)
 
 listRegisters :: Pool -> Pagination -> DocumentRegisterFilter -> IO [DocumentRegister]
 listRegisters pool (Pagination limit offset) DocumentRegisterFilter {..} =
@@ -33,7 +33,7 @@ listRegisters pool (Pagination limit offset) DocumentRegisterFilter {..} =
       stmt
   where
     stmt =
-      unpreparable
+      unStatement
         "SELECT id, person_id, type_id, series, number, issue_date, expiry_date, issuer, flags, auto_number \
         \FROM document_register \
         \WHERE ($1 IS NULL OR person_id = $1) \
@@ -55,7 +55,7 @@ getRegister pool rid =
     Session.statement rid stmt
   where
     stmt =
-      unpreparable
+      unStatement
         "SELECT id, person_id, type_id, series, number, issue_date, expiry_date, issuer, flags, auto_number FROM document_register WHERE id = $1"
         (E.param (E.nonNullable E.int8))
         (D.rowMaybe documentRegisterRow)
@@ -78,7 +78,7 @@ createRegister pool DocumentRegister {..} =
       stmt
   where
     stmt =
-      unpreparable
+      unStatement
         "SELECT create_document_register_entry($1,$2,$3,$4,$5,$6,$7,$8,$9)"
         ( E.param (E.nonNullable E.int8)
             <> E.param (E.nonNullable E.int8)
@@ -111,7 +111,7 @@ updateRegister pool rid DocumentRegister {..} =
       stmt
   where
     stmt =
-      unpreparable
+      unStatement
         "SELECT update_document_register_entry($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)"
         ( E.param (E.nonNullable E.int8)
             <> E.param (E.nonNullable E.int8)
@@ -133,7 +133,7 @@ deleteRegister pool rid = do
   pure $ Data.Maybe.isJust mb
   where
     stmt =
-      unpreparable
+      unStatement
         "DELETE FROM document_register WHERE id = $1 RETURNING id"
         (E.param (E.nonNullable E.int8))
         (D.rowMaybe (D.column (D.nonNullable D.int8)))

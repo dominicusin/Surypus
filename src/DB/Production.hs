@@ -6,14 +6,14 @@ module DB.Production
   ( listTechs,
     getTech,
     listResources,
-    calculateTechTime,
-    calculateTechCost,
+    calcTechTime,
+    calcTechCost,
     listWorkOrders,
     createWorkOrder,
     releaseWorkOrder,
     completeWorkOrder,
     listBOMForProduct,
-    calculateMaterialNeed,
+    calcMaterialNeed,
     runMRPCalc,
     listProductionPlanSnapshots,
     logProductionPlan,
@@ -37,7 +37,7 @@ import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
-import Hasql.Statement (unpreparable)
+import Hasql.Statement (Statement)
 
 techRow :: D.Row Tech
 techRow =
@@ -60,7 +60,7 @@ listTechs pool TechFilter {..} = do
     namePattern = fmap (\n -> "%" <> T.toLower n <> "%") tfName
     params = (namePattern, tfGoodsId)
     stmt =
-      unpreparable
+      Statement
         "SELECT id, name, parent_id, goods_id, kind, version, flags \
         \FROM tech \
         \WHERE ($1 IS NULL OR LOWER(name) LIKE $1) \
@@ -79,7 +79,7 @@ getTech pool tid = do
     Left _ -> pure Nothing
   where
     stmt =
-      unpreparable
+      Statement
         "SELECT id, name, parent_id, goods_id, kind, version, flags FROM tech WHERE id = $1"
         (E.param (E.nonNullable E.int8))
         (D.rowMaybe techRow)
@@ -92,7 +92,7 @@ listResources pool = do
     Left _ -> pure []
   where
     stmt =
-      unpreparable
+      Statement
         "SELECT id, code, name, kind, capacity, cost_per_hour, available_hours FROM production_resource ORDER BY name"
         E.noParams
         (D.rowList resourceRow)
@@ -121,21 +121,21 @@ resourceRow =
     <*> (toMaybeDouble <$> D.column (D.nullable D.numeric))
     <*> (toMaybeDouble <$> D.column (D.nullable D.numeric))
 
-calculateTechTime :: Pool -> Int64 -> IO Int
-calculateTechTime pool tid = do
+calcTechTime :: Pool -> Int64 -> IO Int
+calcTechTime pool tid = do
   result <- use pool $ Session.statement tid stmt
   case result of
     Right x -> pure x
     Left _ -> pure 0
   where
     stmt =
-      unpreparable
+      Statement
         "SELECT calculate_tech_time($1)"
         (E.param (E.nonNullable E.int8))
         (D.singleRow $ D.column (D.nonNullable D.int4))
 
-calculateTechCost :: Pool -> Int64 -> Double -> IO Double
-calculateTechCost pool tid materialCost = do
+calcTechCost :: Pool -> Int64 -> Double -> IO Double
+calcTechCost pool tid materialCost = do
   result <- use pool $ Session.statement params stmt
   case result of
     Right x -> pure x
@@ -143,7 +143,7 @@ calculateTechCost pool tid materialCost = do
   where
     params = (tid, materialCost)
     stmt =
-      unpreparable
+      Statement
         "SELECT calculate_tech_cost($1, $2)"
         ( E.param (E.nonNullable E.int8)
             <> E.param (E.nonNullable E.float8)
@@ -201,7 +201,7 @@ listWorkOrders pool = do
     Left _ -> pure []
   where
     stmt =
-      unpreparable
+      Statement
         "SELECT id, code, dt, due_date, product_id, qtty, status, output_qtty FROM work_order ORDER BY dt DESC"
         E.noParams
         (D.rowList workOrderRow)
@@ -215,7 +215,7 @@ createWorkOrder pool code dt due product qty = do
   where
     params = (code, dt, due, product, qty)
     stmt =
-      unpreparable
+      Statement
         "INSERT INTO work_order (code, dt, due_date, product_id, qtty) VALUES ($1,$2,$3,$4,$5) RETURNING id"
         ( E.param (E.nonNullable E.text)
             <> E.param (E.nonNullable E.date)
@@ -233,7 +233,7 @@ releaseWorkOrder pool orderId dt = do
     Left _ -> pure False
   where
     stmt =
-      unpreparable
+      Statement
         "SELECT work_order_release($1, $2)"
         ( E.param (E.nonNullable E.int8)
             <> E.param (E.nonNullable E.date)
@@ -248,7 +248,7 @@ completeWorkOrder pool orderId qty = do
     Left _ -> pure False
   where
     stmt =
-      unpreparable
+      Statement
         "SELECT work_order_complete($1, $2)"
         ( E.param (E.nonNullable E.int8)
             <> E.param (E.nonNullable E.float8)
@@ -263,7 +263,7 @@ listBOMForProduct pool productId = do
     Left _ -> pure []
   where
     stmt =
-      unpreparable
+      Statement
         "SELECT id, product_id, component_id, qtty FROM bom WHERE product_id = $1 ORDER BY id"
         (E.param (E.nonNullable E.int8))
         (D.rowList bomRow)
@@ -276,8 +276,8 @@ bomRow =
     <*> D.column (D.nonNullable D.int8)
     <*> D.column (D.nonNullable D.float8)
 
-calculateMaterialNeed :: Pool -> Int64 -> Double -> IO [MaterialNeed]
-calculateMaterialNeed pool productId output = do
+calcMaterialNeed :: Pool -> Int64 -> Double -> IO [MaterialNeed]
+calcMaterialNeed pool productId output = do
   result <- use pool $ Session.statement params stmt
   case result of
     Right x -> pure x
@@ -285,7 +285,7 @@ calculateMaterialNeed pool productId output = do
   where
     params = (productId, output)
     stmt =
-      unpreparable
+      Statement
         "SELECT goods_id, need_qtty FROM calc_material_need($1, $2)"
         ( E.param (E.nonNullable E.int8)
             <> E.param (E.nonNullable E.float8)
@@ -301,7 +301,7 @@ runMRPCalc pool needs = do
   where
     payload = (TL.toStrict . decodeUtf8 . toStrict . encode) needs
     stmt =
-      unpreparable
+      Statement
         "SELECT goods_id, need_qtty, on_hand, on_order, planned_order FROM mrp_calculate($1::json, CURRENT_DATE)"
         (E.param (E.nonNullable E.text))
         (D.rowList mrpPlanRow)
@@ -323,7 +323,7 @@ listProductionPlanSnapshots pool = do
     Left _ -> pure []
   where
     stmt =
-      unpreparable
+      Statement
         "SELECT id, created_at, plan::text, params FROM production_plan_snapshot ORDER BY created_at DESC LIMIT 20"
         E.noParams
         (D.rowList planSnapshotRow)
@@ -348,7 +348,7 @@ logProductionPlan pool plan params = do
   where
     planPayload = TL.toStrict . decodeUtf8 . toStrict $ encode plan
     stmt =
-      unpreparable
+      Statement
         "INSERT INTO production_plan_snapshot (plan, params) VALUES ($1::jsonb, $2) RETURNING id"
         ( E.param (E.nonNullable E.text)
             <> E.param (E.nonNullable E.text)

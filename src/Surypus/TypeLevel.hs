@@ -1,10 +1,10 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE KindSignatures #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE GADTs #-}
+
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TypeFamilies #-}
 
 -- | Type-level programming utilities for entities
 module Surypus.TypeLevel
@@ -25,10 +25,10 @@ where
 import Core.Document.Types
 import DAL.Types
 import Data.Int (Int64)
+import Data.Kind (Type)
 import Data.Text (Text)
 import Data.Time (Day)
 import Data.Typeable (Typeable)
-import Data.Kind (Type)
 import Hasql.Pool (Pool)
 
 -- | Type family for entity IDs
@@ -98,7 +98,7 @@ data Document (docType :: DocumentType) where
     } ->
     Document 'DT_Bill
   -- Order document
-  DocOrder :-
+  DocOrder ::
     { docOrderId :: Int64,
       docOrderNumber :: Text,
       docOrderDate :: Day,

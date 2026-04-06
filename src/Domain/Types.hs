@@ -1,3 +1,4 @@
+{-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Domain.Types
@@ -30,7 +31,7 @@ int64ToPPID :: Int64 -> PPID
 int64ToPPID = PPID
 
 newtype Money = Money {getMoney :: Double}
-  deriving (Eq, Show, Ord, Num, Real)
+  deriving newtype (Eq, Show, Ord, Num, Real)
 
 toMoney :: Double -> Money
 toMoney d = Money (fromIntegral (round d :: Int))

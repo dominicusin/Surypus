@@ -15,6 +15,8 @@ where
 
 import Control.Concurrent (MVar, modifyMVar, newMVar)
 import Control.Monad.IO.Class (liftIO)
+import Data.Map.Strict (Map)
+import qualified Data.Map.Strict as Map
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
@@ -49,7 +51,7 @@ recordRequest cfg method path = do
 recordResponseTime :: MetricsConfig -> Text -> Double -> IO ()
 recordResponseTime cfg path duration = do
   modifyMVar_ (mcResponseTimes cfg) $ \m ->
-    let entry = maybe ([duration]) (duration :) (lookup path m)
+    let entry = maybe [duration] (duration :) (lookup path m)
         avg = sum entry / fromIntegral (length entry)
      in pure $! insert path avg m
 
@@ -57,7 +59,7 @@ recordDatabaseQuery :: MetricsConfig -> Text -> Double -> IO ()
 recordDatabaseQuery cfg query duration = do
   modifyMVar_ (mcDbQueries cfg) $ \m ->
     let key = query
-        entry = maybe ([duration]) (duration :) (lookup key m)
+        entry = maybe [duration] (duration :) (lookup key m)
         avg = sum entry / fromIntegral (length entry)
      in pure $! insert key avg m
 
@@ -104,7 +106,7 @@ renderMetrics cfg = do
 
       renderPathMetrics prefix m =
         T.unlines $
-          map
+          fmap
             ( \(path, val) ->
                 T.unlines
                   [ "# HELP surypus_" <> prefix <> "_" <> path <> " " <> prefix <> " for " <> path,
@@ -114,23 +116,22 @@ renderMetrics cfg = do
             )
             (toList m)
 
-  pure $
-    TL.fromStrict $
-      T.unlines
-        [ "# Surypus ERP Prometheus Metrics",
-          "",
-          renderCounter "http_requests_total" (sum $ fmap snd $ toList requests),
-          renderHistogram "http_active_requests" active,
-          "",
-          "# HTTP Response Times",
-          renderPathMetrics "http_response_time_seconds" responseTimes,
-          "",
-          "# Database Query Times",
-          renderPathMetrics "db_query_time_seconds" dbQueries,
-          "",
-          "# Error Counts",
-          renderCounter "errors_total" (sum $ fmap snd $ toList errors)
-        ]
+  pure . TL.fromStrict $
+    T.unlines
+      [ "# Surypus ERP Prometheus Metrics",
+        "",
+        renderCounter "http_requests_total" (sum . fmap snd $ toList requests),
+        renderHistogram "http_active_requests" active,
+        "",
+        "# HTTP Response Times",
+        renderPathMetrics "http_response_time_seconds" responseTimes,
+        "",
+        "# Database Query Times",
+        renderPathMetrics "db_query_time_seconds" dbQueries,
+        "",
+        "# Error Counts",
+        renderCounter "errors_total" (sum . fmap snd $ toList errors)
+      ]
 
 prometheusMetricsMiddleware :: MetricsConfig -> Middleware
 prometheusMetricsMiddleware cfg app req respond = do
@@ -147,5 +148,6 @@ prometheusMetricsMiddleware cfg app req respond = do
       decrementActiveRequests cfg
     respond res
 
+-- | Insert a key-value pair into a map, updating existing values
 insert :: (Ord k) => k -> v -> Map k v -> Map k v
-insert = undefined
+insert k v = Map.insert k v

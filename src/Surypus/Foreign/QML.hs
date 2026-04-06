@@ -642,27 +642,27 @@ sortByField f list = list -- Simplified - in real implementation use sortOn
 -- ============================================================================
 
 -- | Calculate bill totals
-calculateBillTotals :: [Bill] -> (Double, Double, Double)
-calculateBillTotals bills =
+calcBillTotals :: [Bill] -> (Double, Double, Double)
+calcBillTotals bills =
   let total = sum (fmap billTotal bills)
       vat = sum (fmap billVatSum bills)
       totalWithVat = total + vat
    in (total, vat, totalWithVat)
 
 -- | Calculate stock value
-calculateStockValue :: [Stock] -> Double
-calculateStockValue stock = fromIntegral (sum (fmap stockQuantity stock))
+calcStockValue :: [Stock] -> Double
+calcStockValue stock = fromIntegral (sum (fmap stockQuantity stock))
 
 -- | Calculate account balance
-calculateAccountBalance :: Account -> [AccountingEntry] -> Double
-calculateAccountBalance acc entries =
+calcAccountBalance :: Account -> [AccountingEntry] -> Double
+calcAccountBalance acc entries =
   let debits = sum [aeAmount e | e <- entries, aeDebitAccId e == accId acc]
       credits = sum [aeAmount e | e <- entries, aeCreditAccId e == accId acc]
    in accOpeningBalance acc + debits - credits
 
 -- | Calculate payroll totals
-calculatePayrollTotals :: [Payroll] -> (Double, Double, Double, Double)
-calculatePayrollTotals payroll =
+calcPayrollTotals :: [Payroll] -> (Double, Double, Double, Double)
+calcPayrollTotals payroll =
   let accrued = sum (fmap payrollAccrued payroll)
       tax = sum (fmap payrollTaxNdfl payroll)
       social = sum (fmap payrollSocialContribution payroll)

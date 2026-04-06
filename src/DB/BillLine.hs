@@ -14,7 +14,7 @@ import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
-import Hasql.Statement (unpreparable)
+import Hasql.Statement (Statement)
 
 billLineRow :: D.Row BillLine
 billLineRow =
@@ -36,7 +36,7 @@ listBillLines pool bid = do
     Left _ -> pure []
   where
     stmt =
-      unpreparable
+      Statement
         "SELECT id, goods_id, price, quantity, discount, vat_rate, vat_amount, line_total FROM bill_line WHERE bill_id = $1 ORDER BY line_num"
         (E.param (E.nonNullable E.int8))
         (D.rowList billLineRow)
@@ -59,7 +59,7 @@ createBillLine pool bid BillLine {..} = do
         billLineAmount
       )
     stmt =
-      unpreparable
+      Statement
         "SELECT create_bill_line($1,$2,$3,$4,$5,$6,$7,$8)"
         ( ((\(a, _, _, _, _, _, _, _) -> a) >$< E.param (E.nonNullable E.int8))
             <> ((\(_, b, _, _, _, _, _, _) -> b) >$< E.param (E.nonNullable E.int8))

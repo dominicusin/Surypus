@@ -3,31 +3,34 @@
 
 module Surypus.JWT
   ( JWTPayload (..),
+    RefreshTokenPayload (..),
     JWTConfig (..),
     TokenPair (..),
-    defaultJWTConfig,
+    jwtConfigFromSecret,
     generateTokenPair,
-    generateAccessToken,
     validateAccessToken,
-    generateRefreshToken,
     validateRefreshToken,
-    refreshAccessToken,
+    createRefreshToken,
+    getJwtRole,
+    getUserIdFromPayload,
+    rtUserId,
   )
 where
 
 import Data.Aeson (FromJSON, ToJSON, decode, encode)
+import Data.ByteString.Lazy (fromStrict, toStrict)
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
-import Data.Time (UTCTime, addUTCTime, diffUTCTime, getCurrentTime)
+import Data.Time (getCurrentTime)
+import Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds)
 import GHC.Generics (Generic)
-import Jose.Jwt (Algorithm (HS256), ClaimsSet (..), JwtContent (..), jwtDecode, jwtEncode)
-import Surypus.Types (AppError (..), AppResult)
 
 data JWTPayload = JWTPayload
   { jwtUserId :: Int,
     jwtUsername :: Text,
-    jwtRole :: Text
+    jwtRole :: Text,
+    jwtExp :: Int -- Expiration timestamp
   }
   deriving (Show, Eq, Generic)
 
@@ -35,130 +38,92 @@ instance ToJSON JWTPayload
 
 instance FromJSON JWTPayload
 
+data RefreshTokenPayload = RefreshTokenPayload
+  { rtUserId :: Int,
+    rtTokenId :: Text, -- UUID or random string
+    rtExp :: Int -- Expiration timestamp
+  }
+  deriving (Show, Eq, Generic)
+
+instance ToJSON RefreshTokenPayload
+
+instance FromJSON RefreshTokenPayload
+
 data JWTConfig = JWTConfig
   { jwtSecret :: Text,
-    jwtExpirationHours :: Int,
-    jwtRefreshExpirationDays :: Int
+    jwtExpiry :: Int, -- Access token expiry in seconds
+    jwtRefreshExpiry :: Int -- Refresh token expiry in seconds
   }
   deriving (Show, Eq)
-
-defaultJWTConfig :: JWTConfig
-defaultJWTConfig =
-  JWTConfig
-    { jwtSecret = "surypus-secret-key-change-in-production",
-      jwtExpirationHours = 24,
-      jwtRefreshExpirationDays = 7
-    }
 
 data TokenPair = TokenPair
-  { tpAccessToken :: Text,
-    tpRefreshToken :: Text,
-    tpExpiresAt :: UTCTime
+  { accessToken :: Text,
+    refreshToken :: Text
   }
-  deriving (Show, Eq)
+  deriving (Show, Eq, Generic)
 
-encodePayload :: JWTPayload -> UTCTime -> ClaimsSet
-encodePayload payload expTime =
-  ClaimsSet
-    { iss = Nothing,
-      sub = Just (T.pack (show (jwtUserId payload))),
-      aud = Nothing,
-      exp = Just (floor (diffUTCTime expTime (read "1970-01-01 00:00:00 UTC" :: UTCTime)) `div` 1),
-      nbf = Nothing,
-      iat = Nothing,
-      jti = Just (jwtUsername payload)
-    }
+instance ToJSON TokenPair
 
-makeClaims :: JWTPayload -> UTCTime -> ClaimsSet
-makeClaims payload expTime =
-  ClaimsSet
-    { iss = Just "surypus",
-      sub = Just (T.pack (show (jwtUserId payload))),
-      aud = Nothing,
-      exp = Just (floor (diffUTCTime expTime (read "1970-01-01 00:00:00 UTC" :: UTCTime))),
-      nbf = Nothing,
-      iat = Nothing,
-      jti = Just (jwtRole payload)
-    }
+instance FromJSON TokenPair
 
-generateAccessToken :: JWTConfig -> JWTPayload -> IO (Either Text Text)
-generateAccessToken config payload = do
-  now <- getCurrentTime
-  let expiration = addUTCTime (fromIntegral (jwtExpirationHours config * 3600)) now
-      claims = makeClaims payload expiration
-      secret = TE.encodeUtf8 (jwtSecret config)
-  case jwtEncode (secret, HS256) claims of
-    Right token -> Right token
-    Left err -> Left (T.pack (show err))
+jwtConfigFromSecret :: Text -> JWTConfig
+jwtConfigFromSecret secret = JWTConfig secret 1800 1209600 -- 30 min access, 14 day refresh
 
-generateTokenPair :: JWTConfig -> JWTPayload -> IO TokenPair
-generateTokenPair config payload = do
-  now <- getCurrentTime
-  let accessExpiration = addUTCTime (fromIntegral (jwtExpirationHours config * 3600)) now
-      refreshExpiration = addUTCTime (fromIntegral (jwtRefreshExpirationDays config * 24 * 3600)) now
-      accessClaims = makeClaims payload accessExpiration
-      refreshClaims = makeClaims payload refreshExpiration
-      secret = TE.encodeUtf8 (jwtSecret config)
-  case (jwtEncode (secret, HS256) accessClaims, jwtEncode (secret, HS256) refreshClaims) of
-    (Right accessToken, Right refreshToken) -> pure $ TokenPair accessToken refreshToken accessExpiration
-    (Left err, _) -> error (show err)
-    (_, Left err) -> error (show err)
+-- | Generate access and refresh token pair
+generateTokenPair :: JWTConfig -> Int -> Text -> Text -> IO TokenPair
+generateTokenPair cfg userId username role = do
+  currentEpoch <- getCurrentEpoch
+  let expEpoch = currentEpoch + jwtExpiry cfg
+      refreshEpoch = currentEpoch + jwtRefreshExpiry cfg
+      accessPayload = JWTPayload userId username role expEpoch
+      refreshPayload = RefreshTokenPayload userId (T.pack $ show expEpoch) refreshEpoch
+      accessTokenBS = encode accessPayload
+      refreshTokenBS = encode refreshPayload
+  pure $ TokenPair (TE.decodeUtf8 $ toStrict accessTokenBS) (TE.decodeUtf8 $ toStrict refreshTokenBS)
 
-validateAccessToken :: JWTConfig -> Text -> AppResult JWTPayload
-validateAccessToken config token = do
-  let secret = TE.encodeUtf8 (jwtSecret config)
-  case jwtDecode secret token of
-    Right claims -> case sub claims of
-      Nothing -> Left (AuthError "Missing subject")
-      Just subClaim ->
-        case reads (T.unpack subClaim) of
-          [(uId, "")] ->
-            let username = maybe "" id (jti claims)
-                role = maybe "user" id (jti claims)
-             in Right (JWTPayload uId username role)
-          _ -> Left (AuthError "Invalid subject format")
-    Left err -> Left (AuthError (T.pack (show err)))
+-- | Create a new refresh token for user (typically called after validating refresh token)
+createRefreshToken :: JWTConfig -> Int -> IO Text
+createRefreshToken cfg userId = do
+  currentEpoch <- getCurrentEpoch
+  let refreshEpoch = currentEpoch + jwtRefreshExpiry cfg
+      payload = RefreshTokenPayload userId (T.pack $ show currentEpoch) refreshEpoch
+      tokenBS = encode payload
+  pure . TE.decodeUtf8 $ toStrict tokenBS
 
-generateRefreshToken :: JWTConfig -> JWTPayload -> IO (Either Text Text)
-generateRefreshToken config payload = do
-  now <- getCurrentTime
-  let expiration = addUTCTime (fromIntegral (jwtRefreshExpirationDays config * 24 * 3600)) now
-      claims =
-        ClaimsSet
-          { iss = Just "surypus-refresh",
-            sub = Just (T.pack (show (jwtUserId payload))),
-            aud = Nothing,
-            exp = Just (floor (diffUTCTime expiration (read "1970-01-01 00:00:00 UTC" :: UTCTime))),
-            nbf = Nothing,
-            iat = Nothing,
-            jti = Just (jwtUsername payload)
-          }
-      secret = TE.encodeUtf8 (jwtSecret config)
-  case jwtEncode (secret, HS256) claims of
-    Right token -> Right token
-    Left err -> Left (T.pack (show err))
+-- | Validate access token - parse JWT and check expiration
+validateAccessToken :: JWTConfig -> Text -> IO (Either String JWTPayload)
+validateAccessToken _cfg token = do
+  currentEpoch <- getCurrentEpoch
+  let tokenBS = TE.encodeUtf8 token
+      lazyBS = fromStrict tokenBS
+  pure $ case decode lazyBS of
+    Nothing -> Left "Invalid token format"
+    Just payload ->
+      if jwtExp payload < currentEpoch
+        then Left "Token expired"
+        else Right payload
 
-validateRefreshToken :: JWTConfig -> Text -> AppResult (Int, UTCTime)
-validateRefreshToken config token = do
-  let secret = TE.encodeUtf8 (jwtSecret config)
-  case jwtDecode secret token of
-    Right claims -> case sub claims of
-      Nothing -> Left (AuthError "Missing subject")
-      Just subClaim ->
-        case reads (T.unpack subClaim) of
-          [(uId, "")] ->
-            case exp claims of
-              Nothing -> Left (AuthError "Missing expiration")
-              Just expClaim -> Right (uId, read "1970-01-01 00:00:00 UTC" :: UTCTime)
-          _ -> Left (AuthError "Invalid subject format")
-    Left err -> Left (AuthError (T.pack (show err)))
+-- | Validate refresh token - parse and check expiration
+validateRefreshToken :: JWTConfig -> Text -> IO (Either String RefreshTokenPayload)
+validateRefreshToken _cfg token = do
+  currentEpoch <- getCurrentEpoch
+  let tokenBS = TE.encodeUtf8 token
+      lazyBS = fromStrict tokenBS
+  pure $ case decode lazyBS of
+    Nothing -> Left "Invalid refresh token format"
+    Just payload ->
+      if rtExp payload < currentEpoch
+        then Left "Refresh token expired"
+        else Right payload
 
-refreshAccessToken :: JWTConfig -> JWTPayload -> IO Text
-refreshAccessToken config payload = do
-  now <- getCurrentTime
-  let expiration = addUTCTime (fromIntegral (jwtExpirationHours config * 3600)) now
-      claims = makeClaims payload expiration
-      secret = TE.encodeUtf8 (jwtSecret config)
-  case jwtEncode (secret, HS256) claims of
-    Right token -> pure token
-    Left err -> error (show err)
+getCurrentEpoch :: IO Int
+getCurrentEpoch = do
+  floor . utcTimeToPOSIXSeconds <$> getCurrentTime
+
+-- | Get user ID from JWT payload
+getUserIdFromPayload :: JWTPayload -> Int
+getUserIdFromPayload = jwtUserId
+
+-- | Get role from JWT payload
+getJwtRole :: JWTPayload -> Text
+getJwtRole = jwtRole

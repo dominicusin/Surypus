@@ -73,7 +73,7 @@ import qualified Data.Text as T
 import Hasql.Pool (Pool)
 import qualified Surypus.Validation as Validation
 
-data GoodsRepository = GoodsRepository
+newtype GoodsRepository = GoodsRepository
   { grPool :: Pool
   }
 
@@ -184,4 +184,4 @@ mkGoodsRepository :: Pool -> GoodsRepository
 mkGoodsRepository = GoodsRepository
 
 runGoodsRepository :: GoodsRepository -> RepositoryT IO a -> IO (Either RepositoryError a)
-runGoodsRepository repo action = runRepository (defaultRepositoryContext (grPool repo)) action
+runGoodsRepository repo = runRepository (defaultRepositoryContext (grPool repo))

@@ -68,7 +68,7 @@ import qualified Data.Text as T
 import Hasql.Pool (Pool)
 import qualified Surypus.Validation as Validation
 
-data LocationRepository = LocationRepository
+newtype LocationRepository = LocationRepository
   { lrPool :: Pool
   }
 
@@ -166,4 +166,4 @@ mkLocationRepository :: Pool -> LocationRepository
 mkLocationRepository = LocationRepository
 
 runLocationRepository :: LocationRepository -> RepositoryT IO a -> IO (Either RepositoryError a)
-runLocationRepository repo action = runRepository (defaultRepositoryContext (lrPool repo)) action
+runLocationRepository repo = runRepository (defaultRepositoryContext (lrPool repo))

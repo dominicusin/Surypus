@@ -1,6 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
-
 module Service.AccountingService
   ( AccountingService (..),
     createAccountingService,
@@ -30,7 +27,7 @@ import qualified Hasql.Session as Session
 import Hasql.Statement (Statement)
 import Surypus.Types (AppError (..), AppResult, Decimal (..))
 
-data AccountingService = AccountingService
+newtype AccountingService = AccountingService
   { asPool :: Pool
   }
 
@@ -51,9 +48,9 @@ data Entry = Entry
 
 data EntryType = Debit | Credit
 
-data TransactionResult = TransactionProcessed Int64
+newtype TransactionResult = TransactionProcessed Int64
 
-data Ledger = Ledger {ledgerEntries :: [LedgerEntry]}
+newtype Ledger = Ledger {ledgerEntries :: [LedgerEntry]}
 
 data LedgerEntry = LedgerEntry
   { leId :: Int64,
@@ -99,7 +96,7 @@ processTransaction service transaction = do
 
 getAccountBalance :: AccountingService -> Int64 -> IO (Either Text Double)
 getAccountBalance service accountId = do
-  result <- use (asPool service) $ Session.query selectBalanceStmt (accountId)
+  result <- use (asPool service) $ Session.query selectBalanceStmt accountId
   pure $ case result of
     Left err -> Left (T.pack (show err))
     Right [] -> Right 0.0
@@ -160,7 +157,7 @@ selectLastIdStmt =
   Session.statement
     "SELECT currval('acc_turn_id_seq')"
     Session.noParams
-    (D.singleRow (D.column D.nonNullable D.int8))
+    (D.singleRow (D.column (D.nonNullable D.int8)))
 
 insertAccTurnStmt :: Statement (Day, Text, Int64, Int64, Int64) Int64
 insertAccTurnStmt =
@@ -173,7 +170,7 @@ insertAccTurnStmt =
         <*> (E.param . E.nonNullable $ E.int8)
         <*> (E.param . E.nonNullable $ E.int8)
     )
-    (D.singleRow (D.column D.nonNullable D.int8))
+    (D.singleRow (D.column (D.nonNullable D.int8)))
 
 selectBalanceStmt :: Statement Int64 (Int64, Int64)
 selectBalanceStmt =
@@ -181,8 +178,8 @@ selectBalanceStmt =
     "SELECT COALESCE(SUM(debit_amount), 0) - COALESCE(SUM(credit_amount), 0), id FROM acc_turn WHERE account_id = $1 GROUP BY id"
     (E.param (E.nonNullable E.int8))
     ( D.rowList
-        ( D.column D.nonNullable D.int8,
-          D.column D.nonNullable D.int8
+        ( D.column (D.nonNullable D.int8),
+          D.column (D.nonNullable D.int8)
         )
     )
 
@@ -196,15 +193,15 @@ selectTurnoversStmt =
     \ (SELECT COALESCE(SUM(debit_amount - credit_amount), 0) FROM acc_turn WHERE account_id = $1 AND turn_date <= $3) as closing \
     \ FROM acc_turn WHERE account_id = $1 AND turn_date BETWEEN $2 AND $3"
     ( (,,)
-        <$> (E.param (E.nonNullable E.int8))
-        <*> (E.param (E.nonNullable E.date))
-        <*> (E.param (E.nonNullable E.date))
+        <$> E.param (E.nonNullable E.int8)
+        <*> E.param (E.nonNullable E.date)
+        <*> E.param (E.nonNullable E.date)
     )
     ( D.rowList
-        ( D.column D.nonNullable D.int8,
-          D.column D.nonNullable D.int8,
-          D.column D.nonNullable D.int8,
-          D.column D.nonNullable D.int8
+        ( D.column (D.nonNullable D.int8),
+          D.column (D.nonNullable D.int8),
+          D.column (D.nonNullable D.int8),
+          D.column (D.nonNullable D.int8)
         )
     )
 
@@ -214,16 +211,16 @@ selectLedgerStmt =
     "SELECT id, turn_date, description, account_id, debit_amount, credit_amount \
     \ FROM acc_turn WHERE turn_date BETWEEN $1 AND $2 ORDER BY turn_date, id"
     ( (,)
-        <$> (E.param (E.nonNullable E.date))
-        <*> (E.param (E.nonNullable E.date))
+        <$> E.param (E.nonNullable E.date)
+        <*> E.param (E.nonNullable E.date)
     )
     ( D.rowList
-        ( D.column D.nonNullable D.int8,
-          D.column D.nonNullable D.date,
-          D.column D.nonNullable D.text,
-          D.column D.nonNullable D.int8,
-          D.column D.nonNullable D.int8,
-          D.column D.nonNullable D.int8
+        ( D.column (D.nonNullable D.int8),
+          D.column (D.nonNullable D.date),
+          D.column (D.nonNullable D.text),
+          D.column (D.nonNullable D.int8),
+          D.column (D.nonNullable D.int8),
+          D.column (D.nonNullable D.int8)
         )
     )
 

@@ -1,4 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
 
 module Surypus.Metrics.Types
   ( MetricsConfig (..),

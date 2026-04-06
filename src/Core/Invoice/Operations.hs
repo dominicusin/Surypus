@@ -3,12 +3,12 @@
 module Core.Invoice.Operations
   ( InvoiceOpResult (..),
     validateInvoice,
-    calculateInvoiceBalance,
-    calculateInvoicePaid,
+    calcInvoiceBalance,
+    calcInvoicePaid,
     isInvoiceOverdue,
     isInvoicePaid,
     isInvoicePartiallyPaid,
-    calculatePaymentDue,
+    calcPaymentDue,
     verifyInvoiceTotals,
     allocatePayment,
     calcTotalOutstanding,
@@ -16,7 +16,7 @@ module Core.Invoice.Operations
   )
 where
 
-import Core.Invoice
+import Core.Invoice hiding (calcInvoiceBalance)
 import Data.Time (Day)
 
 -- | Invoice operation result
@@ -47,30 +47,30 @@ validateInvoice inv
 
 -- | Calculate invoice balance
 -- Инвариант: balance >= 0
-calculateInvoiceBalance :: Invoice -> Double
-calculateInvoiceBalance inv = invTotal inv - invPaid inv
+calcInvoiceBalance :: Invoice -> Double
+calcInvoiceBalance inv = invTotal inv - invPaid inv
 
 -- | Calculate paid amount percentage
 -- Инвариант: 0 <= result <= 100
-calculateInvoicePaid :: Invoice -> Double
-calculateInvoicePaid inv
+calcInvoicePaid :: Invoice -> Double
+calcInvoicePaid inv
   | invTotal inv <= 0 = 0
   | otherwise = (invPaid inv / invTotal inv) * 100
 
 -- | Check if invoice is overdue
 -- Инвариант: просрочка означает, что дата оплаты прошла
 isInvoiceOverdue :: Invoice -> Day -> Bool
-isInvoiceOverdue inv today = today > invDueDate inv && calculateInvoiceBalance inv > 0
+isInvoiceOverdue inv today = today > invDueDate inv && calcInvoiceBalance inv > 0
 
 -- | Check if invoice is fully paid
 -- Инвариант: полная оплата означает баланс = 0
 isInvoicePaid :: Invoice -> Bool
-isInvoicePaid inv = calculateInvoiceBalance inv <= 0.01
+isInvoicePaid inv = calcInvoiceBalance inv <= 0.01
 
 -- | Check if invoice is partially paid
 -- Инвариант: частичная оплата - баланс > 0 и оплата > 0
 isInvoicePartiallyPaid :: Invoice -> Bool
-isInvoicePartiallyPaid inv = invPaid inv > 0 && calculateInvoiceBalance inv > 0
+isInvoicePartiallyPaid inv = invPaid inv > 0 && calcInvoiceBalance inv > 0
 
 -- ============================================================================
 -- PAYMENT CALCULATIONS
@@ -78,8 +78,8 @@ isInvoicePartiallyPaid inv = invPaid inv > 0 && calculateInvoiceBalance inv > 0
 
 -- | Calculate payment due amount
 -- Инвариант: result >= 0
-calculatePaymentDue :: Invoice -> Double
-calculatePaymentDue inv = max 0 (calculateInvoiceBalance inv)
+calcPaymentDue :: Invoice -> Double
+calcPaymentDue inv = max 0 (calcInvoiceBalance inv)
 
 -- ============================================================================
 -- VERIFICATION
@@ -106,16 +106,16 @@ allocatePayment remainingPayment invoices = go remainingPayment (filter (not . i
     go remaining (inv : invs)
       | remaining <= 0 = []
       | otherwise =
-          let balance = calculateInvoiceBalance inv
+          let balance = calcInvoiceBalance inv
               allocated = min remaining balance
            in (inv, allocated) : go (remaining - allocated) invs
 
 -- | Calculate total outstanding amount
 -- Инвариант: result >= 0
 calcTotalOutstanding :: [Invoice] -> Double
-calcTotalOutstanding = sum . fmap calculateInvoiceBalance
+calcTotalOutstanding = sum . fmap calcInvoiceBalance
 
 -- | Calculate total overdue amount
 -- Инвариант: result >= 0
 calcTotalOverdue :: [Invoice] -> Day -> Double
-calcTotalOverdue invoices today = sum . fmap calculateInvoiceBalance $ filter (`isInvoiceOverdue` today) invoices
+calcTotalOverdue invoices today = sum . fmap calcInvoiceBalance $ filter (`isInvoiceOverdue` today) invoices

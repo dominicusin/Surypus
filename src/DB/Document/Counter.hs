@@ -21,7 +21,7 @@ import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
-import Hasql.Statement (unpreparable)
+import Hasql.Statement (unStatement)
 
 counterRow :: D.Row DocumentOpCounter
 counterRow =
@@ -40,7 +40,7 @@ listDocumentCounters pool (Pagination limit offset) = do
     Left _ -> pure []
   where
     stmt =
-      unpreparable
+      unStatement
         "SELECT id, name, op_kind_id, prefix, flags FROM document_op_counter \
         \ORDER BY id LIMIT $1 OFFSET $2"
         ( E.param (E.nonNullable E.int4)
@@ -56,7 +56,7 @@ getDocumentCounter pool cid = do
     Left _ -> pure Nothing
   where
     stmt =
-      unpreparable
+      unStatement
         "SELECT id, name, op_kind_id, prefix, flags FROM document_op_counter WHERE id = $1"
         (E.param (E.nonNullable E.int8))
         (D.rowMaybe counterRow)
@@ -75,7 +75,7 @@ createDocumentCounter pool DocumentOpCounter {..} = do
         docCounterFlags
       )
     stmt =
-      unpreparable
+      unStatement
         "INSERT INTO document_op_counter (name, op_kind_id, prefix, flags) VALUES ($1,$2,$3,$4) RETURNING id"
         ( E.param (E.nonNullable E.text)
             <> E.param (E.nonNullable E.int4)
@@ -99,7 +99,7 @@ updateDocumentCounter pool cid DocumentOpCounter {..} = do
         docCounterFlags
       )
     stmt =
-      unpreparable
+      unStatement
         "UPDATE document_op_counter SET name = $2, op_kind_id = $3, prefix = $4, flags = $5 WHERE id = $1 RETURNING id"
         ( E.param (E.nonNullable E.int8)
             <> E.param (E.nonNullable E.text)
@@ -117,7 +117,7 @@ deleteDocumentCounter pool cid = do
     Left _ -> pure False
   where
     stmt =
-      unpreparable
+      unStatement
         "DELETE FROM document_op_counter WHERE id = $1 RETURNING id"
         (E.param (E.nonNullable E.int8))
         (D.rowMaybe (D.column (D.nonNullable D.int8)))
@@ -130,7 +130,7 @@ getNextDocumentNumber pool counterId = do
     Left _ -> pure ""
   where
     stmt =
-      unpreparable
+      unStatement
         "SELECT document_get_next_doc_number($1)"
         (E.param (E.nonNullable E.int4))
         (D.singleRow $ D.column (D.nonNullable D.text))

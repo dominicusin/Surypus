@@ -178,4 +178,4 @@ totalAccruals = sum . filter (> 0) . fmap sAmount
 -- ============================================================================
 
 diffDays :: Day -> Day -> Int
-diffDays a b = fromIntegral (fromEnum a - fromEnum b)
+diffDays a b = fromEnum a - fromEnum b

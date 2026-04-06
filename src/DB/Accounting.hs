@@ -21,7 +21,7 @@ import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
-import Hasql.Statement (unpreparable)
+import Hasql.Statement (Statement)
 
 listAccounts :: Pool -> Pagination -> AccountFilter -> IO [AccAccount]
 listAccounts pool (Pagination limit offset) AccountFilter {..} = do
@@ -33,7 +33,7 @@ listAccounts pool (Pagination limit offset) AccountFilter {..} = do
     params = (limit, offset, afSheetId, afCodeLike, afType)
     afCodeLike = fmap (\txt -> T.concat ["%", T.strip txt, "%"]) afCode
     stmt =
-      unpreparable
+      Statement
         "SELECT id, sheet_id, code, name, atype, parent_id, currency_id, balance FROM accounting.account WHERE ($3 IS NULL OR sheet_id = $3) AND ($4 IS NULL OR code ILIKE $4) AND ($5 IS NULL OR atype = $5) ORDER BY id LIMIT $1 OFFSET $2"
         ( E.param (E.nonNullable E.int4)
             <> E.param (E.nonNullable E.int4)
@@ -71,7 +71,7 @@ createAccount pool AccAccount {..} = do
         accAccountCurrency
       )
     stmt =
-      unpreparable
+      Statement
         "INSERT INTO accounting.account (sheet_id, code, name, atype, parent_id, currency_id) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id"
         ( E.param (E.nonNullable E.int8)
             <> E.param (E.nonNullable E.text)
@@ -90,7 +90,7 @@ getAccount pool aid = do
     Left _ -> pure Nothing
   where
     stmt =
-      unpreparable
+      Statement
         "SELECT id, sheet_id, code, name, atype, parent_id, currency_id, balance FROM accounting.account WHERE id = $1"
         (E.param (E.nonNullable E.int8))
         (D.rowMaybe accountRowDecoder)
@@ -104,7 +104,7 @@ listEntries pool (Pagination limit offset) EntryFilter {..} = do
   where
     params = (efAccountId, efSince, efUntil, limit, offset)
     stmt =
-      unpreparable
+      Statement
         "SELECT id, dt, bill_id, debit_acc_id, credit_acc_id, amount, currency_id, memo FROM accounting.acct_entry WHERE ($1 IS NULL OR debit_acc_id = $1 OR credit_acc_id = $1) AND ($2 IS NULL OR dt >= $2) AND ($3 IS NULL OR dt <= $3) ORDER BY dt DESC LIMIT $4 OFFSET $5"
         ( E.param (E.nullable E.int8)
             <> E.param (E.nullable E.date)
@@ -143,7 +143,7 @@ createEntry pool AccEntry {..} = do
         accEntryMemo
       )
     stmt =
-      unpreparable
+      Statement
         "INSERT INTO accounting.acct_entry (dt, bill_id, debit_acc_id, credit_acc_id, amount, currency_id, memo) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id"
         ( E.param (E.nonNullable E.date)
             <> E.param (E.nullable E.int8)
@@ -163,7 +163,7 @@ trialBalance pool sheetId asOf = do
     Left _ -> pure []
   where
     stmt =
-      unpreparable
+      Statement
         "SELECT account_id, account_code, account_name, debit_turnover, credit_turnover, debit_end, credit_end, balance FROM accounting.trial_balance($1,$2)"
         ( E.param (E.nonNullable E.int8)
             <> E.param (E.nonNullable E.date)

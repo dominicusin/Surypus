@@ -35,6 +35,7 @@ END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
 -- FIFO write-off: select lots for goods issue
+-- Returns all lots needed to fulfill p_qty_needed, ordered by date ASC (oldest first)
 CREATE OR REPLACE FUNCTION fifo_select_lots(
     p_goods_id BIGINT,
     p_location_id BIGINT,
@@ -46,22 +47,28 @@ RETURNS TABLE (
     qty_used NUMERIC,
     cost NUMERIC
 ) AS $$
+DECLARE
+    v_remaining NUMERIC := p_qty_needed;
+    v_lot RECORD;
+    v_use NUMERIC;
 BEGIN
-    RETURN QUERY
-    SELECT 
-        l.lot_id,
-        l.lot_date,
-        CASE 
-            WHEN l.lot_qty >= p_qty_needed THEN p_qty_needed
-            ELSE l.lot_qty
-        END AS qty_used,
-        l.lot_cost
-    FROM lot l
-    WHERE l.lot_goods_id = p_goods_id
-      AND l.lot_location_id = p_location_id
-      AND l.lot_qty > 0
-    ORDER BY l.lot_date ASC
-    LIMIT 1;
+    FOR v_lot IN
+        SELECT l.id, l.lot_date, l.lot_qty, l.lot_cost
+        FROM lot l
+        WHERE l.lot_goods_id = p_goods_id
+          AND l.lot_location_id = p_location_id
+          AND l.lot_qty > 0
+        ORDER BY l.lot_date ASC, l.id ASC
+    LOOP
+        EXIT WHEN v_remaining <= 0;
+        v_use := LEAST(v_lot.lot_qty, v_remaining);
+        lot_id := v_lot.id;
+        lot_date := v_lot.lot_date;
+        qty_used := v_use;
+        cost := v_lot.lot_cost;
+        v_remaining := v_remaining - v_use;
+        RETURN NEXT;
+    END LOOP;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -549,6 +556,62 @@ $$ LANGUAGE plpgsql;
 -- DOCUMENT PROCEDURES
 -- ============================================================================
 
+-- FIFO write-off: consume lots for goods issue
+CREATE OR REPLACE FUNCTION fifo_writeoff(
+    p_goods_id BIGINT,
+    p_location_id BIGINT,
+    p_qty_needed NUMERIC,
+    p_bill_id BIGINT DEFAULT NULL
+)
+RETURNS TABLE (
+    lot_id BIGINT,
+    qty_used NUMERIC,
+    cost NUMERIC,
+    amount NUMERIC
+) AS $$
+DECLARE
+    v_remaining NUMERIC := p_qty_needed;
+    v_lot RECORD;
+    v_use NUMERIC;
+    v_cost NUMERIC;
+    v_total_amount NUMERIC := 0;
+BEGIN
+    IF p_qty_needed <= 0 THEN
+        RAISE EXCEPTION 'quantity must be positive';
+    END IF;
+
+    FOR v_lot IN
+        SELECT l.id, l.lot_date, l.lot_qty, l.lot_cost
+        FROM lot l
+        WHERE l.lot_goods_id = p_goods_id
+          AND l.lot_location_id = p_location_id
+          AND l.lot_qty > 0
+        ORDER BY l.lot_date ASC, l.id ASC
+    LOOP
+        EXIT WHEN v_remaining <= 0;
+        
+        v_use := LEAST(v_lot.lot_qty, v_remaining);
+        v_cost := v_lot.lot_cost;
+        
+        lot_id := v_lot.id;
+        qty_used := v_use;
+        cost := v_cost;
+        amount := v_use * v_cost;
+        v_total_amount := v_total_amount + (v_use * v_cost);
+        
+        v_remaining := v_remaining - v_use;
+        
+        UPDATE lot SET lot_qty = lot_qty - v_use WHERE id = v_lot.id;
+        
+        RETURN NEXT;
+    END LOOP;
+    
+    IF v_remaining > 0 THEN
+        RAISE EXCEPTION 'insufficient stock: needed %, available %', p_qty_needed, p_qty_needed - v_remaining;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Create bill with lines
 CREATE OR REPLACE FUNCTION create_bill(
     p_code TEXT,
@@ -603,6 +666,69 @@ BEGIN
     WHERE v_vat_amount > 0;
 
     UPDATE bill SET status = 1 WHERE id = p_bill_id;
+
+    RETURN TRUE;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Cancel bill (reverse accounting entries and restore stock)
+CREATE OR REPLACE FUNCTION cancel_bill(p_bill_id BIGINT)
+RETURNS BOOLEAN AS $$
+DECLARE
+    v_status INT;
+    v_bill_type INT;
+    v_line RECORD;
+BEGIN
+    SELECT status, bill_type
+    INTO v_status, v_bill_type
+    FROM bill
+    WHERE id = p_bill_id;
+
+    IF v_status IS NULL THEN
+        RETURN FALSE;
+    END IF;
+
+    -- Can only cancel posted bills (status = 1)
+    IF v_status != 1 THEN
+        RETURN FALSE;
+    END IF;
+
+    -- Reverse accounting entries (negate amounts)
+    INSERT INTO acc_turn (bill_id, dbt_acc_id, crd_acc_id, amount, date)
+    SELECT p_bill_id, dbt_acc_id, crd_acc_id, -amount, NOW()::DATE
+    FROM acc_turn
+    WHERE bill_id = p_bill_id;
+
+    -- Restore stock for goods receipt bills (bill_type = 1)
+    IF v_bill_type = 1 THEN
+        FOR v_line IN
+            SELECT goods_id, location_id, qtty
+            FROM bill_line
+            WHERE bill_id = p_bill_id
+        LOOP
+            UPDATE stock
+            SET qtty = qtty - v_line.qtty
+            WHERE goods_id = v_line.goods_id
+              AND location_id = v_line.location_id;
+        END LOOP;
+    END IF;
+
+    -- Reverse stock for goods issue bills (bill_type = 2)
+    IF v_bill_type = 2 THEN
+        FOR v_line IN
+            SELECT goods_id, location_id, qtty
+            FROM bill_line
+            WHERE bill_id = p_bill_id
+        LOOP
+            UPDATE stock
+            SET qtty = qtty + v_line.qtty
+            WHERE goods_id = v_line.goods_id
+              AND location_id = v_line.location_id;
+        END LOOP;
+    END IF;
+
+    -- Set status to cancelled (2)
+    UPDATE bill SET status = 2 WHERE id = p_bill_id;
 
     RETURN TRUE;
 END;

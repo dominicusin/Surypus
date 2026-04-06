@@ -2,25 +2,25 @@
 -- Модуль содержит инварианты и проверенные операции для расчёта цен
 module Core.Price.Operations
   ( PriceOpResult (..),
-    validatePrice,
+    validatePriceOp,
     validateQuotation,
-    calculateDiscount,
-    calculateFinalPrice,
-    calculateLineTotal,
-    calculateBillTotal,
+    calcDiscount,
+    calcFinalPriceOp,
+    calcLineTotal,
+    calcBillTotal,
     verifyPricePositive,
     verifyDiscountBounded,
     verifyPriceMatch,
     checkNegativeStock,
-    convertCurrency,
+    convertCurrencyOp,
     getActivePriceList,
     calcPriceFromList,
-    calculateTotalDiscount,
+    calcTotalDiscount,
   )
 where
 
 import Core.Inventory.Types.Stock (Stock (..))
-import Core.Price hiding (convertCurrency, validatePrice)
+import Core.Price hiding (convertCurrency, validatePrice, calcFinalPrice)
 import Data.Int (Int64)
 import Data.Maybe (fromMaybe)
 import Data.Time (Day)
@@ -40,8 +40,8 @@ data PriceOpResult
 
 -- | Validate price
 -- Инвариант: цена >= 0
-validatePrice :: Double -> PriceOpResult
-validatePrice price
+validatePriceOp :: Double -> PriceOpResult
+validatePriceOp price
   | price < 0 = PriceOpInvalidPrice
   | price > 1e10 = PriceOpInvalidPrice
   | otherwise = PriceOpSuccess
@@ -58,18 +58,16 @@ validateQuotation q
 -- DISCOUNT CALCULATIONS
 -- ============================================================================
 
--- | Calculate discount amount
--- Инвариант: discount >= 0, discount <= original price
-calculateDiscount :: Double -> Double -> Double
-calculateDiscount price discountPercent
+calcDiscount :: Double -> Double -> Double
+calcDiscount price discountPercent
   | discountPercent < 0 = 0
   | discountPercent > 100 = price
   | otherwise = price * discountPercent / 100
 
 -- | Calculate final price after discount
 -- Инвариант: final >= 0
-calculateFinalPrice :: Double -> Double -> Double
-calculateFinalPrice price discountPercent
+calcFinalPriceOp :: Double -> Double -> Double
+calcFinalPriceOp price discountPercent
   | price < 0 = 0
   | discountPercent < 0 = price
   | discountPercent > 100 = 0
@@ -89,10 +87,10 @@ verifyDiscountBounded discount
 
 -- | Calculate line total (price * quantity - discount)
 -- Инвариант: result >= 0
-calculateLineTotal :: Double -> Double -> Double -> Double
-calculateLineTotal price quantity discountPercent
+calcLineTotal :: Double -> Double -> Double -> Double
+calcLineTotal price quantity discountPercent
   | price < 0 || quantity < 0 = 0
-  | otherwise = calculateFinalPrice (price * quantity) discountPercent
+  | otherwise = calcFinalPriceOp (price * quantity) discountPercent
 
 -- ============================================================================
 -- BILL TOTAL CALCULATIONS
@@ -100,13 +98,13 @@ calculateLineTotal price quantity discountPercent
 
 -- | Calculate bill total from lines
 -- Инвариант: total >= 0
-calculateBillTotal :: [(Double, Double, Double)] -> Double
-calculateBillTotal billLines = sum (fmap (\(p, q, d) -> calculateLineTotal p q d) billLines)
+calcBillTotal :: [(Double, Double, Double)] -> Double
+calcBillTotal billLines = sum (fmap (\(p, q, d) -> calcLineTotal p q d) billLines)
 
 -- | Calculate total discount for bill
 -- Инвариант: total >= 0
-calculateTotalDiscount :: [(Double, Double, Double)] -> Double
-calculateTotalDiscount billLines = sum (fmap (\(p, q, d) -> calculateDiscount (p * q) d) billLines)
+calcTotalDiscount :: [(Double, Double, Double)] -> Double
+calcTotalDiscount billLines = sum (fmap (\(p, q, d) -> calcDiscount (p * q) d) billLines)
 
 -- ============================================================================
 -- PRICE VERIFICATION
@@ -132,8 +130,8 @@ verifyPriceMatch expected actual
 
 -- | Convert price to different currency
 -- Инвариант: result >= 0
-convertCurrency :: Double -> Double -> Double
-convertCurrency price rate
+convertCurrencyOp :: Double -> Double -> Double
+convertCurrencyOp price rate
   | price < 0 || rate < 0 = 0
   | otherwise = price * rate
 

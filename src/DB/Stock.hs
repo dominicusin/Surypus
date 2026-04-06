@@ -17,7 +17,7 @@ import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
-import Hasql.Statement (unpreparable)
+import Hasql.Statement (Statement)
 
 stockRowDecoder :: D.Row Stock
 stockRowDecoder =
@@ -35,12 +35,12 @@ stockRowDecoder =
 listStock :: Pool -> Pagination -> StockFilter -> IO [Stock]
 listStock pool (Pagination limit' offset') StockFilter {..} = do
   let stmt =
-        unpreparable
+        Statement
           "SELECT s.id, s.goods_id, s.location_id, s.quantity, s.reserved_qty, s.cost, s.price, l.serial FROM stock s LEFT JOIN lot l ON l.id = s.lot_id WHERE ($3 IS NULL OR s.goods_id = $3) AND ($4 IS NULL OR s.location_id = $4) ORDER BY s.id LIMIT $1 OFFSET $2"
-          ( (E.param (E.nonNullable E.int4))
-              <> (E.param (E.nonNullable E.int4))
-              <> (E.param (E.nullable E.int8))
-              <> (E.param (E.nullable E.int8))
+          ( E.param (E.nonNullable E.int4)
+              <> E.param (E.nonNullable E.int4)
+              <> E.param (E.nullable E.int8)
+              <> E.param (E.nullable E.int8)
           )
           (D.rowList stockRowDecoder)
   result <- use pool $ Session.statement (fromIntegral limit' :: Int32, fromIntegral offset' :: Int32, sfGoodsId, sfLocationId) stmt
@@ -52,10 +52,10 @@ listStock pool (Pagination limit' offset') StockFilter {..} = do
 getStock :: Pool -> Int64 -> Int64 -> IO (Maybe Stock)
 getStock pool goodsId locId = do
   let stmt =
-        unpreparable
+        Statement
           "SELECT s.id, s.goods_id, s.location_id, s.quantity, s.reserved_qty, s.cost, s.price, l.serial FROM stock s LEFT JOIN lot l ON l.id = s.lot_id WHERE s.goods_id = $1 AND s.location_id = $2"
-          ( (E.param (E.nonNullable E.int8))
-              <> (E.param (E.nonNullable E.int8))
+          ( E.param (E.nonNullable E.int8)
+              <> E.param (E.nonNullable E.int8)
           )
           (D.rowMaybe stockRowDecoder)
   result <- use pool $ Session.statement (goodsId, locId) stmt
@@ -69,11 +69,11 @@ reserveStock pool goodsId locId qty
   | qty <= 0 = pure Nothing
   | otherwise = do
       let stmt =
-            unpreparable
+            Statement
               "UPDATE stock SET reserved_qty = reserved_qty + $3 WHERE goods_id = $1 AND location_id = $2 AND quantity >= reserved_qty + $3 RETURNING id, goods_id, location_id, quantity, reserved_qty, cost, price, NULL"
-              ( (E.param (E.nonNullable E.int8))
-                  <> (E.param (E.nonNullable E.int8))
-                  <> (E.param (E.nonNullable E.float8))
+              ( E.param (E.nonNullable E.int8)
+                  <> E.param (E.nonNullable E.int8)
+                  <> E.param (E.nonNullable E.float8)
               )
               ( D.rowMaybe $
                   Stock

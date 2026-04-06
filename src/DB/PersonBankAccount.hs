@@ -16,7 +16,7 @@ import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
-import Hasql.Statement (unpreparable)
+import Hasql.Statement (Statement)
 
 personBankAccountRowDecoder :: D.Row PersonBankAccount
 personBankAccountRowDecoder =
@@ -37,7 +37,7 @@ listPersonBankAccounts pool personId = do
     Left _ -> pure []
   where
     stmt =
-      unpreparable
+      Statement
         "SELECT id, person_id, bank_name, bank_bik, account, corr_account, is_default FROM personbankaccount WHERE person_id = $1 ORDER BY id"
         (E.param (E.nonNullable E.int8))
         (D.rowList personBankAccountRowDecoder)
@@ -58,7 +58,7 @@ createPersonBankAccount pool personId PersonBankAccount {..} = do
         pbaIsDefault
       )
     stmt =
-      unpreparable
+      Statement
         "INSERT INTO personbankaccount (person_id, bank_name, bank_bik, account, corr_account, is_default) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id"
         ( ((\(a, _, _, _, _, _) -> a) >$< E.param (E.nonNullable E.int8))
             <> ((\(_, b, _, _, _, _) -> b) >$< E.param (E.nonNullable E.text))
@@ -88,7 +88,7 @@ updatePersonBankAccount pool personId ba@PersonBankAccount {..} = case pbaId of
           pbaIsDefault
         )
       stmt =
-        unpreparable
+        Statement
           "UPDATE personbankaccount SET person_id = $2, bank_name = $3, bank_bik = $4, account = $5, corr_account = $6, is_default = $7 WHERE id = $1"
           ( ((\(a, _, _, _, _, _, _) -> a) >$< E.param (E.nonNullable E.int8))
               <> ((\(_, b, _, _, _, _, _) -> b) >$< E.param (E.nonNullable E.int8))
@@ -108,7 +108,7 @@ deletePersonBankAccount pool bid = do
     Left _ -> pure False
   where
     stmt =
-      unpreparable
+      Statement
         "DELETE FROM personbankaccount WHERE id = $1"
         (E.param (E.nonNullable E.int8))
         D.noResult

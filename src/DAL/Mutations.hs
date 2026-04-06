@@ -9,12 +9,17 @@ import Data.Functor.Contravariant ((>$<))
 import Data.Int (Int16, Int64)
 import Data.Text (Text)
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
 import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
-import Hasql.Statement (Statement, unpreparable)
+import Hasql.Statement (Statement (..))
 import Surypus.Types (Decimal, fromDecimal)
+
+-- | Helper to create non-prepared statements (old hasql API compatibility)
+unpreparable :: T.Text -> E.Params params -> D.Result result -> Statement params result
+unpreparable sql encoder decoder = Statement (TE.encodeUtf8 sql) encoder decoder False
 
 mutationIdDecoder :: D.Result Int64
 mutationIdDecoder = D.singleRow (D.column (D.nonNullable D.int8))
@@ -38,9 +43,9 @@ runMutationReturningId pool sql encoder payload successMessage = do
 runMutationReturningIds :: Pool -> Text -> E.Params params -> [params] -> Text -> IO (QueryResult [Int64])
 runMutationReturningIds pool sql encoder payloads successMessage = do
   let stmt = unpreparable sql encoder mutationIdDecoder
-  res <- use pool $ Session.transaction Session.ReadCommitted Session.Write $ do
-    mapM (Session.statement stmt) payloads
-  case res of
+  results <- forM payloads $ \payload -> do
+    use pool $ Session.statement payload stmt
+  case sequence results of
     Right ids -> pure $ QuerySuccess ids
     Left err -> pure $ QueryError (T.pack (show err))
 
@@ -369,14 +374,64 @@ deletePayment pool paymentId =
     paymentId
     "Payment deleted"
 
-createUser :: Pool -> User -> IO (QueryResult MutationResult)
-createUser _ _ = pure $ QuerySuccess (MutationResult True (Just 0) "User stub - not implemented")
+userInputEncoder :: E.Params UserInput
+userInputEncoder =
+  (uiLogin >$< E.param (E.nonNullable E.text))
+    <> (uiPasswordHash >$< E.param (E.nonNullable E.text))
+    <> (uiPersonId >$< E.param (E.nullable E.int8))
+    <> ((toInt16 . uiStatus) >$< E.param (E.nonNullable E.int2))
 
-updateUser :: Pool -> User -> IO (QueryResult MutationResult)
-updateUser _ _ = pure $ QuerySuccess (MutationResult True Nothing "User stub - not implemented")
+updateUserEncoder :: E.Params (Int64, UserInput)
+updateUserEncoder =
+  (fst >$< E.param (E.nonNullable E.int8))
+    <> ((uiLogin . snd) >$< E.param (E.nonNullable E.text))
+    <> ((uiPasswordHash . snd) >$< E.param (E.nonNullable E.text))
+    <> ((uiPersonId . snd) >$< E.param (E.nullable E.int8))
+    <> ((toInt16 . uiStatus . snd) >$< E.param (E.nonNullable E.int2))
+
+createUser :: Pool -> UserInput -> IO (QueryResult MutationResult)
+createUser pool input =
+  runMutationReturningId
+    pool
+    "INSERT INTO usr (login, password_hash, person_id, status) VALUES ($1, $2, $3, $4) RETURNING id"
+    userInputEncoder
+    input
+    "User created successfully"
+
+updateUser :: Pool -> Int64 -> UserInput -> IO (QueryResult MutationResult)
+updateUser pool userId input =
+  runMutationReturningId
+    pool
+    "UPDATE usr SET login = $2, password_hash = $3, person_id = $4, status = $5 WHERE id = $1 RETURNING id"
+    updateUserEncoder
+    (userId, input)
+    "User updated successfully"
 
 authenticateUser :: Pool -> Text -> Text -> IO (QueryResult (Maybe User))
-authenticateUser _ _ _ = pure $ QuerySuccess Nothing
+authenticateUser pool login password = do
+  let stmt =
+        unpreparable
+          "SELECT id, login, person_id, NULL, email, role_id, status FROM usr WHERE login = $1 AND password_hash = $2 AND status = 0"
+          ( (fst >$< E.param (E.nonNullable E.text))
+              <> (snd >$< E.param (E.nonNullable E.text))
+          )
+          authenticateUserRowDecoder
+  res <- use pool $ Session.statement (login, password) stmt
+  case res of
+    Right mbUser -> pure $ QuerySuccess mbUser
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+authenticateUserRowDecoder :: D.Result (Maybe User)
+authenticateUserRowDecoder =
+  D.rowMaybe $
+    User
+      <$> D.column (D.nonNullable D.int8)
+      <*> D.column (D.nonNullable D.text)
+      <*> D.column (D.nullable D.int8)
+      <*> D.column (D.nullable D.text)
+      <*> D.column (D.nullable D.text)
+      <*> D.column (D.nullable D.int8)
+      <*> (fromIntegral <$> D.column (D.nonNullable D.int2))
 
 priceInputEncoder :: E.Params PriceInput
 priceInputEncoder =

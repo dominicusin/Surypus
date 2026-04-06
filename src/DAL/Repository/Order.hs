@@ -25,7 +25,7 @@ import qualified Data.Text as T
 import Hasql.Pool (Pool)
 import qualified Surypus.Validation as Validation
 
-data OrderRepository = OrderRepository
+newtype OrderRepository = OrderRepository
   { orPool :: Pool
   }
 
@@ -131,4 +131,4 @@ mkOrderRepository :: Pool -> OrderRepository
 mkOrderRepository = OrderRepository
 
 runOrderRepository :: OrderRepository -> RepositoryT IO a -> IO (Either RepositoryError a)
-runOrderRepository repo action = runRepository (defaultRepositoryContext (orPool repo)) action
+runOrderRepository repo = runRepository (defaultRepositoryContext (orPool repo))

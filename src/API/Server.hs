@@ -47,9 +47,9 @@ listPersonsHandler env = do
   case result of
     Left err -> throwError $ err500 (T.pack err)
     Right page ->
-      return
+      pure
         PageResponse
-          { pageItems = map personToResponse (pageItems page),
+          { pageItems = fmap personToResponse (pageItems page),
             pageTotal = pageTotal page,
             pageLimit = pageLimit page,
             pageOffset = pageOffset page
@@ -66,7 +66,7 @@ createPersonHandler env input = do
       result <- liftIO $ runPersonRepository repo (createPersonRepo validatedInput)
       case result of
         Left err -> throwError $ err500 (T.pack err)
-        Right person -> return $ personToResponse person
+        Right person -> pure $ personToResponse person
 
 getPersonHandler :: Env -> Int -> AppM PersonResponse
 getPersonHandler env pid = do
@@ -74,7 +74,7 @@ getPersonHandler env pid = do
   result <- liftIO $ runPersonRepository repo (find pid)
   case result of
     Left err -> throwError $ err500 (T.pack err)
-    Right (Just person) -> return $ personToResponse person
+    Right (Just person) -> pure $ personToResponse person
     Right Nothing -> throwError $ err404 "Person not found"
 
 updatePersonHandler :: Env -> Int -> PersonInput -> AppM PersonResponse
@@ -87,7 +87,7 @@ updatePersonHandler env pid input = do
       case result of
         Left (NotFound _) -> throwError $ err404 "Person not found"
         Left err -> throwError $ err500 (T.pack (show err))
-        Right person -> return $ personToResponse person
+        Right person -> pure $ personToResponse person
 
 deletePersonHandler :: Env -> Int -> AppM ()
 deletePersonHandler env pid = do
@@ -96,7 +96,7 @@ deletePersonHandler env pid = do
   case result of
     Left (NotFound _) -> throwError $ err404 "Person not found"
     Left err -> throwError $ err500 (T.pack (show err))
-    Right () -> return ()
+    Right () -> pure ()
 
 searchPersonsHandler :: Env -> Maybe Text -> AppM (PageResponse PersonResponse)
 searchPersonsHandler env mQuery = do
@@ -106,9 +106,9 @@ searchPersonsHandler env mQuery = do
   case result of
     Left err -> throwError $ err500 (T.pack err)
     Right persons ->
-      return
+      pure
         PageResponse
-          { pageItems = map personToResponse persons,
+          { pageItems = fmap personToResponse persons,
             pageTotal = length persons,
             pageLimit = 50,
             pageOffset = 0
@@ -124,7 +124,7 @@ loginHandler env req = do
       let payload = JWTPayload 1 username "admin"
           config = envJWTConfig env
       tokenResult <- liftIO $ generateTokenPair config payload
-      return
+      pure
         LoginResponse
           { lAccessToken = tpAccessToken tokenResult,
             lRefreshToken = tpRefreshToken tokenResult,
@@ -140,17 +140,15 @@ refreshHandler _ _ = do
   throwError $ err401 "Not implemented"
 
 logoutHandler :: Env -> Maybe Text -> AppM ()
-logoutHandler _ _ = return ()
+logoutHandler _ _ = pure ()
 
 healthHandler :: Env -> AppM Text
-healthHandler _ = return "OK"
+healthHandler _ = pure "OK"
 
 healthDbHandler :: Env -> AppM Text
 healthDbHandler env = do
   result <- liftIO $ healthCheckDB (envPool env)
-  case result of
-    True -> return "OK"
-    False -> throwError $ err503 "Database not ready"
+  (if result then pure "OK" else throwError $ err503 "Database not ready")
 
 err400 :: Text -> ServantErr
 err400 msg = err500 msg {errHTTPCode = 400, errReasonPhrase = "Bad Request"}
@@ -171,7 +169,7 @@ err503 :: Text -> ServantErr
 err503 msg = err500 msg {errHTTPCode = 503, errReasonPhrase = "Service Unavailable"}
 
 healthCheckDB :: Pool -> IO Bool
-healthCheckDB _ = return True
+healthCheckDB _ = pure True
 
 personToResponse :: Person -> PersonResponse
 personToResponse p =
@@ -204,7 +202,7 @@ server env =
         healthHandler env
           :<|> healthDbHandler env
       apiServer = authServer :<|> personsServer :<|> healthServer
-      swaggerHandler = return "Swagger JSON placeholder"
+      swaggerHandler = pure "Swagger JSON placeholder"
    in apiServer :<|> swaggerHandler
 
 app :: Pool -> JWTConfig -> Application

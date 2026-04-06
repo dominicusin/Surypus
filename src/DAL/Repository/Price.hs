@@ -23,7 +23,7 @@ import qualified Data.Text as T
 import Hasql.Pool (Pool)
 import qualified Surypus.Validation as Validation
 
-data PriceRepository = PriceRepository
+newtype PriceRepository = PriceRepository
   { prcPool :: Pool
   }
 

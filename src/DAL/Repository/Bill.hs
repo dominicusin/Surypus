@@ -203,4 +203,4 @@ mkBillRepository :: Pool -> BillRepository
 mkBillRepository = BillRepository
 
 runBillRepository :: BillRepository -> RepositoryT IO a -> IO (Either RepositoryError a)
-runBillRepository repo action = runRepository (defaultRepositoryContext (brPool repo)) action
+runBillRepository repo = runRepository (defaultRepositoryContext (brPool repo))

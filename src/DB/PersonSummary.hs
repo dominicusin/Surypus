@@ -12,7 +12,7 @@ import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
-import Hasql.Statement (unpreparable)
+import Hasql.Statement (Statement)
 
 personSummaryRowDecoder :: D.Row PersonSummary
 personSummaryRowDecoder =
@@ -31,7 +31,7 @@ listPersonSummary pool = do
     Left _ -> pure []
   where
     stmt =
-      unpreparable
+      Statement
         "SELECT status, category, total_persons, total_credit_limit, avg_discount FROM get_person_summary()"
         E.noParams
         (D.rowList personSummaryRowDecoder)

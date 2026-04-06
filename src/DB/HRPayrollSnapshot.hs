@@ -15,7 +15,7 @@ import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
-import Hasql.Statement (unpreparable)
+import Hasql.Statement (Statement)
 
 registerPayrollSnapshot :: Pool -> Day -> Day -> IO Int64
 registerPayrollSnapshot _pool _start _end = do
@@ -30,7 +30,7 @@ listPayrollSnapshots pool = do
     Left _ -> pure []
   where
     stmt =
-      unpreparable
+      Statement
         "SELECT id, period_start, period_end, created_at, summary::text FROM v_hr_payroll_snapshot"
         E.noParams
         (D.rowList payrollSnapshotRow)

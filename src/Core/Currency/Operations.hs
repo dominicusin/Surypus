@@ -6,15 +6,15 @@ module Core.Currency.Operations
     validateExchangeRate,
     convertCurrency,
     convertCurrencyWithRate,
-    calculateCrossRate,
+    calcCrossRate,
     roundToPrecision,
     formatCurrencyAmount,
     formatAmountSimple,
     getBaseCurrency,
     isActiveCurrency,
-    calculateTotalInBaseCurrency,
+    calcTotalInBaseCurrency,
     findBestRate,
-    calculateAverageRate,
+    calcAverageRate,
   )
 where
 
@@ -72,8 +72,8 @@ convertCurrencyWithRate amount rate
 
 -- | Calculate cross rate between two currencies via base
 -- Инвариант: cross rate > 0
-calculateCrossRate :: Currency -> Currency -> Double
-calculateCrossRate from to
+calcCrossRate :: Currency -> Currency -> Double
+calcCrossRate from to
   | curRate to == 0 = 0
   | otherwise = curRate from / curRate to
 
@@ -126,8 +126,8 @@ isActiveCurrency c = not (cfInactive (curFlags c))
 
 -- | Calculate total amount in base currency
 -- Инвариант: result >= 0
-calculateTotalInBaseCurrency :: [(Currency, Double)] -> Maybe Double
-calculateTotalInBaseCurrency items = do
+calcTotalInBaseCurrency :: [(Currency, Double)] -> Maybe Double
+calcTotalInBaseCurrency items = do
   base <- getBaseCurrency (fmap fst items)
   let convertAndSum = sum $ fmap (\(cur, amt) -> convertCurrency cur base amt) items
   pure (roundToPrecision (curPrecision base) convertAndSum)
@@ -146,9 +146,9 @@ findBestRate rates = Just $ maximumByDate rates
 
 -- | Calculate average exchange rate for period
 -- Инвариант: result > 0
-calculateAverageRate :: [ExchangeRate] -> Double
-calculateAverageRate [] = 0
-calculateAverageRate rates = sum (fmap erRate rates) / fromIntegral (length rates)
+calcAverageRate :: [ExchangeRate] -> Double
+calcAverageRate [] = 0
+calcAverageRate rates = sum (fmap erRate rates) / fromIntegral (length rates)
 
 -- ============================================================================
 -- HELPERS

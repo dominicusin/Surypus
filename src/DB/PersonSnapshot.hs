@@ -15,7 +15,7 @@ import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
-import Hasql.Statement (unpreparable)
+import Hasql.Statement (Statement)
 
 snapshotRow :: D.Row PersonSnapshot
 snapshotRow =
@@ -37,7 +37,7 @@ listPersonSummarySnapshots pool = do
     Left _ -> pure []
   where
     stmt =
-      unpreparable
+      Statement
         "SELECT id, run_id, run_at, status, category, total_persons, total_credit_limit, avg_discount FROM person_summary_snapshot ORDER BY run_at DESC LIMIT 20"
         E.noParams
         (D.rowList snapshotRow)
@@ -50,7 +50,7 @@ runPersonSummarySnapshot pool = do
     Left _ -> pure Nothing
   where
     stmt =
-      unpreparable
+      Statement
         "SELECT run_id, run_at FROM run_person_summary_snapshot()"
         E.noParams
         (D.rowMaybe $ (,) <$> D.column (D.nonNullable D.uuid) <*> D.column (D.nonNullable D.timestamptz))

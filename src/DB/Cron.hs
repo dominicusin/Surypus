@@ -13,7 +13,7 @@ import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
-import Hasql.Statement (unpreparable)
+import Hasql.Statement (Statement)
 
 data CronTask = CronTask
   { ctId :: Int64,
@@ -39,7 +39,7 @@ fetchDueCronTasks pool = do
     Left _ -> pure []
   where
     stmt =
-      unpreparable
+      Statement
         "SELECT id, name, command, next_run FROM cron_task WHERE next_run <= now() AND enabled = true ORDER BY next_run"
         E.noParams
         (D.rowList cronTaskRow)
@@ -52,7 +52,7 @@ updateCronTaskNextRun pool taskId nextRun = do
     Left _ -> pure False
   where
     stmt =
-      unpreparable
+      Statement
         "UPDATE cron_task SET last_run = now(), next_run = $2 WHERE id = $1"
         (E.param (E.nonNullable E.int8) <> E.param (E.nonNullable E.timestamptz))
         D.noResult
@@ -65,7 +65,7 @@ recordCronLog pool taskId status output = do
     Left _ -> pure 0
   where
     stmt =
-      unpreparable
+      Statement
         "INSERT INTO cron_log (task_id, status, output, started_at) VALUES ($1, $2, $3, now()) RETURNING id"
         (E.param (E.nonNullable E.int8) <> E.param (E.nonNullable E.text) <> E.param (E.nonNullable E.text))
         (D.singleRow $ D.column (D.nonNullable D.int8))

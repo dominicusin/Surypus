@@ -16,7 +16,7 @@ module Core.Document.Operations
     documentRegisterTypeWarnsExpiry,
     documentRegisterTypeHasFlag,
     generateDocumentNumber,
-    calculateDocumentTotal,
+    calcDocumentTotal,
     validateDocumentAmounts,
     checkDocumentDates,
     isDocumentExpired,
@@ -126,8 +126,8 @@ generateDocumentNumber drt seriesCounter counter =
 
 -- | Calculate document total from lines
 -- Инвариант: результат >= 0
-calculateDocumentTotal :: [(Double, Double, Double)] -> Double
-calculateDocumentTotal docLines' = sum $ fmap (\(price, qty, discount) -> (price * qty) - discount) docLines'
+calcDocumentTotal :: [(Double, Double, Double)] -> Double
+calcDocumentTotal docLines' = sum $ fmap (\(price, qty, discount) -> (price * qty) - discount) docLines'
 
 -- | Validate document amounts
 -- Инвариант: сумма >= 0, НДС >= 0 и <= сумма, скидка >= 0 и <= сумма

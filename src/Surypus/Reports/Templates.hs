@@ -1,8 +1,7 @@
-{-# LANGUAGE DeriveGeneric #-}
+
 -- ============================================================================
 -- REPORT TEMPLATE LOADER
 -- ============================================================================
-{-# LANGUAGE OverloadedStrings #-}
 
 module Surypus.Reports.Templates
   ( ReportTemplate (..),

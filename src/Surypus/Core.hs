@@ -20,7 +20,6 @@ import Data.Set (Set)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Time (Day, UTCTime)
-import Data.UUID (UUID)
 import GHC.Generics (Generic)
 
 -- ============================================================================
@@ -555,14 +554,14 @@ validatePhone phone =
 
 -- | Create new person
 mkPerson :: Int64 -> Text -> PersonKind -> Text -> Person
-mkPerson pId pName pKind pInn =
+mkPerson pid pname pkind pinn =
   Person
-    { pId = id,
+    { pId = pid,
       pCode = Nothing,
-      pName = name,
-      pINN = Just inn,
+      pName = pname,
+      pINN = Just pinn,
       pKPP = Nothing,
-      pPersonKind = kind,
+      pPersonKind = pkind,
       pStatus = StatusActive,
       pPhone = Nothing,
       pEmail = Nothing,

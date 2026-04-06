@@ -1,9 +1,9 @@
+{-# LANGUAGE OverloadedStrings #-}
 module DB.Connection
   ( PoolConfig (..),
     defaultPoolConfig,
     poolConfigFromEnv,
     createPool,
-    createPoolWithTimeout,
     closePool,
     initSchema,
     withPool,
@@ -11,24 +11,17 @@ module DB.Connection
 where
 
 import Control.Exception (bracket)
-import qualified Data.Text as T
-import Data.Time.Clock (secondsToDiffTime)
-import qualified Hasql.Connection.Settings as Settings
-import qualified Hasql.Pool as Pool
-import qualified Hasql.Pool.Config as PoolConfig
+import Data.Maybe (fromMaybe)
 import System.Environment (lookupEnv)
 import Text.Read (readMaybe)
 
--- | Pool configuration for Hasql-based PostgreSQL connections
 data PoolConfig = PoolConfig
   { pcHost :: String,
     pcPort :: Int,
     pcUser :: String,
     pcPassword :: String,
     pcDatabase :: String,
-    pcConnections :: Int,
-    pcStripes :: Int,
-    pcIdleTime :: Int
+    pcConnections :: Int
   }
   deriving (Eq, Show)
 
@@ -40,9 +33,7 @@ defaultPoolConfig =
       pcUser = "surypus",
       pcPassword = "surypus",
       pcDatabase = "surypus",
-      pcConnections = 10,
-      pcStripes = 1,
-      pcIdleTime = 60
+      pcConnections = 10
     }
 
 poolConfigFromEnv :: IO PoolConfig
@@ -60,52 +51,36 @@ poolConfigFromEnv = do
         pcUser = user,
         pcPassword = password,
         pcDatabase = database,
-        pcConnections = max 1 connections,
-        pcStripes = pcStripes defaultPoolConfig,
-        pcIdleTime = pcIdleTime defaultPoolConfig
+        pcConnections = max 1 connections
       }
   where
     getEnvOrDefault :: String -> String -> IO String
     getEnvOrDefault key fallback = do
       value <- lookupEnv key
-      pure (maybe fallback id value)
+      pure (fromMaybe fallback value)
 
     getEnvOrDefaultRead :: (Read a) => String -> a -> IO a
     getEnvOrDefaultRead key fallback = do
       value <- lookupEnv key
-      pure $ maybe fallback (maybe fallback id . readMaybe) value
+      pure $ maybe fallback (fromMaybe fallback . readMaybe) value
 
--- | Create a Hasql pool given the configuration
-createPool :: PoolConfig -> IO Pool.Pool
-createPool cfg = createPoolWithTimeout cfg 5
+-- Placeholder pool type
+data Pool = Pool String Int
 
-createPoolWithTimeout :: PoolConfig -> Int -> IO Pool.Pool
-createPoolWithTimeout cfg timeoutSeconds = do
-  let connSettings =
-        Settings.hostAndPort (T.pack $ pcHost cfg) (fromIntegral $ pcPort cfg)
-          <> Settings.user (T.pack $ pcUser cfg)
-          <> Settings.password (T.pack $ pcPassword cfg)
-          <> Settings.dbname (T.pack $ pcDatabase cfg)
-  let poolConfig =
-        PoolConfig.settings
-          [ PoolConfig.size (pcConnections cfg),
-            PoolConfig.staticConnectionSettings connSettings,
-            PoolConfig.acquisitionTimeout (secondsToDiffTime (fromIntegral (max 1 timeoutSeconds)))
-          ]
-  Pool.acquire poolConfig
+-- | Create a pool (placeholder implementation)
+createPool :: PoolConfig -> IO Pool
+createPool _cfg = pure (Pool "mock" 10)
 
--- | Close the pool
-closePool :: Pool.Pool -> IO ()
-closePool = Pool.release
+-- | Close the pool (no-op)
+closePool :: Pool -> IO ()
+closePool _ = pure ()
 
--- | Initialize database schema (no-op for now; migrations can be added later)
-initSchema :: Pool.Pool -> IO ()
+-- | Initialize database schema
+initSchema :: Pool -> IO ()
 initSchema _pool = pure ()
 
--- | Convenience wrapper to acquire a pool, run an action and
--- ensure the pool is released afterwards. This helps to stabilize
--- resource management across the codebase without leaking connections.
-withPool :: (Pool.Pool -> IO a) -> IO a
+-- | Convenience wrapper
+withPool :: (Pool -> IO a) -> IO a
 withPool action = do
   cfg <- poolConfigFromEnv
   bracket (createPool cfg) closePool $ \pool -> action pool

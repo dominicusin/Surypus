@@ -91,7 +91,7 @@ import Hasql.Pool (Pool)
 import Surypus.Types (fromDecimal)
 import qualified Surypus.Validation as Validation
 
-data CurrencyRepository = CurrencyRepository
+newtype CurrencyRepository = CurrencyRepository
   { curPool :: Pool
   }
 
@@ -190,4 +190,4 @@ mkCurrencyRepository :: Pool -> CurrencyRepository
 mkCurrencyRepository = CurrencyRepository
 
 runCurrencyRepository :: CurrencyRepository -> RepositoryT IO a -> IO (Either RepositoryError a)
-runCurrencyRepository repo action = runRepository (defaultRepositoryContext (curPool repo)) action
+runCurrencyRepository repo = runRepository (defaultRepositoryContext (curPool repo))

@@ -17,9 +17,7 @@ spec = do
                 pcUser = "surypus",
                 pcPassword = "surypus",
                 pcDatabase = "surypus",
-                pcConnections = 10,
-                pcStripes = 1,
-                pcIdleTime = 60
+                pcConnections = 10
               }
       pcHost cfg `shouldBe` "localhost"
       pcPort cfg `shouldBe` 5432
@@ -32,16 +30,14 @@ spec = do
                 pcUser = "admin",
                 pcPassword = "secret",
                 pcDatabase = "erp",
-                pcConnections = 20,
-                pcStripes = 2,
-                pcIdleTime = 30
+                pcConnections = 20
               }
       pcHost cfg `shouldBe` "192.168.1.1"
       pcDatabase cfg `shouldBe` "erp"
 
   describe "Connection String" $ do
     it "builds correct connection params" $ do
-      let cfg = PoolConfig "localhost" 5432 "user" "pass" "db" 10 1 60
+      let cfg = PoolConfig "localhost" 5432 "user" "pass" "db" 10
       pcHost cfg `shouldBe` "localhost"
 
   describe "Goods Repository" $ do

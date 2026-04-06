@@ -1,6 +1,5 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeOperators #-}
 
 module API.Types
@@ -113,7 +112,7 @@ data LoginResponse = LoginResponse
 
 instance ToJSON LoginResponse
 
-data RefreshRequest = RefreshRequest
+newtype RefreshRequest = RefreshRequest
   { rrRefreshToken :: Text
   }
   deriving (Show, Eq, Generic)

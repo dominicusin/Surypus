@@ -1,86 +1,182 @@
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 
--- | Audit Logging Module - Sensitive operations tracking
 module Surypus.Audit
-  ( logAuditEvent,
+  ( SurypusAuditAction (..),
+    SurypusAuditLogEntry (..),
     logCreate,
     logUpdate,
     logDelete,
-    logLogin,
-    logAccess,
+    logRead,
+    logAction,
+    getAuditRecords,
+    logAuditEvent,
   )
 where
 
-import DAL.Types
-import Data.Functor.Contravariant ((>$<))
+import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Trans.Except (runExceptT)
+import qualified DAL.Repository.AuditLog as AuditLogRepo
+import DAL.Types (AuditAction (..))
+import Data.Aeson (FromJSON, ToJSON)
 import Data.Int (Int64)
 import Data.Text (Text)
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
 import Data.Time (UTCTime, getCurrentTime)
+import GHC.Generics (Generic)
 import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
+import Hasql.Statement (Statement (..))
 
--- | Audit event parameters type
--- (user_id, action, entity, entity_id, details, timestamp, ip)
-type AuditParams = (Maybe Int64, Text, Text, Maybe Int64, Maybe Text, UTCTime, Maybe Text)
+data SurypusAuditAction
+  = SurypusAuditCreate
+  | SurypusAuditUpdate
+  | SurypusAuditDelete
+  | SurypusAuditRead
+  | SurypusAuditLogin
+  | SurypusAuditLogout
+  | SurypusAuditPost
+  | SurypusAuditCancel
+  deriving (Show, Eq, Generic)
 
--- | Encoder for audit parameters
-auditEncoder :: E.Params AuditParams
-auditEncoder =
-  ((\(a, _, _, _, _, _, _) -> a) >$< E.param (E.nullable E.int8))
-    <> ((\(_, b, _, _, _, _, _) -> b) >$< E.param (E.nonNullable E.text))
-    <> ((\(_, _, c, _, _, _, _) -> c) >$< E.param (E.nonNullable E.text))
-    <> ((\(_, _, _, d, _, _, _) -> d) >$< E.param (E.nullable E.int8))
-    <> ((\(_, _, _, _, e, _, _) -> e) >$< E.param (E.nullable E.text))
-    <> ((\(_, _, _, _, _, f, _) -> f) >$< E.param (E.nonNullable E.timestamptz))
-    <> ((\(_, _, _, _, _, _, g) -> g) >$< E.param (E.nullable E.text))
+instance ToJSON SurypusAuditAction
 
--- | Log an audit event to the database
-logAuditEvent :: Pool -> AuditAction -> Text -> Maybe Int64 -> Maybe Int64 -> Maybe Text -> Maybe Text -> IO (QueryResult Int64)
-logAuditEvent pool action entityName mUserId mEntityId mDetails mIP = do
+instance FromJSON SurypusAuditAction
+
+surypusAuditActionToText :: SurypusAuditAction -> Text
+surypusAuditActionToText SurypusAuditCreate = "CREATE"
+surypusAuditActionToText SurypusAuditUpdate = "UPDATE"
+surypusAuditActionToText SurypusAuditDelete = "DELETE"
+surypusAuditActionToText SurypusAuditRead = "READ"
+surypusAuditActionToText SurypusAuditLogin = "LOGIN"
+surypusAuditActionToText SurypusAuditLogout = "LOGOUT"
+surypusAuditActionToText SurypusAuditPost = "POST"
+surypusAuditActionToText SurypusAuditCancel = "CANCEL"
+
+data SurypusAuditLogEntry = SurypusAuditLogEntry
+  { salId :: Maybe Int64,
+    salUserId :: Int,
+    salUserName :: Text,
+    salAction :: SurypusAuditAction,
+    salEntityType :: Text,
+    salEntityId :: Int64,
+    salOldValue :: Maybe Text,
+    salNewValue :: Maybe Text,
+    salTimestamp :: UTCTime,
+    salIpAddress :: Maybe Text
+  }
+  deriving (Show, Eq, Generic)
+
+instance ToJSON SurypusAuditLogEntry
+
+instance FromJSON SurypusAuditLogEntry
+
+type SurypusAuditRecord = SurypusAuditLogEntry
+
+logCreate :: Int -> Text -> Text -> Int64 -> Text -> IO SurypusAuditLogEntry
+logCreate userId userName entityType entityId newValue = do
   now <- getCurrentTime
-  let sql :: Text
-      sql =
-        "INSERT INTO audit_log (user_id, action, entity, entity_id, details, timestamp, ip) \
-        \VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id"
-      stmt =
-        unpreparable
-          sql
-          auditEncoder
-          (D.singleRow (D.column (D.nonNullable D.int8)))
-      actionText :: Text
-      actionText = case action of
-        AuditCreate -> "CREATE"
-        AuditUpdate -> "UPDATE"
-        AuditDelete -> "DELETE"
-        AuditLogin -> "LOGIN"
-        AuditLogout -> "LOGOUT"
-        AuditAccess -> "ACCESS"
-      params :: AuditParams
-      params = (mUserId, actionText, entityName, mEntityId, mDetails, now, mIP)
-  result <- use pool $ Session.statement params stmt
-  case result of
-    Right rid -> pure $ QuerySuccess rid
-    Left err -> pure $ QueryError (T.pack $ show err)
+  pure $
+    SurypusAuditLogEntry
+      { salId = Nothing,
+        salUserId = userId,
+        salUserName = userName,
+        salAction = SurypusAuditCreate,
+        salEntityType = entityType,
+        salEntityId = entityId,
+        salOldValue = Nothing,
+        salNewValue = Just newValue,
+        salTimestamp = now,
+        salIpAddress = Nothing
+      }
 
--- | Log entity creation
-logCreate :: Pool -> Text -> Int64 -> Maybe Text -> IO (QueryResult Int64)
-logCreate pool entity eid details = logAuditEvent pool AuditCreate entity Nothing (Just eid) details Nothing
+logUpdate :: Int -> Text -> Text -> Int64 -> Text -> Text -> IO SurypusAuditLogEntry
+logUpdate userId userName entityType entityId oldValue newValue = do
+  now <- getCurrentTime
+  pure $
+    SurypusAuditLogEntry
+      { salId = Nothing,
+        salUserId = userId,
+        salUserName = userName,
+        salAction = SurypusAuditUpdate,
+        salEntityType = entityType,
+        salEntityId = entityId,
+        salOldValue = Just oldValue,
+        salNewValue = Just newValue,
+        salTimestamp = now,
+        salIpAddress = Nothing
+      }
 
--- | Log entity update
-logUpdate :: Pool -> Text -> Int64 -> Maybe Text -> IO (QueryResult Int64)
-logUpdate pool entity eid details = logAuditEvent pool AuditUpdate entity Nothing (Just eid) details Nothing
+logDelete :: Int -> Text -> Text -> Int64 -> Text -> IO SurypusAuditLogEntry
+logDelete userId userName entityType entityId oldValue = do
+  now <- getCurrentTime
+  pure $
+    SurypusAuditLogEntry
+      { salId = Nothing,
+        salUserId = userId,
+        salUserName = userName,
+        salAction = SurypusAuditDelete,
+        salEntityType = entityType,
+        salEntityId = entityId,
+        salOldValue = Just oldValue,
+        salNewValue = Nothing,
+        salTimestamp = now,
+        salIpAddress = Nothing
+      }
 
--- | Log entity deletion
-logDelete :: Pool -> Text -> Int64 -> Maybe Text -> IO (QueryResult Int64)
-logDelete pool entity eid details = logAuditEvent pool AuditDelete entity Nothing (Just eid) details Nothing
+logRead :: Int -> Text -> Text -> Int64 -> IO SurypusAuditLogEntry
+logRead userId userName entityType entityId = do
+  now <- getCurrentTime
+  pure $
+    SurypusAuditLogEntry
+      { salId = Nothing,
+        salUserId = userId,
+        salUserName = userName,
+        salAction = SurypusAuditRead,
+        salEntityType = entityType,
+        salEntityId = entityId,
+        salOldValue = Nothing,
+        salNewValue = Nothing,
+        salTimestamp = now,
+        salIpAddress = Nothing
+      }
 
--- | Log user login
-logLogin :: Pool -> Int64 -> Maybe Text -> IO (QueryResult Int64)
-logLogin pool userId details = logAuditEvent pool AuditLogin (T.pack "USER") (Just userId) Nothing details Nothing
+logAction :: Int -> Text -> SurypusAuditAction -> Text -> Int64 -> Maybe Text -> Maybe Text -> IO SurypusAuditLogEntry
+logAction userId userName action entityType entityId oldValue newValue = do
+  now <- getCurrentTime
+  pure $
+    SurypusAuditLogEntry
+      { salId = Nothing,
+        salUserId = userId,
+        salUserName = userName,
+        salAction = action,
+        salEntityType = entityType,
+        salEntityId = entityId,
+        salOldValue = oldValue,
+        salNewValue = newValue,
+        salTimestamp = now,
+        salIpAddress = Nothing
+      }
 
--- | Log access to entity
-logAccess :: Pool -> Text -> Maybe Int64 -> Maybe Text -> IO (QueryResult Int64)
-logAccess pool entity mUserId details = logAuditEvent pool AuditAccess entity mUserId Nothing details Nothing
+getAuditRecords :: [SurypusAuditLogEntry] -> [SurypusAuditLogEntry]
+getAuditRecords = id
+
+logAuditEvent :: Pool -> SurypusAuditAction -> Text -> Maybe Int64 -> Maybe Int64 -> Maybe Text -> Maybe Text -> IO (Either String Int64)
+logAuditEvent pool action entityName mUserId mEntityId mDetails mIP = do
+  let repo = AuditLogRepo.mkAuditLogRepository pool
+      mappedAction = case action of
+        SurypusAuditCreate -> AuditCreate
+        SurypusAuditUpdate -> AuditUpdate
+        SurypusAuditDelete -> AuditDelete
+        SurypusAuditRead -> AuditAccess
+        SurypusAuditLogin -> AuditLogin
+        SurypusAuditLogout -> AuditLogout
+        SurypusAuditPost -> AuditUpdate
+        SurypusAuditCancel -> AuditUpdate
+  result <- runExceptT $ AuditLogRepo.appendAuditLogRepo repo mUserId mappedAction entityName mEntityId mDetails mIP
+  pure $ case result of
+    Left err -> Left (show err)
+    Right auditId -> Right auditId

@@ -92,7 +92,7 @@ import qualified Data.Text as T
 import Hasql.Pool (Pool)
 import qualified Surypus.Validation as Validation
 
-data AccPlanRepository = AccPlanRepository
+newtype AccPlanRepository = AccPlanRepository
   { aprPool :: Pool
   }
 
@@ -193,4 +193,4 @@ mkAccPlanRepository :: Pool -> AccPlanRepository
 mkAccPlanRepository = AccPlanRepository
 
 runAccPlanRepository :: AccPlanRepository -> RepositoryT IO a -> IO (Either RepositoryError a)
-runAccPlanRepository repo action = runRepository (defaultRepositoryContext (aprPool repo)) action
+runAccPlanRepository repo = runRepository (defaultRepositoryContext (aprPool repo))

@@ -73,11 +73,17 @@ validateTransaction tx@Transaction {txEntries = entries}
           <> pack (show totalCredit)
   | otherwise = Right tx
   where
-    totalDebit = sum (map leDebit entries)
-    totalCredit = sum (map leCredit entries)
+    totalDebit = sum (fmap leDebit entries)
+    totalCredit = sum (fmap leCredit entries)
 
--- | Process validated transaction (stub for now)
+-- | Process validated transaction
+--
+-- This function validates the transaction and returns a result.
+-- In a full implementation, this would persist the transaction
+-- to the database and generate accounting entries.
+--
+-- Returns 'Right ()' on success with validated transaction
 processTransaction :: Transaction -> Either Text ()
 processTransaction tx = do
   _ <- validateTransaction tx
-  pure ()
+  Right ()

@@ -235,18 +235,18 @@ verifyTaxWithholding income rate expectedTax =
 -- ============================================================================
 
 -- | Economic Order Quantity (EOQ)
-calculateEOQ :: Double -> Double -> Double -> Double
-calculateEOQ demand orderingCost holdingCost =
+calcEOQ :: Double -> Double -> Double -> Double
+calcEOQ demand orderingCost holdingCost =
   sqrt (2 * demand * orderingCost / holdingCost)
 
 -- | Reorder point
-calculateReorderPoint :: Double -> Double -> Double -> Double
-calculateReorderPoint dailyDemand leadTime safetyStock =
+calcReorderPoint :: Double -> Double -> Double -> Double
+calcReorderPoint dailyDemand leadTime safetyStock =
   dailyDemand * leadTime + safetyStock
 
 -- | Safety stock
-calculateSafetyStock :: Double -> Double -> Double -> Double
-calculateSafetyStock stdDev leadTime serviceLevel =
+calcSafetyStock :: Double -> Double -> Double -> Double
+calcSafetyStock stdDev leadTime serviceLevel =
   stdDev * sqrt leadTime * serviceLevel
 
 -- ============================================================================

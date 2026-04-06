@@ -1,100 +1,70 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
+-- | Core Types for Surypus ERP
+--
+-- This module provides the fundamental numeric types used throughout
+-- the system, particularly for monetary calculations.
+--
+-- = Decimal Type
+--
+-- The 'Decimal' type represents fixed-point decimal numbers with
+-- 2 decimal places (stored as Int64 multiplied by 100).
+--
+-- This design choice provides:
+--
+-- * Exact arithmetic for monetary values (no floating-point errors)
+-- * Efficient storage and comparison
+-- * Easy serialization to JSON
+module Surypus.Types
+  ( Decimal (..),
+    fromDecimal,
+    toDecimal,
+  )
+where
 
-module Surypus.Types where
-
-import Data.Aeson (FromJSON, ToJSON, parseJSON, toJSON, withScientific)
+import Data.Aeson (FromJSON (..), ToJSON (..))
 import Data.Int (Int64)
-import Data.Text (Text)
-import GHC.Generics (Generic)
 import Test.QuickCheck
 
-newtype Decimal = Decimal {unDecimal :: Integer}
-  deriving (Eq, Generic, Ord)
-
-instance Show Decimal where
-  show (Decimal d) = show (fromInteger d / 100 :: Double)
+-- | Fixed-point decimal with 2 decimal places
+--
+-- Internally stored as 'Int64' where the value represents cents.
+-- For example, @Decimal 1234@ represents @12.34@.
+newtype Decimal = Decimal {unDecimal :: Int64}
+  deriving (Eq, Ord, Show)
 
 instance Num Decimal where
-  (Decimal a) + (Decimal b) = Decimal (a + b)
-  (Decimal a) - (Decimal b) = Decimal (a - b)
-  (Decimal a) * (Decimal b) = Decimal (div (a * b) 100)
-  abs (Decimal d) = Decimal (abs d)
-  signum (Decimal d) = Decimal (signum d)
-  fromInteger i = Decimal (i * 100)
-
-instance Real Decimal where
-  toRational (Decimal d) = toRational d / 100
+  Decimal a + Decimal b = Decimal (a + b)
+  Decimal a - Decimal b = Decimal (a - b)
+  Decimal a * Decimal b = Decimal (a * b `div` 100)
+  negate (Decimal a) = Decimal (negate a)
+  abs (Decimal a) = Decimal (abs a)
+  signum (Decimal a) = Decimal (signum a * 100)
+  fromInteger i = Decimal (fromInteger i * 100)
 
 instance Fractional Decimal where
-  (Decimal a) / (Decimal b) = Decimal (div (a * 10000) b)
-  fromRational r = Decimal (round (r * 100))
-
-decimalPlaces :: Int
-decimalPlaces = 2
-
-decimalScale :: Integer
-decimalScale = 100
-
-toDecimal :: Double -> Decimal
-toDecimal d = Decimal (round (d * 100))
-
-fromDecimal :: Decimal -> Double
-fromDecimal (Decimal d) = fromInteger d / 100
-
-instance ToJSON Decimal where
-  toJSON (Decimal d) = toJSON (realToFrac d :: Double)
-
-instance FromJSON Decimal where
-  parseJSON = withScientific "Decimal" $ \n ->
-    pure (Decimal (round ((realToFrac n :: Double) * 100) :: Integer))
-
-newtype Money = Money {unMoney :: Decimal}
-  deriving (Eq, Generic, Ord)
-
-instance Show Money where
-  show (Money d) = show d
-
-instance Num Money where
-  (Money a) + (Money b) = Money (a + b)
-  (Money a) - (Money b) = Money (a - b)
-  (Money a) * (Money b) = Money (a * b)
-  abs (Money d) = Money (abs d)
-  signum (Money d) = Money (signum d)
-  fromInteger i = Money (fromInteger i)
-
-instance Semigroup Money where
-  (<>) = (+)
-
-instance Monoid Money where
-  mempty = Money 0
-
-moneyFromInteger :: Int64 -> Money
-moneyFromInteger i = Money (Decimal (toInteger i * 100))
-
-moneyRound :: Money -> Money
-moneyRound (Money d) = Money d
-
-moneyFromDouble :: Double -> Money
-moneyFromDouble = Money . toDecimal
-
-toDouble :: Money -> Double
-toDouble (Money d) = fromDecimal d
+  Decimal a / Decimal b = Decimal (div (a * 10000) b)
+  fromRational r = Decimal (round (r * 100) :: Int64)
 
 instance Arbitrary Decimal where
   arbitrary = Decimal <$> arbitrary
 
-type NonNeg = Decimal
+-- | Convert Decimal to 'Double'
+--
+-- Example: @fromDecimal (Decimal 1234) = 12.34@
+fromDecimal :: Decimal -> Double
+fromDecimal (Decimal a) = fromIntegral a / 100.0
 
-type NonNegMoney = Money
+-- | Convert 'Double' to Decimal
+--
+-- Example: @toDecimal 12.34 = Decimal 1234@
+--
+-- Note: Uses rounding, so @toDecimal 12.345 = Decimal 1235@
+toDecimal :: Double -> Decimal
+toDecimal d = Decimal (round (d * 100))
 
-data AppError
-  = ValidationError Text
-  | NotFound Text
-  | DatabaseError Text
-  | AuthError Text
-  | RateLimitError
-  | InternalError Text
-  deriving (Show, Eq, Generic)
+instance ToJSON Decimal where
+  toJSON (Decimal a) = toJSON (fromIntegral a / 100.0 :: Double)
 
-type AppResult a = Either AppError a
+instance FromJSON Decimal where
+  parseJSON v = do
+    d <- parseJSON v
+    pure (Decimal (round (d * 100 :: Double) :: Int64))

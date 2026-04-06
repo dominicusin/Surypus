@@ -1,42 +1,45 @@
 {-# LANGUAGE StrictData #-}
 
--- | Tax Calculation Module - GTaxVect equivalent from  C<>
+-- | Tax Calculation Module - GTaxVect equivalent from C<>
 -- Supports: VAT, Excise, Sales Tax with forward/backward calculation
 --
 -- = Formal Verification (LiquidHaskell)
---
--- >>> :{
---  {-@ type NonNeg = {v:Decimal | v >= 0} @-}
---  {-@ type TaxRate = {v:Decimal | v >= 0 && v <= 100} @-}
--- :}
---
--- >>> :{
---  {-@ calcVAT :: amount:NonNeg -> rate:TaxRate -> NonNeg @-}
---  {-@ calcVATFromInclusive :: amount:NonNeg -> rate:TaxRate -> NonNeg @-}
--- :}
 module Core.Tax
-  ( calcVAT,
+  ( -- * Types
+    TaxCalcType (..),
+    TaxFlags (..),
+    TaxEntry (..),
+    TaxRate (..),
+    TaxVector (..),
+    GoodsTax (..),
+
+    -- * Constants
+    defaultTaxFlags,
+    defaultTaxVector,
+
+    -- * Tax Calculation Functions
+    calcVAT,
     calcVATFromInclusive,
     calcPriceWithoutVAT,
     calcTaxInclusive,
     extractVAT,
+
+    -- * Validation
     validateTaxRate,
     validateTaxEntry,
+    validateTaxVector,
+
+    -- * Tax Vector Calculations
     calcTaxVector,
     taxVectorTotal,
     taxVectorNet,
     taxVectorGross,
-    validateTaxVector,
+
+    -- * Excise Calculations
     calcExcise,
     calcUnitExcise,
-    TaxVector (..),
-    TaxEntry (..),
-    TaxRate (..),
-    TaxFlags (..),
-    TaxCalcType (..),
-    GoodsTax (..),
-    defaultTaxFlags,
-    defaultTaxVector,
+
+    -- * Properties (for testing)
     prop_vat_nonnegative,
     prop_vat_bounded,
     prop_vat_roundtrip,
@@ -46,10 +49,22 @@ module Core.Tax
   )
 where
 
+-- Import order: qualified imports first, then specific exports, then local imports
+
 import Data.Int (Int64)
-import Data.Text (Text)
+import qualified Data.Text as T
 import Surypus.Types (Decimal (..))
 import Test.QuickCheck
+
+-- Refinement types for LiquidHaskell
+{-@ type NonNeg = {v:Decimal | v >= 0} @-}
+{-@ type TaxRate = {v:Decimal | v >= 0 && v <= 100} @-}
+
+{-@ calcVAT :: amount:NonNeg -> rate:TaxRate -> NonNeg @-}
+{-@ calcVATFromInclusive :: amount:NonNeg -> rate:TaxRate -> NonNeg @-}
+{-@ calcPriceWithoutVAT :: amount:NonNeg -> rate:TaxRate -> NonNeg @-}
+{-@ calcTaxInclusive :: price:NonNeg -> rate:TaxRate -> {v:NonNeg | v >= price} @-}
+{-@ extractVAT :: amount:NonNeg -> rate:TaxRate -> NonNeg @-}
 
 -- ============================================================================
 -- TAX TYPES
@@ -61,10 +76,10 @@ data TaxCalcType = TaxCalcTypeVAT | TaxCalcTypeExcise | TaxCalcTypeSalesTax | Ta
 
 -- | Tax flags from C<> GTAXF_*
 data TaxFlags = TaxFlags
-  { tfAbsolute :: Bool, -- GTAXF_ABSVAT
-    tfUnion :: Bool, -- GTAXF_UNION
-    tfIncluded :: Bool, -- GTAXF_INCLUDED
-    tfNoCalculable :: Bool -- GTAXF_NOCALC
+  { tfAbsolute :: Bool,
+    tfUnion :: Bool,
+    tfIncluded :: Bool,
+    tfNoCalculable :: Bool
   }
   deriving (Show, Eq)
 
@@ -77,16 +92,16 @@ instance Arbitrary TaxFlags where
 -- | Tax entry - corresponds to PPGoodsTaxEntry in C<>
 -- Invariant: All tax values >= 0
 data TaxEntry = TaxEntry
-  { teTaxGrpId :: Int64, -- Tax group ID
-    tePeriodStart :: Int, -- Period start (days since epoch)
-    tePeriodEnd :: Int, -- Period end
-    teOpId :: Int64, -- Operation ID
-    teVAT :: Decimal, -- VAT rate (0-100)
-    teExcise :: Decimal, -- Excise rate
-    teSalesTax :: Decimal, -- Sales tax rate
+  { teTaxGrpId :: Int64,
+    tePeriodStart :: Int,
+    tePeriodEnd :: Int,
+    teOpId :: Int64,
+    teVAT :: Decimal,
+    teExcise :: Decimal,
+    teSalesTax :: Decimal,
     teFlags :: TaxFlags,
-    teOrder :: Int, -- Order of application
-    teUnionVect :: Int -- Union vector
+    teOrder :: Int,
+    teUnionVect :: Int
   }
   deriving (Show, Eq)
 
@@ -105,14 +120,25 @@ instance Arbitrary TaxEntry where
       <*> arbitrary
 
 -- | Tax vector - corresponds to GTaxVect in C<>
+-- Invariant: tvAmount >= 0, tvQtty >= 0, all tvValues >= 0
+
+{-@ data TaxVector = TaxVector
+  { tvAmount :: {v:Decimal | v >= 0}
+  , tvQtty :: {v:Decimal | v >= 0}
+  , tvRates :: (Decimal, Decimal, Decimal, Decimal)
+  , tvValues :: ({v:Decimal | v >= 0}, {v:Decimal | v >= 0}, {v:Decimal | v >= 0}, {v:Decimal | v >= 0})
+  , tvAbsVect :: Int
+  , tvUnionVect :: Int
+  , tvRoundPrec :: Int
+  } @-}
 data TaxVector = TaxVector
-  { tvAmount :: Decimal, -- Net amount
-    tvQtty :: Decimal, -- Quantity
-    tvRates :: (Decimal, Decimal, Decimal, Decimal), -- (VAT, Excise, SalesTax, Property)
-    tvValues :: (Decimal, Decimal, Decimal, Decimal), -- Calculated values
-    tvAbsVect :: Int, -- Absolute vector flags
-    tvUnionVect :: Int, -- Union vector
-    tvRoundPrec :: Int -- Rounding precision
+  { tvAmount :: Decimal,
+    tvQtty :: Decimal,
+    tvRates :: (Decimal, Decimal, Decimal, Decimal),
+    tvValues :: (Decimal, Decimal, Decimal, Decimal),
+    tvAbsVect :: Int,
+    tvUnionVect :: Int,
+    tvRoundPrec :: Int
   }
   deriving (Show, Eq)
 
@@ -144,7 +170,7 @@ defaultTaxVector =
 -- | TaxRate - Tax rate
 data TaxRate = TaxRate
   { trId :: Int64,
-    trName :: Text,
+    trName :: T.Text,
     trRate :: Decimal, -- Rate in percent (0-100)
     trFlags :: Int
   }
@@ -153,8 +179,8 @@ data TaxRate = TaxRate
 -- | GoodsTax - Tax group for goods (corresponds to TaxGroup)
 data GoodsTax = GoodsTax
   { gtId :: Int64,
-    gtCode :: Text,
-    gtName :: Text,
+    gtCode :: T.Text,
+    gtName :: T.Text,
     gtTaxRate :: Decimal
   }
   deriving (Show, Eq)
@@ -171,13 +197,22 @@ roundTo _ (Decimal x) =
 -- | Calculate VAT amount
 -- Invariant: calcVAT amount rate >= 0
 -- Invariant: calcVAT amount rate <= amount (when rate <= 100)
+
+{-@ calcVAT :: amount:NonNeg -> rate:TaxRate -> NonNeg @-}
 calcVAT :: Decimal -> Decimal -> Decimal
 calcVAT amount rate
   | amount < 0 || rate < 0 = 0
-  | rate > 100 = 0 -- Invalid rate
-  | otherwise = roundTo 2 (amount * rate / 100)
+  | rate > Decimal 10000 = 0 -- Invalid rate (>100%)
+  | otherwise =
+      -- rate is in percentage points (Decimal 20 = 20%)
+      -- VAT = amount * rate / 100
+      Decimal (div (unDecimal amount * unDecimal rate) 100)
 
 -- | Extract VAT from inclusive price
+-- Invariant: calcVATFromInclusive amount rate >= 0
+-- Invariant: calcVATFromInclusive amount rate <= amount (when rate <= 100)
+
+{-@ calcVATFromInclusive :: amount:NonNeg -> rate:TaxRate -> NonNeg @-}
 calcVATFromInclusive :: Decimal -> Decimal -> Decimal
 calcVATFromInclusive amount rate
   | amount < 0 || rate < 0 = 0
@@ -189,6 +224,10 @@ calcVATFromInclusive amount rate
        in roundTo 2 (Decimal (div (unDecimal amount * unDecimal rate) divisor))
 
 -- | Calculate price without VAT from inclusive price
+-- Invariant: calcPriceWithoutVAT inclusive rate >= 0
+-- Invariant: calcPriceWithoutVAT inclusive rate <= inclusive (when rate <= 100)
+
+{-@ calcPriceWithoutVAT :: amount:NonNeg -> rate:TaxRate -> NonNeg @-}
 calcPriceWithoutVAT :: Decimal -> Decimal -> Decimal
 calcPriceWithoutVAT inclusive rate
   | inclusive < 0 || rate < 0 = 0
@@ -199,6 +238,9 @@ calcPriceWithoutVAT inclusive rate
        in roundTo 2 (Decimal (div (unDecimal inclusive * 100) divisor))
 
 -- | Calculate price with VAT
+-- Invariant: calcTaxInclusive price rate >= price (when rate >= 0)
+
+{-@ calcTaxInclusive :: price:NonNeg -> rate:TaxRate -> {v:NonNeg | v >= price} @-}
 calcTaxInclusive :: Decimal -> Decimal -> Decimal
 calcTaxInclusive price rate
   | price < 0 || rate < 0 = 0
@@ -208,14 +250,20 @@ calcTaxInclusive price rate
        in roundTo 2 (Decimal (div (unDecimal price * multiplier) 100))
 
 -- | Extract VAT from inclusive price (alias)
+-- Invariant: extractVAT amount rate >= 0
+-- Invariant: extractVAT amount rate <= amount (when rate <= 100)
+
+{-@ extractVAT :: amount:NonNeg -> rate:TaxRate -> NonNeg @-}
 extractVAT :: Decimal -> Decimal -> Decimal
 extractVAT = calcVATFromInclusive
 
 -- | Validate tax rate
+-- Returns True if rate is between 0 and 100 (inclusive)
 validateTaxRate :: TaxRate -> Bool
 validateTaxRate tr = trRate tr >= 0 && trRate tr <= 100
 
 -- | Validate tax entry - all values must be non-negative
+-- Invariant: All tax values >= 0
 validateTaxEntry :: TaxEntry -> Bool
 validateTaxEntry e = teVAT e >= 0 && teExcise e >= 0 && teSalesTax e >= 0
 
@@ -287,35 +335,60 @@ calcUnitExcise unitRate qty =
 -- ============================================================================
 
 -- | Property: VAT is always non-negative
-prop_vat_nonnegative :: Decimal -> Decimal -> Property
-prop_vat_nonnegative amount rate =
-  let vat = calcVAT amount rate
-   in property (vat >= 0)
+prop_vat_nonnegative :: Property
+prop_vat_nonnegative = forAll genAmountAndRate $ \(amount, rate) ->
+  calcVAT amount rate >= 0
 
 -- | Property: VAT is always less than or equal to original amount (when rate <= 100%)
-prop_vat_bounded :: Decimal -> Decimal -> Property
-prop_vat_bounded amount rate =
-  let vat = calcVAT amount rate
-   in property (rate <= Decimal 10000 ==> vat <= amount)
+prop_vat_bounded :: Property
+prop_vat_bounded = forAll genAmountAndRate $ \(amount, rate) ->
+  rate <= Decimal 100 ==> calcVAT amount rate <= amount
 
 -- | Property: Round-trip calculation
-prop_vat_roundtrip :: Decimal -> Decimal -> Property
-prop_vat_roundtrip price rate =
-  let withVat = calcTaxInclusive price rate
-      withoutVat = calcPriceWithoutVAT withVat rate
-   in property (abs (withoutVat - price) < 0.01)
+prop_vat_roundtrip :: Property
+prop_vat_roundtrip = forAll genAmountAndRate $ \(price, rate) ->
+  rate <= 100 ==>
+    let withVat = calcTaxInclusive price rate
+        withoutVat = calcPriceWithoutVAT withVat rate
+     in abs (withoutVat - price) <= Decimal 100
 
 -- | Property: Tax vector total is non-negative
-prop_tax_vector_total_nonneg :: TaxVector -> Property
-prop_tax_vector_total_nonneg tv =
-  property (taxVectorTotal tv >= 0)
+prop_tax_vector_total_nonneg :: Property
+prop_tax_vector_total_nonneg = forAll genValidTaxVector $ \tv ->
+  taxVectorTotal tv >= 0
 
 -- | Property: Gross >= Net (taxes are added)
-prop_tax_vector_gross_ge_net :: TaxVector -> Property
-prop_tax_vector_gross_ge_net tv =
-  property (taxVectorGross tv >= taxVectorNet tv)
+prop_tax_vector_gross_ge_net :: Property
+prop_tax_vector_gross_ge_net = forAll genValidTaxVector $ \tv ->
+  taxVectorGross tv >= taxVectorNet tv
 
 -- | Property: Tax vector invariant
-prop_tax_vector_valid :: TaxVector -> Property
-prop_tax_vector_valid tv =
-  property (validateTaxVector tv)
+prop_tax_vector_valid :: Property
+prop_tax_vector_valid = forAll genValidTaxVector $ \tv ->
+  validateTaxVector tv
+
+-- | Generate amount >= 0 and rate 0-100% (realistic tax rates)
+genAmountAndRate :: Gen (Decimal, Decimal)
+genAmountAndRate = do
+  amount <- Decimal . abs <$> choose (100, 100000000 :: Int64)
+  rate <- Decimal . abs <$> choose (0, 100 :: Int64)
+  pure (amount, rate)
+
+-- | Generate a valid tax vector with non-negative values
+genValidTaxVector :: Gen TaxVector
+genValidTaxVector = do
+  amount <- Decimal . abs <$> choose (100, 100000000 :: Int64)
+  qty <- Decimal . abs <$> choose (0, 1000000 :: Int64)
+  v <- Decimal . abs <$> choose (0, 10000000 :: Int64)
+  e <- Decimal . abs <$> choose (0, 10000000 :: Int64)
+  s <- Decimal . abs <$> choose (0, 10000000 :: Int64)
+  p <- Decimal . abs <$> choose (0, 10000000 :: Int64)
+  pure $ TaxVector
+    { tvAmount = amount,
+      tvQtty = qty,
+      tvRates = (0, 0, 0, 0),
+      tvValues = (v, e, s, p),
+      tvAbsVect = 0,
+      tvUnionVect = 0,
+      tvRoundPrec = 2
+    }

@@ -6,12 +6,14 @@
 
 module Main where
 
+import qualified API.ServerSpec
 import Core.Accounting.Account
 import Core.Payroll.Calculation
 import Core.Tax
 import Data.Maybe ()
 import qualified Data.Text as T
 import Data.Time (fromGregorian)
+import qualified Integration.PropertySpec
 import Surypus.RBAC
 import Surypus.Types (Decimal (..))
 import Test.Hspec
@@ -334,8 +336,12 @@ main = hspec $ do
     -- QUICKCHECK PROPERTIES
     -- ========================================================================
     describe "QuickCheck Properties" $ do
-      prop "VAT is non-negative" $
-        \amount rate -> prop_vat_nonnegative amount rate
+      prop "VAT is non-negative" prop_vat_nonnegative
+      prop "VAT is bounded by amount" prop_vat_bounded
+      prop "VAT roundtrip (inclusive → exclusive ≈ original)" prop_vat_roundtrip
+      prop "Tax vector total is non-negative" prop_tax_vector_total_nonneg
+      prop "Tax vector gross >= net" prop_tax_vector_gross_ge_net
+      prop "Tax vector invariants hold" prop_tax_vector_valid
 
     -- ========================================================================
     -- RBAC TESTS
@@ -428,3 +434,15 @@ main = hspec $ do
         it "user has more permissions than viewer" $
           length (rpPermissions userRole)
             `shouldSatisfy` (> length (rpPermissions viewerRole))
+
+    -- ========================================================================
+    -- API SERVER TESTS
+    -- ========================================================================
+    API.ServerSpec.spec
+
+    -- ========================================================================
+    -- PROPERTY-BASED TESTS
+    -- ========================================================================
+    Integration.PropertySpec.spec_accountingProperties
+    Integration.PropertySpec.spec_vatProperties
+    Integration.PropertySpec.spec_inventoryProperties

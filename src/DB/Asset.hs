@@ -16,13 +16,14 @@ import Data.Functor.Contravariant ((>$<))
 import Data.Int (Int32, Int64)
 import Data.Maybe (isJust)
 import Data.Text (Text)
+import qualified Data.Text as T
 import Data.Time (Day)
 import Domain.Asset
 import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
-import Hasql.Statement (unpreparable)
+import Hasql.Statement (Statement)
 
 assetRow :: D.Row Asset
 assetRow =
@@ -60,7 +61,7 @@ listAssets pool = do
     Left _ -> pure []
   where
     stmt =
-      unpreparable
+      Statement
         "SELECT id, inv_no, name, group_id, location_id, owner_id, status, cost, depreciation, salvage_value, useful_life, purchase_date, commissioning_date FROM asset"
         E.noParams
         (D.rowList assetRow)
@@ -73,21 +74,21 @@ getAsset pool astId = do
     Left _ -> pure Nothing
   where
     stmt =
-      unpreparable
+      Statement
         "SELECT id, inv_no, name, group_id, location_id, owner_id, status, cost, depreciation, salvage_value, useful_life, purchase_date, commissioning_date FROM asset WHERE id = $1"
         (E.param (E.nonNullable E.int8))
         (D.rowMaybe assetRow)
 
-createAsset :: Pool -> AssetInput -> IO Asset
+createAsset :: Pool -> AssetInput -> IO (Either Text Asset)
 createAsset pool AssetInput {..} = do
   result <- use pool $ Session.statement params stmt
   case result of
-    Right x -> pure x
-    Left _ -> error "createAsset failed"
+    Right x -> pure $ Right x
+    Left err -> (pure . Left) . T.pack $ show err
   where
-    params = (aiInvNo, aiName, (0 :: Int32), aiGroupId, aiLocation, aiOwner, aiCost, aiSalvage, fromIntegral aiUsefulLife :: Int32, aiPurchaseDate, aiCommissioning)
+    params = (aiInvNo, aiName, 0 :: Int32, aiGroupId, aiLocation, aiOwner, aiCost, aiSalvage, fromIntegral aiUsefulLife :: Int32, aiPurchaseDate, aiCommissioning)
     stmt =
-      unpreparable
+      Statement
         "INSERT INTO asset (inv_no, name, atype, group_id, location_id, owner_id, cost, salvage_value, useful_life, purchase_date, commissioning_date) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id, inv_no, name, group_id, location_id, owner_id, status, cost, depreciation, salvage_value, useful_life, purchase_date, commissioning_date"
         ( ((\(a, _, _, _, _, _, _, _, _, _, _) -> a) >$< E.param (E.nonNullable E.text))
             <> ((\(_, b, _, _, _, _, _, _, _, _, _) -> b) >$< E.param (E.nonNullable E.text))
@@ -111,10 +112,10 @@ depreciateAsset pool assetId period = do
     Left _ -> pure False
   where
     stmt =
-      unpreparable
+      Statement
         "SELECT depreciate_asset_month($1, $2)"
-        ( ((\(a, _) -> a) >$< E.param (E.nonNullable E.int8))
-            <> ((\(_, b) -> b) >$< E.param (E.nonNullable E.date))
+        ( (fst >$< E.param (E.nonNullable E.int8))
+            <> (snd >$< E.param (E.nonNullable E.date))
         )
         (D.singleRow $ D.column (D.nonNullable D.bool))
 
@@ -127,7 +128,7 @@ recordAssetEvent pool AssetEvent {..} = do
   where
     params = (aeAssetId, assetEventTypeToInt aeType, aeDate, aeAmount, aeDesc)
     stmt =
-      unpreparable
+      Statement
         "INSERT INTO asset_event (asset_id, etype, dt, amount, description) VALUES ($1,$2,$3,$4,$5) RETURNING id"
         ( ((\(a, _, _, _, _) -> a) >$< E.param (E.nonNullable E.int8))
             <> ((\(_, b, _, _, _) -> b) >$< E.param (E.nonNullable E.int4))
@@ -145,7 +146,7 @@ listAssetEvents pool assetId = do
     Left _ -> pure []
   where
     stmt =
-      unpreparable
+      Statement
         "SELECT id, asset_id, etype, dt, amount, description FROM asset_event WHERE asset_id = $1 ORDER BY dt DESC"
         (E.param (E.nonNullable E.int8))
         (D.rowList assetEventRow)
@@ -187,7 +188,7 @@ listAssetDepreciations pool assetId = do
     Left _ -> pure []
   where
     stmt =
-      unpreparable
+      Statement
         "SELECT id, asset_id, period, amount, accumulated, method FROM asset_depreciation WHERE asset_id = $1 ORDER BY period DESC"
         (E.param (E.nonNullable E.int8))
         (D.rowList assetDepRow)

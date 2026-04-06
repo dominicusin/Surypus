@@ -16,7 +16,7 @@ import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
-import Hasql.Statement (unpreparable)
+import Hasql.Statement (Statement)
 
 personContactRowDecoder :: D.Row PersonContact
 personContactRowDecoder =
@@ -41,7 +41,7 @@ listPersonContacts pool personId = do
     Left _ -> pure []
   where
     stmt =
-      unpreparable
+      Statement
         "SELECT id, person_id, phone, phone_add, email, email_add, website, fax, telegram, whatsapp, is_default FROM personcontact WHERE person_id = $1 ORDER BY id"
         (E.param (E.nonNullable E.int8))
         (D.rowList personContactRowDecoder)
@@ -66,7 +66,7 @@ createPersonContact pool personId PersonContact {..} = do
         pcIsDefault
       )
     stmt =
-      unpreparable
+      Statement
         "INSERT INTO personcontact (person_id, phone, phone_add, email, email_add, website, fax, telegram, whatsapp, is_default) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id"
         ( ((\(a, _, _, _, _, _, _, _, _, _) -> a) >$< E.param (E.nonNullable E.int8))
             <> ((\(_, b, _, _, _, _, _, _, _, _) -> b) >$< E.param (E.nullable E.text))
@@ -104,7 +104,7 @@ updatePersonContact pool personId contact@PersonContact {..} = case pcId of
           pcIsDefault
         )
       stmt =
-        unpreparable
+        Statement
           "UPDATE personcontact SET person_id = $2, phone = $3, phone_add = $4, email = $5, email_add = $6, website = $7, fax = $8, telegram = $9, whatsapp = $10, is_default = $11 WHERE id = $1"
           ( ((\(a, _, _, _, _, _, _, _, _, _, _) -> a) >$< E.param (E.nonNullable E.int8))
               <> ((\(_, b, _, _, _, _, _, _, _, _, _) -> b) >$< E.param (E.nonNullable E.int8))
@@ -128,7 +128,7 @@ deletePersonContact pool cid = do
     Left _ -> pure False
   where
     stmt =
-      unpreparable
+      Statement
         "DELETE FROM personcontact WHERE id = $1"
         (E.param (E.nonNullable E.int8))
         D.noResult

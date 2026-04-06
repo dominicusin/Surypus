@@ -1,8 +1,9 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings #-}
+
 -- ============================================================================
 -- CRYSTAL REPORTS TO JASPERREPORTS JRXML CONVERTER
 -- ============================================================================
-{-# LANGUAGE OverloadedStrings #-}
 
 module Surypus.Reports.Conversion.CrystalToJasper
   ( convertCrystalToJasper,
@@ -225,7 +226,7 @@ convertCrystalToJasper cr =
       jrColumnCount = 1,
       jrPrintOrder = "Vertical",
       jrOrientation = "Portrait",
-      jrPageWidth = 595, -- A4 points
+      jrPageWidth = 595,
       jrPageHeight = 842,
       jrColumnWidth = 555,
       jrColumnSpacing = 0,
@@ -235,16 +236,16 @@ convertCrystalToJasper cr =
       jrBottomMargin = 20,
       jrIsTitleNewPage = False,
       jrIsSummaryNewPage = True,
-      jrFields = undefined -- convertDatabaseFields (crDatabaseFields cr),
-      jrVariables = undefined -- convertFormulaFields (crFormulaFields cr),
-      jrGroups = undefined -- convertGroups (crGroups cr),
-      jrTitleBand = undefined -- convertToBand $ findSection isReportHeader cr,
-      jrPageHeaderBand = undefined -- convertToBand $ findSection isPageHeader cr,
+      jrFields = undefined,
+      jrVariables = undefined,
+      jrGroups = undefined,
+      jrTitleBand = undefined,
+      jrPageHeaderBand = undefined,
       jrColumnHeaderBand = Nothing,
-      jrDetailBand = undefined -- convertToBand $ findSection isDetail cr,
+      jrDetailBand = undefined,
       jrColumnFooterBand = Nothing,
-      jrPageFooterBand = undefined -- convertToBand $ findSection isPageFooter cr,
-      jrSummaryBand = undefined -- convertToBand $ findSection isReportFooter cr
+      jrPageFooterBand = undefined,
+      jrSummaryBand = undefined
     }
   where
     findSection pred' c = case filter pred' (crSections c) of

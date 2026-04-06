@@ -26,7 +26,7 @@ import Hasql.Pool (Pool)
 import Surypus.Types (fromDecimal)
 import qualified Surypus.Validation as Validation
 
-data AccTurnRepository = AccTurnRepository
+newtype AccTurnRepository = AccTurnRepository
   { atrPool :: Pool
   }
 
@@ -126,4 +126,4 @@ mkAccTurnRepository :: Pool -> AccTurnRepository
 mkAccTurnRepository = AccTurnRepository
 
 runAccTurnRepository :: AccTurnRepository -> RepositoryT IO a -> IO (Either RepositoryError a)
-runAccTurnRepository repo action = runRepository (defaultRepositoryContext (atrPool repo)) action
+runAccTurnRepository repo = runRepository (defaultRepositoryContext (atrPool repo))

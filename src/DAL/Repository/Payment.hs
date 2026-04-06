@@ -27,7 +27,7 @@ import Hasql.Pool (Pool)
 import Surypus.Types (fromDecimal)
 import qualified Surypus.Validation as Validation
 
-data PaymentRepository = PaymentRepository
+newtype PaymentRepository = PaymentRepository
   { payrPool :: Pool
   }
 
@@ -134,4 +134,4 @@ mkPaymentRepository :: Pool -> PaymentRepository
 mkPaymentRepository = PaymentRepository
 
 runPaymentRepository :: PaymentRepository -> RepositoryT IO a -> IO (Either RepositoryError a)
-runPaymentRepository repo action = runRepository (defaultRepositoryContext (payrPool repo)) action
+runPaymentRepository repo = runRepository (defaultRepositoryContext (payrPool repo))

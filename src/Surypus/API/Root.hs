@@ -3,11 +3,11 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeOperators #-}
 
 module Surypus.API.Root where
 
+import DAL.Types (AuditLog)
 import Data.Aeson (FromJSON, ToJSON, Value)
 import Data.Int (Int64)
 import Data.Text (Text)
@@ -21,10 +21,11 @@ import Surypus.API.Types
     UserResponse (..),
   )
 import Surypus.JWT (JWTPayload (..))
+import Surypus.RBAC (AuditEntry)
 
 type APIv1 = "v1" :> (AuthAPI :<|> ProtectedAPI)
 
-type ProtectedAPI = PersonsAPI :<|> GoodsAPI :<|> LocationsAPI :<|> BillsAPI :<|> PaymentsAPI :<|> OrdersAPI :<|> TaxesAPI :<|> CurrenciesAPI :<|> StockAPI :<|> AccountingAPI :<|> PayrollAPI :<|> ReportsAPI :<|> DashboardAPI :<|> UsersAPI :<|> JobsAPI :<|> HealthAPI :<|> MetricsAPI
+type ProtectedAPI = PersonsAPI :<|> GoodsAPI :<|> LocationsAPI :<|> BillsAPI :<|> PaymentsAPI :<|> OrdersAPI :<|> TaxesAPI :<|> CurrenciesAPI :<|> StockAPI :<|> AccountingAPI :<|> PayrollAPI :<|> ReportsAPI :<|> DashboardAPI :<|> UsersAPI :<|> AuditLogAPI :<|> RbacAPI :<|> JobsAPI :<|> HealthAPI :<|> MetricsAPI
 
 type AuthAPI =
   "login" :> ReqBody '[JSON] LoginRequest :> Post '[JSON] LoginResponse
@@ -145,6 +146,35 @@ type DashboardAPI = "dashboard" :> Get '[JSON] DashboardResponse
 
 type UsersAPI = "users" :> Get '[JSON] UsersResponse
 
+type AuditLogAPI =
+  "audit-log"
+    :> QueryParam "entity_type" Text
+    :> QueryParam "limit" Int64
+    :> QueryParam "offset" Int64
+    :> Get '[JSON] AuditLogListResponse
+
+type RbacAPI =
+  "rbac"
+    :> ( "roles"
+           :> ( Get '[JSON] RolesListResponse
+                  :<|> ReqBody '[JSON] RoleCreateRequest :> Post '[JSON] RoleInfoResponse
+                  :<|> Capture "name" Text :> ReqBody '[JSON] RoleCreateRequest :> Put '[JSON] RoleInfoResponse
+                  :<|> Capture "name" Text :> Delete '[JSON] ()
+              )
+           :<|> "grants"
+             :> ( Get '[JSON] GrantsListResponse
+                    :<|> ReqBody '[JSON] GrantCreateRequest :> Post '[JSON] GrantInfoResponse
+                    :<|> "active" :> QueryParam "principal" Text :> Get '[JSON] GrantsListResponse
+                    :<|> "cleanup" :> Post '[JSON] CleanupResponse
+                    :<|> Capture "from" Text :> Capture "to" Text :> Capture "permission" Text :> QueryParam "resource" Text :> ReqBody '[JSON] GrantUpdateRequest :> Put '[JSON] GrantInfoResponse
+                    :<|> Capture "from" Text :> Capture "to" Text :> Capture "permission" Text :> QueryParam "resource" Text :> Delete '[JSON] ()
+                )
+           :<|> "audit"
+             :> ( QueryParam "principal" Text :> QueryParam "resource" Text :> QueryParam "offset" Int64 :> QueryParam "limit" Int64 :> Get '[JSON] AuditListResponse
+                    :<|> "cleanup" :> QueryParam "keep" Int64 :> Post '[JSON] CleanupResponse
+                )
+       )
+
 type JobsAPI =
   "jobs"
     :> ( Get '[JSON] JobsResponse
@@ -157,7 +187,8 @@ type HealthAPI = "health" :> Get '[JSON] HealthResponse
 type MetricsAPI = "metrics" :> Get '[JSON] MetricsResponse
 
 data HealthResponse = HealthResponse
-  { status :: Text
+  { status :: Text,
+    checks :: Value
   }
   deriving (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
@@ -175,6 +206,77 @@ data RolesResponse = RolesResponse
   }
   deriving (Show, Eq, Generic)
   deriving anyclass (ToJSON)
+
+data RoleCreateRequest = RoleCreateRequest
+  { rcrName :: Text,
+    rcrPermissions :: [Text],
+    rcrResources :: [Maybe Text]
+  }
+  deriving (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON)
+
+data RoleInfoResponse = RoleInfoResponse
+  { rirName :: Text,
+    rirPermissions :: [Text]
+  }
+  deriving (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON)
+
+data RolesListResponse = RolesListResponse
+  { rlrRoles :: [RoleInfoResponse]
+  }
+  deriving (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON)
+
+data GrantCreateRequest = GrantCreateRequest
+  { gcrFrom :: Text,
+    gcrTo :: Text,
+    gcrPermission :: Text,
+    gcrResource :: Maybe Text,
+    gcrExpiresInMinutes :: Maybe Int64
+  }
+  deriving (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON)
+
+data GrantUpdateRequest = GrantUpdateRequest
+  { gurExpiresInMinutes :: Maybe Int64
+  }
+  deriving (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON)
+
+data GrantInfoResponse = GrantInfoResponse
+  { girFrom :: Text,
+    girTo :: Text,
+    girPermission :: Text,
+    girResource :: Maybe Text,
+    girExpiresAt :: Maybe Text
+  }
+  deriving (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON)
+
+data GrantsListResponse = GrantsListResponse
+  { glrGrants :: [GrantInfoResponse]
+  }
+  deriving (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON)
+
+data AuditListResponse = AuditListResponse
+  { alrEntries :: [AuditEntry]
+  }
+  deriving (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON)
+
+data AuditLogListResponse = AuditLogListResponse
+  { allrEntries :: [AuditLog]
+  }
+  deriving (Show, Eq, Generic)
+  deriving anyclass (ToJSON)
+
+data CleanupResponse = CleanupResponse
+  { clrRemoved :: Int64
+  }
+  deriving (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON)
 
 data LogoutResponse = LogoutResponse
   { logoutSuccess :: Bool

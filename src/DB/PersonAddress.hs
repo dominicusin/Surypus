@@ -1,5 +1,4 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
 
 module DB.PersonAddress
   ( listPersonAddresses,
@@ -15,7 +14,7 @@ import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
-import Hasql.Statement (unpreparable)
+import Hasql.Statement (Statement)
 
 personAddressRowDecoder :: D.Row PersonAddress
 personAddressRowDecoder =
@@ -42,7 +41,7 @@ listPersonAddresses pool personId = do
     Left _ -> pure []
   where
     stmt =
-      unpreparable
+      Statement
         "SELECT id, person_id, atype, country_id, region_id, district, city, town, street, house, flat, zip, is_default FROM personaddress WHERE person_id = $1 ORDER BY id"
         (E.param (E.nonNullable E.int8))
         (D.rowList personAddressRowDecoder)

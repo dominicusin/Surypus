@@ -50,7 +50,7 @@ newSTMCache maxSize = STMCache <$> newTVarIO [] <*> pure maxSize
 stmCacheGet :: (Eq k) => k -> STMCache k v -> STM (Maybe v)
 stmCacheGet key (STMCache cache _) = do
   entries <- readTVar cache
-  return $ lookup key entries
+  pure $ lookup key entries
 
 -- | Put to STM cache
 stmCachePut :: (Eq k) => k -> v -> STMCache k v -> STM ()

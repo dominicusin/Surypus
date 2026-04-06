@@ -1,151 +1,18 @@
 # stack.yaml for Surypus
-resolver: lts-22.30
-compiler: ghc-9.10.3
-compiler-check: match-exact
+resolver: nightly-2026-04-05
 
 packages:
   - .
 
 ghc-options:
-  "$locals": -Wall -Werror
+  "$locals": -Wall -Wcompat
 
 allow-newer: true
-allow-newer-deps:
-  - process
-  - file-io
-  - filepath
-  - hasql
-  - hasql-pool
-  - postgresql-libpq
-  - vector
-  - directory
-  - unix
-  - cabal-doctest
-  - uuid
-  - uuid-types
-  - vault
-  - vector-stream
-  - websockets
-  - witherable
-  - zlib
-  - time
-  - template-haskell
-  - base
-  - containers
-  - ghc-prim
-  - ghc-boot
-  - Cabal
-  - Cabal-syntax
-  - OneTuple
-  - adjunctions
-  - aeson
-  - assoc
-  - async
-  - attoparsec-iso8601
-  - attoparsec
-  - bifunctors
-  - boring
-  - comonad
-  - cryptohash-md5
-  - cryptohash-sha1
-  - data-fix
-  - dec
-  - free
-  - generically
-  - hashable
-  - http-api-data
-  - http-media
-  - http2
-  - indexed-traversable
-  - indexed-traversable-instances
-  - integer-conversion
-  - integer-logarithms
-  - invariant
-  - jose
-  - kan-extensions
-  - lens
-  - megaparsec
-  - os-string
-  - parallel
-  - parsec
-  - primitive
-  - scientific
-  - semialign
-  - semigroupoids
-  - servant
-  - servant-client
-  - servant-client-core
-  - servant-server
-  - singleton-bool
-  - some
-  - sop-core
-  - splitmix
-  - tagged
-  - text
-  - text-short
-  - th-abstraction
-  - th-compat
-  - these
-  - time-compat
-  - unordered-containers
-  - quickcheck-instances
-  - ghc-lib-parser
-
-flags: {}
+allow-different-user: true
+system-ghc: false
 
 extra-deps:
-  - th-abstraction-0.7.0.0
-  - lens-5.3
-  - aeson-2.2.3.0
-  - character-ps-0.1
-  - time-1.12.2
-  - jose-0.10
-  - liquidhaskell-0.9.10.1.2
-  - liquidhaskell-boot-0.9.10.1.2
-  - liquid-fixpoint-0.9.6.3.2
-  - websockets-0.13.0.0
-  - hashtables-1.4.1
-  - hasql-1.10.3@sha256:f1e9d616ed73290096a75271d01d9f5490b30ee26dca1cbe604afbd4827c24e8,9971
-  - hasql-pool-1.4.1
-  - postgresql-connection-string-0.1.0.6@sha256:942fa32d6c83fc8f8671dfe7bc5fb68acdb2bc9893c4806905ca5b1c740913ff,3420
-  - charset-0.3.12@sha256:1407d80cd518b0329f45b4beb8d67cdee1eff67e2d55670876b1a28635d1a1ad,1578
-  - text-builder-1.0.0.5@sha256:38a0ea8c7b35da8133d53bd098daf213d83839e4c06e5624dcc21bc7afda88c5,4825
-  - text-builder-core-0.1.1.3@sha256:db38af5dc06ac7b0d7856a67877f2f48b5a71db001b5ebf0a6c8be6b96b64fff,2842
-  - postgresql-binary-0.15.0.1
-  - postgresql-libpq-0.10.2.0@sha256:7a31a758c0e9e4e608f0408c28dfb321d6a94811572892b826f66c7a387d1156,2665
-  - postgresql-libpq-configure-0.10.0.1@sha256:177e64ed76c8fab32b7e2b314796660d697422c96e5a4677df72862b26c49f96,1313
-  - text-1.2.5.0
-  - vector-0.13.2.0
-  - exceptions-0.10.12
-  - filepath-1.4.301.0@sha256:2c5d05f98759938db45757016ec406ed2c6021cd9018a53fedb76b9d5a8239ea,6128
-  - Cabal-syntax-3.12.1.0@sha256:6dbb06fb08ff77520947fb4c1ef281c9cea5b8dc7fd9a41ad62273fa916cf4b2,7407
-  - mtl-2.3.2
-  - parsec-3.1.18.0
-  - process-1.6.27.0
-  - bifunctors-5.6.2
-  - base-orphans-0.9.2
-  - comonad-5.0.8
-  - contravariant-1.5.5
-  - distributive-0.6.2.1
-  - tagged-0.8.8
-  - transformers-compat-0.7.2
-  - unordered-containers-0.2.20
-  - attoparsec-0.14.4
-  - base-compat-0.13.1
-  - base-compat-batteries-0.13.1
-
-  - http-date-0.0.11
-  - parsers-0.12.11
-  - scientific-0.3.7.0
-  - os-string-2.0.6
-  - directory-1.3.9.0@sha256:ed6784601c6a800d4c1e40efbc9f20cf33ae2f25cac301fc239f9c91947b816b,3307
-  - file-io-0.1.6@sha256:5e3466f15993e499db47d79d09c519d6d37c143cfe94fb46dd218bf2f6f3fd39,3550
-  - cabal-doctest-1.0.10
-  - entropy-0.4.1.11
-  - unix-2.8.8.0
-  - Cabal-3.12.1.0@sha256:08be296ddd941b3f9be4bd125fbb3e6857f5c707b8d10464f6f1d30c91ca3e5f,13551
-
-nix:
-  enable: false
-
-notify-if-nix-on-path: false
+  - validation-selective-0.2.0.0
+  - cryptonite-0.30
+  - servant-swagger-1.2.1
+  - swagger2-2.8.10

@@ -24,7 +24,7 @@ import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
-import Hasql.Statement (unpreparable)
+import Hasql.Statement (Statement)
 
 jobRow :: D.Row JobRecord
 jobRow =
@@ -51,7 +51,7 @@ enqueueJob pool JobRequest {..} = do
     Left _ -> pure 0
   where
     stmt =
-      unpreparable
+      Statement
         "INSERT INTO job_queue (name, command, priority, payload, status, created_at) VALUES ($1, $2, $3, $4, 'pending', now()) RETURNING id"
         ( E.param (E.nonNullable E.text)
             <> E.param (E.nonNullable E.text)
@@ -69,7 +69,7 @@ fetchPendingJob pool = do
     Left _ -> pure Nothing
   where
     stmt =
-      unpreparable
+      Statement
         "SELECT id, name, command, payload, status, priority, error_message, started_at, created_at, completed_at, next_run, result FROM job_queue WHERE status = 'pending' ORDER BY priority DESC, created_at ASC LIMIT 1 FOR UPDATE SKIP LOCKED"
         E.noParams
         (D.rowMaybe jobRow)
@@ -82,7 +82,7 @@ getJob pool jobId = do
     Left _ -> pure Nothing
   where
     stmt =
-      unpreparable
+      Statement
         "SELECT id, name, command, payload, status, priority, error_message, started_at, completed_at, next_run, result FROM job_queue WHERE id = $1"
         (E.param (E.nonNullable E.int8))
         (D.rowMaybe jobRow)
@@ -96,7 +96,7 @@ listJobs pool (Just JobFilter {..}) = do
   where
     params = (jfStatus, jfLimit, jfOffset)
     stmt =
-      unpreparable
+      Statement
         "SELECT id, name, command, payload, status, priority, error_message, started_at, completed_at, next_run, result FROM job_queue WHERE ($1 IS NULL OR status = $1) ORDER BY created_at DESC LIMIT $2 OFFSET $3"
         ( E.param (E.nullable E.text)
             <> E.param (E.nonNullable E.int4)
@@ -113,7 +113,7 @@ setJobStatus pool jobId status mError = do
     Left _ -> pure False
   where
     stmt =
-      unpreparable
+      Statement
         "UPDATE job_queue SET status = $2, error_message = $3, completed_at = CASE WHEN $2 IN ('completed', 'failed', 'cancelled') THEN now() ELSE NULL END WHERE id = $1"
         ( E.param (E.nonNullable E.int8)
             <> E.param (E.nonNullable E.text)
@@ -127,7 +127,7 @@ logServiceEvent pool event = do
   pure ()
   where
     stmt =
-      unpreparable
+      Statement
         "INSERT INTO job_service_log (event, logged_at) VALUES ($1, now())"
         (E.param (E.nonNullable E.text))
         D.noResult
@@ -140,7 +140,7 @@ addJobDependency pool jobId depId = do
     Left _ -> pure False
   where
     stmt =
-      unpreparable
+      Statement
         "INSERT INTO job_dependencies (job_id, depends_on_id) VALUES ($1, $2) ON CONFLICT DO NOTHING"
         (E.param (E.nonNullable E.int8) <> E.param (E.nonNullable E.int8))
         D.noResult

@@ -26,7 +26,7 @@ import Hasql.Pool (Pool)
 import Surypus.Types (fromDecimal)
 import qualified Surypus.Validation as Validation
 
-data TaxRepository = TaxRepository
+newtype TaxRepository = TaxRepository
   { trPool :: Pool
   }
 
@@ -125,4 +125,4 @@ mkTaxRepository :: Pool -> TaxRepository
 mkTaxRepository = TaxRepository
 
 runTaxRepository :: TaxRepository -> RepositoryT IO a -> IO (Either RepositoryError a)
-runTaxRepository repo action = runRepository (defaultRepositoryContext (trPool repo)) action
+runTaxRepository repo = runRepository (defaultRepositoryContext (trPool repo))

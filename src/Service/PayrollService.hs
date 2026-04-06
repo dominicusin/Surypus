@@ -1,11 +1,10 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
+
 
 module Service.PayrollService
   ( PayrollService (..),
     createPayrollService,
-    calculateSalary,
-    calculatePayroll,
+    calcSalary,
+    calcPayroll,
     generatePayrollReport,
     processPayrollPayment,
     Employee (..),
@@ -57,27 +56,27 @@ data PayrollReport = PayrollReport
     payrollDetails :: [PayrollResult]
   }
 
-calculateNDFL :: Double -> Double
-calculateNDFL gross =
+calcNDFL :: Double -> Double
+calcNDFL gross =
   let annualGross = gross * 12
       annualDeduction = 600000
       taxableAnnual = max 0 (annualGross - annualDeduction)
       taxRate = 0.13
    in taxableAnnual * taxRate / 12
 
-calculateSalary :: PayrollService -> Int64 -> Double -> Day -> Day -> IO (Either Text PayrollResult)
-calculateSalary service employeeId baseSalary periodStart periodEnd = do
+calcSalary :: PayrollService -> Int64 -> Double -> Day -> Day -> IO (Either Text PayrollResult)
+calcSalary service employeeId baseSalary periodStart periodEnd = do
   result <-
     use (psPool service) $
       Session.query
         selectEmployeeStmt
-        (employeeId)
+        employeeId
   case result of
     Left err -> pure $ Left (T.pack (show err))
     Right [] -> pure $ Left "Employee not found"
     Right [(empId, empName, empSalary, daysWorked)] ->
       let grossSalary = if baseSalary > 0 then baseSalary else empSalary
-          ndfl = calculateNDFL grossSalary
+          ndfl = calcNDFL grossSalary
           netSalary = grossSalary - ndfl
        in pure $
             Right
@@ -92,9 +91,9 @@ calculateSalary service employeeId baseSalary periodStart periodEnd = do
                 }
     _ -> pure $ Left "Unexpected employee data"
 
-calculatePayroll :: PayrollService -> [Employee] -> Day -> Day -> IO (Either Text [PayrollResult])
-calculatePayroll service employees periodStart periodEnd = do
-  results <- mapM (\emp -> calculateSalary service (employeeId emp) (employeeSalary emp) periodStart periodEnd) employees
+calcPayroll :: PayrollService -> [Employee] -> Day -> Day -> IO (Either Text [PayrollResult])
+calcPayroll service employees periodStart periodEnd = do
+  results <- mapM (\emp -> calcSalary service (employeeId emp) (employeeSalary emp) periodStart periodEnd) employees
   case sequence results of
     Left err -> pure $ Left err
     Right payrollResults -> pure $ Right payrollResults
@@ -174,10 +173,10 @@ selectEmployeeStmt =
     "SELECT id, name, salary, days_worked FROM employees WHERE id = $1"
     (E.param (E.nonNullable E.int8))
     ( D.rowList
-        ( D.column D.nonNullable D.int8,
-          D.column D.nonNullable D.text,
-          D.column D.nonNullable D.int8,
-          D.column D.nonNullable D.int2
+        ( D.column (D.nonNullable D.int8),
+          D.column (D.nonNullable D.text),
+          D.column (D.nonNullable D.int8),
+          D.column (D.nonNullable D.int2)
         )
     )
 
@@ -190,14 +189,14 @@ selectPayrollReportStmt =
     \ COALESCE(SUM(net_amount), 0) \
     \ FROM payroll WHERE period_start = $1 AND period_end = $2"
     ( (,)
-        <$> (E.param (E.nonNullable E.date))
-        <*> (E.param (E.nonNullable E.date))
+        <$> E.param (E.nonNullable E.date)
+        <*> E.param (E.nonNullable E.date)
     )
     ( D.rowList
-        ( D.column D.nonNullable D.int8,
-          D.column D.nonNullable D.int64,
-          D.column D.nonNullable D.int64,
-          D.column D.nonNullable D.int64
+        ( D.column (D.nonNullable D.int8),
+          D.column (D.nonNullable D.int64),
+          D.column (D.nonNullable D.int64),
+          D.column (D.nonNullable D.int64)
         )
     )
 
@@ -207,15 +206,15 @@ selectPayrollDetailsStmt =
     "SELECT employee_id, gross_amount, ndfl_amount, net_amount, days_worked \
     \ FROM payroll WHERE period_start = $1 AND period_end = $2 ORDER BY employee_id"
     ( (,)
-        <$> (E.param (E.nonNullable E.date))
-        <*> (E.param (E.nonNullable E.date))
+        <$> E.param (E.nonNullable E.date)
+        <*> E.param (E.nonNullable E.date)
     )
     ( D.rowList
-        ( D.column D.nonNullable D.int8,
-          D.column D.nonNullable D.int64,
-          D.column D.nonNullable D.int64,
-          D.column D.nonNullable D.int64,
-          D.column D.nonNullable D.int2
+        ( D.column (D.nonNullable D.int8),
+          D.column (D.nonNullable D.int64),
+          D.column (D.nonNullable D.int64),
+          D.column (D.nonNullable D.int64),
+          D.column (D.nonNullable D.int2)
         )
     )
 
@@ -224,14 +223,14 @@ insertPayrollPaymentStmt =
   Session.statement
     "INSERT INTO payroll_payments (employee_id, amount, payment_date) VALUES ($1, $2, CURRENT_DATE) RETURNING id"
     ( (,)
-        <$> (E.param (E.nonNullable E.int8))
-        <*> (E.param (E.nonNullable E.int8))
+        <$> E.param (E.nonNullable E.int8)
+        <*> E.param (E.nonNullable E.int8)
     )
-    (D.singleRow (D.column D.nonNullable D.int8))
+    (D.singleRow (D.column (D.nonNullable D.int8)))
 
 selectLastPayrollIdStmt :: Statement () Int64
 selectLastPayrollIdStmt =
   Session.statement
     "SELECT currval('payroll_payments_id_seq')"
     Session.noParams
-    (D.singleRow (D.column D.nonNullable D.int8))
+    (D.singleRow (D.column (D.nonNullable D.int8)))

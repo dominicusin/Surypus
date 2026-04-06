@@ -1,5 +1,4 @@
 {-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module DAL.Repository
@@ -35,7 +34,7 @@ class Repository repo entity | repo -> entity where
   update :: repo -> Int64 -> entity -> RepositoryM (Maybe entity)
   delete :: repo -> Int64 -> RepositoryM (Maybe entity)
 
-data RepositoryContext = RepositoryContext {rcPool :: Pool}
+newtype RepositoryContext = RepositoryContext {rcPool :: Pool}
 
 defaultRepositoryContext :: Pool -> RepositoryContext
 defaultRepositoryContext = RepositoryContext
@@ -49,4 +48,4 @@ isNotFoundMessage :: Text -> Bool
 isNotFoundMessage msg = "Not Found" `T.isInfixOf` msg
 
 runRepository :: RepositoryContext -> RepositoryT IO a -> IO (Either RepositoryError a)
-runRepository _ctx action = runExceptT action
+runRepository _ctx = runExceptT

@@ -8,7 +8,7 @@ module Core.Auth.Operations
     checkPasswordStrength,
     checkSessionExpired,
     checkSessionValid,
-    calculateSessionRemainingTime,
+    calcSessionRemainingTime,
     generateToken,
   )
 where
@@ -95,8 +95,8 @@ checkSessionValid session now = not (checkSessionExpired session now) && not (T.
 
 -- | Calculate remaining session time in seconds
 -- Инвариант: result >= 0
-calculateSessionRemainingTime :: Session -> UTCTime -> Double
-calculateSessionRemainingTime session now =
+calcSessionRemainingTime :: Session -> UTCTime -> Double
+calcSessionRemainingTime session now =
   if checkSessionExpired session now
     then 0
     else realToFrac (diffUTCTime (sExpireTime session) now)

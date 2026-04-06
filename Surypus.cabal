@@ -9,6 +9,7 @@ license:        GPL-3
 build-type:     Simple
 library
     exposed-modules:
+        Surypus.Core
         Core
         Core.Asset
         Core.Goods
@@ -69,6 +70,10 @@ library
         DAL.Repository.AccPlan
         DAL.Repository.AccTurn
         DAL.Repository.Container
+        DAL.Repository.User
+        DAL.Repository.RBAC
+        DAL.Repository.AuditLog
+        DAL.Repository.RefreshToken
         DB.Connection
         Domain
         Domain.Types
@@ -97,6 +102,50 @@ library
         Surypus.Z3
         Surypus.I18n
         Surypus.Reports
+        Surypus.API.Root
+        Surypus.API.Server
+        Surypus.API.Auth
+        Surypus.API.Authorization
+        Surypus.API.JWT
+        Surypus.API.Types
+        Surypus.API.Persons
+        Surypus.API.Goods
+        Surypus.API.Bills
+        Surypus.API.Sync
+        Surypus.API.IdPool
+        Surypus.API.Dashboard
+        Surypus.API.Health
+        Surypus.API.WebSocket
+        Surypus.API.Documents.Bills
+        Surypus.AppM
+        Surypus.Config
+        Surypus.Database.Pool
+        Surypus.Cache
+        Surypus.DB.Schema
+        Surypus.DB.Queries
+        Surypus.JWT
+        Surypus.RBAC
+        Surypus.RBAC.Store
+        Surypus.Audit
+        Surypus.API.JWTMiddleware
+        Surypus.API.AuthMiddleware
+        Surypus.API.RateLimit
+        Surypus.JobRunner
+        -- Service modules temporarily disabled for hasql 1.8 migration
+        -- Service.AccountingService
+        -- Service.AuditService
+        -- Service.InventoryService
+        -- Service.PayrollService
+        -- Service.ReportService
+        Service.BillService
+        Service.GoodsService
+        Service.LocationService
+        Service.OrderService
+        Service.PaymentService
+        Service.PersonService
+        Service.PriceService
+        Service.TaxService
+        Service.UnitService
 
     hs-source-dirs: src
 
@@ -113,6 +162,7 @@ library
         , QuickCheck >=2.14
         , cryptonite >=0.30
         , memory >=0.18
+        , directory >=1.3
         , transformers >=0.5
         , mtl >=2.3
         , stm >=2.5
@@ -129,6 +179,11 @@ library
         , servant >=0.20
         , servant-server >=0.20
         , servant-client >=0.20
+        , servant-auth-server >=0.4
+        , servant-swagger >= 0.3
+        , swagger2 >= 2.6
+        , persistent >=2.14
+        , persistent-template >=2.12
 
     default-language: Haskell2010
     ghc-options: -Wall
@@ -144,14 +199,22 @@ executable surypus
       , warp >=3.3
       , http-types >=0.12
       , wai >=3.2
+      , wai-websockets >=3.0
+      , websockets >=0.12
       , bytestring >=0.10
       , containers >=0.6
+      , directory >=1.3
+      , hasql-pool >=1.4
       , transformers >=0.5
       , time >=1.8
       , servant >=0.20
       , servant-server >=0.20
+      , servant-auth-server >=0.4
       , jose >=0.10
       , lens >=5.3
+      , mtl >=2.3
+      , persistent >=2.14
+      , persistent-postgresql >=2.14
   default-language: Haskell2010
   ghc-options: -threaded
 
@@ -172,9 +235,10 @@ test-suite test
       Integration.NegativeSpec
       Integration.PropertySpec
       TestFixtures
+      RBACSpec
   build-depends:
-        base >=4.12 && <5
-      , Surypus
+         base >=4.12 && <5
+       , Surypus
       , text >=1.2
       , time >=1.8
       , hspec >=2.10
@@ -188,8 +252,9 @@ test-suite test
       , hasql-pool >=1.4
       , transformers >=0.5
       , mtl >=2.3
-      , wai >=3.2
-      , warp >=3.3
+       , wai >=3.2
+       , wai-extra >=3.1
+       , warp >=3.3
       , http-types >=0.12
       , scotty >=0.20
       , lens >=5.3

@@ -1,5 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
+
 
 module Service.AuditService
   ( AuditService (..),
@@ -17,12 +16,13 @@ where
 import Data.Int (Int64)
 import Data.Text (Text)
 import qualified Data.Text as T
+import Data.Text.Encoding as TE (encodeUtf8)
 import Data.Time (UTCTime, getCurrentTime)
 import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
-import Hasql.Statement (Statement)
+import Hasql.Statement (Statement (..))
 
 data AuditService = AuditService
   { asPool :: Pool
@@ -117,60 +117,60 @@ logAuditEvent :: AuditService -> AuditEvent -> IO (Either Text Int64)
 logAuditEvent service event = do
   now <- getCurrentTime
   result <- use (asPool service) $ do
-    Session.execute
-      insertAuditEventStmt
-      ( now,
-        auditUserId event,
-        auditUsername event,
-        actionToText (auditAction event),
-        entityToText (auditEntityType event),
-        auditEntityId event,
-        auditChanges event,
-        auditIpAddress event,
-        auditDescription event
-      )
-    Session.query selectLastAuditIdStmt () :: Session.Session (Session.Result Int64)
+    _ <-
+      Session.statement
+        ( now,
+          auditUserId event,
+          auditUsername event,
+          actionToText (auditAction event),
+          entityToText (auditEntityType event),
+          auditEntityId event,
+          auditChanges event,
+          auditIpAddress event,
+          auditDescription event
+        )
+        insertAuditEventStmt
+    Session.statement () selectLastAuditIdStmt
   pure $ case result of
     Left err -> Left (T.pack (show err))
-    Right [auditId] -> Right auditId
-    Right _ -> Left "Failed to get audit ID"
+    Right auditId -> Right auditId
 
 getAuditLog :: AuditService -> Int -> Int -> IO (Either Text [AuditEvent])
 getAuditLog service limit offset = do
   result <-
     use (asPool service) $
-      Session.query
-        selectAuditLogStmt
+      Session.statement
         ( limit,
           offset
         )
+        selectAuditLogStmt
   pure $ case result of
     Left err -> Left (T.pack (show err))
-    Right rows -> Right (map rowToEvent rows)
+    Right rows -> Right (fmap rowToEvent rows)
 
 getAuditLogByEntity :: AuditService -> AuditEntityType -> Int64 -> IO (Either Text [AuditEvent])
 getAuditLogByEntity service entityType entityId = do
   result <-
     use (asPool service) $
-      Session.query
-        selectAuditByEntityStmt
+      Session.statement
         ( entityToText entityType,
           entityId
         )
+        selectAuditByEntityStmt
   pure $ case result of
     Left err -> Left (T.pack (show err))
-    Right rows -> Right (map rowToEvent rows)
+    Right rows -> Right (fmap rowToEvent rows)
 
 getAuditLogByUser :: AuditService -> Int64 -> IO (Either Text [AuditEvent])
 getAuditLogByUser service userId = do
   result <-
     use (asPool service) $
-      Session.query
+      Session.statement
+        userId
         selectAuditByUserStmt
-        (userId)
   pure $ case result of
     Left err -> Left (T.pack (show err))
-    Right rows -> Right (map rowToEvent rows)
+    Right rows -> Right (fmap rowToEvent rows)
 
 rowToEvent :: (Int64, UTCTime, Maybe Int64, Text, Text, Text, Maybe Int64, Maybe Text, Maybe Text, Text) -> AuditEvent
 rowToEvent (auditId, timestamp, userId, username, actionText, entityTypeText, entityId, changes, ipAddress, description) =
@@ -201,91 +201,96 @@ insertAuditEventStmt ::
     )
     Int64
 insertAuditEventStmt =
-  Session.statement
+  Statement
     "INSERT INTO audit_log (timestamp, user_id, username, action, entity_type, entity_id, changes, ip_address, description) \
     \ VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id"
-    ( (,,,,,,,)
-        <$> (E.param (E.nonNullable E.timestamptz))
-        <*> (E.param (E.nullable E.int8))
-        <*> (E.param (E.nonNullable E.text))
-        <*> (E.param (E.nonNullable E.text))
-        <*> (E.param (E.nonNullable E.text))
-        <*> (E.param (E.nullable E.int8))
-        <*> (E.param (E.nullable E.text))
-        <*> (E.param (E.nullable E.text))
-        <*> (E.param (E.nonNullable E.text))
+    ( (,,,,,,,,)
+        <$> E.param (E.nonNullable E.timestamptz)
+        <*> E.param (E.nullable E.int8)
+        <*> E.param (E.nonNullable E.text)
+        <*> E.param (E.nonNullable E.text)
+        <*> E.param (E.nonNullable E.text)
+        <*> E.param (E.nullable E.int8)
+        <*> E.param (E.nullable E.text)
+        <*> E.param (E.nullable E.text)
+        <*> E.param (E.nonNullable E.text)
     )
-    (D.singleRow (D.column D.nonNullable D.int8))
+    (D.singleRow (D.column (D.nonNullable D.int8)))
+    True
 
 selectLastAuditIdStmt :: Statement () Int64
 selectLastAuditIdStmt =
-  Session.statement
+  Statement
     "SELECT currval('audit_log_id_seq')"
-    Session.noParams
-    (D.singleRow (D.column D.nonNullable D.int8))
+    E.noParams
+    (D.singleRow (D.column (D.nonNullable D.int8)))
+    True
 
 selectAuditLogStmt :: Statement (Int, Int) [(Int64, UTCTime, Maybe Int64, Text, Text, Text, Maybe Int64, Maybe Text, Maybe Text, Text)]
 selectAuditLogStmt =
-  Session.statement
+  Statement
     "SELECT id, timestamp, user_id, username, action, entity_type, entity_id, changes, ip_address, description \
     \ FROM audit_log ORDER BY timestamp DESC LIMIT $1 OFFSET $2"
     ( (,)
-        <$> (E.param (E.nonNullable E.int4))
-        <*> (E.param (E.nonNullable E.int4))
+        <$> E.param (E.nonNullable E.int4)
+        <*> E.param (E.nonNullable E.int4)
     )
     ( D.rowList
-        ( D.column D.nonNullable D.int8,
-          D.column D.nonNullable D.timestamptz,
-          D.column D.nullable D.int8,
-          D.column D.nonNullable D.text,
-          D.column D.nonNullable D.text,
-          D.column D.nonNullable D.text,
-          D.column D.nullable D.int8,
-          D.column D.nullable D.text,
-          D.column D.nullable D.text,
-          D.column D.nonNullable D.text
+        ( D.column (D.nonNullable D.int8),
+          D.column (D.nonNullable D.timestamptz),
+          D.column (D.nullable D.int8),
+          D.column (D.nonNullable D.text),
+          D.column (D.nonNullable D.text),
+          D.column (D.nonNullable D.text),
+          D.column (D.nullable D.int8),
+          D.column (D.nullable D.text),
+          D.column (D.nullable D.text),
+          D.column (D.nonNullable D.text)
         )
     )
+    True
 
 selectAuditByEntityStmt :: Statement (Text, Int64) [(Int64, UTCTime, Maybe Int64, Text, Text, Text, Maybe Int64, Maybe Text, Maybe Text, Text)]
 selectAuditByEntityStmt =
-  Session.statement
+  Statement
     "SELECT id, timestamp, user_id, username, action, entity_type, entity_id, changes, ip_address, description \
     \ FROM audit_log WHERE entity_type = $1 AND entity_id = $2 ORDER BY timestamp DESC"
     ( (,)
-        <$> (E.param (E.nonNullable E.text))
-        <*> (E.param (E.nonNullable E.int8))
+        <$> E.param (E.nonNullable E.text)
+        <*> E.param (E.nonNullable E.int8)
     )
     ( D.rowList
-        ( D.column D.nonNullable D.int8,
-          D.column D.nonNullable D.timestamptz,
-          D.column D.nullable D.int8,
-          D.column D.nonNullable D.text,
-          D.column D.nonNullable D.text,
-          D.column D.nonNullable D.text,
-          D.column D.nullable D.int8,
-          D.column D.nullable D.text,
-          D.column D.nullable D.text,
-          D.column D.nonNullable D.text
+        ( D.column (D.nonNullable D.int8),
+          D.column (D.nonNullable D.timestamptz),
+          D.column (D.nullable D.int8),
+          D.column (D.nonNullable D.text),
+          D.column (D.nonNullable D.text),
+          D.column (D.nonNullable D.text),
+          D.column (D.nullable D.int8),
+          D.column (D.nullable D.text),
+          D.column (D.nullable D.text),
+          D.column (D.nonNullable D.text)
         )
     )
+    True
 
 selectAuditByUserStmt :: Statement Int64 [(Int64, UTCTime, Maybe Int64, Text, Text, Text, Maybe Int64, Maybe Text, Maybe Text, Text)]
 selectAuditByUserStmt =
-  Session.statement
+  Statement
     "SELECT id, timestamp, user_id, username, action, entity_type, entity_id, changes, ip_address, description \
     \ FROM audit_log WHERE user_id = $1 ORDER BY timestamp DESC"
     (E.param (E.nonNullable E.int8))
     ( D.rowList
-        ( D.column D.nonNullable D.int8,
-          D.column D.nonNullable D.timestamptz,
-          D.column D.nullable D.int8,
-          D.column D.nonNullable D.text,
-          D.column D.nonNullable D.text,
-          D.column D.nonNullable D.text,
-          D.column D.nullable D.int8,
-          D.column D.nullable D.text,
-          D.column D.nullable D.text,
-          D.column D.nonNullable D.text
+        ( D.column (D.nonNullable D.int8),
+          D.column (D.nonNullable D.timestamptz),
+          D.column (D.nullable D.int8),
+          D.column (D.nonNullable D.text),
+          D.column (D.nonNullable D.text),
+          D.column (D.nonNullable D.text),
+          D.column (D.nullable D.int8),
+          D.column (D.nullable D.text),
+          D.column (D.nullable D.text),
+          D.column (D.nonNullable D.text)
         )
     )
+    True

@@ -1,5 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TupleSections #-}
+
 
 module DB.TechCard
   ( listTechCards,
@@ -19,7 +18,7 @@ import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
-import Hasql.Statement (unpreparable)
+import Hasql.Statement (Statement)
 
 techCardRow :: D.Row TechCard
 techCardRow =
@@ -52,7 +51,7 @@ listTechCards pool = do
     Left _ -> pure []
   where
     stmt =
-      unpreparable
+      Statement
         "SELECT id, processor_id, goods_group_id, kind, code, flags, formula FROM tech_card ORDER BY id"
         E.noParams
         (D.rowList techCardRow)
@@ -65,7 +64,7 @@ getTechCard pool tid = do
     Left _ -> pure Nothing
   where
     stmt =
-      unpreparable
+      Statement
         "SELECT id, processor_id, goods_group_id, kind, code, flags, formula FROM tech_card WHERE id = $1"
         (E.param (E.nonNullable E.int8))
         (D.rowMaybe techCardRow)
@@ -78,7 +77,7 @@ createTechCard pool pid gid kind formula = do
     Left _ -> pure 0
   where
     stmt =
-      unpreparable
+      Statement
         "SELECT create_tech_card($1,$2,$3,$4)"
         ( ((\(a, _, _, _) -> a) >$< E.param (E.nonNullable E.int8))
             <> ((\(_, b, _, _) -> b) >$< E.param (E.nonNullable E.int8))
@@ -98,7 +97,7 @@ addTechLine pool techId lineNo goodsId qty sign formula lineTime lineCost = do
     lineCost' = fromMaybe 0 lineCost
     params = (techId, lineNo, goodsId, qty, sign, formula, lineTime', lineCost')
     stmt =
-      unpreparable
+      Statement
         "SELECT add_tech_line($1,$2,$3,$4,$5,$6,$7,$8)"
         ( ((\(a, _, _, _, _, _, _, _) -> a) >$< E.param (E.nonNullable E.int8))
             <> ((\(_, b, _, _, _, _, _, _) -> b) >$< E.param (E.nullable E.int4))
@@ -119,7 +118,7 @@ listTechLines pool techId = do
     Left _ -> pure []
   where
     stmt =
-      unpreparable
+      Statement
         "SELECT tech_card_id, line_no, goods_id, qty, sign, formula, line_time, line_cost \
         \FROM tech_line WHERE tech_card_id = $1 ORDER BY line_no"
         (E.param (E.nonNullable E.int8))

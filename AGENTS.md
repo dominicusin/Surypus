@@ -15,28 +15,28 @@ Primary development focus is on the Haskell codebase (Surypus).
 
 ```bash
 # Build the project
-cd Surypus && stack build
+stack build
 
 # Run all tests
-cd Surypus && stack test
+stack test
 
 # Run a single test (by test name)
-cd Surypus && stack test --test-arguments "--match 'VAT'"
+stack test --test-arguments "--match 'VAT'"
 
 # Run a single test file
-cd Surypus && stack test --test-arguments "test/Test.hs"
+stack test --test-arguments "test/Test.hs"
 
 # Watch mode (rebuild on changes)
-cd Surypus && stack build --file-watch
+stack build --file-watch
 
 # REPL for interactive development
-cd Surypus && stack repl
+stack repl
 
 # Typecheck without building
-cd Surypus && stack ghc -- -fno-code
+stack ghc -- -fno-code
 
 # Run hlint (if installed)
-cd Surypus && hlint src/
+hlint src/
 ```
 
 ```

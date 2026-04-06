@@ -23,7 +23,7 @@ import Hasql.Encoders (param)
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
-import Hasql.Statement (unpreparable)
+import Hasql.Statement (Statement (..))
 
 data AppUser = AppUser
   { appUserId :: Int64,
@@ -63,10 +63,11 @@ getUserByLogin pool login = do
     Left _ -> pure Nothing
   where
     stmt =
-      unpreparable
+      Statement
         "SELECT id, login, name, password, flags, status FROM users WHERE login = $1 AND status >= 0"
         (param (E.nonNullable E.text))
         (rowMaybe userRow)
+        True
 
 verifyUserCredentials :: Pool -> Text -> Text -> IO (Maybe AppUser)
 verifyUserCredentials pool login password = do

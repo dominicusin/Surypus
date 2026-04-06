@@ -14,6 +14,8 @@ where
 
 import Core.Inventory.Types.Inventory (InventoryStatus (..))
 import Data.Int (Int32, Int64)
+import Data.Text (Text)
+import qualified Data.Text as T
 import Data.Time (Day)
 import Domain.Inventory
 import Domain.Types (Pagination (..))
@@ -21,7 +23,7 @@ import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
-import Hasql.Statement (unpreparable)
+import Hasql.Statement (Statement)
 
 listInventoryDocs :: Pool -> Pagination -> IO [InventoryDocument]
 listInventoryDocs pool Pagination {..} = do
@@ -31,7 +33,7 @@ listInventoryDocs pool Pagination {..} = do
     Left _ -> pure []
   where
     stmt =
-      unpreparable
+      Statement
         "SELECT id, code, dt, warehouse_id, status, memo, created_by, created_at, updated_at FROM inventory_doc ORDER BY dt DESC LIMIT $1 OFFSET $2"
         ( E.param (E.nonNullable E.int4)
             <> E.param (E.nonNullable E.int4)
@@ -46,21 +48,21 @@ getInventoryDoc pool docId = do
     Left _ -> pure Nothing
   where
     stmt =
-      unpreparable
+      Statement
         "SELECT id, code, dt, warehouse_id, status, memo, created_by, created_at, updated_at FROM inventory_doc WHERE id = $1"
         (E.param (E.nonNullable E.int8))
         (D.rowMaybe inventoryDocRow)
 
-createInventoryDoc :: Pool -> InventoryDocumentInput -> IO InventoryDocument
+createInventoryDoc :: Pool -> InventoryDocumentInput -> IO (Either Text InventoryDocument)
 createInventoryDoc pool InventoryDocumentInput {..} = do
   result <- use pool $ Session.statement params stmt
   case result of
-    Right x -> pure x
-    Left _ -> error "createInventoryDoc failed"
+    Right x -> pure $ Right x
+    Left err -> (pure . Left) . T.pack $ show err
   where
     params = (idiCode, idiDate, idiWarehouseId, inventoryStatusToInt IS_Draft, idiMemo, idiCreatedBy)
     stmt =
-      unpreparable
+      Statement
         "INSERT INTO inventory_doc (code, dt, warehouse_id, status, memo, created_by) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, code, dt, warehouse_id, status, memo, created_by, created_at, updated_at"
         ( E.param (E.nonNullable E.text)
             <> E.param (E.nonNullable E.date)
@@ -79,21 +81,21 @@ listInventoryLines pool docId = do
     Left _ -> pure []
   where
     stmt =
-      unpreparable
+      Statement
         "SELECT id, inventory_id, line_no, goods_id, unit_id, qtty_booked, qtty_fact, diff, diff_amount, price, flags FROM inventory_line WHERE inventory_id = $1 ORDER BY line_no"
         (E.param (E.nonNullable E.int8))
         (D.rowList inventoryLineRow)
 
-addInventoryLine :: Pool -> InventoryLineInput -> IO InventoryLine
+addInventoryLine :: Pool -> InventoryLineInput -> IO (Either Text InventoryLine)
 addInventoryLine pool InventoryLineInput {..} = do
   result <- use pool $ Session.statement params stmt
   case result of
-    Right x -> pure x
-    Left _ -> error "addInventoryLine failed"
+    Right x -> pure $ Right x
+    Left err -> (pure . Left) . T.pack $ show err
   where
     params = (iliInventoryId, iliLineNo, iliGoodsId, iliUnitId, iliExpectedQtty, iliActualQtty, iliPrice)
     stmt =
-      unpreparable
+      Statement
         "INSERT INTO inventory_line (inventory_id, line_no, goods_id, unit_id, qtty_booked, qtty_fact, price) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, inventory_id, line_no, goods_id, unit_id, qtty_booked, qtty_fact, diff, diff_amount, price, flags"
         ( E.param (E.nonNullable E.int8)
             <> E.param (E.nonNullable E.int4)
@@ -113,7 +115,7 @@ getInventorySummary pool docId = do
     Left _ -> pure Nothing
   where
     stmt =
-      unpreparable
+      Statement
         "SELECT sum_booked::double precision, sum_fact::double precision, sum_diff::double precision, sum_surplus::double precision, sum_shortage::double precision, item_count::int8, surplus_count::int8, shortage_count::int8, exact_count::int8 FROM inventory_summary($1)"
         (E.param (E.nonNullable E.int8))
         (D.rowMaybe inventorySummaryRow)
@@ -127,7 +129,7 @@ updateInventoryStatus pool docId status = do
   where
     params = (docId, inventoryStatusToInt status)
     stmt =
-      unpreparable
+      Statement
         "UPDATE inventory_doc SET status = $2, updated_at = NOW() WHERE id = $1 RETURNING id"
         ( E.param (E.nonNullable E.int8)
             <> E.param (E.nonNullable E.int4)

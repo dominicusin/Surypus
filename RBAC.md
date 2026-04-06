@@ -213,6 +213,31 @@ GET /v1/users           - UsersRead
 POST /v1/users          - UsersWrite
 ```
 
+#### RBAC Administration
+```
+GET /v1/rbac/roles              - AdminAccess
+POST /v1/rbac/roles             - AdminAccess
+PUT /v1/rbac/roles/:name        - AdminAccess
+DELETE /v1/rbac/roles/:name     - AdminAccess
+GET /v1/rbac/grants             - AdminAccess
+POST /v1/rbac/grants            - AdminAccess
+GET /v1/rbac/grants/active?principal=...              - AdminAccess
+POST /v1/rbac/grants/cleanup                         - AdminAccess
+PUT /v1/rbac/grants/:from/:to/:permission?resource=... - AdminAccess
+DELETE /v1/rbac/grants/:from/:to/:permission?resource=... - AdminAccess
+GET /v1/rbac/audit?principal=...&resource=...&offset=...&limit=... - AdminAccess
+POST /v1/rbac/audit/cleanup?keep=...                     - AdminAccess
+```
+
+Dynamic roles are stored as scoped permissions and can be restricted to a
+canonical resource key such as `location:1`, `bill:42`, `report:sales`, or
+`accounting-entry:17`.
+
+Delegation grants support temporary escalation through an expiry timestamp.
+Expired grants can be cleaned up explicitly through the cleanup endpoint.
+Updating a grant refreshes its expiry window while keeping its principal and scoped permission key.
+Audit entries can be paginated with `offset`/`limit` and trimmed with the audit cleanup endpoint.
+
 #### Reports
 ```
 GET /v1/reports                 - ReportsRead
@@ -258,6 +283,15 @@ requirePermission :: Text -> Permission -> Handler ()
 ```
 
 This function returns a 403 Forbidden response if the permission check fails.
+
+The runtime request pipeline now also supports a request-aware authorization
+resolver via advanced middleware. It can:
+
+1. Authenticate non-public requests
+2. Resolve required permission from the incoming request path/method
+3. Load dynamic roles and delegation grants from an RBAC store
+4. Apply resource-level checks using scoped permissions
+5. Emit audit entries for allow/deny decisions
 
 ## Usage Examples
 

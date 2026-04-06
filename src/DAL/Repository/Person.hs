@@ -54,7 +54,7 @@ import qualified Data.Text as T
 import Hasql.Pool (Pool)
 import qualified Surypus.Validation as Validation
 
-data PersonRepository = PersonRepository
+newtype PersonRepository = PersonRepository
   { prPool :: Pool
   }
 
@@ -166,4 +166,4 @@ mkPersonRepository :: Pool -> PersonRepository
 mkPersonRepository = PersonRepository
 
 runPersonRepository :: PersonRepository -> RepositoryT IO a -> IO (Either RepositoryError a)
-runPersonRepository repo action = runRepository (defaultRepositoryContext (prPool repo)) action
+runPersonRepository repo = runRepository (defaultRepositoryContext (prPool repo))

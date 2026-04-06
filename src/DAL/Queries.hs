@@ -9,13 +9,37 @@ import Data.Functor.Contravariant ((>$<))
 import Data.Int (Int16, Int64)
 import Data.Text (Text, splitOn)
 import qualified Data.Text as T
+import Data.Text.Encoding as TE
 import Data.Time (Day)
 import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
-import Hasql.Statement (preparable)
+import Hasql.Statement (Statement (..))
 import Surypus.Types (Decimal (..))
+
+-- | Helper to create prepared statements (old hasql API compatibility)
+preparable :: T.Text -> E.Params params -> D.Result result -> Statement params result
+preparable sql encoder decoder = Statement (TE.encodeUtf8 sql) encoder decoder True
+
+personSortKeyText :: Maybe PersonSortBy -> Text
+personSortKeyText (Just PersonSortByName) = "name"
+personSortKeyText (Just PersonSortByINN) = "inn"
+personSortKeyText _ = "id"
+
+goodsSortKeyText :: Maybe GoodsSortBy -> Text
+goodsSortKeyText (Just GoodsSortByName) = "name"
+goodsSortKeyText (Just GoodsSortByCode) = "code"
+goodsSortKeyText _ = "id"
+
+billSortKeyText :: Maybe BillSortBy -> Text
+billSortKeyText (Just BillSortByDate) = "doc_date"
+billSortKeyText (Just BillSortByTotal) = "total"
+billSortKeyText _ = "id"
+
+sortDirDescending :: Maybe SortDir -> Bool
+sortDirDescending (Just Desc) = True
+sortDirDescending _ = False
 
 personRowDecoder :: D.Row Person
 personRowDecoder =
@@ -204,11 +228,11 @@ currencyRowDecoder =
 
 dashboardStatsRowDecoder :: D.Row DashboardStats
 dashboardStatsRowDecoder =
-  DashboardStats
-    <$> (fromIntegral <$> D.column (D.nonNullable D.int8))
-    <*> (fromIntegral <$> D.column (D.nonNullable D.int8))
-    <*> (fromIntegral <$> D.column (D.nonNullable D.int8))
-    <*> (fromIntegral <$> D.column (D.nonNullable D.int8))
+  (\r o g c -> DashboardStats (fromIntegral r) (fromIntegral o) (fromIntegral g) (fromIntegral c))
+    <$> D.column (D.nonNullable D.int8)
+    <*> D.column (D.nonNullable D.int8)
+    <*> D.column (D.nonNullable D.int8)
+    <*> D.column (D.nonNullable D.int8)
 
 getPersons :: Pool -> IO (QueryResult [Person])
 getPersons pool = do
@@ -230,7 +254,7 @@ searchPersons pool query = do
           "SELECT id, code::text, name::text, inn::text, kpp::text, person_type, status FROM persons.person WHERE name ILIKE $1 OR code ILIKE $1 OR inn ILIKE $1 ORDER BY id"
           (E.param (E.nonNullable E.text))
           (D.rowList personRowDecoder)
-  res <- use pool $ Session.statement (T.pack ("%" <> T.unpack query <> "%")) stmt
+  res <- use pool $ Session.statement ("%" <> query <> "%") stmt
   case res of
     Right rows -> pure $ QuerySuccess rows
     Left err -> pure $ QueryError (T.pack $ show err)
@@ -267,7 +291,7 @@ searchGoods pool query = do
           "SELECT id, code::text, name::text, barcode::text, unit_id, parent_id FROM goods WHERE name ILIKE $1 OR code ILIKE $1 OR barcode ILIKE $1 ORDER BY id"
           (E.param (E.nonNullable E.text))
           (D.rowList goodsRowDecoder)
-  res <- use pool $ Session.statement (T.pack ("%" <> T.unpack query <> "%")) stmt
+  res <- use pool $ Session.statement ("%" <> query <> "%") stmt
   case res of
     Right rows -> pure $ QuerySuccess rows
     Left err -> pure $ QueryError (T.pack $ show err)
@@ -556,19 +580,14 @@ getInventory pool = do
 -- | Get persons with server-side SQL pagination
 getPersonsPaginated :: Pool -> PersonFilter -> Maybe PersonSortBy -> Maybe SortDir -> Pagination -> IO (QueryResult (PaginatedResult Person))
 getPersonsPaginated pool filter' mSortBy mSortDir pagination = do
-  let sortCol = case mSortBy of
-        Just PersonSortByName -> "name"
-        Just PersonSortByINN -> "inn"
-        _ -> "id"
-      sortDir = case mSortDir of
-        Just Desc -> "DESC"
-        _ -> "ASC"
-      limitVal = fromIntegral (pgLimit pagination) :: Int64
+  let limitVal = fromIntegral (pgLimit pagination) :: Int64
       offsetVal = fromIntegral (pgOffset pagination) :: Int64
       nameFilter = pfName filter'
       innFilter = pfINN filter'
       typeFilter = fmap fromIntegral (pfPersonType filter') :: Maybe Int16
       statusFilter = fmap fromIntegral (pfStatus filter') :: Maybe Int16
+      sortKey = personSortKeyText mSortBy
+      sortDesc = sortDirDescending mSortDir
       whereClause =
         " WHERE ($1 IS NULL OR name ILIKE '%' || $1 || '%')"
           <> " AND ($2 IS NULL OR inn = $2)"
@@ -578,24 +597,29 @@ getPersonsPaginated pool filter' mSortBy mSortDir pagination = do
         "SELECT id, code::text, name::text, inn::text, kpp::text, person_type, status FROM persons.person"
           <> whereClause
           <> " ORDER BY "
-          <> sortCol
-          <> " "
-          <> sortDir
-          <> " LIMIT $5 OFFSET $6"
+          <> "CASE WHEN $5 = 'name' AND NOT $6 THEN name END ASC, "
+          <> "CASE WHEN $5 = 'name' AND $6 THEN name END DESC, "
+          <> "CASE WHEN $5 = 'inn' AND NOT $6 THEN inn END ASC, "
+          <> "CASE WHEN $5 = 'inn' AND $6 THEN inn END DESC, "
+          <> "CASE WHEN $5 = 'id' AND NOT $6 THEN id END ASC, "
+          <> "CASE WHEN $5 = 'id' AND $6 THEN id END DESC, "
+          <> "id ASC LIMIT $7 OFFSET $8"
       countSql = "SELECT COUNT(*) FROM persons.person" <> whereClause
       filterParams =
-        ((nameFilter, innFilter, typeFilter, statusFilter, limitVal, offsetVal))
+        (nameFilter, innFilter, typeFilter, statusFilter, sortKey, sortDesc, limitVal, offsetVal)
       countFilterParams :: (Maybe Text, Maybe Text, Maybe Int16, Maybe Int16)
       countFilterParams = (nameFilter, innFilter, typeFilter, statusFilter)
       listStmt =
         preparable
           listSql
-          ( ((\(_, _, _, _, _, _) -> Nothing) >$< E.param (E.nullable E.text))
-              <> ((\(_, b, _, _, _, _) -> b) >$< E.param (E.nullable E.text))
-              <> ((\(_, _, c, _, _, _) -> c) >$< E.param (E.nullable E.int2))
-              <> ((\(_, _, _, d, _, _) -> d) >$< E.param (E.nullable E.int2))
-              <> ((\(_, _, _, _, e, _) -> e) >$< E.param (E.nonNullable E.int8))
-              <> ((\(_, _, _, _, _, f) -> f) >$< E.param (E.nonNullable E.int8))
+          ( ((\(a, _, _, _, _, _, _, _) -> a) >$< E.param (E.nullable E.text))
+              <> ((\(_, b, _, _, _, _, _, _) -> b) >$< E.param (E.nullable E.text))
+              <> ((\(_, _, c, _, _, _, _, _) -> c) >$< E.param (E.nullable E.int2))
+              <> ((\(_, _, _, d, _, _, _, _) -> d) >$< E.param (E.nullable E.int2))
+              <> ((\(_, _, _, _, e, _, _, _) -> e) >$< E.param (E.nonNullable E.text))
+              <> ((\(_, _, _, _, _, f, _, _) -> f) >$< E.param (E.nonNullable E.bool))
+              <> ((\(_, _, _, _, _, _, g, _) -> g) >$< E.param (E.nonNullable E.int8))
+              <> ((\(_, _, _, _, _, _, _, h) -> h) >$< E.param (E.nonNullable E.int8))
           )
           (D.rowList personRowDecoder)
       countStmt =
@@ -624,18 +648,13 @@ getPersonsPaginated pool filter' mSortBy mSortDir pagination = do
 -- | Get goods with server-side SQL pagination
 getGoodsPaginated :: Pool -> GoodsFilter -> Pagination -> Maybe GoodsSortBy -> Maybe SortDir -> IO (QueryResult (PaginatedResult Goods))
 getGoodsPaginated pool filter' pagination mSortBy mSortDir = do
-  let sortCol = case mSortBy of
-        Just GoodsSortByName -> "name"
-        Just GoodsSortByCode -> "code"
-        _ -> "id"
-      sortDir = case mSortDir of
-        Just Desc -> "DESC"
-        _ -> "ASC"
-      limitVal = fromIntegral (pgLimit pagination) :: Int64
+  let limitVal = fromIntegral (pgLimit pagination) :: Int64
       offsetVal = fromIntegral (pgOffset pagination) :: Int64
       nameFilter = gfName filter'
       barcodeFilter = gfBarcode filter'
       codeFilter = gfCode filter'
+      sortKey = goodsSortKeyText mSortBy
+      sortDesc = sortDirDescending mSortDir
       whereClause =
         " WHERE ($1 IS NULL OR name ILIKE '%' || $1 || '%')"
           <> " AND ($2 IS NULL OR barcode = $2)"
@@ -644,23 +663,28 @@ getGoodsPaginated pool filter' pagination mSortBy mSortDir = do
         "SELECT id, code::text, name::text, barcode::text, unit_id, parent_id FROM goods"
           <> whereClause
           <> " ORDER BY "
-          <> sortCol
-          <> " "
-          <> sortDir
-          <> " LIMIT $4 OFFSET $5"
+          <> "CASE WHEN $4 = 'name' AND NOT $5 THEN name END ASC, "
+          <> "CASE WHEN $4 = 'name' AND $5 THEN name END DESC, "
+          <> "CASE WHEN $4 = 'code' AND NOT $5 THEN code END ASC, "
+          <> "CASE WHEN $4 = 'code' AND $5 THEN code END DESC, "
+          <> "CASE WHEN $4 = 'id' AND NOT $5 THEN id END ASC, "
+          <> "CASE WHEN $4 = 'id' AND $5 THEN id END DESC, "
+          <> "id ASC LIMIT $6 OFFSET $7"
       countSql = "SELECT COUNT(*) FROM goods" <> whereClause
-      listParams :: (Maybe Text, Maybe Text, Maybe Text, Int64, Int64)
-      listParams = (nameFilter, barcodeFilter, codeFilter, limitVal, offsetVal)
+      listParams :: (Maybe Text, Maybe Text, Maybe Text, Text, Bool, Int64, Int64)
+      listParams = (nameFilter, barcodeFilter, codeFilter, sortKey, sortDesc, limitVal, offsetVal)
       countParams :: (Maybe Text, Maybe Text, Maybe Text)
       countParams = (nameFilter, barcodeFilter, codeFilter)
       listStmt =
         preparable
           listSql
-          ( ((\(_, _, _, _, _) -> Nothing) >$< E.param (E.nullable E.text))
-              <> ((\(_, b, _, _, _) -> b) >$< E.param (E.nullable E.text))
-              <> ((\(_, _, c, _, _) -> c) >$< E.param (E.nullable E.text))
-              <> ((\(_, _, _, d, _) -> d) >$< E.param (E.nonNullable E.int8))
-              <> ((\(_, _, _, _, e) -> e) >$< E.param (E.nonNullable E.int8))
+          ( ((\(a, _, _, _, _, _, _) -> a) >$< E.param (E.nullable E.text))
+              <> ((\(_, b, _, _, _, _, _) -> b) >$< E.param (E.nullable E.text))
+              <> ((\(_, _, c, _, _, _, _) -> c) >$< E.param (E.nullable E.text))
+              <> ((\(_, _, _, d, _, _, _) -> d) >$< E.param (E.nonNullable E.text))
+              <> ((\(_, _, _, _, e, _, _) -> e) >$< E.param (E.nonNullable E.bool))
+              <> ((\(_, _, _, _, _, f, _) -> f) >$< E.param (E.nonNullable E.int8))
+              <> ((\(_, _, _, _, _, _, g) -> g) >$< E.param (E.nonNullable E.int8))
           )
           (D.rowList goodsRowDecoder)
       countStmt =
@@ -818,20 +842,15 @@ getReports pool = do
 -- | Get bills with server-side SQL pagination
 getBillsPaginated :: Pool -> BillFilter -> Pagination -> Maybe BillSortBy -> Maybe SortDir -> IO (QueryResult (PaginatedResult Bill))
 getBillsPaginated pool filter' pagination mSortBy mSortDir = do
-  let sortCol = case mSortBy of
-        Just BillSortByDate -> "doc_date"
-        Just BillSortByTotal -> "total"
-        _ -> "id"
-      sortDir = case mSortDir of
-        Just Desc -> "DESC"
-        _ -> "ASC"
-      limitVal = fromIntegral (pgLimit pagination) :: Int64
+  let limitVal = fromIntegral (pgLimit pagination) :: Int64
       offsetVal = fromIntegral (pgOffset pagination) :: Int64
       typeFilter = fmap fromIntegral (bfBillType filter') :: Maybe Int16
       statusFilter = fmap fromIntegral (bfStatus filter') :: Maybe Int16
       personFilter = bfPersonId filter'
       dateFromFilter = bfDateFrom filter'
       dateToFilter = bfDateTo filter'
+      sortKey = billSortKeyText mSortBy
+      sortDesc = sortDirDescending mSortDir
       whereClause =
         " WHERE ($1 IS NULL OR bill_type = $1)"
           <> " AND ($2 IS NULL OR doc_status = $2)"
@@ -842,25 +861,30 @@ getBillsPaginated pool filter' pagination mSortBy mSortDir = do
         "SELECT id, code::text, bill_type, doc_status, doc_date, person_id, location_id, total, discount_amount, tax_amount FROM bill"
           <> whereClause
           <> " ORDER BY "
-          <> sortCol
-          <> " "
-          <> sortDir
-          <> " LIMIT $6 OFFSET $7"
+          <> "CASE WHEN $6 = 'doc_date' AND NOT $7 THEN doc_date END ASC, "
+          <> "CASE WHEN $6 = 'doc_date' AND $7 THEN doc_date END DESC, "
+          <> "CASE WHEN $6 = 'total' AND NOT $7 THEN total END ASC, "
+          <> "CASE WHEN $6 = 'total' AND $7 THEN total END DESC, "
+          <> "CASE WHEN $6 = 'id' AND NOT $7 THEN id END ASC, "
+          <> "CASE WHEN $6 = 'id' AND $7 THEN id END DESC, "
+          <> "id ASC LIMIT $8 OFFSET $9"
       countSql = "SELECT COUNT(*) FROM bill" <> whereClause
-      listParams :: (Maybe Int16, Maybe Int16, Maybe Int64, Maybe Day, Maybe Day, Int64, Int64)
-      listParams = (typeFilter, statusFilter, personFilter, dateFromFilter, dateToFilter, limitVal, offsetVal)
+      listParams :: (Maybe Int16, Maybe Int16, Maybe Int64, Maybe Day, Maybe Day, Text, Bool, Int64, Int64)
+      listParams = (typeFilter, statusFilter, personFilter, dateFromFilter, dateToFilter, sortKey, sortDesc, limitVal, offsetVal)
       countParams :: (Maybe Int16, Maybe Int16, Maybe Int64, Maybe Day, Maybe Day)
       countParams = (typeFilter, statusFilter, personFilter, dateFromFilter, dateToFilter)
       listStmt =
         preparable
           listSql
-          ( ((\(_, _, _, _, _, _, _) -> Nothing) >$< E.param (E.nullable E.int2))
-              <> ((\(_, b, _, _, _, _, _) -> b) >$< E.param (E.nullable E.int2))
-              <> ((\(_, _, c, _, _, _, _) -> c) >$< E.param (E.nullable E.int8))
-              <> ((\(_, _, _, d, _, _, _) -> d) >$< E.param (E.nullable E.date))
-              <> ((\(_, _, _, _, e, _, _) -> e) >$< E.param (E.nullable E.date))
-              <> ((\(_, _, _, _, _, f, _) -> f) >$< E.param (E.nonNullable E.int8))
-              <> ((\(_, _, _, _, _, _, g) -> g) >$< E.param (E.nonNullable E.int8))
+          ( ((\(a, _, _, _, _, _, _, _, _) -> a) >$< E.param (E.nullable E.int2))
+              <> ((\(_, b, _, _, _, _, _, _, _) -> b) >$< E.param (E.nullable E.int2))
+              <> ((\(_, _, c, _, _, _, _, _, _) -> c) >$< E.param (E.nullable E.int8))
+              <> ((\(_, _, _, d, _, _, _, _, _) -> d) >$< E.param (E.nullable E.date))
+              <> ((\(_, _, _, _, e, _, _, _, _) -> e) >$< E.param (E.nullable E.date))
+              <> ((\(_, _, _, _, _, f, _, _, _) -> f) >$< E.param (E.nonNullable E.text))
+              <> ((\(_, _, _, _, _, _, g, _, _) -> g) >$< E.param (E.nonNullable E.bool))
+              <> ((\(_, _, _, _, _, _, _, h, _) -> h) >$< E.param (E.nonNullable E.int8))
+              <> ((\(_, _, _, _, _, _, _, _, i) -> i) >$< E.param (E.nonNullable E.int8))
           )
           (D.rowList billRowDecoder)
       countStmt =

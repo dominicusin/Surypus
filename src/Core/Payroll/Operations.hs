@@ -4,8 +4,8 @@ module Core.Payroll.Operations
   ( PayrollOpResult (..),
     validatePayrollPeriod,
     validateEmployeeRecord,
-    calculateNetFromGross,
-    calculateGrossFromNet,
+    calcNetFromGross,
+    calcGrossFromNet,
     verifyTaxWithholding,
     verifySalaryAccruals,
     checkNegativeDeductions,
@@ -22,7 +22,7 @@ module Core.Payroll.Operations
   )
 where
 
-import Core.Payroll.Types
+import Core.Payroll.Types hiding (calcGrossFromNet)
 import Data.List (sortBy)
 import Data.Time (Day)
 import qualified Data.Time as T
@@ -65,8 +65,8 @@ validateEmployeeRecord s
 -- | Calculate net salary from gross
 -- Инвариант: net <= gross (удержания не превышают начисления)
 -- Тип: gross -> tax rate -> net (если успех)
-calculateNetFromGross :: Double -> Double -> Either String Double
-calculateNetFromGross gross taxRate
+calcNetFromGross :: Double -> Double -> Either String Double
+calcNetFromGross gross taxRate
   | gross < 0 = Left "Gross salary cannot be negative"
   | taxRate < 0 || taxRate > 100 = Left "Tax rate must be between 0 and 100"
   | net > gross = Left "Net salary cannot exceed gross"
@@ -76,8 +76,8 @@ calculateNetFromGross gross taxRate
 
 -- | Calculate gross salary from net
 -- Инвариант: gross >= net
-calculateGrossFromNet :: Double -> Double -> Either String Double
-calculateGrossFromNet net taxRate
+calcGrossFromNet :: Double -> Double -> Either String Double
+calcGrossFromNet net taxRate
   | net < 0 = Left "Net salary cannot be negative"
   | taxRate < 0 || taxRate >= 100 = Left "Tax rate must be between 0 and 100"
   | otherwise = Right gross

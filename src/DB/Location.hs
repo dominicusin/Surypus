@@ -18,7 +18,7 @@ import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
-import Hasql.Statement (unpreparable)
+import Hasql.Statement (Statement)
 
 locationRowDecoder :: D.Row Location
 locationRowDecoder =
@@ -40,7 +40,7 @@ listLocations pool (Pagination limit offset) LocationFilter {..} = do
     Left _ -> pure []
   where
     stmt =
-      unpreparable
+      Statement
         "SELECT id, code, name, ltype, address, status, capacity, parent_id FROM location WHERE ($3 IS NULL OR name ILIKE $3) AND ($4 IS NULL OR ltype = $4) ORDER BY id LIMIT $1 OFFSET $2"
         ( E.param (E.nonNullable E.int4)
             <> E.param (E.nonNullable E.int4)
@@ -57,7 +57,7 @@ getLocation pool lid = do
     Left _ -> pure Nothing
   where
     stmt =
-      unpreparable
+      Statement
         "SELECT id, code, name, ltype, address, status, capacity, parent_id FROM location WHERE id = $1"
         (E.param (E.nonNullable E.int8))
         (D.rowMaybe locationRowDecoder)
@@ -79,7 +79,7 @@ createLocation pool Location {..} = do
         locationParent
       )
     stmt =
-      unpreparable
+      Statement
         "INSERT INTO location (code, name, ltype, address, status, capacity, parent_id) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id"
         ( E.param (E.nullable E.text)
             <> E.param (E.nonNullable E.text)
@@ -109,7 +109,7 @@ updateLocation pool lid Location {..} = do
         locationParent
       )
     stmt =
-      unpreparable
+      Statement
         "UPDATE location SET code = $2, name = $3, ltype = $4, address = $5, status = $6, capacity = $7, parent_id = $8, flags = flags WHERE id = $1"
         ( E.param (E.nonNullable E.int8)
             <> E.param (E.nullable E.text)
@@ -130,7 +130,7 @@ deleteLocation pool lid = do
     Left _ -> pure False
   where
     stmt =
-      unpreparable
+      Statement
         "DELETE FROM location WHERE id = $1"
         (E.param (E.nonNullable E.int8))
         D.noResult

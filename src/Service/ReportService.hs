@@ -1,5 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
+
 
 module Service.ReportService
   ( ReportService (..),
@@ -84,7 +83,7 @@ generateSalesReport service fromDate toDate = do
 generateInventoryReport :: ReportService -> Maybe Int64 -> IO (Either Text InventoryReport)
 generateInventoryReport service mLocationId = do
   result <- case mLocationId of
-    Just locId -> use (rsPool service) $ Session.query selectInventoryByLocationStmt (locId)
+    Just locId -> use (rsPool service) $ Session.query selectInventoryByLocationStmt locId
     Nothing -> use (rsPool service) $ Session.query selectInventoryTotalStmt ()
   pure $ case result of
     Left err -> Left (T.pack (show err))
@@ -163,13 +162,13 @@ selectSalesReportStmt =
     "SELECT COUNT(*), COALESCE(SUM(total_sum), 0), COALESCE(SUM(tax_sum), 0) \
     \ FROM bills WHERE bill_date BETWEEN $1 AND $2"
     ( (,)
-        <$> (E.param (E.nonNullable E.date))
-        <*> (E.param (E.nonNullable E.date))
+        <$> E.param (E.nonNullable E.date)
+        <*> E.param (E.nonNullable E.date)
     )
     ( D.rowList
-        ( D.column D.nonNullable D.int8,
-          D.column D.nonNullable D.int8,
-          D.column D.nonNullable D.int8
+        ( D.column (D.nonNullable D.int8),
+          D.column (D.nonNullable D.int8),
+          D.column (D.nonNullable D.int8)
         )
     )
 
@@ -179,8 +178,8 @@ selectInventoryTotalStmt =
     "SELECT COUNT(*), COALESCE(SUM(qty), 0) FROM stock WHERE qty > 0"
     Session.noParams
     ( D.rowList
-        ( D.column D.nonNullable D.int8,
-          D.column D.nonNullable D.int8
+        ( D.column (D.nonNullable D.int8),
+          D.column (D.nonNullable D.int8)
         )
     )
 
@@ -190,8 +189,8 @@ selectInventoryByLocationStmt =
     "SELECT COUNT(*), COALESCE(SUM(qty), 0) FROM stock WHERE location_id = $1 AND qty > 0"
     (E.param (E.nonNullable E.int8))
     ( D.rowList
-        ( D.column D.nonNullable D.int8,
-          D.column D.nonNullable D.int8
+        ( D.column (D.nonNullable D.int8),
+          D.column (D.nonNullable D.int8)
         )
     )
 
@@ -201,12 +200,12 @@ selectFinancialReportStmt =
     "SELECT COALESCE(SUM(debit_amount), 0), COALESCE(SUM(credit_amount), 0) \
     \ FROM acc_turn WHERE turn_date BETWEEN $1 AND $2"
     ( (,)
-        <$> (E.param (E.nonNullable E.date))
-        <*> (E.param (E.nonNullable E.date))
+        <$> E.param (E.nonNullable E.date)
+        <*> E.param (E.nonNullable E.date)
     )
     ( D.rowList
-        ( D.column D.nonNullable D.int8,
-          D.column D.nonNullable D.int8
+        ( D.column (D.nonNullable D.int8),
+          D.column (D.nonNullable D.int8)
         )
     )
 
@@ -216,12 +215,12 @@ selectPayrollSummaryStmt =
     "SELECT COUNT(DISTINCT employee_id), COALESCE(SUM(net_amount), 0) \
     \ FROM payroll WHERE period_start >= $1 AND period_end <= $2"
     ( (,)
-        <$> (E.param (E.nonNullable E.date))
-        <*> (E.param (E.nonNullable E.date))
+        <$> E.param (E.nonNullable E.date)
+        <*> E.param (E.nonNullable E.date)
     )
     ( D.rowList
-        ( D.column D.nonNullable D.int8,
-          D.column D.nonNullable D.int8
+        ( D.column (D.nonNullable D.int8),
+          D.column (D.nonNullable D.int8)
         )
     )
 
@@ -231,11 +230,11 @@ selectTaxReportStmt =
     "SELECT COALESCE(SUM(tax_amount), 0), COUNT(*) \
     \ FROM tax_entries WHERE entry_date BETWEEN $1 AND $2"
     ( (,)
-        <$> (E.param (E.nonNullable E.date))
-        <*> (E.param (E.nonNullable E.date))
+        <$> E.param (E.nonNullable E.date)
+        <*> E.param (E.nonNullable E.date)
     )
     ( D.rowList
-        ( D.column D.nonNullable D.int8,
-          D.column D.nonNullable D.int8
+        ( D.column (D.nonNullable D.int8),
+          D.column (D.nonNullable D.int8)
         )
     )

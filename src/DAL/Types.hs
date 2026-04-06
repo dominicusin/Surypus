@@ -27,6 +27,16 @@ data PersonInput = PersonInput
 
 instance FromJSON PersonInput
 
+data UserInput = UserInput
+  { uiLogin :: Text,
+    uiPasswordHash :: Text,
+    uiPersonId :: Maybe Int64,
+    uiStatus :: Int
+  }
+  deriving (Show, Eq, Generic)
+
+instance FromJSON UserInput
+
 data GoodsInput = GoodsInput
   { giCode :: Maybe Text,
     giName :: Text,

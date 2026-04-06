@@ -368,5 +368,5 @@ filterGoodsByGroup :: Text -> [Goods] -> [Goods]
 filterGoodsByGroup group = filter (\g -> goodsGroup g == Just group)
 
 -- | Calculate bill total
-calculateBillTotal :: [Bill] -> Double
-calculateBillTotal bills = sum (fmap billTotal bills)
+calcBillTotal :: [Bill] -> Double
+calcBillTotal bills = sum (fmap billTotal bills)

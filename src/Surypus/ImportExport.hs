@@ -18,7 +18,7 @@ module Surypus.ImportExport
   )
 where
 
-import Control.Monad (forM, forM_)
+import Control.Monad (foldM, forM, forM_)
 import Data.Csv (DefaultOrdered (..), FromNamedRecord, ToNamedRecord (..), header, toNamedRecord, (.=))
 import qualified Data.Csv as Csv
 import Data.Text (Text)
@@ -58,20 +58,24 @@ data ImportResult = ImportResult
     importSkipped :: !Int
   }
 
-parseCSVLine :: Char -> Text -> Vector Text
+parseCSVLine :: Char -> Text -> Maybe (Vector Text)
 parseCSVLine delimiter line =
   let parts = T.splitOn (T.singleton delimiter) line
-   in V.fromList $ map (T.strip . removeQuotes) parts
+   in if null parts
+        then Nothing
+        else
+          let cleaned = fmap (T.strip . removeQuotes) parts
+           in Just $ V.fromList cleaned
   where
     removeQuotes t =
-      case (T.head t, T.last t) of
-        ('"', '"') -> T.init (T.tail t)
+      case (T.uncons t, T.unsnoc t) of
+        (Just ('"', _), Just (_, '"')) -> T.init (T.tail t)
         _ -> t
 
 encodeCSVLine :: Char -> [Text] -> Text
 encodeCSVLine delimiter fields =
   T.intercalate (T.singleton delimiter) $
-    map
+    fmap
       ( \case
           t
             | T.isInfixOf "\"" t
@@ -97,8 +101,8 @@ exportToCSV config filePath records = do
             exportRecordCount = 0,
             exportError = Just "No records to export"
           }
-    _ -> do
-      let csvData = Csv.encodeByNameOrdered (header (V.toList (Csv.headerOrder (head records)))) records
+    (firstRecord : _) -> do
+      let csvData = Csv.encodeByNameOrdered (header (V.toList (Csv.headerOrder firstRecord))) records
       TIO.writeFile filePath (Csv.toLazyByteString csvData)
       pure $
         ExportResult
@@ -111,7 +115,7 @@ exportToCSV config filePath records = do
 exportGoodsToCSV :: CSVConfig -> FilePath -> [(Text, Text, Text, Text, Text)] -> IO ExportResult
 exportGoodsToCSV config filePath goods =
   let headerLine = encodeCSVLine (csvDelimiter config) ["Код", "Наименование", "Ед.изм", "Цена", "Остаток"]
-      lines = headerLine : map (encodeCSVLine (csvDelimiter config) fields) goods
+      lines = headerLine : fmap (encodeCSVLine (csvDelimiter config) fields) goods
       fields (code, name, unit, price, qty) = [code, name, unit, price, qty]
    in do
         TIO.writeFile filePath (T.unlines lines)
@@ -126,7 +130,7 @@ exportGoodsToCSV config filePath goods =
 exportPersonsToCSV :: CSVConfig -> FilePath -> [(Text, Text, Text, Text, Text, Text)] -> IO ExportResult
 exportPersonsToCSV config filePath persons =
   let headerLine = encodeCSVLine (csvDelimiter config) ["Код", "Наименование", "ИНН", "Тип", "Телефон", "Email"]
-      lines = headerLine : map (encodeCSVLine (csvDelimiter config) fields) persons
+      lines = headerLine : fmap (encodeCSVLine (csvDelimiter config) fields) persons
       fields (code, name, inn, ptype, phone, email) = [code, name, inn, ptype, phone, email]
    in do
         TIO.writeFile filePath (T.unlines lines)
@@ -141,7 +145,7 @@ exportPersonsToCSV config filePath persons =
 exportBillsToCSV :: CSVConfig -> FilePath -> [(Text, Text, Text, Text, Text, Text)] -> IO ExportResult
 exportBillsToCSV config filePath bills =
   let headerLine = encodeCSVLine (csvDelimiter config) ["Номер", "Дата", "Тип", "Контрагент", "Сумма", "Статус"]
-      lines = headerLine : map (encodeCSVLine (csvDelimiter config) fields) bills
+      lines = headerLine : fmap (encodeCSVLine (csvDelimiter config) fields) bills
       fields (num, date, btype, person, total, status) = [num, date, btype, person, total, status]
    in do
         TIO.writeFile filePath (T.unlines lines)
@@ -177,10 +181,12 @@ importFromCSV config filePath parser = do
       }
   where
     processLine (accOk, accErr, accSkip) line = do
-      let fields = parseCSVLine (csvDelimiter config) line
-      case parser fields of
-        Left err -> pure (accOk, err : accErr, accSkip + 1)
-        Right record -> pure (record : accOk, accErr, accSkip)
+      case parseCSVLine (csvDelimiter config) line of
+        Nothing -> pure (accOk, "Failed to parse CSV line" : accErr, accSkip + 1)
+        Just fields ->
+          case parser fields of
+            Left err -> pure (accOk, err : accErr, accSkip + 1)
+            Right record -> pure (record : accOk, accErr, accSkip)
 
 importGoodsFromCSV :: CSVConfig -> FilePath -> IO ImportResult
 importGoodsFromCSV config filePath =
@@ -225,7 +231,7 @@ validateINN :: Text -> Maybe Text
 validateINN t
   | T.null t = Nothing
   | T.length t < 10 || T.length t > 12 = Just "ИНН должен быть 10-12 символов"
-  | T.all (\c -> c >= '0' && c <= '9') t = Nothing
+  | T.all isDigit t = Nothing
   | otherwise = Just "ИНН должен содержать только цифры"
 
 validatePhone :: Text -> Maybe Text
