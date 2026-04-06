@@ -18,6 +18,9 @@ module Core.Price.Operations
     calcTotalDiscount,
     prop_calcLineTotalNonNeg,
     prop_calcBillTotalNonNeg,
+    prop_calcDiscountNonNeg,
+    prop_calcFinalPriceNonNeg,
+    prop_verifyDiscountBounded,
   )
 where
 
@@ -41,6 +44,7 @@ data PriceOpResult
   | PriceOpDiscountTooHigh
   | PriceOpNegativeQuantity
   | PriceOpPriceMismatch
+  deriving (Eq)
 
 -- ============================================================================
 -- VALIDATORS
@@ -200,3 +204,30 @@ tripletGen = do
 
 validTriplet :: (Double, Double, Double) -> Bool
 validTriplet (p, q, d) = p > 0 && q > 0 && d >= 0 && d <= 100
+
+-- | Property: calcDiscount returns non-negative value
+prop_calcDiscountNonNeg :: Property
+prop_calcDiscountNonNeg =
+  forAll (pairGen `suchThat` validPair) $ \(price, disc) ->
+    calcDiscount price disc >= 0
+
+-- | Property: calcFinalPriceOp returns non-negative value
+prop_calcFinalPriceNonNeg :: Property
+prop_calcFinalPriceNonNeg =
+  forAll (pairGen `suchThat` validPair) $ \(price, disc) ->
+    calcFinalPriceOp price disc >= 0
+
+-- | Property: verifyDiscountBounded returns success for valid discounts
+prop_verifyDiscountBounded :: Property
+prop_verifyDiscountBounded =
+  forAll (choose (0, 100)) $ \disc ->
+    verifyDiscountBounded disc == PriceOpSuccess
+
+pairGen :: Gen (Double, Double)
+pairGen = do
+  p <- suchThat arbitrary (> 0)
+  d <- choose (0, 100 :: Double)
+  pure (p, d)
+
+validPair :: (Double, Double) -> Bool
+validPair (p, d) = p > 0 && d >= 0 && d <= 100

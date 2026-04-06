@@ -349,6 +349,9 @@ main = hspec $ do
       prop "BillLine discount calculation correct" prop_lineTotalDiscountBound
       prop "Price calcLineTotal non-negative" prop_calcLineTotalNonNeg
       prop "Price calcBillTotal non-negative" prop_calcBillTotalNonNeg
+      prop "Price calcDiscount non-negative" prop_calcDiscountNonNeg
+      prop "Price calcFinalPrice non-negative" prop_calcFinalPriceNonNeg
+      prop "Price verifyDiscountBounded valid" prop_verifyDiscountBounded
       prop "Accounting double-entry balanced" prop_doubleEntryBalance
 
     -- ========================================================================
