@@ -16,6 +16,7 @@ module Core.Invoice.Operations
     prop_invoiceBalanceNonNeg,
     prop_paymentDueNonNeg,
     prop_invoicePaidBounded,
+    prop_calcPaymentDueNonNeg,
   )
 where
 
@@ -162,3 +163,10 @@ invGen = do
 
 instance Arbitrary Invoice where
   arbitrary = invGen
+
+-- | Property: payment due is non-negative (calcPaymentDue)
+prop_calcPaymentDueNonNeg :: Invoice -> Property
+prop_calcPaymentDueNonNeg inv =
+  let total = invTotal inv
+      paid = invPaid inv
+   in total >= 0 && paid >= 0 && paid <= total ==> calcPaymentDue inv >= 0

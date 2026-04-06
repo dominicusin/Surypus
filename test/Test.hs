@@ -375,6 +375,7 @@ main = hspec $ do
       prop "Payroll calcTaxAmount non-negative" prop_calcTaxAmountNonNeg
       prop "Invoice balance non-negative" prop_invoiceBalanceNonNeg
       prop "Invoice payment due non-negative" prop_paymentDueNonNeg
+      prop "Invoice calcPaymentDue non-negative" prop_calcPaymentDueNonNeg
       prop "Invoice paid bounded 0-100" prop_invoicePaidBounded
       prop "PayrollCalculation income tax non-negative" prop_calcIncomeTaxNonNeg
       prop "PayrollCalculation social tax non-negative" prop_calcSocialTaxNonNeg
