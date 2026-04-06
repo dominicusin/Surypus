@@ -3,11 +3,23 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 -- | Payroll Types - Salary calculations and HR
-module Core.Payroll.Types where
+module Core.Payroll.Types
+  ( module Core.Payroll.Types,
+    prop_calcNetSalaryNonNeg,
+    prop_calcGrossFromNetPos,
+    prop_calcTaxAmountNonNeg,
+  )
+where
 
 import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Time (Day)
+import Test.QuickCheck
+
+-- LiquidHaskell refinement types
+{-@ type NonNeg = {v:Double | v >= 0} @-}
+{-@ type TaxRate = {v:Double | v >= 0 && v < 100} @-}
+{-@ type PosDouble = {v:Double | v > 0} @-}
 
 -- ============================================================================
 -- SALARY TYPES (from salary.cpp)
@@ -129,14 +141,20 @@ validateEmployee e =
 -- ============================================================================
 
 -- | Calculate net salary
+
+{-@ calcNetSalary :: gross:PosDouble -> rate:TaxRate -> NonNeg @-}
 calcNetSalary :: Double -> Double -> Double
 calcNetSalary gross taxRate = gross * (1 - taxRate / 100)
 
 -- | Calculate gross from net
+
+{-@ calcGrossFromNet :: net:PosDouble -> rate:TaxRate -> PosDouble @-}
 calcGrossFromNet :: Double -> Double -> Double
 calcGrossFromNet net taxRate = net / (1 - taxRate / 100)
 
 -- | Calculate tax amount
+
+{-@ calcTaxAmount :: gross:PosDouble -> rate:TaxRate -> NonNeg @-}
 calcTaxAmount :: Double -> Double -> Double
 calcTaxAmount gross taxRate = gross * taxRate / 100
 
@@ -179,3 +197,34 @@ totalAccruals = sum . filter (> 0) . fmap sAmount
 
 diffDays :: Day -> Day -> Int
 diffDays a b = fromEnum a - fromEnum b
+
+-- ============================================================================
+-- QUICKCHECK PROPERTIES
+-- ============================================================================
+
+-- | Property: calcNetSalary returns non-negative
+prop_calcNetSalaryNonNeg :: Property
+prop_calcNetSalaryNonNeg =
+  forAll (payrollGen `suchThat` validPayroll) $ \(gross, rate) ->
+    calcNetSalary gross rate >= 0
+
+-- | Property: calcGrossFromNet returns positive
+prop_calcGrossFromNetPos :: Property
+prop_calcGrossFromNetPos =
+  forAll (payrollGen `suchThat` validPayroll) $ \(net, rate) ->
+    calcGrossFromNet net rate > 0
+
+-- | Property: calcTaxAmount returns non-negative
+prop_calcTaxAmountNonNeg :: Property
+prop_calcTaxAmountNonNeg =
+  forAll (payrollGen `suchThat` validPayroll) $ \(gross, rate) ->
+    calcTaxAmount gross rate >= 0
+
+payrollGen :: Gen (Double, Double)
+payrollGen = do
+  g <- suchThat arbitrary (> 0)
+  r <- choose (0, 99 :: Double)
+  pure (g, r)
+
+validPayroll :: (Double, Double) -> Bool
+validPayroll (g, r) = g > 0 && r >= 0 && r < 100

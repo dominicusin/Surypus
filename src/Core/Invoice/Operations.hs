@@ -13,11 +13,17 @@ module Core.Invoice.Operations
     allocatePayment,
     calcTotalOutstanding,
     calcTotalOverdue,
+    prop_invoiceBalanceNonNeg,
+    prop_paymentDueNonNeg,
+    prop_invoicePaidBounded,
   )
 where
 
 import Core.Invoice hiding (calcInvoiceBalance)
-import Data.Time (Day)
+import Data.Text (Text)
+import qualified Data.Text as T
+import Data.Time (Day, fromGregorian)
+import Test.QuickCheck
 
 -- | Invoice operation result
 data InvoiceOpResult
@@ -26,6 +32,7 @@ data InvoiceOpResult
   | InvoiceOpNegativeBalance
   | InvoiceOpOverpaid
   | InvoiceOpInvalidDates
+  deriving (Eq)
 
 -- ============================================================================
 -- VALIDATORS
@@ -47,11 +54,15 @@ validateInvoice inv
 
 -- | Calculate invoice balance
 -- Инвариант: balance >= 0
+
+{-@ calcInvoiceBalance :: Invoice -> {v:Double | v >= 0} @-}
 calcInvoiceBalance :: Invoice -> Double
 calcInvoiceBalance inv = invTotal inv - invPaid inv
 
 -- | Calculate paid amount percentage
 -- Инвариант: 0 <= result <= 100
+
+{-@ calcInvoicePaid :: Invoice -> {v:Double | v >= 0 && v <= 100} @-}
 calcInvoicePaid :: Invoice -> Double
 calcInvoicePaid inv
   | invTotal inv <= 0 = 0
@@ -119,3 +130,35 @@ calcTotalOutstanding = sum . fmap calcInvoiceBalance
 -- Инвариант: result >= 0
 calcTotalOverdue :: [Invoice] -> Day -> Double
 calcTotalOverdue invoices today = sum . fmap calcInvoiceBalance $ filter (`isInvoiceOverdue` today) invoices
+
+-- ============================================================================
+-- QUICKCHECK PROPERTIES
+-- ============================================================================
+
+-- | Property: invoice balance is always non-negative
+prop_invoiceBalanceNonNeg :: Invoice -> Property
+prop_invoiceBalanceNonNeg inv =
+  let total = invTotal inv
+      paid = invPaid inv
+   in total >= 0 && paid >= 0 && paid <= total ==> calcInvoiceBalance inv >= 0
+
+-- | Property: payment due is always non-negative
+prop_paymentDueNonNeg :: Invoice -> Property
+prop_paymentDueNonNeg _ = forAll invGen $ \inv ->
+  calcPaymentDue inv >= 0
+
+-- | Property: invoice paid percentage is bounded 0-100
+prop_invoicePaidBounded :: Invoice -> Property
+prop_invoicePaidBounded inv =
+  let total = invTotal inv
+      paid = invPaid inv
+   in total > 0 && paid >= 0 ==> calcInvoicePaid inv >= 0 && calcInvoicePaid inv <= 100
+
+invGen :: Gen Invoice
+invGen = do
+  total <- suchThat arbitrary (>= 0)
+  paid <- choose (0, total)
+  pure $ Invoice 0 (T.pack "INV-0000") (fromGregorian 2024 1 1) (fromGregorian 2024 12 31) 0 total paid
+
+instance Arbitrary Invoice where
+  arbitrary = invGen

@@ -10,7 +10,9 @@ import qualified API.ServerSpec
 import Core.Accounting.Account
 import Core.Accounting.Operations
 import Core.BillLine
+import qualified Core.Invoice.Operations
 import Core.Payroll.Calculation
+import Core.Payroll.Types
 import Core.Price.Operations
 import Core.Tax
 import Data.Maybe ()
@@ -353,6 +355,12 @@ main = hspec $ do
       prop "Price calcFinalPrice non-negative" prop_calcFinalPriceNonNeg
       prop "Price verifyDiscountBounded valid" prop_verifyDiscountBounded
       prop "Accounting double-entry balanced" prop_doubleEntryBalance
+      prop "Payroll calcNetSalary non-negative" prop_calcNetSalaryNonNeg
+      prop "Payroll calcGrossFromNet positive" prop_calcGrossFromNetPos
+      prop "Payroll calcTaxAmount non-negative" prop_calcTaxAmountNonNeg
+      prop "Invoice balance non-negative" prop_invoiceBalanceNonNeg
+      prop "Invoice payment due non-negative" prop_paymentDueNonNeg
+      prop "Invoice paid bounded 0-100" prop_invoicePaidBounded
 
     -- ========================================================================
     -- RBAC TESTS
