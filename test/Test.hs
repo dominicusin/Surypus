@@ -377,6 +377,9 @@ main = hspec $ do
       prop "PayrollCalculation income tax non-negative" prop_calcIncomeTaxNonNeg
       prop "PayrollCalculation social tax non-negative" prop_calcSocialTaxNonNeg
       prop "PayrollCalculation net salary non-negative" prop_calcNetSalaryFromGrossNonNeg
+      prop "PayrollCalculation vacation pay non-negative" prop_vacationPayNonNeg
+      prop "PayrollCalculation sick leave pay non-negative" prop_sickLeavePayNonNeg
+      prop "PayrollCalculation advance amount non-negative" prop_advanceAmountNonNeg
       prop "Order line total non-negative" prop_orderLineTotalNonNeg
       prop "Order total non-negative" prop_orderTotalNonNeg
       prop "RetBill final amount non-negative" prop_retBillFinalAmountNonNeg

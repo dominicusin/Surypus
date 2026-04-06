@@ -13,6 +13,9 @@ module Core.Payroll.Calculation
     prop_calcIncomeTaxNonNeg,
     prop_calcSocialTaxNonNeg,
     prop_calcNetSalaryFromGrossNonNeg,
+    prop_vacationPayNonNeg,
+    prop_sickLeavePayNonNeg,
+    prop_advanceAmountNonNeg,
   )
 where
 
@@ -149,3 +152,37 @@ prop_calcNetSalaryFromGrossNonNeg :: Property
 prop_calcNetSalaryFromGrossNonNeg =
   forAll (suchThat arbitrary (>= 0)) $ \gross ->
     calcNetSalaryFromGross gross >= 0
+
+-- | Property: vacation pay is non-negative
+prop_vacationPayNonNeg :: Property
+prop_vacationPayNonNeg =
+  forAll genVacation $ \(dailyRate, days) ->
+    calcVacationPay dailyRate days >= 0
+  where
+    genVacation = do
+      dr <- suchThat arbitrary (> 0)
+      d <- suchThat arbitrary (> 0)
+      pure (dr, d)
+
+-- | Property: sick leave pay is non-negative
+prop_sickLeavePayNonNeg :: Property
+prop_sickLeavePayNonNeg =
+  forAll genSickLeave $ \(dailyRate, days, isFirst) ->
+    calcSickLeavePay dailyRate days isFirst >= 0
+  where
+    genSickLeave = do
+      dr <- suchThat arbitrary (> 0)
+      d <- suchThat arbitrary (> 0)
+      isF <- arbitrary
+      pure (dr, d, isF)
+
+-- | Property: advance amount is non-negative
+prop_advanceAmountNonNeg :: Property
+prop_advanceAmountNonNeg =
+  forAll genAdvance $ \(salary, pct) ->
+    calcAdvanceAmount salary pct >= 0
+  where
+    genAdvance = do
+      sal <- suchThat arbitrary (> 0)
+      p <- choose (0, 100 :: Double)
+      pure (sal, p)
