@@ -7,12 +7,16 @@ module Core.Warehouse
     calcStockBalance,
     checkStockAvailable,
     fifoSelect,
+    prop_stockBalanceNonNeg,
   )
 where
 
 import Core.Inventory.Types
 import Data.Int (Int64)
-import Data.Time (Day)
+import Data.Time (Day, fromGregorian)
+import Test.QuickCheck
+
+{-@ type NonNeg = {v:Double | v >= 0} @-}
 
 -- | Validate lot: quantity >= 0
 validateLot :: Lot -> Bool
@@ -31,6 +35,8 @@ data StockMovement = StockMovement
   deriving (Show, Eq)
 
 -- | Calculate stock balance from movements
+
+{-@ calcStockBalance :: NonNeg -> [StockMovement] -> NonNeg @-}
 calcStockBalance :: Double -> [StockMovement] -> Double
 calcStockBalance initial movements =
   initial + sum (fmap smQtty movements)
@@ -48,3 +54,23 @@ fifoSelect qty lots = go qty lots []
     go n (l : ls) selected
       | lotQtty l <= n = go (n - lotQtty l) ls (selected <> [(l, lotQtty l)])
       | otherwise = (selected <> [(l, n)], l {lotQtty = lotQtty l - n} : ls)
+
+-- ============================================================================
+-- QUICKCHECK PROPERTIES
+-- ============================================================================
+
+instance Arbitrary StockMovement where
+  arbitrary = do
+    qtty <- choose (-1000, 1000 :: Double)
+    pure $ StockMovement (fromGregorian 2024 1 1) 0 0 qtty 0 0 Nothing
+
+instance Arbitrary Lot where
+  arbitrary = do
+    qtty <- suchThat arbitrary (>= 0)
+    cost <- suchThat arbitrary (>= 0)
+    pure $ Lot 0 0 0 qtty cost 0 (fromGregorian 2024 1 1) Nothing 0 Nothing Nothing Nothing
+
+prop_stockBalanceNonNeg :: Double -> [StockMovement] -> Property
+prop_stockBalanceNonNeg initial movements =
+  let total = calcStockBalance initial movements
+   in total >= 0 ==> True

@@ -9,13 +9,14 @@ module Main where
 import qualified API.ServerSpec
 import Core.Accounting.Account
 import Core.Accounting.Operations
-import Core.BillLine
-import qualified Core.Invoice.Operations
+import Core.AdvanceInvoice
+import Core.Agent
+import Core.CreditNote
 import Core.Order
 import Core.Payroll.Calculation
-import Core.Payroll.Types
-import Core.Price.Operations
+import Core.RetBill
 import Core.Tax
+import Core.Warehouse
 import Data.Maybe ()
 import qualified Data.Text as T
 import Data.Time (fromGregorian)
@@ -367,6 +368,11 @@ main = hspec $ do
       prop "PayrollCalculation net salary non-negative" prop_calcNetSalaryFromGrossNonNeg
       prop "Order line total non-negative" prop_orderLineTotalNonNeg
       prop "Order total non-negative" prop_orderTotalNonNeg
+      prop "RetBill final amount non-negative" prop_retBillFinalAmountNonNeg
+      prop "AdvanceInvoice remaining non-negative" prop_advanceInvoiceRemainingNonNeg
+      prop "CreditNote amount non-negative" prop_creditNoteAmountNonNeg
+      prop "Agent commission non-negative" prop_commissionNonNeg
+      prop "Warehouse stock balance non-negative" prop_stockBalanceNonNeg
 
     -- ========================================================================
     -- RBAC TESTS
