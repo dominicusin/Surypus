@@ -1,3 +1,9 @@
-module Surypus.Core.Tax where
+-- | Core Tax module re-export
+--
+-- This module re-exports the tax calculation functionality from Core.Tax.
+module Surypus.Core.Tax
+  ( module Core.Tax,
+  )
+where
 
--- Placeholder for Surypus.Core.Tax logic
+import Core.Tax
