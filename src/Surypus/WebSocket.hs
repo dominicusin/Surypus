@@ -16,7 +16,7 @@ where
 
 import Control.Concurrent.STM
 import Control.Exception (SomeException, catch)
-import Control.Monad (forM, forM_, forever, void, when)
+import Control.Monad (forM, forM_, forever, liftM, unless, void, when)
 import Data.Aeson (FromJSON, ToJSON, Value, encode, toJSON)
 import Data.Maybe (catMaybes)
 import Data.Text (Text)
@@ -92,8 +92,9 @@ jwtWebSocketApp hub mConfig pendingConnection = do
     Nothing -> acceptConnection hub Nothing pendingConnection
     Just config -> case getTokenFromRequest request of
       Nothing -> void $ WS.rejectRequest pendingConnection "Missing token"
-      Just token ->
-        case validateAccessToken config token of
+      Just token -> do
+        result <- validateAccessToken config token
+        case result of
           Left _ -> void $ WS.rejectRequest pendingConnection "Invalid token"
           Right payload -> acceptConnection hub (Just payload) pendingConnection
 
@@ -104,8 +105,9 @@ jwtWebSocketAppWithPath hub mConfig path pendingConnection = do
     Nothing -> acceptConnectionWithPath hub Nothing path pendingConnection
     Just config -> case getTokenFromRequest request of
       Nothing -> void $ WS.rejectRequest pendingConnection "Missing token"
-      Just token ->
-        case validateAccessToken config token of
+      Just token -> do
+        result <- validateAccessToken config token
+        case result of
           Left _ -> void $ WS.rejectRequest pendingConnection "Invalid token"
           Right payload -> acceptConnectionWithPath hub (Just payload) path pendingConnection
 
