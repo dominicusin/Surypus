@@ -1,6 +1,23 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 
+-- | JSON Web Token (JWT) Authentication for Surypus ERP
+--
+-- This module provides JWT token generation and validation for secure
+-- API authentication. It supports both access tokens and refresh tokens.
+--
+-- = Token Types
+--
+-- * Access tokens: Short-lived (default 30 minutes) for API authorization
+-- * Refresh tokens: Long-lived (default 14 days) for obtaining new access tokens
+--
+-- = Usage
+--
+-- @
+-- let config = jwtConfigFromSecret "my-secret-key"
+-- tokenPair <- generateTokenPair config 1 "admin" "admin"
+-- validated <- validateAccessToken config (accessToken tokenPair)
+-- @
 module Surypus.JWT
   ( JWTPayload (..),
     RefreshTokenPayload (..),
@@ -26,11 +43,19 @@ import Data.Time (getCurrentTime)
 import Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds)
 import GHC.Generics (Generic)
 
+-- | JWT payload for access tokens
+--
+-- Contains user identification and authorization data.
+-- The payload is encoded in the JWT token.
 data JWTPayload = JWTPayload
-  { jwtUserId :: Int,
+  { -- | User ID
+    jwtUserId :: Int,
+    -- | Username
     jwtUsername :: Text,
+    -- | User role for authorization
     jwtRole :: Text,
-    jwtExp :: Int -- Expiration timestamp
+    -- | Expiration timestamp (epoch seconds)
+    jwtExp :: Int
   }
   deriving (Show, Eq, Generic)
 
@@ -38,10 +63,16 @@ instance ToJSON JWTPayload
 
 instance FromJSON JWTPayload
 
+-- | Refresh token payload
+--
+-- Used to obtain new access tokens without re-authentication.
 data RefreshTokenPayload = RefreshTokenPayload
-  { rtUserId :: Int,
-    rtTokenId :: Text, -- UUID or random string
-    rtExp :: Int -- Expiration timestamp
+  { -- | User ID
+    rtUserId :: Int,
+    -- | Unique token identifier
+    rtTokenId :: Text,
+    -- | Expiration timestamp (epoch seconds)
+    rtExp :: Int
   }
   deriving (Show, Eq, Generic)
 
@@ -49,15 +80,26 @@ instance ToJSON RefreshTokenPayload
 
 instance FromJSON RefreshTokenPayload
 
+-- | JWT configuration
+--
+-- Defines secret key and token expiration times.
 data JWTConfig = JWTConfig
-  { jwtSecret :: Text,
-    jwtExpiry :: Int, -- Access token expiry in seconds
-    jwtRefreshExpiry :: Int -- Refresh token expiry in seconds
+  { -- | Secret key for signing tokens
+    jwtSecret :: Text,
+    -- | Access token expiry in seconds (default: 1800 = 30 min)
+    jwtExpiry :: Int,
+    -- | Refresh token expiry in seconds (default: 1209600 = 14 days)
+    jwtRefreshExpiry :: Int
   }
   deriving (Show, Eq)
 
+-- | Token pair containing both access and refresh tokens
+--
+-- Returned by 'generateTokenPair' for initial authentication.
 data TokenPair = TokenPair
-  { accessToken :: Text,
+  { -- | Short-lived access token
+    accessToken :: Text,
+    -- | Long-lived refresh token
     refreshToken :: Text
   }
   deriving (Show, Eq, Generic)
@@ -66,8 +108,13 @@ instance ToJSON TokenPair
 
 instance FromJSON TokenPair
 
+-- | Create JWT configuration from secret key
+--
+-- Uses sensible defaults:
+-- * Access token: 30 minutes (1800 seconds)
+-- * Refresh token: 14 days (1209600 seconds)
 jwtConfigFromSecret :: Text -> JWTConfig
-jwtConfigFromSecret secret = JWTConfig secret 1800 1209600 -- 30 min access, 14 day refresh
+jwtConfigFromSecret secret = JWTConfig secret 1800 1209600
 
 -- | Generate access and refresh token pair
 generateTokenPair :: JWTConfig -> Int -> Text -> Text -> IO TokenPair
