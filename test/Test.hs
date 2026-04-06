@@ -14,6 +14,7 @@ import Core.Agent
 import Core.Analytics
 import Core.Asset
 import Core.CreditNote
+import Core.Discount
 import Core.Document.Operations
 import Core.GoodsTaxEx
 import Core.Loyalty.Bonus
@@ -395,6 +396,7 @@ main = hspec $ do
       prop "Analytics margin bounded" prop_marginBounded
       prop "TaxInvoice tax amount non-negative" prop_taxAmountNonNeg
       prop "GoodsTaxEx tax amount non-negative" prop_goodsTaxAmountNonNeg
+      prop "Discount amount non-negative" prop_discountAmountNonNeg
 
     -- ========================================================================
     -- RBAC TESTS
