@@ -1,12 +1,33 @@
 -- | Payroll Calculations - Salary computation logic
-module Core.Payroll.Calculation where
+module Core.Payroll.Calculation
+  ( calcIncomeTax,
+    calcNDFL,
+    calcSocialTax,
+    calcInsurancePremium,
+    calcPensionContribution,
+    calcNetSalaryFromGross,
+    calcTotalCompensation,
+    calcVacationDays,
+    calcVacationPay,
+    calcAverageDailyEarnings,
+    prop_calcIncomeTaxNonNeg,
+    prop_calcSocialTaxNonNeg,
+    prop_calcNetSalaryFromGrossNonNeg,
+  )
+where
 
 import Data.Time (Day, diffDays)
+import Test.QuickCheck
+
+{-@ type NonNeg = {v:Double | v >= 0} @-}
+{-@ type PosDouble = {v:Double | v > 0} @-}
+{-@ type Salary = {v:Double | v >= 0 && v <= 100000000} @-}
 
 -- ============================================================================
 -- TAX CALCULATIONS
 -- ============================================================================
 
+{-@ calcIncomeTax :: Salary -> NonNeg @-}
 calcIncomeTax :: Double -> Double
 calcIncomeTax gross
   | gross <= 0 = 0
@@ -23,6 +44,7 @@ calcNDFL = calcIncomeTax
 -- SOCIAL CONTRIBUTIONS
 -- ============================================================================
 
+{-@ calcSocialTax :: Salary -> NonNeg @-}
 calcSocialTax :: Double -> Double
 calcSocialTax gross
   | gross <= 0 = 0
@@ -40,6 +62,7 @@ calcPensionContribution gross
 -- NET SALARY CALCULATION
 -- ============================================================================
 
+{-@ calcNetSalaryFromGross :: Salary -> NonNeg @-}
 calcNetSalaryFromGross :: Double -> Double
 calcNetSalaryFromGross gross = gross - calcIncomeTax gross
 
@@ -104,3 +127,25 @@ calcWorkedHours total overtime = total + overtime * 1.5 -- 1.5x overtime rate
 
 calcOvertimePay :: Double -> Double -> Double
 calcOvertimePay hourlyRate overtime = hourlyRate * overtime * 1.5
+
+-- ============================================================================
+-- QUICKCHECK PROPERTIES
+-- ============================================================================
+
+-- | Property: income tax is always non-negative
+prop_calcIncomeTaxNonNeg :: Property
+prop_calcIncomeTaxNonNeg =
+  forAll (suchThat arbitrary (>= 0)) $ \gross ->
+    calcIncomeTax gross >= 0
+
+-- | Property: social tax is always non-negative
+prop_calcSocialTaxNonNeg :: Property
+prop_calcSocialTaxNonNeg =
+  forAll (suchThat arbitrary (>= 0)) $ \gross ->
+    calcSocialTax gross >= 0
+
+-- | Property: net salary is always non-negative
+prop_calcNetSalaryFromGrossNonNeg :: Property
+prop_calcNetSalaryFromGrossNonNeg =
+  forAll (suchThat arbitrary (>= 0)) $ \gross ->
+    calcNetSalaryFromGross gross >= 0

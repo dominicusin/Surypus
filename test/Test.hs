@@ -11,6 +11,7 @@ import Core.Accounting.Account
 import Core.Accounting.Operations
 import Core.BillLine
 import qualified Core.Invoice.Operations
+import Core.Order
 import Core.Payroll.Calculation
 import Core.Payroll.Types
 import Core.Price.Operations
@@ -361,6 +362,11 @@ main = hspec $ do
       prop "Invoice balance non-negative" prop_invoiceBalanceNonNeg
       prop "Invoice payment due non-negative" prop_paymentDueNonNeg
       prop "Invoice paid bounded 0-100" prop_invoicePaidBounded
+      prop "PayrollCalculation income tax non-negative" prop_calcIncomeTaxNonNeg
+      prop "PayrollCalculation social tax non-negative" prop_calcSocialTaxNonNeg
+      prop "PayrollCalculation net salary non-negative" prop_calcNetSalaryFromGrossNonNeg
+      prop "Order line total non-negative" prop_orderLineTotalNonNeg
+      prop "Order total non-negative" prop_orderTotalNonNeg
 
     -- ========================================================================
     -- RBAC TESTS
