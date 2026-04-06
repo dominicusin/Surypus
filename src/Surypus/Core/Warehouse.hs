@@ -1,3 +1,9 @@
-module Surypus.Core.Warehouse where
+-- | Core Warehouse module re-export
+--
+-- This module re-exports warehouse/stock management functionality.
+module Surypus.Core.Warehouse
+  ( module Core.Warehouse,
+  )
+where
 
--- Placeholder for Surypus.Core.Warehouse logic
+import Core.Warehouse

@@ -1,3 +1,9 @@
-module Surypus.Core.Accounting where
+-- | Core Accounting module re-export
+--
+-- This module re-exports accounting functionality.
+module Surypus.Core.Accounting
+  ( module Core.Accounting,
+  )
+where
 
--- Placeholder for Surypus.Core.Accounting logic
+import Core.Accounting

@@ -19,7 +19,7 @@
 -- * @JWT_SECRET@ - JWT secret key (default: provided value)
 -- * @RATE_LIMIT_REQUESTS@ - Rate limit requests count (default: 100)
 -- * @RATE_LIMIT_SECONDS@ - Rate limit time window in seconds (default: 60)
--- * @ENABLE_WEBSOCKET@ - Enable WebSocket support (default: \"false\")
+-- * @ENABLE_WEBSOCKET@ - Enable WebSocket support (default: "false")
 module Surypus.Config where
 
 import Control.Concurrent.STM (TQueue)
@@ -33,6 +33,9 @@ import Surypus.Cache (Cache, createCache)
 import Surypus.JWT (JWTConfig, jwtConfigFromSecret)
 import Surypus.JobRunner (Job)
 import System.Environment (lookupEnv)
+
+-- | WebSocket hub type
+type WebSocketHub = ()
 
 -- | Service type aliases
 --
@@ -159,6 +162,3 @@ loadAppConfig pool port jwtSecret = do
         appConfigRateLimit = rateLimitConfig,
         appConfigEnableWebSocket = enableWS
       }
-
--- | Placeholder for WebSocket hub
-type WebSocketHub = ()
