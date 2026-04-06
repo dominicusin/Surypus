@@ -1,6 +1,22 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 -- | Database Mutations (Write operations)
+--
+-- This module provides all write operations for the database layer.
+-- It includes encoders for inserting/updating data and mutation helpers.
+--
+-- = Design
+--
+-- The mutation layer uses:
+--
+-- * 'Statement' from hasql for type-safe mutations
+-- * Parameter encoders using 'Data.Functor.Contravariant'
+-- * 'runMutationReturningId' for INSERT/UPDATE with RETURNING
+--
+-- = Encoders
+--
+-- Each entity has corresponding input encoders (e.g., 'personInputEncoder').
+-- These are composed using the '>$<' operator from Contravariant.
 module DAL.Mutations where
 
 import Control.Monad (forM, forM_)

@@ -1,6 +1,23 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
+-- | Database Queries (Read operations)
+--
+-- This module provides all read operations for the database layer.
+-- It includes row decoders, query builders, and pagination helpers.
+--
+-- = Design
+--
+-- The query layer uses:
+--
+-- * 'Statement' from hasql for type-safe queries
+-- * Row decoders for mapping SQL results to Haskell types
+-- * Pagination helpers for server-side paging
+--
+-- = Decoders
+--
+-- Each entity has a corresponding row decoder (e.g., 'personRowDecoder').
+-- These are composed using Applicative style for clarity.
 module DAL.Queries where
 
 import Core.Document.Types (DocumentRegisterType (..))

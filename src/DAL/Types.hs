@@ -1,7 +1,20 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 
--- | Database Types
+-- | Database Types for Surypus ERP
+--
+-- This module defines all core types used in the DAL layer:
+--
+-- * Input types for create/update operations
+-- * Output types for query results
+-- * Filter and pagination types
+--
+-- = Naming Conventions
+--
+-- * Input types: @EntityNameInput@ (e.g., 'PersonInput')
+-- * Output types: @EntityName@ (e.g., 'Person')
+-- * Filter types: @EntityNameFilter@ (e.g., 'PersonFilter')
+-- * Sort types: @EntityNameSortBy@ (e.g., 'PersonSortBy')
 module DAL.Types where
 
 import Data.Aeson (FromJSON, ToJSON, object, toJSON, (.=))
