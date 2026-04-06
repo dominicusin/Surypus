@@ -19,7 +19,7 @@ import Data.Int (Int64)
 import Data.Set (Set)
 import Data.Text (Text)
 import qualified Data.Text as T
-import Data.Time (Day, UTCTime)
+import Data.Time (Day, UTCTime, getCurrentTime)
 import GHC.Generics (Generic)
 
 -- ============================================================================
@@ -552,64 +552,70 @@ validatePhone phone =
 -- ENTITY CREATION HELPERS
 -- ============================================================================
 
--- | Create new person
-mkPerson :: Int64 -> Text -> PersonKind -> Text -> Person
-mkPerson pid pname pkind pinn =
-  Person
-    { pId = pid,
-      pCode = Nothing,
-      pName = pname,
-      pINN = Just pinn,
-      pKPP = Nothing,
-      pPersonKind = pkind,
-      pStatus = StatusActive,
-      pPhone = Nothing,
-      pEmail = Nothing,
-      pAddress = Nothing,
-      pTaxId = Nothing,
-      pCreditLimit = 0,
-      pDiscount = 0,
-      pCreatedAt = undefined,
-      pUpdatedAt = undefined
-    }
+-- | Create new person with timestamps
+mkPerson :: Int64 -> Text -> PersonKind -> Text -> IO Person
+mkPerson pid pname pkind pinn = do
+  now <- getCurrentTime
+  pure
+    Person
+      { pId = pid,
+        pCode = Nothing,
+        pName = pname,
+        pINN = Just pinn,
+        pKPP = Nothing,
+        pPersonKind = pkind,
+        pStatus = StatusActive,
+        pPhone = Nothing,
+        pEmail = Nothing,
+        pAddress = Nothing,
+        pTaxId = Nothing,
+        pCreditLimit = 0,
+        pDiscount = 0,
+        pCreatedAt = now,
+        pUpdatedAt = now
+      }
 
--- | Create new goods
-mkGoods :: Int64 -> Text -> GoodsType -> Int64 -> Goods
-mkGoods id name gtype unitId =
-  Goods
-    { gId = id,
-      gCode = Nothing,
-      gName = name,
-      gBarcode = Nothing,
-      gUnitId = unitId,
-      gParentId = Nothing,
-      gGoodsType = gtype,
-      gTaxId = Nothing,
-      gBrandId = Nothing,
-      gStatus = StatusActive,
-      gMinStock = 0,
-      gMaxStock = Nothing,
-      gWeight = Nothing,
-      gVolume = Nothing,
-      gCreatedAt = undefined,
-      gUpdatedAt = undefined
-    }
+-- | Create new goods with timestamps
+mkGoods :: Int64 -> Text -> GoodsType -> Int64 -> IO Goods
+mkGoods id name gtype unitId = do
+  now <- getCurrentTime
+  pure
+    Goods
+      { gId = id,
+        gCode = Nothing,
+        gName = name,
+        gBarcode = Nothing,
+        gUnitId = unitId,
+        gParentId = Nothing,
+        gGoodsType = gtype,
+        gTaxId = Nothing,
+        gBrandId = Nothing,
+        gStatus = StatusActive,
+        gMinStock = 0,
+        gMaxStock = Nothing,
+        gWeight = Nothing,
+        gVolume = Nothing,
+        gCreatedAt = now,
+        gUpdatedAt = now
+      }
 
--- | Create new location
-mkLocation :: Int64 -> Text -> LocationType -> Location
-mkLocation id name ltype =
-  Location
-    { lId = id,
-      lCode = Nothing,
-      lName = name,
-      lLocationType = ltype,
-      lAddress = Nothing,
-      lStatus = StatusActive,
-      lCapacity = Nothing,
-      lParentId = Nothing,
-      lCreatedAt = undefined,
-      lUpdatedAt = undefined
-    }
+-- | Create new location with timestamps
+mkLocation :: Int64 -> Text -> LocationType -> IO Location
+mkLocation id name ltype = do
+  now <- getCurrentTime
+  pure
+    Location
+      { lId = id,
+        lCode = Nothing,
+        lName = name,
+        lLocationType = ltype,
+        lAddress = Nothing,
+        lStatus = StatusActive,
+        lCapacity = Nothing,
+        lParentId = Nothing,
+        lCreatedAt = now,
+        lUpdatedAt = now
+      }
 
 -- ============================================================================
 -- LOOKUP TABLES (Static Data)
