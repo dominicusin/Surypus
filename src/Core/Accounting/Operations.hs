@@ -24,6 +24,7 @@ module Core.Accounting.Operations
     calcAccountBalance,
     calcTurnover,
     prop_doubleEntryBalance,
+    prop_turnoverNonNeg,
   )
 where
 
@@ -128,3 +129,9 @@ instance Arbitrary AccTurn where
 
 prop_doubleEntryBalance :: [AccTurn] -> Bool
 prop_doubleEntryBalance entries = verifyDoubleEntry entries == AccOpSuccess
+
+-- | Property: turnover values are non-negative
+prop_turnoverNonNeg :: [AccTurn] -> Bool
+prop_turnoverNonNeg entries =
+  let (debit, credit) = calcTurnover entries
+   in debit >= 0 && credit >= 0

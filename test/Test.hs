@@ -369,6 +369,7 @@ main = hspec $ do
       prop "Price calcFinalPrice non-negative" prop_calcFinalPriceNonNeg
       prop "Price verifyDiscountBounded valid" prop_verifyDiscountBounded
       prop "Accounting double-entry balanced" prop_doubleEntryBalance
+      prop "Accounting turnover non-negative" prop_turnoverNonNeg
       prop "Payroll calcNetSalary non-negative" prop_calcNetSalaryNonNeg
       prop "Payroll calcGrossFromNet positive" prop_calcGrossFromNetPos
       prop "Payroll calcTaxAmount non-negative" prop_calcTaxAmountNonNeg
