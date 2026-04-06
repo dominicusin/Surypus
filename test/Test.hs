@@ -12,10 +12,13 @@ import Core.Accounting.Operations
 import Core.AdvanceInvoice
 import Core.Agent
 import Core.CreditNote
+import Core.Document.Operations
 import Core.Order
 import Core.Payroll.Calculation
 import Core.RetBill
+import Core.SmartReceipt
 import Core.Tax
+import Core.Transfer
 import Core.Warehouse
 import Data.Maybe ()
 import qualified Data.Text as T
@@ -373,6 +376,10 @@ main = hspec $ do
       prop "CreditNote amount non-negative" prop_creditNoteAmountNonNeg
       prop "Agent commission non-negative" prop_commissionNonNeg
       prop "Warehouse stock balance non-negative" prop_stockBalanceNonNeg
+      prop "SmartReceipt total non-negative" prop_receiptTotalNonNeg
+      prop "Transfer amount non-negative" prop_transferAmountNonNeg
+      prop "Document total non-negative" prop_documentTotalNonNeg
+      prop "Document amounts validation" prop_validateDocumentAmounts
 
     -- ========================================================================
     -- RBAC TESTS

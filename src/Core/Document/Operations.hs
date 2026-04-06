@@ -20,6 +20,8 @@ module Core.Document.Operations
     validateDocumentAmounts,
     checkDocumentDates,
     isDocumentExpired,
+    prop_documentTotalNonNeg,
+    prop_validateDocumentAmounts,
   )
 where
 
@@ -34,6 +36,9 @@ import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Time (Day)
+import Test.QuickCheck
+
+{-@ type NonNeg = {v:Double | v >= 0} @-}
 
 -- | Document operation result
 data DocumentOpResult
@@ -157,3 +162,33 @@ isDocumentExpired doc today =
   case drExpiryDate doc of
     Just expiryDate -> today > expiryDate
     Nothing -> False
+
+-- ============================================================================
+-- QUICKCHECK PROPERTIES
+-- ============================================================================
+
+-- | Property: document total is non-negative
+prop_documentTotalNonNeg :: Property
+prop_documentTotalNonNeg =
+  forAll (listOf docLineGen `suchThat` (not . null)) $ \lines ->
+    calcDocumentTotal (map (\(p, q, d) -> (p, q, d)) lines) >= 0
+
+-- | Property: validateDocumentAmounts returns success for valid amounts
+prop_validateDocumentAmounts :: Property
+prop_validateDocumentAmounts =
+  forAll docAmountGen $ \(total, vat, discount) ->
+    validateDocumentAmounts total vat discount == DocumentOpSuccess
+
+docLineGen :: Gen (Double, Double, Double)
+docLineGen = do
+  p <- suchThat arbitrary (> 0)
+  q <- suchThat arbitrary (> 0)
+  d <- choose (0, p * q)
+  pure (p, q, d)
+
+docAmountGen :: Gen (Double, Double, Double)
+docAmountGen = do
+  total <- suchThat arbitrary (> 0)
+  vat <- choose (0, total)
+  discount <- choose (0, total)
+  pure (total, vat, discount)

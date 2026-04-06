@@ -1,10 +1,26 @@
 -- | Transfer module - Stock transfers (corresponds to TransferTbl in C<>)
-module Core.Transfer where
+module Core.Transfer
+  ( Transfer (..),
+    TransferStatus (..),
+    TransferFlags (..),
+    TransferLine (..),
+    isTransferComplete,
+    isTransferLineComplete,
+    getRemainingQtty,
+    calcTransferAmount,
+    validateTransferLine,
+    prop_remaining_nonnegative,
+    prop_received_bounded,
+    prop_transferAmountNonNeg,
+  )
+where
 
 import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Time (Day)
 import Test.QuickCheck
+
+{-@ type NonNeg = {v:Double | v >= 0} @-}
 
 -- ============================================================================
 -- TRANSFER TYPES
@@ -68,6 +84,8 @@ getRemainingQtty :: TransferLine -> Double
 getRemainingQtty tl = max 0 (tlQtty tl - tlReceivedQtty tl)
 
 -- | Calculate transfer amount
+
+{-@ calcTransferAmount :: TransferLine -> NonNeg @-}
 calcTransferAmount :: TransferLine -> Double
 calcTransferAmount tl = tlQtty tl * tlPrice tl
 
@@ -89,3 +107,16 @@ prop_remaining_nonnegative tl =
 prop_received_bounded :: TransferLine -> Property
 prop_received_bounded tl =
   property (tlReceivedQtty tl <= tlQtty tl)
+
+-- | Property: Transfer amount is non-negative
+prop_transferAmountNonNeg :: TransferLine -> Bool
+prop_transferAmountNonNeg tl = calcTransferAmount tl >= 0
+
+instance Arbitrary TransferLine where
+  arbitrary = do
+    qtty <- suchThat arbitrary (>= 0)
+    sent <- choose (0, qtty)
+    recvd <- choose (0, sent)
+    price <- suchThat arbitrary (>= 0)
+    cost <- suchThat arbitrary (>= 0)
+    pure $ TransferLine 0 0 0 0 0 qtty sent recvd price cost 0
