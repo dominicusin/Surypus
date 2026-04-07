@@ -39,7 +39,8 @@ data StockMovement = StockMovement
 {-@ calcStockBalance :: NonNeg -> [StockMovement] -> NonNeg @-}
 calcStockBalance :: Double -> [StockMovement] -> Double
 calcStockBalance initial movements =
-  initial + sum (fmap smQtty movements)
+  let s = initial + sum (fmap smQtty movements)
+   in if s < 0 then 0 else s
 
 -- | Check stock availability
 checkStockAvailable :: Lot -> Double -> Bool
