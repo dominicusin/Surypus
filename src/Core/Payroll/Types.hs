@@ -5,9 +5,6 @@
 -- | Payroll Types - Salary calculations and HR
 module Core.Payroll.Types
   ( module Core.Payroll.Types,
-    prop_calcNetSalaryNonNeg,
-    prop_calcGrossFromNetPos,
-    prop_calcTaxAmountNonNeg,
   )
 where
 

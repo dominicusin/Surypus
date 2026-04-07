@@ -13,7 +13,7 @@ where
 
 import Data.Int (Int64)
 import Data.Text (Text)
-import Data.Time (Day, UTCTime, fromGregorian, getCurrentTime)
+import Data.Time (Day, UTCTime)
 import Test.QuickCheck
 
 {-@ type NonNeg = {v:Double | v >= 0} @-}
@@ -74,5 +74,5 @@ instance Arbitrary SmartReceiptLine where
 
 prop_receiptTotalNonNeg :: Property
 prop_receiptTotalNonNeg =
-  forAll (listOf arbitrary `suchThat` (not . null)) $ \lines ->
-    calcReceiptTotal lines >= 0
+  forAll (listOf arbitrary `suchThat` (not . null)) $ \receiptLines ->
+    calcReceiptTotal receiptLines >= 0

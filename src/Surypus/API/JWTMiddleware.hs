@@ -8,7 +8,6 @@ module Surypus.API.JWTMiddleware
   )
 where
 
-import Control.Monad.IO.Class (liftIO)
 import Data.Aeson (decode)
 import Data.ByteString.Lazy (fromStrict)
 import Data.Text (Text)
@@ -17,7 +16,7 @@ import qualified Data.Text.Encoding as TE
 import Network.HTTP.Types (status401)
 import Network.Wai (Middleware, Request, rawPathInfo, requestHeaders, responseLBS)
 import qualified Network.Wai as Wai
-import Surypus.JWT (JWTConfig (..), JWTPayload (..), validateAccessToken)
+import Surypus.JWT (JWTConfig (..), JWTPayload (..))
 import Text.Read (readMaybe)
 
 withJWTAuth :: JWTConfig -> [Text] -> Middleware

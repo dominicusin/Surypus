@@ -30,7 +30,6 @@ where
 import Control.Exception (bracket)
 import Data.List (sort)
 import Data.Maybe (fromMaybe)
-import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Text.Encoding (encodeUtf8)
 import qualified Data.Text.IO as TIO

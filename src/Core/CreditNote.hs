@@ -12,7 +12,6 @@ import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Time (Day, fromGregorian)
 import Test.QuickCheck
-import qualified Test.QuickCheck as QC
 
 {-@ type NonNeg = {v:Double | v >= 0} @-}
 

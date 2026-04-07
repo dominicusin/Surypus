@@ -30,8 +30,6 @@ where
 
 import Core.Accounting.Types
 import Data.Text (Text)
-import Data.Time (fromGregorian)
-import Test.QuickCheck
 
 -- | Result of an accounting operation
 --
@@ -119,13 +117,6 @@ calcTurnover entries = (debitTurnover, creditTurnover)
 -- ============================================================================
 -- QUICKCHECK PROPERTIES
 -- ============================================================================
-
-instance Arbitrary AccTurn where
-  arbitrary = do
-    amt <- suchThat arbitrary (> 0)
-    dbtAmt <- suchThat arbitrary (>= 0)
-    crdAmt <- suchThat arbitrary (>= 0)
-    pure $ AccTurn 0 0 0 (fromGregorian 2024 1 1) amt 0 1.0 0 0 0 dbtAmt crdAmt
 
 prop_doubleEntryBalance :: [AccTurn] -> Bool
 prop_doubleEntryBalance entries = verifyDoubleEntry entries == AccOpSuccess

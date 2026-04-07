@@ -491,7 +491,7 @@ calcBillLineAmount bl =
 
 -- | Calculate bill total
 calcBillTotal :: [BillLine] -> Double
-calcBillTotal lines = sum (fmap calcBillLineAmount lines)
+calcBillTotal billLines = sum (fmap calcBillLineAmount billLines)
 
 -- | Calculate stock available
 calcStockAvailable :: Stock -> Double
@@ -577,11 +577,11 @@ mkPerson pid pname pkind pinn = do
 
 -- | Create new goods with timestamps
 mkGoods :: Int64 -> Text -> GoodsType -> Int64 -> IO Goods
-mkGoods id name gtype unitId = do
+mkGoods goodsId name gtype unitId = do
   now <- getCurrentTime
   pure
     Goods
-      { gId = id,
+      { gId = goodsId,
         gCode = Nothing,
         gName = name,
         gBarcode = Nothing,
@@ -601,11 +601,11 @@ mkGoods id name gtype unitId = do
 
 -- | Create new location with timestamps
 mkLocation :: Int64 -> Text -> LocationType -> IO Location
-mkLocation id name ltype = do
+mkLocation locId name ltype = do
   now <- getCurrentTime
   pure
     Location
-      { lId = id,
+      { lId = locId,
         lCode = Nothing,
         lName = name,
         lLocationType = ltype,

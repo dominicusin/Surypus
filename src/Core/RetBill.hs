@@ -35,12 +35,12 @@ calcFinalAmount rb = rbTotal rb - rbDiscount rb
 
 instance Arbitrary RetBill where
   arbitrary = do
-    total <- suchThat arbitrary (>= 0)
-    discount <- choose (0, total)
-    pure $ RetBill 0 "" (fromGregorian 2024 1 1) 0 total discount
+    totalVal <- suchThat arbitrary (>= 0)
+    discount <- choose (0, totalVal)
+    pure $ RetBill 0 "" (fromGregorian 2024 1 1) 0 totalVal discount
 
 prop_retBillFinalAmountNonNeg :: RetBill -> Property
 prop_retBillFinalAmountNonNeg rb =
-  let total = rbTotal rb
+  let totalVal = rbTotal rb
       discount = rbDiscount rb
-   in total >= 0 && discount >= 0 && discount <= total ==> calcFinalAmount rb >= 0
+   in totalVal >= 0 && discount >= 0 && discount <= totalVal ==> calcFinalAmount rb >= 0

@@ -20,11 +20,7 @@ import Hasql.Pool (Pool)
 import Surypus.Database.Pool
   ( DatabasePoolConfig (..),
     createDatabasePool,
-    databasePoolConfigFromEnv,
-    defaultDatabasePoolConfig,
     releaseDatabasePool,
-    runMigrations,
-    withDatabasePool,
   )
 import System.Environment (lookupEnv)
 import Text.Read (readMaybe)

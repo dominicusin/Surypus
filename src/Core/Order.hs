@@ -75,5 +75,5 @@ prop_orderLineTotalNonNeg ol = calcLineTotal ol >= 0
 
 prop_orderTotalNonNeg :: Property
 prop_orderTotalNonNeg =
-  forAll (listOf arbitrary `suchThat` (not . null)) $ \lines ->
-    calcOrderTotal lines >= 0
+  forAll (listOf arbitrary `suchThat` (not . null)) $ \orderLines ->
+    calcOrderTotal orderLines >= 0

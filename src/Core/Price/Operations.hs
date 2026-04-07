@@ -192,8 +192,8 @@ prop_calcLineTotalNonNeg =
 -- | Property: calcBillTotal returns non-negative value
 prop_calcBillTotalNonNeg :: Property
 prop_calcBillTotalNonNeg =
-  forAll (listOf tripletGen `suchThat` (not . null)) $ \lines ->
-    calcBillTotal (fmap (\(p, q, d) -> (p, q, d)) lines) >= 0
+  forAll (listOf tripletGen `suchThat` (not . null)) $ \priceLines ->
+    calcBillTotal (fmap (\(p, q, d) -> (p, q, d)) priceLines) >= 0
 
 tripletGen :: Gen (Double, Double, Double)
 tripletGen = do

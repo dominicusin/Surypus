@@ -30,7 +30,6 @@ module Surypus.JWT
     createRefreshToken,
     getJwtRole,
     getUserIdFromPayload,
-    rtUserId,
   )
 where
 

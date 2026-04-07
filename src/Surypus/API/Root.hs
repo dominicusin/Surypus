@@ -20,7 +20,6 @@ import Surypus.API.Types
     LoginResponse (..),
     UserResponse (..),
   )
-import Surypus.JWT (JWTPayload (..))
 import Surypus.RBAC (AuditEntry)
 
 type APIv1 = "v1" :> (AuthAPI :<|> ProtectedAPI)
