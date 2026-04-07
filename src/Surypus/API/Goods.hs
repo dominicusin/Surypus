@@ -51,9 +51,6 @@ createGoods = M.createGoods
 getGoods :: Pool -> Int64 -> IO (QueryResult Goods)
 getGoods = Q.getGoodsById
 
-getGoodsByBarcode :: Pool -> Text -> IO (QueryResult Goods)
-getGoodsByBarcode = Q.getGoodsByBarcode
-
 updateGoods :: Pool -> Int64 -> GoodsInput -> IO (QueryResult MutationResult)
 updateGoods = M.updateGoods
 
