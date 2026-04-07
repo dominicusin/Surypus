@@ -4,6 +4,8 @@
 -- | Accounting Types - Account, Ledger, Transactions
 module Core.Accounting.Types where
 
+{-@ type NonNeg = {v:Double | v >= 0} @-}
+
 import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Time (Day)
@@ -157,7 +159,7 @@ accountBalanceInvariant acc turns =
         ATExpense -> debitSum - creditSum
    in abs (calcBalance - aBalance acc) < 0.01
 
--- | Trial balance
+{-@ trialBalance :: balances:[Balance] -> NonNeg @-}
 trialBalance :: [Balance] -> Double
 trialBalance balances =
   let totalDebit = sum (fmap bDebit balances)
