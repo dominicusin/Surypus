@@ -16,4 +16,4 @@ data PayrollService = PayrollService
 
 -- | Placeholder for net salary computation
 computeNetSalary :: PayrollService -> SalaryDetails -> IO SalaryDetails
-computeNetSalary _ svc = return undefined
+computeNetSalary _ _ = error "PayrollService.computeNetSalary: not implemented"
