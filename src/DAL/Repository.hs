@@ -1,7 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
 
@@ -20,7 +19,7 @@ type family Id entity
 
 -- Repository typeclass: parameterized by a repository tag `f` and the entity type `entity`.
 -- This allows multiple repository implementations per entity while sharing a common API surface.
-class Repository f entity | f -> entity where
+class Repository f entity where
   -- Find by ID
   findById :: Pool -> Id entity -> IO (Either AppError (Maybe entity))
 
