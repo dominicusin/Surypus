@@ -24,7 +24,7 @@ import Surypus.RBAC (AuditEntry)
 
 type APIv1 = "v1" :> (AuthAPI :<|> ProtectedAPI)
 
-type ProtectedAPI = PersonsAPI :<|> GoodsAPI :<|> LocationsAPI :<|> BillsAPI :<|> PaymentsAPI :<|> OrdersAPI :<|> TaxesAPI :<|> CurrenciesAPI :<|> StockAPI :<|> AccountingAPI :<|> PayrollAPI :<|> ReportsAPI :<|> DashboardAPI :<|> UsersAPI :<|> AuditLogAPI :<|> RbacAPI :<|> JobsAPI :<|> HealthAPI :<|> MetricsAPI
+type ProtectedAPI = PersonsAPI :<|> GoodsAPI :<|> LocationsAPI :<|> BillsAPI :<|> PaymentsAPI :<|> OrdersAPI :<|> TaxesAPI :<|> VATAPI :<|> CurrenciesAPI :<|> StockAPI :<|> AccountingAPI :<|> PayrollAPI :<|> ReportsAPI :<|> DashboardAPI :<|> UsersAPI :<|> AuditLogAPI :<|> RbacAPI :<|> JobsAPI :<|> HealthAPI :<|> MetricsAPI
 
 type AuthAPI =
   "login" :> ReqBody '[JSON] LoginRequest :> Post '[JSON] LoginResponse
@@ -463,7 +463,9 @@ data OrdersResponse = OrdersResponse
 
 data TaxRequest = TaxRequest
   { taxName :: Text,
-    taxRate :: Double
+    taxRate :: Double,
+    taxType :: Maybe Text,
+    taxInclusive :: Maybe Bool
   }
   deriving (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
@@ -471,7 +473,9 @@ data TaxRequest = TaxRequest
 data TaxResponse = TaxResponse
   { taxId :: Int64,
     taxName :: Text,
-    taxRate :: Double
+    taxRate :: Double,
+    taxType :: Maybe Text,
+    taxInclusive :: Maybe Bool
   }
   deriving (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
@@ -481,6 +485,32 @@ data TaxesResponse = TaxesResponse
   }
   deriving (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
+
+-- | VAT calculation request
+data VATCalcRequest = VATCalcRequest
+  { vatAmount :: Double,
+    vatRate :: Double,
+    vatInclusive :: Bool
+  }
+  deriving (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON)
+
+-- | VAT calculation response
+data VATCalcResponse = VATCalcResponse
+  { vatNetAmount :: Double,
+    vatTaxAmount :: Double,
+    vatGrossAmount :: Double,
+    vatAppliedRate :: Double
+  }
+  deriving (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON)
+
+-- | VAT API endpoint
+type VATAPI =
+  "vat"
+    :> ( "calculate" :> ReqBody '[JSON] VATCalcRequest :> Post '[JSON] VATCalcResponse
+           :<|> "rates" :> Get '[JSON] TaxesResponse
+       )
 
 data CurrencyRequest = CurrencyRequest
   { currencyName :: Text,

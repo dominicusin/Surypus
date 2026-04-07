@@ -4,6 +4,10 @@ module Core.Inventory.Types.Location where
 import Data.Int (Int64)
 import Data.Text (Text)
 
+-- | Location ID must be positive
+
+{-@ type LocationId = {v:Int64 | v > 0} @-}
+
 -- | Location - Warehouse or store
 data Location = Location
   { locId :: Int64,

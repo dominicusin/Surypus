@@ -116,6 +116,8 @@ server env =
           :<|> currenciesGet
           :<|> currenciesUpdate
           :<|> currenciesDelete
+      vatHandler =
+        vatCalculate :<|> vatRates
       stockHandler = stockList :<|> stockSummary :<|> stockByLoc :<|> stockByGoods
       accountingHandler =
         accList
@@ -145,7 +147,7 @@ server env =
       jobsHandler = jobsList :<|> jobsPending :<|> jobsCreate
       healthHandler = healthGet env
       metricsHandler = metricsGet
-   in authHandler :<|> (personsHandler :<|> goodsHandler :<|> locationsHandler :<|> billsHandler :<|> paymentsHandler :<|> ordersHandler :<|> taxesHandler :<|> currenciesHandler :<|> stockHandler :<|> accountingHandler :<|> payrollHandler :<|> reportsHandler :<|> dashboardHandler :<|> usersHandler :<|> auditLogHandler :<|> rbacHandler :<|> jobsHandler :<|> healthHandler :<|> metricsHandler)
+   in authHandler :<|> (personsHandler :<|> goodsHandler :<|> locationsHandler :<|> billsHandler :<|> paymentsHandler :<|> ordersHandler :<|> taxesHandler :<|> vatHandler :<|> currenciesHandler :<|> stockHandler :<|> accountingHandler :<|> payrollHandler :<|> reportsHandler :<|> dashboardHandler :<|> usersHandler :<|> auditLogHandler :<|> rbacHandler :<|> jobsHandler :<|> healthHandler :<|> metricsHandler)
 
 authLogin :: Env -> LoginRequest -> Handler LoginResponse
 authLogin env req = do
@@ -329,27 +331,45 @@ ordersDelete _ = pure ()
 taxesList :: Handler TaxesResponse
 
 -- | GET /v1/taxes - Requires TaxesWrite permission (for access)
-taxesList = pure $ TaxesResponse [TaxResponse 1 "НДС" 20.0]
+taxesList = pure $ TaxesResponse [TaxResponse 1 "НДС" 20.0 (Just "VAT") (Just True)]
 
 taxesCreate :: TaxRequest -> Handler TaxResponse
 
 -- | POST /v1/taxes - Requires TaxesWrite permission
-taxesCreate _ = pure $ TaxResponse 100 "New" 0.0
+taxesCreate _ = pure $ TaxResponse 100 "New" 0.0 (Just "VAT") (Just False)
 
 taxesGet :: Int64 -> Handler TaxResponse
 
 -- | GET /v1/taxes/:id - Requires TaxesWrite permission (for access)
-taxesGet _ = pure $ TaxResponse 1 "НДС" 20.0
+taxesGet _ = pure $ TaxResponse 1 "НДС" 20.0 (Just "VAT") (Just True)
 
 taxesUpdate :: Int64 -> TaxRequest -> Handler TaxResponse
 
 -- | PUT /v1/taxes/:id - Requires TaxesWrite permission
-taxesUpdate _ _ = pure $ TaxResponse 1 "Updated" 0.0
+taxesUpdate _ _ = pure $ TaxResponse 1 "Updated" 0.0 (Just "VAT") (Just False)
 
 taxesDelete :: Int64 -> Handler ()
 
 -- | DELETE /v1/taxes/:id - Requires TaxesWrite permission
 taxesDelete _ = pure ()
+
+vatCalculate :: VATCalcRequest -> Handler VATCalcResponse
+vatCalculate req =
+  let reqAmount = vatAmount req
+      reqRate = vatRate req
+      reqInc = vatInclusive req
+      netVal = if reqInc then reqAmount / (1 + reqRate / 100) else reqAmount
+      taxVal = if reqInc then reqAmount - reqAmount / (1 + reqRate / 100) else reqAmount * reqRate / 100
+   in pure
+        VATCalcResponse
+          { vatNetAmount = netVal,
+            vatTaxAmount = taxVal,
+            vatGrossAmount = reqAmount,
+            vatAppliedRate = reqRate
+          }
+
+vatRates :: Handler TaxesResponse
+vatRates = taxesList
 
 currenciesList :: Handler CurrenciesResponse
 
