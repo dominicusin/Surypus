@@ -19,7 +19,7 @@
 -- These are composed using the '>$<' operator from Contravariant.
 module DAL.Mutations where
 
-import Control.Monad (forM, forM_)
+import Control.Monad (forM)
 import DAL.Types
 import Data.Functor.Contravariant ((>$<))
 import Data.Int (Int16, Int64)
@@ -57,7 +57,7 @@ runMutationReturningId pool sql encoder payload successMessage = do
 -- | Execute a mutation multiple times in a single transaction and return a list of generated IDs.
 -- This is more efficient than running each mutation separately as it reduces round-trips to the database.
 runMutationReturningIds :: Pool -> Text -> E.Params params -> [params] -> Text -> IO (QueryResult [Int64])
-runMutationReturningIds pool sql encoder payloads successMessage = do
+runMutationReturningIds pool sql encoder payloads _successMessage = do
   let stmt = unpreparable sql encoder mutationIdDecoder
   results <- forM payloads $ \payload -> do
     use pool $ Session.statement payload stmt
