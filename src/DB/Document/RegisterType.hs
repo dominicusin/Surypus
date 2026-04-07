@@ -21,8 +21,7 @@ import Hasql.Statement (Statement)
 
 registerTypeRow :: D.Row DocumentRegisterType
 registerTypeRow =
-  DocumentRegisterType
-    <$> (Just <$> D.column (D.nonNullable D.int8))
+  (DocumentRegisterType . Just <$> D.column (D.nonNullable D.int8))
     <*> D.column (D.nonNullable D.text)
     <*> D.column (D.nullable D.text)
     <*> (fromIntegral <$> D.column (D.nonNullable D.int4))

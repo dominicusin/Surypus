@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 -- | Persons (Clients/Customers) API
 --
 -- This module provides the persons (clients/customers) API functionality
@@ -50,16 +48,16 @@ listPersons pool mName mInn mType mStatus mLimit = do
     QueryError err -> pure (QueryError err)
 
 createPerson :: Pool -> PersonInput -> IO (QueryResult MutationResult)
-createPerson pool input = M.createPerson pool input
+createPerson = M.createPerson
 
 getPerson :: Pool -> Int64 -> IO (QueryResult Person)
 getPerson = Q.getPersonById
 
 updatePerson :: Pool -> Int64 -> PersonInput -> IO (QueryResult MutationResult)
-updatePerson pool pid input = M.updatePerson pool pid input
+updatePerson = M.updatePerson
 
 deletePerson :: Pool -> Int64 -> IO (QueryResult MutationResult)
-deletePerson pool pid = M.deletePerson pool pid
+deletePerson = M.deletePerson
 
 searchPersons :: Pool -> Text -> IO (QueryResult [Person])
 searchPersons = Q.searchPersons

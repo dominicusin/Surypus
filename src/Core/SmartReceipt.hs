@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 -- | SmartReceipt module - Electronic receipts
 module Core.SmartReceipt
   ( SmartReceipt (..),

@@ -171,7 +171,7 @@ isDocumentExpired doc today =
 prop_documentTotalNonNeg :: Property
 prop_documentTotalNonNeg =
   forAll (listOf docLineGen `suchThat` (not . null)) $ \lines ->
-    calcDocumentTotal (map (\(p, q, d) -> (p, q, d)) lines) >= 0
+    calcDocumentTotal lines >= 0
 
 -- | Property: validateDocumentAmounts returns success for valid amounts
 prop_validateDocumentAmounts :: Property

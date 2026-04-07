@@ -1,4 +1,3 @@
-
 module Surypus.RBAC.Store
   ( RBACStore (..),
     newRBACStore,

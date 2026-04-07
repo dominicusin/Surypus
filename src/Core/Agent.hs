@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 -- | Agent module - Agents
 module Core.Agent
   ( Agent (..),

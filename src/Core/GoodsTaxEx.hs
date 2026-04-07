@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 -- | GoodsTaxEx module - Extended goods tax
 module Core.GoodsTaxEx
   ( GoodsTaxEx (..),

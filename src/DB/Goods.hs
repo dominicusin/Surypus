@@ -22,8 +22,7 @@ import Hasql.Statement (Statement)
 
 goodsRowDecoder :: D.Row Goods
 goodsRowDecoder =
-  Goods
-    <$> (Just <$> D.column (D.nonNullable D.int8))
+  (Goods . Just <$> D.column (D.nonNullable D.int8))
     <*> D.column (D.nullable D.text)
     <*> D.column (D.nonNullable D.text)
     <*> D.column (D.nullable D.text)

@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 -- | Sync API
 --
 -- This module provides data synchronization API functionality.

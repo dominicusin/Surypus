@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 -- | CreditNote module - Credit notes
 module Core.CreditNote
   ( CreditNote (..),
@@ -10,6 +12,7 @@ import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Time (Day, fromGregorian)
 import Test.QuickCheck
+import qualified Test.QuickCheck as QC
 
 {-@ type NonNeg = {v:Double | v >= 0} @-}
 
@@ -40,4 +43,4 @@ instance Arbitrary CreditNote where
     pure $ CreditNote 0 "" (fromGregorian 2024 1 1) 0 amount ""
 
 prop_creditNoteAmountNonNeg :: CreditNote -> Property
-prop_creditNoteAmountNonNeg cn = calcCreditTotal cn >= 0
+prop_creditNoteAmountNonNeg cn = property (calcCreditTotal cn >= 0)

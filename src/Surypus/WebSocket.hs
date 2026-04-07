@@ -198,4 +198,4 @@ broadcastToRole hub role message = do
     fmap catMaybes . forM targetClients $ \(clientId, connection, _) -> do
       (WS.sendTextData connection (encode message) >> pure Nothing)
         `catch` \(_ :: SomeException) -> pure (Just clientId)
-  unless (null failedClientIds) $ atomically $ modifyTVar' (wshClients hub) (filter (\(cid, _, _) -> cid `notElem` failedClientIds))
+  unless (null failedClientIds) . atomically $ modifyTVar' (wshClients hub) (filter (\(cid, _, _) -> cid `notElem` failedClientIds))

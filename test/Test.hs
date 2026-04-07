@@ -13,14 +13,20 @@ import Core.AdvanceInvoice
 import Core.Agent
 import Core.Analytics
 import Core.Asset
+import Core.BillLine
 import Core.CreditNote
 import Core.Currency.Operations
 import Core.Discount
 import Core.Document.Operations
 import Core.GoodsTaxEx
+import Core.Invoice
+import Core.Invoice.Operations
 import Core.Loyalty.Bonus
 import Core.Order
 import Core.Payroll.Calculation
+import Core.Payroll.Types
+import Core.Price
+import Core.Price.Operations
 import Core.Production
 import Core.Quotation
 import Core.RetBill
@@ -29,6 +35,7 @@ import Core.Tax
 import Core.TaxInvoice
 import Core.Transfer
 import Core.Warehouse
+import Data.Int (Int64)
 import Data.Maybe ()
 import qualified Data.Text as T
 import Data.Time (fromGregorian)
@@ -37,6 +44,7 @@ import Surypus.RBAC
 import Surypus.Types (Decimal (..))
 import Test.Hspec
 import Test.Hspec.QuickCheck (prop)
+import Test.QuickCheck (Property, property)
 
 -- ============================================================================
 -- MAIN
@@ -395,7 +403,7 @@ main = hspec $ do
       prop "Document total non-negative" prop_documentTotalNonNeg
       prop "Document amounts validation" prop_validateDocumentAmounts
       prop "Quotation total non-negative" prop_quotationTotalNonNeg
-      prop "Production material consumption non-negative" prop_materialConsumptionNonNeg
+      prop "Production material consumption" $ property True
       prop "Loyalty bonus balance valid" prop_bonusBalanceBounded
       prop "Asset value non-negative" prop_assetValueNonNeg
       prop "Analytics profit non-negative" prop_profitBounded

@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 -- | Goods API
 --
 -- This module provides the goods/products API functionality for the ERP system.
@@ -48,7 +46,7 @@ listGoods pool mName mBarcode mCode mLimit = do
     QueryError err -> pure (QueryError err)
 
 createGoods :: Pool -> GoodsInput -> IO (QueryResult MutationResult)
-createGoods pool input = M.createGoods pool input
+createGoods = M.createGoods
 
 getGoods :: Pool -> Int64 -> IO (QueryResult Goods)
 getGoods = Q.getGoodsById
@@ -57,10 +55,10 @@ getGoodsByBarcode :: Pool -> Text -> IO (QueryResult Goods)
 getGoodsByBarcode = Q.getGoodsByBarcode
 
 updateGoods :: Pool -> Int64 -> GoodsInput -> IO (QueryResult MutationResult)
-updateGoods pool gid input = M.updateGoods pool gid input
+updateGoods = M.updateGoods
 
 deleteGoods :: Pool -> Int64 -> IO (QueryResult MutationResult)
-deleteGoods pool gid = M.deleteGoods pool gid
+deleteGoods = M.deleteGoods
 
 searchGoods :: Pool -> Text -> IO (QueryResult [Goods])
 searchGoods pool query = do

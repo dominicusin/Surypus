@@ -8,8 +8,7 @@ import Hasql.Decoders (Row, bool, column, date, int4, int8, nonNullable, nullabl
 
 documentRegisterRow :: Row DocumentRegister
 documentRegisterRow =
-  DocumentRegister
-    <$> (Just <$> column (nonNullable int8))
+  (DocumentRegister . Just <$> column (nonNullable int8))
     <*> column (nonNullable int8)
     <*> column (nonNullable int8)
     <*> column (nullable text)

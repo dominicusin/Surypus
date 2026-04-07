@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 -- | WebSocket API
 --
 -- This module provides WebSocket functionality for real-time communication.

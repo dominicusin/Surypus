@@ -46,16 +46,14 @@ data JobPriority
 -- | Create a new job in the queue
 createJob :: Pool -> JobInput -> IO (QueryResult Int64)
 createJob pool input = do
-   let sql =
-         "INSERT INTO jobs (job_name, job_status, created_at) \
-         \VALUES ($1, $2, CURRENT_TIMESTAMP) RETURNING id"
-       stmt =
-          Statement
-            sql
-             ( E.param (E.nonNullable E.text)
-                 <> E.param (E.nonNullable E.text)
-             )
-           (D.singleRow (D.column (D.nonNullable D.int8)))
+  let sql =
+        "INSERT INTO jobs (job_name, job_status, created_at) \
+        \VALUES ($1, $2, CURRENT_TIMESTAMP) RETURNING id"
+      stmt =
+        Statement
+          sql
+          (E.param (E.nonNullable E.text) <> E.param (E.nonNullable E.text))
+          (D.singleRow (D.column (D.nonNullable D.int8)))
   result <- use pool $ Session.statement (jiName input, jiStatus input) stmt
   case result of
     Right jid -> pure $ QuerySuccess jid
