@@ -5,7 +5,6 @@ module DAL.Repository.Tax
   ( TaxRepository (..),
     HasTaxRepository (..),
     mkTaxRepository,
-    runTaxRepository,
     listTaxesRepo,
     createTaxRepo,
     updateTaxRepo,
@@ -23,7 +22,6 @@ import Data.Int (Int64)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Hasql.Pool (Pool)
-import Surypus.Types (fromDecimal)
 import qualified Surypus.Validation as Validation
 
 newtype TaxRepository = TaxRepository
@@ -66,15 +64,6 @@ deleteTaxRepo repo tid = do
       | isNotFoundMessage err -> throwE (NotFound "Tax not found")
       | otherwise -> throwE (DatabaseError err)
 
-toTaxInput :: Tax -> TaxInput
-toTaxInput taxVal =
-  TaxInput
-    { tiName = taxName taxVal,
-      tiRate = fromDecimal (taxRate taxVal),
-      tiTaxType = 0,
-      tiIncluded = False
-    }
-
 validateTaxInputRepo :: TaxInput -> ExceptT RepositoryError IO TaxInput
 validateTaxInputRepo input = case Validation.validateTaxInput input of
   Right ok -> pure ok
@@ -100,6 +89,3 @@ instance HasRepository TaxRepository Pool where
 
 mkTaxRepository :: Pool -> TaxRepository
 mkTaxRepository = TaxRepository
-
-runTaxRepository :: TaxRepository -> RepositoryT IO a -> IO (Either RepositoryError a)
-runTaxRepository repo action = runExceptT action

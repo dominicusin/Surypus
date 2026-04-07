@@ -5,7 +5,6 @@ module DAL.Repository.AccTurn
   ( AccTurnRepository (..),
     HasAccTurnRepository (..),
     mkAccTurnRepository,
-    runAccTurnRepository,
     listAccTurnsRepo,
     createAccTurnRepo,
     updateAccTurnRepo,
@@ -17,68 +16,44 @@ import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Except (ExceptT, throwE)
 import DAL.Mutations (createAccTurn, deleteAccTurn, updateAccTurn)
 import DAL.Queries (getAccTurnById, getAccTurns)
-import DAL.Repository
+import DAL.Repository (HasRepository (..), RepositoryError (..), isNotFoundMessage)
 import DAL.Types
 import Data.Int (Int64)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Hasql.Pool (Pool)
-import Surypus.Types (fromDecimal)
 import qualified Surypus.Validation as Validation
 
 newtype AccTurnRepository = AccTurnRepository
   { atrPool :: Pool
   }
 
-instance Repository AccTurnRepository AccTurn where
-  find repo turnId = do
-    result <- liftIO $ getAccTurnById (atrPool repo) turnId
-    case result of
-      QuerySuccess turn -> pure (Just turn)
-      QueryError err
-        | isNotFoundMessage err -> pure Nothing
-        | otherwise -> throwE (DatabaseError err)
-
-  findAll repo = do
-    result <- liftIO $ getAccTurns (atrPool repo)
-    case result of
-      QuerySuccess turns -> pure turns
-      QueryError err -> throwE (DatabaseError err)
-
-  create repo turn = do
-    created <- createAccTurnRepo repo (toAccTurnInput turn)
-    pure (atId created)
-
-  update repo turnId turn = do
-    updated <- updateAccTurnRepo repo turnId (toAccTurnInput turn)
-    pure (Just updated)
-
-  delete repo turnId = do
-    deleteAccTurnRepo repo turnId
-    pure Nothing
-
 listAccTurnsRepo :: AccTurnRepository -> ExceptT RepositoryError IO [AccTurn]
-listAccTurnsRepo = findAll
+listAccTurnsRepo repo = do
+  result <- liftIO $ getAccTurns (atrPool repo)
+  case result of
+    QuerySuccess turns -> pure turns
+    QueryError err -> throwE (DatabaseError err)
 
 createAccTurnRepo :: AccTurnRepository -> AccTurnInput -> ExceptT RepositoryError IO AccTurn
 createAccTurnRepo repo input = do
   validated <- validateAccTurnInputRepo input
   mutation <- liftIO $ createAccTurn (atrPool repo) validated
   turnId <- extractMutationId "Accounting entry created but id was not returned" mutation
-  mTurn <- find repo turnId
-  case mTurn of
-    Just turn -> pure turn
-    Nothing -> throwE (NotFound "Created accounting entry was not found")
+  result <- liftIO $ getAccTurnById (atrPool repo) turnId
+  case result of
+    QuerySuccess turn -> pure turn
+    QueryError err -> throwE (DatabaseError err)
 
 updateAccTurnRepo :: AccTurnRepository -> Int64 -> AccTurnInput -> ExceptT RepositoryError IO AccTurn
 updateAccTurnRepo repo turnId input = do
   validated <- validateAccTurnInputRepo input
   mutation <- liftIO $ updateAccTurn (atrPool repo) turnId validated
   _ <- extractMutationId "Accounting entry updated but id was not returned" mutation
-  mTurn <- find repo turnId
-  case mTurn of
-    Just turn -> pure turn
-    Nothing -> throwE (NotFound "Updated accounting entry was not found")
+  result <- liftIO $ getAccTurnById (atrPool repo) turnId
+  case result of
+    QuerySuccess turn -> pure turn
+    QueryError err -> throwE (DatabaseError err)
 
 deleteAccTurnRepo :: AccTurnRepository -> Int64 -> ExceptT RepositoryError IO ()
 deleteAccTurnRepo repo turnId = do
@@ -88,16 +63,6 @@ deleteAccTurnRepo repo turnId = do
     QueryError err
       | isNotFoundMessage err -> throwE (NotFound "Accounting entry not found")
       | otherwise -> throwE (DatabaseError err)
-
-toAccTurnInput :: AccTurn -> AccTurnInput
-toAccTurnInput turn =
-  AccTurnInput
-    { atiDbtAccId = atDbtAccId turn,
-      atiCrdAccId = atCrdAccId turn,
-      atiAmount = fromDecimal (atAmount turn),
-      atiDate = atDate turn,
-      atiBillId = atBillId turn
-    }
 
 validateAccTurnInputRepo :: AccTurnInput -> ExceptT RepositoryError IO AccTurnInput
 validateAccTurnInputRepo input = case Validation.validateAccTurnInput input of
@@ -120,10 +85,7 @@ instance HasAccTurnRepository AccTurnRepository where
   getAccTurnRepository = id
 
 instance HasRepository AccTurnRepository Pool where
-  getRepository = atrPool
+  getPool = atrPool
 
 mkAccTurnRepository :: Pool -> AccTurnRepository
 mkAccTurnRepository = AccTurnRepository
-
-runAccTurnRepository :: AccTurnRepository -> RepositoryT IO a -> IO (Either RepositoryError a)
-runAccTurnRepository repo = runRepository (defaultRepositoryContext (atrPool repo))

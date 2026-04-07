@@ -3,7 +3,7 @@
 module RBACSpec where
 
 import Data.Time (UTCTime (..), fromGregorian, secondsToDiffTime)
-import Network.HTTP.Types.Method (methodDelete, methodGet, methodPost, methodPut)
+import Network.HTTP.Types.Method (methodDelete, methodGet, methodPut)
 import Surypus.API.Authorization (normalizeResourcePath, requiredPermissionForPathMethod)
 import Surypus.RBAC
 import Surypus.RBAC.Store
@@ -56,8 +56,7 @@ main = hspec $ do
       hasDelegatedPermission now [grant] "42" ReportsWrite Nothing `shouldBe` True
       hasDelegatedPermission now [grant] "42" ReportsRead Nothing `shouldBe` False
     it "temporary delegation expires after deadline" $ do
-      let now = UTCTime (fromGregorian 2026 4 4) (secondsToDiffTime 0)
-          later = UTCTime (fromGregorian 2026 4 4) (secondsToDiffTime 3600)
+      let later = UTCTime (fromGregorian 2026 4 4) (secondsToDiffTime 3600)
           afterExpiry = UTCTime (fromGregorian 2026 4 4) (secondsToDiffTime 7200)
           grant = escalateTemporarily "admin" "42" (ScopedPermission ReportsWrite GlobalScope) later
       hasDelegatedPermission afterExpiry [grant] "42" ReportsWrite Nothing `shouldBe` False

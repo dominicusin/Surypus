@@ -10,7 +10,7 @@ where
 
 import Control.Exception (SomeException, try)
 import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Trans.Except (ExceptT, runExceptT, throwE)
+import Control.Monad.Trans.Except (runExceptT)
 import DAL.Repository (RepositoryError)
 import qualified DAL.Repository.AuditLog as AuditLogRepo
 import qualified DAL.Repository.RefreshToken as RefreshTokenRepo
@@ -20,16 +20,15 @@ import Data.Int (Int64)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import qualified Data.Text as T
-import Data.Time (Day, addUTCTime, getCurrentTime)
+import Data.Time (addUTCTime, getCurrentTime)
 import Hasql.Pool (Pool)
-import Network.Wai (Application)
 import Network.Wai.Handler.Warp (run)
 import Servant hiding (err401, err403)
-import Servant.Server (ServerError, err401, err403)
+import Servant.Server (err401)
 import Surypus.API.Root
 import Surypus.API.Types
 import Surypus.Database.Pool (pingDatabasePool)
-import Surypus.JWT (JWTConfig (..), JWTPayload (..), TokenPair (accessToken, refreshToken), createRefreshToken, generateTokenPair, jwtConfigFromSecret, rtUserId, validateRefreshToken)
+import Surypus.JWT (JWTConfig (..), TokenPair (accessToken, refreshToken), generateTokenPair, rtUserId, validateRefreshToken)
 import Surypus.RBAC
   ( AuditEntry (..),
     DynamicRole (..),
@@ -37,7 +36,6 @@ import Surypus.RBAC
     PermissionGrant (..),
     PermissionScope (..),
     ScopedPermission (..),
-    checkPermission,
     escalateTemporarily,
     mkDynamicRole,
     permissionToText,
@@ -57,19 +55,11 @@ import Surypus.RBAC.Store
     writeAuditEntry,
   )
 
-type AppM = ExceptT ServerError IO
-
 data Env = Env
   { envPool :: Pool,
     envJWTConfig :: JWTConfig,
     envRBACStore :: RBACStore
   }
-
--- | Helper function to check if a role has a required permission
-requirePermission :: Text -> Permission -> Handler ()
-requirePermission roleText perm = case checkPermission roleText perm of
-  Left _err -> throwError err403 {errBody = "Permission denied"}
-  Right () -> pure ()
 
 apiServer :: Pool -> JWTConfig -> RBACStore -> Application
 apiServer pool jwtConfig rbacStore =
@@ -181,21 +171,21 @@ refreshHandler' env jwtCfg (RefreshRequest {refreshToken = token}) = do
   case result of
     Left _err -> throwError err401 {errBody = "Invalid refresh token"}
     Right payload -> do
-      let userId = rtUserId payload
-      newTokens <- liftIO $ generateTokenPair jwtCfg userId "user" "user"
+      let jwtUserId = rtUserId payload
+      newTokens <- liftIO $ generateTokenPair jwtCfg jwtUserId "user" "user"
       rotation <- liftIO $ rotateRefreshTokenBestEffort env token (Surypus.JWT.refreshToken newTokens)
       case rotation of
         Just (Left _err) -> throwError err401 {errBody = "Invalid refresh token"}
         Just (Right storedUserId)
-          | storedUserId /= fromIntegral userId -> throwError err401 {errBody = "Invalid refresh token"}
+          | storedUserId /= fromIntegral jwtUserId -> throwError err401 {errBody = "Invalid refresh token"}
         _ -> pure ()
       pure $ RefreshResponse (Surypus.JWT.accessToken newTokens) (Surypus.JWT.refreshToken newTokens)
 
 persistRefreshTokenBestEffort :: Env -> Int64 -> Text -> IO ()
-persistRefreshTokenBestEffort env userId token = do
+persistRefreshTokenBestEffort env usrId token = do
   now <- getCurrentTime
   let expiresAt = addUTCTime (fromIntegral (jwtRefreshExpiry (envJWTConfig env))) now
-  _ <- try (RefreshTokenRepo.storeRefreshToken (envPool env) userId token expiresAt) :: IO (Either SomeException (Either Text ()))
+  _ <- try (RefreshTokenRepo.storeRefreshToken (envPool env) usrId token expiresAt) :: IO (Either SomeException (Either Text ()))
   pure ()
 
 rotateRefreshTokenBestEffort :: Env -> Text -> Text -> IO (Maybe (Either Text Int64))
@@ -478,8 +468,8 @@ usersList = pure $ UsersResponse []
 
 auditLogList :: Env -> Maybe Text -> Maybe Int64 -> Maybe Int64 -> Handler AuditLogListResponse
 auditLogList env mEntityType mLimit mOffset = do
-  entries <- liftIO $ fetchAuditLogsBestEffort env mEntityType (fromMaybe 100 mLimit) (sum mOffset)
-  pure $ AuditLogListResponse entries
+  auditEntries <- liftIO $ fetchAuditLogsBestEffort env mEntityType (fromMaybe 100 mLimit) (sum mOffset)
+  pure $ AuditLogListResponse auditEntries
 
 jobsList :: Handler JobsResponse
 jobsList = pure $ JobsResponse []
@@ -506,24 +496,24 @@ metricsGet = pure $ MetricsResponse 0 0 0
 
 rbacRolesList :: Env -> Handler RolesListResponse
 rbacRolesList env = do
-  roles <- liftIO $ listRoles (envRBACStore env)
-  pure $ RolesListResponse (fmap toRoleInfo roles)
+  rbacRoles <- liftIO $ listRoles (envRBACStore env)
+  pure $ RolesListResponse (fmap toRoleInfo rbacRoles)
 
 rbacRoleCreate :: Env -> RoleCreateRequest -> Handler RoleInfoResponse
 rbacRoleCreate env req = do
   scoped <- mapM mkScoped (normalizeRoleSpecs (rcrPermissions req) (rcrResources req))
-  let role = mkDynamicRole (rcrName req) scoped
-  liftIO $ upsertRole (envRBACStore env) role
+  let dynRole = mkDynamicRole (rcrName req) scoped
+  liftIO $ upsertRole (envRBACStore env) dynRole
   liftIO $ emitAdminAudit env "rbac-role-created" (Just (rcrName req))
-  pure $ toRoleInfo role
+  pure $ toRoleInfo dynRole
 
 rbacRoleUpdate :: Env -> Text -> RoleCreateRequest -> Handler RoleInfoResponse
 rbacRoleUpdate env name req = do
   scoped <- mapM mkScoped (normalizeRoleSpecs (rcrPermissions req) (rcrResources req))
-  let role = mkDynamicRole name scoped
-  liftIO $ upsertRole (envRBACStore env) role
+  let dynRole = mkDynamicRole name scoped
+  liftIO $ upsertRole (envRBACStore env) dynRole
   liftIO $ emitAdminAudit env "rbac-role-updated" (Just name)
-  pure $ toRoleInfo role
+  pure $ toRoleInfo dynRole
 
 rbacRoleDelete :: Env -> Text -> Handler ()
 rbacRoleDelete env name = do
@@ -581,8 +571,8 @@ rbacGrantDelete env from to permText mResource = do
 
 rbacAuditList :: Env -> Maybe Text -> Maybe Text -> Maybe Int64 -> Maybe Int64 -> Handler AuditListResponse
 rbacAuditList env mPrincipal mResource mOffset mLimit = do
-  entries <- liftIO $ listAuditEntries (envRBACStore env)
-  pure $ AuditListResponse (applyAuditFilters mPrincipal mResource mOffset mLimit entries)
+  auditEntries <- liftIO $ listAuditEntries (envRBACStore env)
+  pure $ AuditListResponse (applyAuditFilters mPrincipal mResource mOffset mLimit auditEntries)
 
 rbacAuditCleanup :: Env -> Maybe Int64 -> Handler CleanupResponse
 rbacAuditCleanup env mKeep = do
@@ -618,10 +608,10 @@ fetchAuditLogsBestEffort env mEntityType limit offset = do
     Right (Right rows) -> rows
 
 toRoleInfo :: DynamicRole -> RoleInfoResponse
-toRoleInfo role =
+toRoleInfo dynRole =
   RoleInfoResponse
-    { rirName = drName role,
-      rirPermissions = fmap scopedPermissionText (drPermissions role)
+    { rirName = drName dynRole,
+      rirPermissions = fmap scopedPermissionText (drPermissions dynRole)
     }
 
 toGrantInfo :: PermissionGrant -> GrantInfoResponse
@@ -711,15 +701,6 @@ parsePermissionText p =
       ("currencies:write", CurrenciesWrite),
       ("salaries:write", SalariesWrite)
     ]
-
-usersCreate :: UserRequest -> Handler UserResponse
-usersCreate _ = pure $ UserResponse 100 "New User" "new@example.com" 1
-
-usersUpdate :: Int64 -> UserRequest -> Handler UserResponse
-usersUpdate _ _ = pure $ UserResponse 1 "Updated" "updated@example.com" 1
-
-usersDelete :: Int64 -> Handler ()
-usersDelete _ = pure ()
 
 startServantServer :: Int -> Pool -> JWTConfig -> RBACStore -> IO ()
 startServantServer port pool jwtConfig rbacStore = do

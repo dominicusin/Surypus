@@ -19,10 +19,8 @@ where
 
 import Control.Monad.Trans.Except (ExceptT)
 import DAL.Types (Pagination (..))
-import Data.Int ()
 import Data.Text (Text)
 import qualified Data.Text as T
-import Hasql.Pool (Pool)
 
 data AppError = AppError Text deriving (Show, Eq)
 

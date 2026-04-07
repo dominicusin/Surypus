@@ -76,8 +76,6 @@ library
         DAL.Queries
         DAL.Mutations
         DAL.Repository
-        DAL.Repository.Person
-        DAL.Repository.Goods
         DAL.Repository.Location
         DAL.Repository.Payment
         DAL.Repository.Price

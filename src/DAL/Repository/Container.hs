@@ -9,11 +9,9 @@ import DAL.Repository.AccTurn
 import DAL.Repository.AuditLog
 import DAL.Repository.Bill
 import DAL.Repository.Currency
-import DAL.Repository.Goods
 import DAL.Repository.Location
 import DAL.Repository.Order
 import DAL.Repository.Payment
-import DAL.Repository.Person
 import DAL.Repository.Price
 import DAL.Repository.RBAC
 import DAL.Repository.Tax
@@ -21,9 +19,7 @@ import DAL.Repository.User
 import Hasql.Pool (Pool)
 
 data RepositoryContainer = RepositoryContainer
-  { rcPersonRepository :: PersonRepository,
-    rcGoodsRepository :: GoodsRepository,
-    rcLocationRepository :: LocationRepository,
+  { rcLocationRepository :: LocationRepository,
     rcPaymentRepository :: PaymentRepository,
     rcTaxRepository :: TaxRepository,
     rcCurrencyRepository :: CurrencyRepository,
@@ -40,9 +36,7 @@ data RepositoryContainer = RepositoryContainer
 mkRepositoryContainer :: Pool -> RepositoryContainer
 mkRepositoryContainer pool =
   RepositoryContainer
-    { rcPersonRepository = mkPersonRepository pool,
-      rcGoodsRepository = mkGoodsRepository pool,
-      rcLocationRepository = mkLocationRepository pool,
+    { rcLocationRepository = mkLocationRepository pool,
       rcPaymentRepository = mkPaymentRepository pool,
       rcTaxRepository = mkTaxRepository pool,
       rcCurrencyRepository = mkCurrencyRepository pool,
