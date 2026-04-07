@@ -58,7 +58,7 @@ deleteGoods :: Pool -> Int64 -> IO (QueryResult MutationResult)
 deleteGoods = M.deleteGoods
 
 searchGoods :: Pool -> Text -> IO (QueryResult [Goods])
-searchGoods pool query = do
+searchGoods pool _query = do
   result <- Q.getGoods pool
   case result of
     QuerySuccess goods -> pure (QuerySuccess goods)

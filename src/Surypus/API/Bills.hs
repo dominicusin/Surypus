@@ -20,7 +20,6 @@ import DAL.Types
     BillFilter (..),
     BillInput (..),
     BillLine (..),
-    BillLineInput (..),
     MutationResult (..),
     PaginatedResult (..),
     Pagination (..),
@@ -28,7 +27,7 @@ import DAL.Types
   )
 import Data.Int (Int64)
 import Data.Maybe (fromMaybe)
-import Data.Text (Text)
+-- import Data.Text (Text)  -- unused, removed to satisfy -Werror
 import Data.Time (Day)
 import Hasql.Pool (Pool)
 
