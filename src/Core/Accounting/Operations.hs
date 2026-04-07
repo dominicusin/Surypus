@@ -85,8 +85,8 @@ verifyDoubleEntry entries
   | totalDebit == totalCredit = AccOpSuccess
   | otherwise = AccOpDoubleEntryError
   where
-    totalDebit = sum (fmap atAmount entries)
-    totalCredit = sum (fmap (negate . atAmount) entries)
+    totalDebit = sum (fmap atDbtAmt entries)
+    totalCredit = sum (fmap atCrdAmt entries)
 
 -- | Calculate account balance
 --
@@ -119,7 +119,13 @@ calcTurnover entries = (debitTurnover, creditTurnover)
 -- ============================================================================
 
 prop_doubleEntryBalance :: [AccTurn] -> Bool
-prop_doubleEntryBalance entries = verifyDoubleEntry entries == AccOpSuccess
+prop_doubleEntryBalance entries = resultIsSuccess (verifyDoubleEntry entries)
+  where
+    resultIsSuccess r = case r of
+      AccOpSuccess -> True
+      AccOpInvalidAmount -> False
+      AccOpBalanceError _ -> False
+      AccOpDoubleEntryError -> False
 
 -- | Property: turnover values are non-negative
 prop_turnoverNonNeg :: [AccTurn] -> Bool

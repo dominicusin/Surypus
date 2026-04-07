@@ -377,7 +377,8 @@ adminRole :: RolePermission
 adminRole =
   RolePermission
     RoleAdmin
-    [ PersonRead,
+    [ AdminAccess,
+      PersonRead,
       PersonWrite,
       PersonDelete,
       GoodsRead,
@@ -390,6 +391,8 @@ adminRole =
       LocationRead,
       LocationWrite,
       LocationDelete,
+      UsersRead,
+      UsersWrite,
       TaxRead,
       TaxWrite,
       TaxDelete,
