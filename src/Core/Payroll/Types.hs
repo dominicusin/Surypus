@@ -38,6 +38,23 @@ data SalaryRec = SalaryRec
   }
   deriving (Show, Eq)
 
+-- | Salary details for net salary computation
+
+{-@ data SalaryDetails = SalaryDetails
+  { sdEmployeeId :: Int64
+  , sdGross :: NonNeg
+  , sdTaxRate :: TaxRate
+  , sdNet :: NonNeg
+  }
+@-}
+data SalaryDetails = SalaryDetails
+  { sdEmployeeId :: Int64,
+    sdGross :: Double,
+    sdTaxRate :: Double,
+    sdNet :: Double
+  }
+  deriving (Show, Eq)
+
 -- | Salary charge type
 data SalaryCharge = SalaryCharge
   { scId :: Int64,

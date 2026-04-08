@@ -1,12 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 
--- | Payroll service skeleton (Phase 1)
+-- | Payroll service - Salary computation
 module Service.PayrollService
   ( PayrollService (..),
     computeNetSalary,
   )
 where
 
+import Core.Payroll.Calculation (calcNetSalaryFromGross)
 import Core.Payroll.Types (SalaryDetails (..))
 import Hasql.Pool (Pool)
 
@@ -14,6 +15,11 @@ data PayrollService = PayrollService
   { psPool :: Pool
   }
 
--- | Placeholder for net salary computation
+-- | Compute net salary from gross
+-- = Invariant: result has non-negative amount
 computeNetSalary :: PayrollService -> SalaryDetails -> IO SalaryDetails
-computeNetSalary _ _ = error "PayrollService.computeNetSalary: not implemented"
+computeNetSalary _ details = do
+  let gross = sdGross details
+      taxRate = sdTaxRate details
+      net = calcNetSalaryFromGross gross taxRate
+  pure $ details {sdNet = net}
