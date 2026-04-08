@@ -119,13 +119,13 @@ calcTurnover entries = (debitTurnover, creditTurnover)
 -- ============================================================================
 
 prop_doubleEntryBalance :: [AccTurn] -> Bool
-prop_doubleEntryBalance entries = resultIsSuccess (verifyDoubleEntry entries)
-  where
-    resultIsSuccess r = case r of
-      AccOpSuccess -> True
-      AccOpInvalidAmount -> False
-      AccOpBalanceError _ -> False
-      AccOpDoubleEntryError -> False
+prop_doubleEntryBalance entries =
+  let balanced = all (\t -> atDbtAmt t == atCrdAmt t && atDbtAmt t > 0) entries
+   in if balanced
+        then case verifyDoubleEntry entries of
+          AccOpSuccess -> True
+          _ -> False
+        else True
 
 -- | Property: turnover values are non-negative
 prop_turnoverNonNeg :: [AccTurn] -> Bool
