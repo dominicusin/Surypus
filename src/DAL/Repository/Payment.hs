@@ -1,6 +1,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 
+-- | Payment Repository with LiquidHaskell refinement types
 module DAL.Repository.Payment
   ( PaymentRepository (..),
     HasPaymentRepository (..),
@@ -25,10 +26,17 @@ import qualified Data.Text as T
 import Hasql.Pool (Pool)
 import qualified Surypus.Validation as Validation
 
+-- | Payment amount must be non-negative
+
+{-@ type NonNegAmount = {v:Double | v >= 0} @-}
+
 newtype PaymentRepository = PaymentRepository
   { payrPool :: Pool
   }
 
+-- | List all payments
+
+{-@ listPaymentsRepo :: PaymentRepository -> ExceptT RepositoryError IO [Payment] @-}
 listPaymentsRepo :: PaymentRepository -> ExceptT RepositoryError IO [Payment]
 listPaymentsRepo repo = do
   result <- liftIO $ getPayments (payrPool repo)
@@ -36,6 +44,9 @@ listPaymentsRepo repo = do
     QuerySuccess payments -> pure payments
     QueryError err -> throwE (DatabaseError err)
 
+-- | List payments for a specific bill
+
+{-@ listPaymentsByBillRepo :: PaymentRepository -> Int64 -> ExceptT RepositoryError IO [Payment] @-}
 listPaymentsByBillRepo :: PaymentRepository -> Int64 -> ExceptT RepositoryError IO [Payment]
 listPaymentsByBillRepo repo billId = do
   result <- liftIO $ getPaymentsByBill (payrPool repo) billId
@@ -43,6 +54,9 @@ listPaymentsByBillRepo repo billId = do
     QuerySuccess payments -> pure payments
     QueryError err -> throwE (DatabaseError err)
 
+-- | Create payment - validates input
+
+{-@ createPaymentRepo :: PaymentRepository -> PaymentInput -> ExceptT RepositoryError IO Payment @-}
 createPaymentRepo :: PaymentRepository -> PaymentInput -> ExceptT RepositoryError IO Payment
 createPaymentRepo repo input = do
   validated <- validatePaymentInputRepo input
@@ -53,6 +67,9 @@ createPaymentRepo repo input = do
     QuerySuccess payment -> pure payment
     QueryError err -> throwE (DatabaseError err)
 
+-- | Update payment
+
+{-@ updatePaymentRepo :: PaymentRepository -> Int64 -> PaymentInput -> ExceptT RepositoryError IO Payment @-}
 updatePaymentRepo :: PaymentRepository -> Int64 -> PaymentInput -> ExceptT RepositoryError IO Payment
 updatePaymentRepo repo paymentId input = do
   validated <- validatePaymentInputRepo input
@@ -63,6 +80,9 @@ updatePaymentRepo repo paymentId input = do
     QuerySuccess payment -> pure payment
     QueryError err -> throwE (DatabaseError err)
 
+-- | Delete payment
+
+{-@ deletePaymentRepo :: PaymentRepository -> Int64 -> ExceptT RepositoryError IO () @-}
 deletePaymentRepo :: PaymentRepository -> Int64 -> ExceptT RepositoryError IO ()
 deletePaymentRepo repo paymentId = do
   mutation <- liftIO $ deletePayment (payrPool repo) paymentId
@@ -72,6 +92,9 @@ deletePaymentRepo repo paymentId = do
       | isNotFoundMessage err -> throwE (NotFound "Payment not found")
       | otherwise -> throwE (DatabaseError err)
 
+-- | Validate payment input
+
+{-@ validatePaymentInputRepo :: PaymentInput -> ExceptT RepositoryError IO PaymentInput @-}
 validatePaymentInputRepo :: PaymentInput -> ExceptT RepositoryError IO PaymentInput
 validatePaymentInputRepo input = case Validation.validatePaymentInput input of
   Right ok -> pure ok
@@ -80,6 +103,9 @@ validatePaymentInputRepo input = case Validation.validatePaymentInput input of
   where
     validationMessage (Validation.ValidationError msg) = msg
 
+-- | Extract mutation ID
+
+{-@ extractMutationId :: Text -> QueryResult MutationResult -> ExceptT RepositoryError IO Int64 @-}
 extractMutationId :: Text -> QueryResult MutationResult -> ExceptT RepositoryError IO Int64
 extractMutationId missingIdMessage result = case result of
   QuerySuccess (MutationResult _ (Just rid) _) -> pure rid

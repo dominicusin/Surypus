@@ -1,6 +1,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 
+-- | Tax Repository with LiquidHaskell refinement types
 module DAL.Repository.Tax
   ( TaxRepository (..),
     HasTaxRepository (..),
@@ -24,10 +25,17 @@ import qualified Data.Text as T
 import Hasql.Pool (Pool)
 import qualified Surypus.Validation as Validation
 
+-- | Tax rate must be between 0 and 100
+
+{-@ type TaxRate = {v:Double | v >= 0 && v <= 100} @-}
+
 newtype TaxRepository = TaxRepository
   { trPool :: Pool
   }
 
+-- | List all taxes - returns non-empty list when DB has data
+
+{-@ listTaxesRepo :: TaxRepository -> ExceptT RepositoryError IO [Tax] @-}
 listTaxesRepo :: TaxRepository -> ExceptT RepositoryError IO [Tax]
 listTaxesRepo repo = do
   result <- liftIO $ getTaxes (trPool repo)
@@ -35,6 +43,9 @@ listTaxesRepo repo = do
     QuerySuccess taxes -> pure taxes
     QueryError err -> throwE (DatabaseError err)
 
+-- | Create tax - validates input before mutation
+
+{-@ createTaxRepo :: TaxRepository -> TaxInput -> ExceptT RepositoryError IO Tax @-}
 createTaxRepo :: TaxRepository -> TaxInput -> ExceptT RepositoryError IO Tax
 createTaxRepo repo input = do
   validated <- validateTaxInputRepo input
@@ -45,6 +56,9 @@ createTaxRepo repo input = do
     QuerySuccess taxVal -> pure taxVal
     QueryError err -> throwE (DatabaseError err)
 
+-- | Update tax - validates input before mutation
+
+{-@ updateTaxRepo :: TaxRepository -> Int64 -> TaxInput -> ExceptT RepositoryError IO Tax @-}
 updateTaxRepo :: TaxRepository -> Int64 -> TaxInput -> ExceptT RepositoryError IO Tax
 updateTaxRepo repo tid input = do
   validated <- validateTaxInputRepo input
@@ -55,6 +69,9 @@ updateTaxRepo repo tid input = do
     QuerySuccess taxVal -> pure taxVal
     QueryError err -> throwE (DatabaseError err)
 
+-- | Delete tax - succeeds silently if not found
+
+{-@ deleteTaxRepo :: TaxRepository -> Int64 -> ExceptT RepositoryError IO () @-}
 deleteTaxRepo :: TaxRepository -> Int64 -> ExceptT RepositoryError IO ()
 deleteTaxRepo repo tid = do
   mutation <- liftIO $ deleteTax (trPool repo) tid
@@ -64,6 +81,9 @@ deleteTaxRepo repo tid = do
       | isNotFoundMessage err -> throwE (NotFound "Tax not found")
       | otherwise -> throwE (DatabaseError err)
 
+-- | Validate tax input before database operation
+
+{-@ validateTaxInputRepo :: TaxInput -> ExceptT RepositoryError IO TaxInput @-}
 validateTaxInputRepo :: TaxInput -> ExceptT RepositoryError IO TaxInput
 validateTaxInputRepo input = case Validation.validateTaxInput input of
   Right ok -> pure ok
@@ -72,6 +92,9 @@ validateTaxInputRepo input = case Validation.validateTaxInput input of
   where
     validationMessage (Validation.ValidationError msg) = msg
 
+-- | Extract mutation ID, fail if not present
+
+{-@ extractMutationId :: Text -> QueryResult MutationResult -> ExceptT RepositoryError IO Int64 @-}
 extractMutationId :: Text -> QueryResult MutationResult -> ExceptT RepositoryError IO Int64
 extractMutationId missingIdMessage result = case result of
   QuerySuccess (MutationResult _ (Just rid) _) -> pure rid

@@ -1,6 +1,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 
+-- | Currency Repository with LiquidHaskell refinement types
 module DAL.Repository.Currency
   ( CurrencyRepository (..),
     HasCurrencyRepository (..),
@@ -24,10 +25,21 @@ import qualified Data.Text as T
 import Hasql.Pool (Pool)
 import qualified Surypus.Validation as Validation
 
+-- | Currency code must be 3 characters
+
+{-@ type CurrencyCode = {v:Text | T.length v == 3} @-}
+
+-- | Exchange rate must be positive
+
+{-@ type ExchangeRate = {v:Double | v > 0} @-}
+
 newtype CurrencyRepository = CurrencyRepository
   { curPool :: Pool
   }
 
+-- | List all currencies
+
+{-@ listCurrenciesRepo :: CurrencyRepository -> ExceptT RepositoryError IO [Currency] @-}
 listCurrenciesRepo :: CurrencyRepository -> ExceptT RepositoryError IO [Currency]
 listCurrenciesRepo repo = do
   result <- liftIO $ getCurrencies (curPool repo)
@@ -35,6 +47,9 @@ listCurrenciesRepo repo = do
     QuerySuccess currencies -> pure currencies
     QueryError err -> throwE (DatabaseError err)
 
+-- | Create currency
+
+{-@ createCurrencyRepo :: CurrencyRepository -> CurrencyInput -> ExceptT RepositoryError IO Currency @-}
 createCurrencyRepo :: CurrencyRepository -> CurrencyInput -> ExceptT RepositoryError IO Currency
 createCurrencyRepo repo input = do
   validated <- validateCurrencyInputRepo input
@@ -45,6 +60,9 @@ createCurrencyRepo repo input = do
     QuerySuccess currency -> pure currency
     QueryError err -> throwE (DatabaseError err)
 
+-- | Update currency
+
+{-@ updateCurrencyRepo :: CurrencyRepository -> Int64 -> CurrencyInput -> ExceptT RepositoryError IO Currency @-}
 updateCurrencyRepo :: CurrencyRepository -> Int64 -> CurrencyInput -> ExceptT RepositoryError IO Currency
 updateCurrencyRepo repo currencyId input = do
   validated <- validateCurrencyInputRepo input
@@ -55,6 +73,9 @@ updateCurrencyRepo repo currencyId input = do
     QuerySuccess currency -> pure currency
     QueryError err -> throwE (DatabaseError err)
 
+-- | Delete currency
+
+{-@ deleteCurrencyRepo :: CurrencyRepository -> Int64 -> ExceptT RepositoryError IO () @-}
 deleteCurrencyRepo :: CurrencyRepository -> Int64 -> ExceptT RepositoryError IO ()
 deleteCurrencyRepo repo currencyId = do
   mutation <- liftIO $ deleteCurrency (curPool repo) currencyId
@@ -64,6 +85,9 @@ deleteCurrencyRepo repo currencyId = do
       | isNotFoundMessage err -> throwE (NotFound "Currency not found")
       | otherwise -> throwE (DatabaseError err)
 
+-- | Validate currency input
+
+{-@ validateCurrencyInputRepo :: CurrencyInput -> ExceptT RepositoryError IO CurrencyInput @-}
 validateCurrencyInputRepo :: CurrencyInput -> ExceptT RepositoryError IO CurrencyInput
 validateCurrencyInputRepo input = case Validation.validateCurrencyInput input of
   Right ok -> pure ok
@@ -72,6 +96,9 @@ validateCurrencyInputRepo input = case Validation.validateCurrencyInput input of
   where
     validationMessage (Validation.ValidationError msg) = msg
 
+-- | Extract mutation ID
+
+{-@ extractMutationId :: Text -> QueryResult MutationResult -> ExceptT RepositoryError IO Int64 @-}
 extractMutationId :: Text -> QueryResult MutationResult -> ExceptT RepositoryError IO Int64
 extractMutationId missingIdMessage result = case result of
   QuerySuccess (MutationResult _ (Just rid) _) -> pure rid

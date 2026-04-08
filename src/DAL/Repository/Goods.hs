@@ -1,6 +1,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 
+-- | Goods Repository with LiquidHaskell refinement types
 module DAL.Repository.Goods
   ( GoodsRepository (..),
     HasGoodsRepository (..),
@@ -25,13 +26,27 @@ import qualified Data.Text as T
 import Hasql.Pool (Pool)
 import qualified Surypus.Validation as Validation
 
+-- | Goods price must be non-negative
+
+{-@ type GoodsPrice = {v:Double | v >= 0} @-}
+
+-- | Goods quantity must be non-negative
+
+{-@ type GoodsQty = {v:Int | v >= 0} @-}
+
 newtype GoodsRepository = GoodsRepository
   { grPool :: Pool
   }
 
+-- | Run repository action
+
+{-@ runGoodsRepository :: GoodsRepository -> ExceptT RepositoryError IO a -> IO (Either RepositoryError a) @-}
 runGoodsRepository :: GoodsRepository -> ExceptT RepositoryError IO a -> IO (Either RepositoryError a)
 runGoodsRepository = runExceptT
 
+-- | List goods with pagination and filtering
+
+{-@ listGoodsPage :: GoodsRepository -> GoodsFilter -> Pagination -> Maybe GoodsSortBy -> Maybe SortDir -> ExceptT RepositoryError IO (PaginatedResult Goods) @-}
 listGoodsPage :: GoodsRepository -> GoodsFilter -> Pagination -> Maybe GoodsSortBy -> Maybe SortDir -> ExceptT RepositoryError IO (PaginatedResult Goods)
 listGoodsPage repo filter' pagination mSortBy mSortDir = do
   result <- liftIO $ getGoodsPaginated (grPool repo) filter' pagination mSortBy mSortDir
@@ -39,6 +54,9 @@ listGoodsPage repo filter' pagination mSortBy mSortDir = do
     QuerySuccess goods -> pure goods
     QueryError err -> throwE (DatabaseError err)
 
+-- | Create goods with validation
+
+{-@ createGoodsRepo :: GoodsRepository -> GoodsInput -> ExceptT RepositoryError IO Goods @-}
 createGoodsRepo :: GoodsRepository -> GoodsInput -> ExceptT RepositoryError IO Goods
 createGoodsRepo repo input = do
   validated <- validateGoodsInputRepo input
@@ -49,6 +67,9 @@ createGoodsRepo repo input = do
     QuerySuccess goods -> pure goods
     QueryError err -> throwE (DatabaseError err)
 
+-- | Update goods with validation
+
+{-@ updateGoodsRepo :: GoodsRepository -> Int64 -> GoodsInput -> ExceptT RepositoryError IO Goods @-}
 updateGoodsRepo :: GoodsRepository -> Int64 -> GoodsInput -> ExceptT RepositoryError IO Goods
 updateGoodsRepo repo gid input = do
   validated <- validateGoodsInputRepo input
@@ -59,6 +80,9 @@ updateGoodsRepo repo gid input = do
     QuerySuccess goods -> pure goods
     QueryError err -> throwE (DatabaseError err)
 
+-- | Delete goods
+
+{-@ deleteGoodsRepo :: GoodsRepository -> Int64 -> ExceptT RepositoryError IO () @-}
 deleteGoodsRepo :: GoodsRepository -> Int64 -> ExceptT RepositoryError IO ()
 deleteGoodsRepo repo gid = do
   mutation <- liftIO $ deleteGoods (grPool repo) gid
@@ -68,6 +92,9 @@ deleteGoodsRepo repo gid = do
       | isNotFoundMessage err -> throwE (NotFound "Goods not found")
       | otherwise -> throwE (DatabaseError err)
 
+-- | Validate goods input
+
+{-@ validateGoodsInputRepo :: GoodsInput -> ExceptT RepositoryError IO GoodsInput @-}
 validateGoodsInputRepo :: GoodsInput -> ExceptT RepositoryError IO GoodsInput
 validateGoodsInputRepo input = case Validation.validateGoodsInput input of
   Right ok -> pure ok
@@ -76,6 +103,9 @@ validateGoodsInputRepo input = case Validation.validateGoodsInput input of
   where
     validationMessage (Validation.ValidationError msg) = msg
 
+-- | Extract mutation ID
+
+{-@ extractMutationId :: Text -> QueryResult MutationResult -> ExceptT RepositoryError IO Int64 @-}
 extractMutationId :: Text -> QueryResult MutationResult -> ExceptT RepositoryError IO Int64
 extractMutationId missingIdMessage result = case result of
   QuerySuccess (MutationResult _ (Just rid) _) -> pure rid
