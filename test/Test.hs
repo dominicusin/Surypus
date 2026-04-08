@@ -27,7 +27,6 @@ import Core.Payroll.Calculation
 import Core.Payroll.Types
 import Core.Price
 import Core.Price.Operations
-import Core.Production
 import Core.Quotation
 import Core.RetBill
 import Core.SmartReceipt
@@ -35,7 +34,7 @@ import Core.Tax
 import Core.TaxInvoice
 import Core.Transfer
 import Core.Warehouse
-import Data.Int (Int64)
+import Data.Int ()
 import Data.Maybe ()
 import qualified Data.Text as T
 import Data.Time (fromGregorian)
@@ -44,7 +43,7 @@ import Surypus.RBAC
 import Surypus.Types (Decimal (..))
 import Test.Hspec
 import Test.Hspec.QuickCheck (prop)
-import Test.QuickCheck (Property, property)
+import Test.QuickCheck (property)
 
 -- ============================================================================
 -- MAIN
