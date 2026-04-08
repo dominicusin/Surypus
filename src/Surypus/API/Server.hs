@@ -64,7 +64,13 @@ data Env = Env
 apiServer :: Pool -> JWTConfig -> RBACStore -> Application
 apiServer pool jwtConfig rbacStore =
   let env = Env pool jwtConfig rbacStore
-   in serve (Proxy @API) (server env)
+   in serve (Proxy @APIWithDoc) (serverWithDoc env)
+
+serverWithDoc :: Env -> Server APIWithDoc
+serverWithDoc env =
+  let apiHandler = server env
+      swaggerHandler = pure apiSwagger
+   in apiHandler :<|> swaggerHandler
 
 server :: Env -> Server API
 server env =

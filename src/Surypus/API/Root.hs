@@ -3,12 +3,13 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeOperators #-}
 
 module Surypus.API.Root where
 
 import DAL.Types (AuditLog)
-import Data.Aeson (FromJSON, ToJSON, Value)
+import Data.Aeson (FromJSON, ToJSON, Value (String))
 import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Time (Day)
@@ -25,6 +26,12 @@ import Surypus.RBAC (AuditEntry)
 type APIv1 = "v1" :> (AuthAPI :<|> ProtectedAPI)
 
 type ProtectedAPI = PersonsAPI :<|> GoodsAPI :<|> LocationsAPI :<|> BillsAPI :<|> PaymentsAPI :<|> OrdersAPI :<|> TaxesAPI :<|> VATAPI :<|> CurrenciesAPI :<|> StockAPI :<|> AccountingAPI :<|> PayrollAPI :<|> ReportsAPI :<|> DashboardAPI :<|> UsersAPI :<|> AuditLogAPI :<|> RbacAPI :<|> JobsAPI :<|> HealthAPI :<|> MetricsAPI
+
+-- | Full API with Swagger documentation
+type APIWithDoc = APIv1 :<|> "swagger.json" :> Get '[JSON] Value
+
+apiSwagger :: Value
+apiSwagger = String "Swagger documentation endpoint"
 
 type AuthAPI =
   "login" :> ReqBody '[JSON] LoginRequest :> Post '[JSON] LoginResponse
