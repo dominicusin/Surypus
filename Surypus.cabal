@@ -249,6 +249,7 @@ test-suite test
       Integration.CrudSpec
       Integration.NegativeSpec
       Integration.PropertySpec
+      Integration.ValidationSpec
       TestFixtures
       RBACSpec
   build-depends:
