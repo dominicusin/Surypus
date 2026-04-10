@@ -410,7 +410,7 @@ main = hspec $ do
       prop "TaxInvoice tax amount non-negative" prop_taxAmountNonNeg
       prop "GoodsTaxEx tax amount non-negative" prop_goodsTaxAmountNonNeg
       prop "Discount amount non-negative" prop_discountAmountNonNeg
-      prop "Currency rounding" prop_roundToPrecisionInBounds
+      prop "Currency rounding in bounds" prop_roundToPrecisionInBounds
 
     -- ========================================================================
     -- RBAC TESTS
