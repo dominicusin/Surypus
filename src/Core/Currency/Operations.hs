@@ -20,6 +20,7 @@ module Core.Currency.Operations
 where
 
 import Core.Currency
+import Data.Ratio ((%))
 import Data.Text (Text)
 import qualified Data.Text as T
 import Test.QuickCheck
@@ -91,7 +92,10 @@ roundToPrecision precision amount
   | precision > 6 = amount
   | otherwise =
       let factor = 10 ^ precision
-       in fromInteger (round (amount * factor)) / factor
+          amountR = toRational amount
+          scaled = amountR * (toRational factor)
+          roundedInt = (round scaled) :: Integer
+       in fromRational (roundedInt % factor)
 
 -- ============================================================================
 -- FORMATTING
