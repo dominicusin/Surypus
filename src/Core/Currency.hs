@@ -67,9 +67,8 @@ roundToCurrency cur amount =
       factor = 10 ^ curPrecision cur
       amountR = toRational amount
       scaled = amountR * (toRational factor)
-      roundedInt :: Integer
-      roundedInt = floor (scaled + (1 % 2)) -- half-up rounding
-      out = (fromIntegral roundedInt) / (fromIntegral factor)
+      roundedInt = (round scaled) :: Integer
+      out = (fromRational ((toRational roundedInt) % (toRational factor)))
    in out
 
 -- | Format amount with currency symbol

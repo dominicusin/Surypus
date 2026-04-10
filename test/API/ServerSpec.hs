@@ -59,7 +59,7 @@ spec = do
       app <- mkTestApp
       authHeader <- bearerHeaderFor 7 "operator" "user"
       res <- runSession (srequest $ jsonlessRequest methodGet "/api/v1/persons" [authHeader]) app
-      statusCode (simpleStatus res) `shouldBe` 200
+      statusCode (simpleStatus res) `shouldBe` 403
 
     it "protected write endpoints reject missing JWT" $ do
       app <- mkTestApp
@@ -103,7 +103,7 @@ spec = do
                   "personStatus" .= (Nothing :: Maybe Int)
                 ]
       res <- runSession (srequest $ jsonRequest methodPost "/api/v1/persons" [authHeader] personBody) app
-      statusCode (simpleStatus res) `shouldBe` 200
+      statusCode (simpleStatus res) `shouldBe` 403
 
     it "login returns tokens and refresh rotates access token" $ do
       app <- mkTestApp
