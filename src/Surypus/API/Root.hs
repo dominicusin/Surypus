@@ -51,7 +51,7 @@ type PersonsAPI =
            :<|> "search" :> Capture "query" Text :> Get '[JSON] PersonsResponse
        )
 
-type GoodsAPI = "goods" :> Get '[JSON] GoodsResponse
+type GoodsAPI = "goods" :> QueryParam "name" Text :> QueryParam "barcode" Text :> QueryParam "code" Text :> Get '[JSON] GoodsResponse
 
 type LocationsAPI =
   "locations"

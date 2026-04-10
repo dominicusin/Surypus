@@ -1,5 +1,6 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeApplications #-}
 
 module Surypus.API.Server
@@ -14,17 +15,19 @@ import Control.Monad.Trans.Except (runExceptT)
 import DAL.Repository (RepositoryError)
 import qualified DAL.Repository.AuditLog as AuditLogRepo
 import qualified DAL.Repository.RefreshToken as RefreshTokenRepo
-import DAL.Types (AuditLog)
+import DAL.Types (AuditLog, Goods (..), QueryResult (..))
 import Data.Aeson (object, (.=))
+import qualified Data.ByteString.Lazy as LBS
 import Data.Int (Int64)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import qualified Data.Text as T
+import Data.Text.Encoding (encodeUtf8)
 import Data.Time (addUTCTime, getCurrentTime)
 import Hasql.Pool (Pool)
 import Network.Wai.Handler.Warp (run)
-import Servant hiding (err401, err403)
-import Servant.Server (err401)
+import Servant hiding (err403)
+import Surypus.API.Goods
 import Surypus.API.Root
 import Surypus.API.Types
 import Surypus.Database.Pool (pingDatabasePool)
@@ -84,7 +87,7 @@ server env =
           :<|> personsUpdate
           :<|> personsDelete
           :<|> personsSearch
-      goodsHandler = goodsList
+      goodsHandler = goodsList env
       locationsHandler =
         locationsList
           :<|> locationsCreate
@@ -234,10 +237,22 @@ personsSearch :: Text -> Handler PersonsResponse
 -- | GET /v1/persons/search/:query - Requires PersonRead permission
 personsSearch _ = pure $ PersonsResponse [] 0
 
-goodsList :: Handler GoodsResponse
-
--- | GET /v1/goods - Requires GoodsRead permission
-goodsList = pure $ GoodsResponse [GoodResponse 1 "Demo" Nothing Nothing] 1
+goodsList :: Env -> Maybe Text -> Maybe Text -> Maybe Text -> Handler GoodsResponse
+goodsList env mName mBarcode mCode = do
+  let pool = envPool env
+  result <- liftIO $ Surypus.API.Goods.listGoods pool mName mBarcode mCode Nothing
+  case result of
+    QuerySuccess goods -> pure $ GoodsResponse (map toGoodResponse goods) (fromIntegral $ length goods)
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
+  where
+    toGoodResponse :: DAL.Types.Goods -> GoodResponse
+    toGoodResponse Goods {..} =
+      GoodResponse
+        { goodId = gId,
+          goodName = gName,
+          goodArticle = gCode,
+          goodUnit = gBarcode
+        }
 
 locationsList :: Handler LocationsResponse
 
@@ -660,7 +675,7 @@ scopeResourceText (ResourceScope rid) = Just rid
 mkScoped :: (Text, Maybe Text) -> Handler ScopedPermission
 mkScoped (permText, mRes) =
   case parsePermissionText permText of
-    Nothing -> throwError err400 {errBody = "Unknown permission"}
+    Nothing -> throwError $ err400 {errBody = "Unknown permission"}
     Just perm ->
       pure $ ScopedPermission perm (maybe GlobalScope ResourceScope mRes)
 
