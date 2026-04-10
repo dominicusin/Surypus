@@ -15,7 +15,7 @@ import Control.Monad.Trans.Except (runExceptT)
 import DAL.Repository (RepositoryError)
 import qualified DAL.Repository.AuditLog as AuditLogRepo
 import qualified DAL.Repository.RefreshToken as RefreshTokenRepo
-import DAL.Types (AuditLog, Goods (..), QueryResult (..))
+import DAL.Types (AuditLog, Goods (..), GoodsInput (..), QueryResult (..))
 import Data.Aeson (object, (.=))
 import qualified Data.ByteString.Lazy as LBS
 import Data.Int (Int64)
@@ -87,7 +87,7 @@ server env =
           :<|> personsUpdate
           :<|> personsDelete
           :<|> personsSearch
-      goodsHandler = goodsList env
+      goodsHandler = goodsList env :<|> goodsCreate env :<|> goodsGet env :<|> goodsUpdate env :<|> goodsDelete env :<|> goodsSearch env
       locationsHandler =
         locationsList
           :<|> locationsCreate
@@ -244,15 +244,72 @@ goodsList env mName mBarcode mCode = do
   case result of
     QuerySuccess goods -> pure $ GoodsResponse (map toGoodResponse goods) (fromIntegral $ length goods)
     QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
-  where
-    toGoodResponse :: DAL.Types.Goods -> GoodResponse
-    toGoodResponse Goods {..} =
-      GoodResponse
-        { goodId = gId,
-          goodName = gName,
-          goodArticle = gCode,
-          goodUnit = gBarcode
-        }
+
+toGoodResponse :: DAL.Types.Goods -> GoodResponse
+toGoodResponse Goods {..} =
+  GoodResponse
+    { goodId = gId,
+      goodName = gName,
+      goodArticle = gCode,
+      goodUnit = gBarcode
+    }
+
+goodsCreate :: Env -> GoodRequest -> Handler GoodResponse
+goodsCreate env (GoodRequest n a u) = do
+  let pool = envPool env
+      input =
+        GoodsInput
+          { giName = n,
+            giCode = a,
+            giBarcode = u,
+            giUnitId = 1,
+            giParentId = Nothing
+          }
+  result <- liftIO $ Surypus.API.Goods.createGoods pool input
+  case result of
+    QuerySuccess _ -> pure $ GoodResponse 100 n a u
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
+
+goodsGet :: Env -> Int64 -> Handler GoodResponse
+goodsGet env gid = do
+  let pool = envPool env
+  result <- liftIO $ Surypus.API.Goods.getGoods pool gid
+  case result of
+    QuerySuccess goods -> pure $ toGoodResponse goods
+    QueryError _ -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack "Goods not found"}
+
+goodsUpdate :: Env -> Int64 -> GoodRequest -> Handler GoodResponse
+goodsUpdate env gid (GoodRequest n a u) = do
+  let pool = envPool env
+      input =
+        GoodsInput
+          { giName = n,
+            giCode = a,
+            giBarcode = u,
+            giUnitId = 1,
+            giParentId = Nothing
+          }
+  result <- liftIO $ Surypus.API.Goods.updateGoods pool gid input
+  case result of
+    QuerySuccess _ -> pure $ GoodResponse gid n a u
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
+
+goodsDelete :: Env -> Int64 -> Handler ()
+goodsDelete env gid = do
+  let pool = envPool env
+  result <- liftIO $ Surypus.API.Goods.deleteGoods pool gid
+  case result of
+    QuerySuccess _ -> pure ()
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
+
+goodsSearch :: Env -> Maybe Text -> Handler GoodsResponse
+goodsSearch env mQuery = do
+  let pool = envPool env
+      query = fromMaybe "" mQuery
+  result <- liftIO $ Surypus.API.Goods.searchGoods pool query
+  case result of
+    QuerySuccess goods -> pure $ GoodsResponse (map toGoodResponse goods) (fromIntegral $ length goods)
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
 
 locationsList :: Handler LocationsResponse
 

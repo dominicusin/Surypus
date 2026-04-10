@@ -51,7 +51,15 @@ type PersonsAPI =
            :<|> "search" :> Capture "query" Text :> Get '[JSON] PersonsResponse
        )
 
-type GoodsAPI = "goods" :> QueryParam "name" Text :> QueryParam "barcode" Text :> QueryParam "code" Text :> Get '[JSON] GoodsResponse
+type GoodsAPI =
+  "goods"
+    :> ( QueryParam "name" Text :> QueryParam "barcode" Text :> QueryParam "code" Text :> Get '[JSON] GoodsResponse
+           :<|> ReqBody '[JSON] GoodRequest :> Post '[JSON] GoodResponse
+           :<|> Capture "id" Int64 :> Get '[JSON] GoodResponse
+           :<|> Capture "id" Int64 :> ReqBody '[JSON] GoodRequest :> Put '[JSON] GoodResponse
+           :<|> Capture "id" Int64 :> Delete '[JSON] ()
+           :<|> "search" :> QueryParam "q" Text :> Get '[JSON] GoodsResponse
+       )
 
 type LocationsAPI =
   "locations"
