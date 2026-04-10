@@ -130,6 +130,7 @@ library
         Surypus.API.Bills
         Surypus.API.Payment
         Surypus.API.Order
+        Surypus.API.Tax
         Surypus.API.Sync
         Surypus.API.IdPool
         Surypus.API.Dashboard

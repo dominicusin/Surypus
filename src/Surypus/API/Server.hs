@@ -98,11 +98,7 @@ server env =
       ordersHandler =
         ordersList env :<|> ordersCreate env :<|> ordersGet env :<|> ordersStatus env :<|> ordersDelete env
       taxesHandler =
-        taxesList
-          :<|> taxesCreate
-          :<|> taxesGet
-          :<|> taxesUpdate
-          :<|> taxesDelete
+        taxesList env :<|> taxesCreate env :<|> taxesGet env :<|> taxesUpdate env :<|> taxesDelete env
       currenciesHandler =
         currenciesList
           :<|> currenciesCreate
@@ -110,7 +106,7 @@ server env =
           :<|> currenciesUpdate
           :<|> currenciesDelete
       vatHandler =
-        vatCalculate :<|> vatRates
+        vatCalculate :<|> (vatRates env)
       stockHandler = stockList :<|> stockSummary :<|> stockByLoc :<|> stockByGoods
       accountingHandler =
         accList
@@ -584,30 +580,20 @@ toOrderResponse (DAL.Types.Order {oId = oid, oName = oname, oStatus = ostatus, o
       orderDate = odate
     }
 
-taxesList :: Handler TaxesResponse
+taxesList :: Env -> Handler TaxesResponse
+taxesList _ = pure $ TaxesResponse [TaxResponse 1 "НДС" 20.0 (Just "VAT") (Just True)]
 
--- | GET /v1/taxes - Requires TaxesWrite permission (for access)
-taxesList = pure $ TaxesResponse [TaxResponse 1 "НДС" 20.0 (Just "VAT") (Just True)]
+taxesCreate :: Env -> TaxRequest -> Handler TaxResponse
+taxesCreate _ _ = pure $ TaxResponse 100 "New" 0.0 (Just "VAT") (Just False)
 
-taxesCreate :: TaxRequest -> Handler TaxResponse
+taxesGet :: Env -> Int64 -> Handler TaxResponse
+taxesGet _ _ = pure $ TaxResponse 1 "НДС" 20.0 (Just "VAT") (Just True)
 
--- | POST /v1/taxes - Requires TaxesWrite permission
-taxesCreate _ = pure $ TaxResponse 100 "New" 0.0 (Just "VAT") (Just False)
+taxesUpdate :: Env -> Int64 -> TaxRequest -> Handler TaxResponse
+taxesUpdate _ _ _ = pure $ TaxResponse 1 "Updated" 0.0 (Just "VAT") (Just False)
 
-taxesGet :: Int64 -> Handler TaxResponse
-
--- | GET /v1/taxes/:id - Requires TaxesWrite permission (for access)
-taxesGet _ = pure $ TaxResponse 1 "НДС" 20.0 (Just "VAT") (Just True)
-
-taxesUpdate :: Int64 -> TaxRequest -> Handler TaxResponse
-
--- | PUT /v1/taxes/:id - Requires TaxesWrite permission
-taxesUpdate _ _ = pure $ TaxResponse 1 "Updated" 0.0 (Just "VAT") (Just False)
-
-taxesDelete :: Int64 -> Handler ()
-
--- | DELETE /v1/taxes/:id - Requires TaxesWrite permission
-taxesDelete _ = pure ()
+taxesDelete :: Env -> Int64 -> Handler ()
+taxesDelete _ _ = pure ()
 
 vatCalculate :: VATCalcRequest -> Handler VATCalcResponse
 vatCalculate req =
@@ -624,8 +610,8 @@ vatCalculate req =
             vatAppliedRate = reqRate
           }
 
-vatRates :: Handler TaxesResponse
-vatRates = taxesList
+vatRates :: Env -> Handler TaxesResponse
+vatRates _ = pure $ TaxesResponse [TaxResponse 1 "НДС" 20.0 (Just "VAT") (Just True)]
 
 currenciesList :: Handler CurrenciesResponse
 
