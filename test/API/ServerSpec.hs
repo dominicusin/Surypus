@@ -55,11 +55,11 @@ spec = do
       res <- runSession (srequest $ jsonlessRequest methodGet "/api/v1/audit-log" [authHeader]) app
       statusCode (simpleStatus res) `shouldBe` 403
 
-    it "protected read endpoints allow authenticated users" $ do
+    it "protected read endpoints allow admin user" $ do
       app <- mkTestApp
-      authHeader <- bearerHeaderFor 7 "operator" "user"
+      authHeader <- bearerHeaderFor 1 "admin" "admin"
       res <- runSession (srequest $ jsonlessRequest methodGet "/api/v1/persons" [authHeader]) app
-      statusCode (simpleStatus res) `shouldBe` 403
+      statusCode (simpleStatus res) `shouldBe` 200
 
     it "protected write endpoints reject missing JWT" $ do
       app <- mkTestApp
