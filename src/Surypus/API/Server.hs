@@ -15,7 +15,7 @@ import Control.Monad.Trans.Except (runExceptT)
 import DAL.Repository (RepositoryError)
 import qualified DAL.Repository.AuditLog as AuditLogRepo
 import qualified DAL.Repository.RefreshToken as RefreshTokenRepo
-import DAL.Types (AuditLog, Goods (..), GoodsInput (..), Location (..), LocationInput (..), QueryResult (..))
+import DAL.Types (AuditLog, Bill (..), BillInput (..), Goods (..), GoodsInput (..), Location (..), LocationInput (..), QueryResult (..))
 import Data.Aeson (object, (.=))
 import qualified Data.ByteString.Lazy as LBS
 import Data.Int (Int64)
@@ -27,6 +27,7 @@ import Data.Time (addUTCTime, getCurrentTime)
 import Hasql.Pool (Pool)
 import Network.Wai.Handler.Warp (run)
 import Servant hiding (err403)
+import Surypus.API.Bills
 import Surypus.API.Goods
 import Surypus.API.Location
 import Surypus.API.Root
@@ -92,12 +93,7 @@ server env =
       locationsHandler =
         locationsList env :<|> locationsCreate env :<|> locationsGet env :<|> locationsUpdate env :<|> locationsDelete env
       billsHandler =
-        billsList
-          :<|> billsCreate
-          :<|> billsGet
-          :<|> billsUpdate
-          :<|> billsDelete
-          :<|> billsStatus
+        billsList env :<|> billsCreate env :<|> billsGet env :<|> billsUpdate env :<|> billsDelete env :<|> billsStatus env
       paymentsHandler =
         paymentsList
           :<|> paymentsCreate
@@ -360,35 +356,89 @@ toLocationResponse (DAL.Types.Location {lId = lid, lName = lname, lType = ltype}
       locationType = Just ltype
     }
 
-billsList :: Handler BillsResponse
+billsList :: Env -> Handler BillsResponse
+billsList env = do
+  let pool = envPool env
+  result <- liftIO $ Surypus.API.Bills.listBills pool Nothing Nothing Nothing Nothing Nothing Nothing
+  case result of
+    QuerySuccess bills -> pure $ BillsResponse (map toBillResponse bills)
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
 
--- | GET /v1/bills - Requires BillRead permission
-billsList = pure $ BillsResponse []
+billsCreate :: Env -> BillRequest -> Handler BillResponse
+billsCreate env (BillRequest n t d) = do
+  let pool = envPool env
+      billDate = fromMaybe (read "2024-01-01") d
+      input =
+        BillInput
+          { biCode = Nothing,
+            biType = t,
+            biStatus = 1,
+            biDate = billDate,
+            biPersonId = Nothing,
+            biLocationId = Nothing,
+            biTotal = 0,
+            biDiscount = 0,
+            biTax = 0
+          }
+  result <- liftIO $ Surypus.API.Bills.createBill pool input
+  case result of
+    QuerySuccess _ -> pure $ BillResponse 100 n t 1 billDate
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
 
-billsCreate :: BillRequest -> Handler BillResponse
+billsGet :: Env -> Int64 -> Handler BillResponse
+billsGet env bid = do
+  let pool = envPool env
+  result <- liftIO $ Surypus.API.Bills.getBill pool bid
+  case result of
+    QuerySuccess bill -> pure $ toBillResponse bill
+    QueryError _ -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack "Bill not found"}
 
--- | POST /v1/bills - Requires BillWrite permission
-billsCreate _ = pure $ BillResponse 100 "New" 1 1 (read "2024-01-01")
+billsUpdate :: Env -> Int64 -> BillRequest -> Handler BillResponse
+billsUpdate env bid (BillRequest n t d) = do
+  let pool = envPool env
+      billDate = fromMaybe (read "2024-01-01") d
+      input =
+        BillInput
+          { biCode = Nothing,
+            biType = t,
+            biStatus = 1,
+            biDate = billDate,
+            biPersonId = Nothing,
+            biLocationId = Nothing,
+            biTotal = 0,
+            biDiscount = 0,
+            biTax = 0
+          }
+  result <- liftIO $ Surypus.API.Bills.updateBill pool bid input
+  case result of
+    QuerySuccess _ -> pure $ BillResponse bid n t 1 billDate
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
 
-billsGet :: Int64 -> Handler BillResponse
+billsDelete :: Env -> Int64 -> Handler ()
+billsDelete env bid = do
+  let pool = envPool env
+  result <- liftIO $ Surypus.API.Bills.deleteBill pool bid
+  case result of
+    QuerySuccess _ -> pure ()
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
 
--- | GET /v1/bills/:id - Requires BillRead permission
-billsGet _ = pure $ BillResponse 1 "Demo" 1 1 (read "2024-01-01")
+billsStatus :: Env -> Int64 -> Maybe Text -> Handler BillResponse
+billsStatus env bid _status = do
+  let pool = envPool env
+  result <- liftIO $ Surypus.API.Bills.getBill pool bid
+  case result of
+    QuerySuccess bill -> pure $ BillResponse (bId bill) (fromMaybe "Bill" (bCode bill)) (bType bill) 2 (bDate bill)
+    QueryError _ -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack "Bill not found"}
 
-billsUpdate :: Int64 -> BillRequest -> Handler BillResponse
-
--- | PUT /v1/bills/:id - Requires BillWrite permission
-billsUpdate _ _ = pure $ BillResponse 1 "Updated" 1 1 (read "2024-01-01")
-
-billsDelete :: Int64 -> Handler ()
-
--- | DELETE /v1/bills/:id - Requires BillDelete permission
-billsDelete _ = pure ()
-
-billsStatus :: Int64 -> Maybe Text -> Handler BillResponse
-
--- | PUT /v1/bills/:id/status - Requires BillPost permission
-billsStatus _ _ = pure $ BillResponse 1 "Demo" 1 1 (read "2024-01-01")
+toBillResponse :: DAL.Types.Bill -> BillResponse
+toBillResponse (DAL.Types.Bill {bId = bid, bCode = bcode, bType = btype, bStatus = bstatus, bDate = bdate}) =
+  BillResponse
+    { billId = bid,
+      billName = fromMaybe "Bill" bcode,
+      billType = btype,
+      billStatus = bstatus,
+      billDate = bdate
+    }
 
 paymentsList :: Handler PaymentsResponse
 paymentsList = pure $ PaymentsResponse []
