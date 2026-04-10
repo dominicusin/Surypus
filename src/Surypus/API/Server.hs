@@ -15,7 +15,7 @@ import Control.Monad.Trans.Except (runExceptT)
 import DAL.Repository (RepositoryError)
 import qualified DAL.Repository.AuditLog as AuditLogRepo
 import qualified DAL.Repository.RefreshToken as RefreshTokenRepo
-import DAL.Types (AuditLog, Goods (..), GoodsInput (..), QueryResult (..))
+import DAL.Types (AuditLog, Goods (..), GoodsInput (..), Location (..), LocationInput (..), QueryResult (..))
 import Data.Aeson (object, (.=))
 import qualified Data.ByteString.Lazy as LBS
 import Data.Int (Int64)
@@ -28,6 +28,7 @@ import Hasql.Pool (Pool)
 import Network.Wai.Handler.Warp (run)
 import Servant hiding (err403)
 import Surypus.API.Goods
+import Surypus.API.Location
 import Surypus.API.Root
 import Surypus.API.Types
 import Surypus.Database.Pool (pingDatabasePool)
@@ -89,11 +90,7 @@ server env =
           :<|> personsSearch
       goodsHandler = goodsList env :<|> goodsCreate env :<|> goodsGet env :<|> goodsUpdate env :<|> goodsDelete env :<|> goodsSearch env
       locationsHandler =
-        locationsList
-          :<|> locationsCreate
-          :<|> locationsGet
-          :<|> locationsUpdate
-          :<|> locationsDelete
+        locationsList env :<|> locationsCreate env :<|> locationsGet env :<|> locationsUpdate env :<|> locationsDelete env
       billsHandler =
         billsList
           :<|> billsCreate
@@ -311,30 +308,57 @@ goodsSearch env mQuery = do
     QuerySuccess goods -> pure $ GoodsResponse (map toGoodResponse goods) (fromIntegral $ length goods)
     QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
 
-locationsList :: Handler LocationsResponse
+locationsList :: Env -> Handler LocationsResponse
+locationsList env = do
+  let pool = envPool env
+  result <- liftIO $ Surypus.API.Location.listLocations pool
+  case result of
+    QuerySuccess locs -> pure $ LocationsResponse (map toLocationResponse locs)
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
 
--- | GET /v1/locations - Requires LocationRead permission
-locationsList = pure $ LocationsResponse []
+locationsCreate :: Env -> LocationRequest -> Handler LocationResponse
+locationsCreate env (LocationRequest n t) = do
+  let pool = envPool env
+      locType = fromMaybe 0 t
+      input = LocationInput {liName = n, liType = locType, liCode = Nothing}
+  result <- liftIO $ Surypus.API.Location.createLocation pool input
+  case result of
+    QuerySuccess _ -> pure $ LocationResponse 100 n (Just locType)
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
 
-locationsCreate :: LocationRequest -> Handler LocationResponse
+locationsGet :: Env -> Int64 -> Handler LocationResponse
+locationsGet env lid = do
+  let pool = envPool env
+  result <- liftIO $ Surypus.API.Location.getLocation pool lid
+  case result of
+    QuerySuccess loc -> pure $ toLocationResponse loc
+    QueryError _ -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack "Location not found"}
 
--- | POST /v1/locations - Requires LocationWrite permission
-locationsCreate _ = pure $ LocationResponse 100 "New" 1
+locationsUpdate :: Env -> Int64 -> LocationRequest -> Handler LocationResponse
+locationsUpdate env lid (LocationRequest n t) = do
+  let pool = envPool env
+      locType = fromMaybe 0 t
+      input = LocationInput {liName = n, liType = locType, liCode = Nothing}
+  result <- liftIO $ Surypus.API.Location.updateLocation pool lid input
+  case result of
+    QuerySuccess _ -> pure $ LocationResponse lid n (Just locType)
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
 
-locationsGet :: Int64 -> Handler LocationResponse
+locationsDelete :: Env -> Int64 -> Handler ()
+locationsDelete env lid = do
+  let pool = envPool env
+  result <- liftIO $ Surypus.API.Location.deleteLocation pool lid
+  case result of
+    QuerySuccess _ -> pure ()
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
 
--- | GET /v1/locations/:id - Requires LocationRead permission
-locationsGet _ = pure $ LocationResponse 1 "Demo" 1
-
-locationsUpdate :: Int64 -> LocationRequest -> Handler LocationResponse
-
--- | PUT /v1/locations/:id - Requires LocationWrite permission
-locationsUpdate _ _ = pure $ LocationResponse 1 "Updated" 1
-
-locationsDelete :: Int64 -> Handler ()
-
--- | DELETE /v1/locations/:id - Requires LocationDelete permission (or LocationWrite)
-locationsDelete _ = pure ()
+toLocationResponse :: DAL.Types.Location -> LocationResponse
+toLocationResponse (DAL.Types.Location {lId = lid, lName = lname, lType = ltype}) =
+  LocationResponse
+    { locationId = lid,
+      locationName = lname,
+      locationType = Just ltype
+    }
 
 billsList :: Handler BillsResponse
 

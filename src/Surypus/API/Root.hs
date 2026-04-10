@@ -396,7 +396,7 @@ data LocationRequest = LocationRequest
 data LocationResponse = LocationResponse
   { locationId :: Int64,
     locationName :: Text,
-    locationType :: Int
+    locationType :: Maybe Int
   }
   deriving (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)

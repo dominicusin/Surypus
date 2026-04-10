@@ -126,6 +126,7 @@ library
         Surypus.API.Types
         Surypus.API.Persons
         Surypus.API.Goods
+        Surypus.API.Location
         Surypus.API.Bills
         Surypus.API.Sync
         Surypus.API.IdPool
