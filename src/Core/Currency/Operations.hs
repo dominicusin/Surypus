@@ -175,4 +175,4 @@ prop_roundToPrecisionInBounds :: Double -> Property
 prop_roundToPrecisionInBounds amount =
   forAll (choose (0, 6)) $ \prec ->
     let rounded = roundToPrecision prec amount
-     in abs (rounded - amount) < 0.5 / (10 ^ prec)
+     in abs (rounded - amount) <= 0.5 / (10 ^ prec)
