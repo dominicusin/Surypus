@@ -2,6 +2,7 @@
 module Core.Currency where
 
 import Data.Int (Int64)
+import Data.Ratio ((%))
 import Data.Text (Text)
 import qualified Data.Text as T
 import Test.QuickCheck
@@ -66,7 +67,7 @@ roundToCurrency cur amount =
       factor = 10 ^ curPrecision cur
       amountR = toRational amount
       scaled = amountR * (toRational factor)
-      roundedInt = (round scaled) :: Integer
+      roundedInt = floor (scaled + (1 % 2)) -- half-up rounding
       out = (fromIntegral roundedInt) / (fromIntegral factor)
    in out
 
