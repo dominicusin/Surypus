@@ -15,7 +15,7 @@ import Control.Monad.Trans.Except (runExceptT)
 import DAL.Repository (RepositoryError)
 import qualified DAL.Repository.AuditLog as AuditLogRepo
 import qualified DAL.Repository.RefreshToken as RefreshTokenRepo
-import DAL.Types (AuditLog, Bill (..), BillInput (..), Goods (..), GoodsInput (..), Location (..), LocationInput (..), Person (..), PersonInput (..), QueryResult (..))
+import DAL.Types (AuditLog, Bill (..), BillInput (..), Goods (..), GoodsInput (..), Location (..), LocationInput (..), Payment (..), PaymentInput (..), Person (..), PersonInput (..), QueryResult (..))
 import Data.Aeson (object, (.=))
 import qualified Data.ByteString.Lazy as LBS
 import Data.Int (Int64)
@@ -30,6 +30,7 @@ import Servant hiding (err403)
 import Surypus.API.Bills
 import Surypus.API.Goods
 import Surypus.API.Location
+import Surypus.API.Payment
 import Surypus.API.Persons
 import Surypus.API.Root
 import Surypus.API.Types
@@ -60,6 +61,7 @@ import Surypus.RBAC.Store
     upsertRole,
     writeAuditEntry,
   )
+import Surypus.Types (fromDecimal)
 
 data Env = Env
   { envPool :: Pool,
@@ -91,11 +93,7 @@ server env =
       billsHandler =
         billsList env :<|> billsCreate env :<|> billsGet env :<|> billsUpdate env :<|> billsDelete env :<|> billsStatus env
       paymentsHandler =
-        paymentsList
-          :<|> paymentsCreate
-          :<|> paymentsGet
-          :<|> paymentsUpdate
-          :<|> paymentsDelete
+        paymentsList env :<|> paymentsCreate env :<|> paymentsGet env :<|> paymentsUpdate env :<|> paymentsDelete env
       ordersHandler =
         ordersList
           :<|> ordersCreate
@@ -488,20 +486,72 @@ toBillResponse (DAL.Types.Bill {bId = bid, bCode = bcode, bType = btype, bStatus
       billDate = bdate
     }
 
-paymentsList :: Handler PaymentsResponse
-paymentsList = pure $ PaymentsResponse []
+paymentsList :: Env -> Handler PaymentsResponse
+paymentsList env = do
+  let pool = envPool env
+  result <- liftIO $ Surypus.API.Payment.listPayments pool
+  case result of
+    QuerySuccess payments -> pure $ PaymentsResponse (map toPaymentResponse payments)
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
 
-paymentsCreate :: PaymentRequest -> Handler PaymentResponse
-paymentsCreate _ = pure $ PaymentResponse 100 1 100.0 (read "2024-01-01")
+paymentsCreate :: Env -> PaymentRequest -> Handler PaymentResponse
+paymentsCreate env (PaymentRequest bid amt mDate) = do
+  let pool = envPool env
+      payDate = fromMaybe (read "2024-01-01") mDate
+      input =
+        PaymentInput
+          { piBillId = bid,
+            piPayDate = payDate,
+            piAmount = amt,
+            piPayMethod = 1,
+            piPayStatus = 1
+          }
+  result <- liftIO $ Surypus.API.Payment.createPayment pool input
+  case result of
+    QuerySuccess _ -> pure $ PaymentResponse 100 bid amt payDate
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
 
-paymentsGet :: Int64 -> Handler PaymentResponse
-paymentsGet _ = pure $ PaymentResponse 1 1 100.0 (read "2024-01-01")
+paymentsGet :: Env -> Int64 -> Handler PaymentResponse
+paymentsGet env pid = do
+  let pool = envPool env
+  result <- liftIO $ Surypus.API.Payment.getPayment pool pid
+  case result of
+    QuerySuccess payment -> pure $ toPaymentResponse payment
+    QueryError _ -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack "Payment not found"}
 
-paymentsUpdate :: Int64 -> PaymentRequest -> Handler PaymentResponse
-paymentsUpdate _ _ = pure $ PaymentResponse 1 1 100.0 (read "2024-01-01")
+paymentsUpdate :: Env -> Int64 -> PaymentRequest -> Handler PaymentResponse
+paymentsUpdate env pid (PaymentRequest bid amt mDate) = do
+  let pool = envPool env
+      payDate = fromMaybe (read "2024-01-01") mDate
+      input =
+        PaymentInput
+          { piBillId = bid,
+            piPayDate = payDate,
+            piAmount = amt,
+            piPayMethod = 1,
+            piPayStatus = 1
+          }
+  result <- liftIO $ Surypus.API.Payment.updatePayment pool pid input
+  case result of
+    QuerySuccess _ -> pure $ PaymentResponse pid bid amt payDate
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
 
-paymentsDelete :: Int64 -> Handler ()
-paymentsDelete _ = pure ()
+paymentsDelete :: Env -> Int64 -> Handler ()
+paymentsDelete env pid = do
+  let pool = envPool env
+  result <- liftIO $ Surypus.API.Payment.deletePayment pool pid
+  case result of
+    QuerySuccess _ -> pure ()
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
+
+toPaymentResponse :: DAL.Types.Payment -> PaymentResponse
+toPaymentResponse (DAL.Types.Payment {payId = pid, payBillId = pbid, payDate = pdate, payAmount = pamt, payMethod = _pmethod, payStatus = _pstatus}) =
+  PaymentResponse
+    { paymentId = pid,
+      paymentBillId = pbid,
+      paymentAmount = fromDecimal pamt,
+      paymentDate = pdate
+    }
 
 ordersList :: Handler OrdersResponse
 
