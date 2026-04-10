@@ -43,12 +43,12 @@ type RolesAPI = "roles" :> Get '[JSON] [ApiRole]
 
 type PersonsAPI =
   "persons"
-    :> ( Get '[JSON] PersonsResponse
+    :> ( QueryParam "name" Text :> QueryParam "inn" Text :> QueryParam "type" Int :> QueryParam "status" Int :> QueryParam "limit" Int :> Get '[JSON] PersonsResponse
            :<|> ReqBody '[JSON] PersonRequest :> Post '[JSON] PersonResponse
            :<|> Capture "id" Int64 :> Get '[JSON] PersonResponse
            :<|> Capture "id" Int64 :> ReqBody '[JSON] PersonRequest :> Put '[JSON] PersonResponse
            :<|> Capture "id" Int64 :> Delete '[JSON] ()
-           :<|> "search" :> Capture "query" Text :> Get '[JSON] PersonsResponse
+           :<|> "search" :> QueryParam "q" Text :> Get '[JSON] PersonsResponse
        )
 
 type GoodsAPI =

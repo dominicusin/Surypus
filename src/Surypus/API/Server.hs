@@ -15,7 +15,7 @@ import Control.Monad.Trans.Except (runExceptT)
 import DAL.Repository (RepositoryError)
 import qualified DAL.Repository.AuditLog as AuditLogRepo
 import qualified DAL.Repository.RefreshToken as RefreshTokenRepo
-import DAL.Types (AuditLog, Bill (..), BillInput (..), Goods (..), GoodsInput (..), Location (..), LocationInput (..), QueryResult (..))
+import DAL.Types (AuditLog, Bill (..), BillInput (..), Goods (..), GoodsInput (..), Location (..), LocationInput (..), Person (..), PersonInput (..), QueryResult (..))
 import Data.Aeson (object, (.=))
 import qualified Data.ByteString.Lazy as LBS
 import Data.Int (Int64)
@@ -30,6 +30,7 @@ import Servant hiding (err403)
 import Surypus.API.Bills
 import Surypus.API.Goods
 import Surypus.API.Location
+import Surypus.API.Persons
 import Surypus.API.Root
 import Surypus.API.Types
 import Surypus.Database.Pool (pingDatabasePool)
@@ -83,12 +84,7 @@ server env =
       authHandler = authLogin env :<|> logoutHandler' :<|> refreshHandler' env jwtCfg :<|> meHandler'
       -- Apply RBAC middleware to write endpoints
       personsHandler =
-        personsList
-          :<|> personsCreate
-          :<|> personsGet
-          :<|> personsUpdate
-          :<|> personsDelete
-          :<|> personsSearch
+        personsList env :<|> personsCreate env :<|> personsGet env :<|> personsUpdate env :<|> personsDelete env :<|> personsSearch env
       goodsHandler = goodsList env :<|> goodsCreate env :<|> goodsGet env :<|> goodsUpdate env :<|> goodsDelete env :<|> goodsSearch env
       locationsHandler =
         locationsList env :<|> locationsCreate env :<|> locationsGet env :<|> locationsUpdate env :<|> locationsDelete env
@@ -200,35 +196,87 @@ rotateRefreshTokenBestEffort env oldToken newToken = do
     try (RefreshTokenRepo.rotateStoredRefreshToken (envPool env) oldToken newToken expiresAt) :: IO (Either SomeException (Either Text Int64))
   pure $ either (const Nothing) Just result
 
-personsList :: Handler PersonsResponse
+personsList :: Env -> Maybe Text -> Maybe Text -> Maybe Int -> Maybe Int -> Maybe Int -> Handler PersonsResponse
+personsList env mName mInn mType mStatus mLimit = do
+  let pool = envPool env
+  result <- liftIO $ Surypus.API.Persons.listPersons pool mName mInn mType mStatus mLimit
+  case result of
+    QuerySuccess persons -> pure $ PersonsResponse (map toPersonResponse persons) (fromIntegral $ length persons)
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
 
--- | GET /v1/persons - Requires PersonRead permission
-personsList = pure $ PersonsResponse [PersonResponse 1 "Demo" Nothing Nothing 1 1] 1
+personsCreate :: Env -> PersonRequest -> Handler PersonResponse
+personsCreate env (PersonRequest n inn kpp pt st) = do
+  let pool = envPool env
+      pType = fromMaybe 1 pt
+      pStatus = fromMaybe 1 st
+      input =
+        PersonInput
+          { piCode = Nothing,
+            piName = n,
+            piINN = inn,
+            piKPP = kpp,
+            piPersonType = fromIntegral pType,
+            piStatus = fromIntegral pStatus
+          }
+  result <- liftIO $ Surypus.API.Persons.createPerson pool input
+  case result of
+    QuerySuccess _ -> pure $ PersonResponse 100 n inn kpp pType pStatus
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
 
-personsCreate :: PersonRequest -> Handler PersonResponse
+personsGet :: Env -> Int64 -> Handler PersonResponse
+personsGet env pid = do
+  let pool = envPool env
+  result <- liftIO $ Surypus.API.Persons.getPerson pool pid
+  case result of
+    QuerySuccess person -> pure $ toPersonResponse person
+    QueryError _ -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack "Person not found"}
 
--- | POST /v1/persons - Requires PersonWrite permission
-personsCreate _ = pure $ PersonResponse 100 "New Person" Nothing Nothing 1 1
+personsUpdate :: Env -> Int64 -> PersonRequest -> Handler PersonResponse
+personsUpdate env pid (PersonRequest n inn kpp pt st) = do
+  let pool = envPool env
+      pType = fromMaybe 1 pt
+      pStatus = fromMaybe 1 st
+      input =
+        PersonInput
+          { piCode = Nothing,
+            piName = n,
+            piINN = inn,
+            piKPP = kpp,
+            piPersonType = fromIntegral pType,
+            piStatus = fromIntegral pStatus
+          }
+  result <- liftIO $ Surypus.API.Persons.updatePerson pool pid input
+  case result of
+    QuerySuccess _ -> pure $ PersonResponse pid n inn kpp pType pStatus
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
 
-personsGet :: Int64 -> Handler PersonResponse
+personsDelete :: Env -> Int64 -> Handler ()
+personsDelete env pid = do
+  let pool = envPool env
+  result <- liftIO $ Surypus.API.Persons.deletePerson pool pid
+  case result of
+    QuerySuccess _ -> pure ()
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
 
--- | GET /v1/persons/:id - Requires PersonRead permission
-personsGet _ = pure $ PersonResponse 1 "Demo" Nothing Nothing 1 1
+personsSearch :: Env -> Maybe Text -> Handler PersonsResponse
+personsSearch env mQuery = do
+  let pool = envPool env
+      query = fromMaybe "" mQuery
+  result <- liftIO $ Surypus.API.Persons.searchPersons pool query
+  case result of
+    QuerySuccess persons -> pure $ PersonsResponse (map toPersonResponse persons) (fromIntegral $ length persons)
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
 
-personsUpdate :: Int64 -> PersonRequest -> Handler PersonResponse
-
--- | PUT /v1/persons/:id - Requires PersonWrite permission
-personsUpdate _ _ = pure $ PersonResponse 1 "Updated Person" Nothing Nothing 1 1
-
-personsDelete :: Int64 -> Handler ()
-
--- | DELETE /v1/persons/:id - Requires PersonDelete permission
-personsDelete _ = pure ()
-
-personsSearch :: Text -> Handler PersonsResponse
-
--- | GET /v1/persons/search/:query - Requires PersonRead permission
-personsSearch _ = pure $ PersonsResponse [] 0
+toPersonResponse :: DAL.Types.Person -> PersonResponse
+toPersonResponse (DAL.Types.Person {pId = pid, pName = pname, pINN = pinn, pKPP = pkpp, pPersonType = pptype, pStatus = pstatus}) =
+  PersonResponse
+    { personId = pid,
+      personName = pname,
+      personINN = pinn,
+      personKPP = pkpp,
+      personType = fromIntegral pptype,
+      personStatus = fromIntegral pstatus
+    }
 
 goodsList :: Env -> Maybe Text -> Maybe Text -> Maybe Text -> Handler GoodsResponse
 goodsList env mName mBarcode mCode = do
