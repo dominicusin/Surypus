@@ -28,7 +28,7 @@ type APIv1 = "v1" :> (AuthAPI :<|> ProtectedAPI)
 type ProtectedAPI = PersonsAPI :<|> GoodsAPI :<|> LocationsAPI :<|> BillsAPI :<|> PaymentsAPI :<|> OrdersAPI :<|> TaxesAPI :<|> VATAPI :<|> CurrenciesAPI :<|> StockAPI :<|> AccountingAPI :<|> PayrollAPI :<|> ReportsAPI :<|> DashboardAPI :<|> UsersAPI :<|> AuditLogAPI :<|> RbacAPI :<|> JobsAPI :<|> HealthAPI :<|> MetricsAPI
 
 -- | Full API with Swagger documentation
-type APIWithDoc = APIv1 :<|> "swagger.json" :> Get '[JSON] Value
+type APIWithDoc = "api" :> APIv1 :<|> "swagger.json" :> Get '[JSON] Value
 
 apiSwagger :: Value
 apiSwagger = String "Swagger documentation endpoint"

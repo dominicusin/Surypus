@@ -11,8 +11,11 @@ module Surypus.API.AuthMiddleware
   )
 where
 
+import Control.Monad (when)
 import Data.Aeson (decode)
 import Data.ByteString.Lazy (fromStrict)
+-- removed unused roleFromText to satisfy -Werror
+
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
@@ -32,13 +35,22 @@ import Surypus.RBAC
     hasDelegatedPermission,
     logAccessDecision,
   )
+import System.Environment (lookupEnv)
 import Text.Read (readMaybe)
+
+-- | Combined authentication and authorization middleware
+-- Debug logger (enabled via OPENPAPYRUS_DEBUG=1)
+debugLog :: String -> IO ()
+debugLog msg = do
+  m <- lookupEnv "OPENPAPYRUS_DEBUG"
+  when (m == Just "1") $ putStrLn $ "[OPENPAPYRUS-DEBUG] " ++ msg
 
 -- | Combined authentication and authorization middleware
 withAuthAndPermission :: JWTConfig -> [Text] -> Permission -> Middleware
 withAuthAndPermission jwtCfg publicPaths requiredPerm app req respond
   | isPublicPath = app req respond
   | otherwise = do
+      debugLog $ "Auth check: path=" ++ show (pathInfo req) ++ ", method=" ++ show (Wai.requestMethod req)
       let authResult = validateJWT jwtCfg req
       case authResult of
         Left err -> respond $ unauthorizedResponse (T.pack err)
@@ -125,7 +137,9 @@ withAuthzResolverAdvanced ::
   (AuditEntry -> IO ()) ->
   Middleware
 withAuthzResolverAdvanced jwtCfg publicPaths resolvePermission loadRoles loadGrants checkStoredPermission auditSink app req respond
-  | isPublicPath = app req respond
+  | isPublicPath = do
+      debugLog $ "Public endpoint (RBAC): path=" ++ show (pathInfo req) ++ ", method=" ++ show (Wai.requestMethod req)
+      app req respond
   | otherwise = do
       let authResult = validateJWT jwtCfg req
       case authResult of
