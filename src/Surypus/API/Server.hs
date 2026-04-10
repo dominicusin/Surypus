@@ -15,7 +15,7 @@ import Control.Monad.Trans.Except (runExceptT)
 import DAL.Repository (RepositoryError)
 import qualified DAL.Repository.AuditLog as AuditLogRepo
 import qualified DAL.Repository.RefreshToken as RefreshTokenRepo
-import DAL.Types (AuditLog, Bill (..), BillInput (..), Goods (..), GoodsInput (..), Location (..), LocationInput (..), Payment (..), PaymentInput (..), Person (..), PersonInput (..), QueryResult (..))
+import DAL.Types (AuditLog, Bill (..), BillInput (..), Goods (..), GoodsInput (..), Location (..), LocationInput (..), Order (..), Payment (..), PaymentInput (..), Person (..), PersonInput (..), QueryResult (..))
 import Data.Aeson (object, (.=))
 import qualified Data.ByteString.Lazy as LBS
 import Data.Int (Int64)
@@ -30,6 +30,7 @@ import Servant hiding (err403)
 import Surypus.API.Bills
 import Surypus.API.Goods
 import Surypus.API.Location
+import Surypus.API.Order
 import Surypus.API.Payment
 import Surypus.API.Persons
 import Surypus.API.Root
@@ -95,11 +96,7 @@ server env =
       paymentsHandler =
         paymentsList env :<|> paymentsCreate env :<|> paymentsGet env :<|> paymentsUpdate env :<|> paymentsDelete env
       ordersHandler =
-        ordersList
-          :<|> ordersCreate
-          :<|> ordersGet
-          :<|> ordersStatus
-          :<|> ordersDelete
+        ordersList env :<|> ordersCreate env :<|> ordersGet env :<|> ordersStatus env :<|> ordersDelete env
       taxesHandler =
         taxesList
           :<|> taxesCreate
@@ -553,30 +550,39 @@ toPaymentResponse (DAL.Types.Payment {payId = pid, payBillId = pbid, payDate = p
       paymentDate = pdate
     }
 
-ordersList :: Handler OrdersResponse
+ordersList :: Env -> Handler OrdersResponse
+ordersList env = do
+  let pool = envPool env
+  result <- liftIO $ Surypus.API.Order.listOrders pool
+  case result of
+    QuerySuccess orders -> pure $ OrdersResponse (map toOrderResponse orders)
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
 
--- | GET /v1/orders - Requires OrdersWrite permission (for access)
-ordersList = pure $ OrdersResponse []
+ordersCreate :: Env -> OrderRequest -> Handler OrderResponse
+ordersCreate _ _ = pure $ OrderResponse 100 "New" 1 (read "2024-01-01")
 
-ordersCreate :: OrderRequest -> Handler OrderResponse
+ordersGet :: Env -> Int64 -> Handler OrderResponse
+ordersGet env oid = do
+  let pool = envPool env
+  result <- liftIO $ Surypus.API.Order.getOrder pool oid
+  case result of
+    QuerySuccess order -> pure $ toOrderResponse order
+    QueryError _ -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack "Order not found"}
 
--- | POST /v1/orders - Requires OrdersWrite permission
-ordersCreate _ = pure $ OrderResponse 100 "New" 1 (read "2024-01-01")
+ordersStatus :: Env -> Int64 -> Maybe Int -> Handler OrderResponse
+ordersStatus _ _ _ = pure $ OrderResponse 1 "Demo" 1 (read "2024-01-01")
 
-ordersGet :: Int64 -> Handler OrderResponse
+ordersDelete :: Env -> Int64 -> Handler ()
+ordersDelete _ _ = pure ()
 
--- | GET /v1/orders/:id - Requires OrdersWrite permission (for access)
-ordersGet _ = pure $ OrderResponse 1 "Demo" 1 (read "2024-01-01")
-
-ordersStatus :: Int64 -> Maybe Int -> Handler OrderResponse
-
--- | PUT /v1/orders/:id/status - Requires OrdersWrite permission
-ordersStatus _ _ = pure $ OrderResponse 1 "Demo" 1 (read "2024-01-01")
-
-ordersDelete :: Int64 -> Handler ()
-
--- | DELETE /v1/orders/:id - Requires OrdersWrite permission
-ordersDelete _ = pure ()
+toOrderResponse :: DAL.Types.Order -> OrderResponse
+toOrderResponse (DAL.Types.Order {oId = oid, oName = oname, oStatus = ostatus, oDate = odate}) =
+  OrderResponse
+    { orderId = oid,
+      orderName = fromMaybe "Order" oname,
+      orderStatus = ostatus,
+      orderDate = odate
+    }
 
 taxesList :: Handler TaxesResponse
 
