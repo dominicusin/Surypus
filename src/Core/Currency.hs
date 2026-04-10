@@ -62,7 +62,8 @@ convertAmount from to amount
 {-@ roundToCurrency :: Currency -> NonNeg -> NonNeg @-}
 roundToCurrency :: Currency -> Double -> Double
 roundToCurrency cur amount =
-  let factor = 10 ^ curPrecision cur
+  let factor :: Integer
+      factor = 10 ^ curPrecision cur
       amountR = toRational amount
       scaled = amountR * (toRational factor)
       roundedInt = (round scaled) :: Integer
