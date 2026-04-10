@@ -15,7 +15,7 @@ import Control.Monad.Trans.Except (runExceptT)
 import DAL.Repository (RepositoryError)
 import qualified DAL.Repository.AuditLog as AuditLogRepo
 import qualified DAL.Repository.RefreshToken as RefreshTokenRepo
-import DAL.Types (AuditLog, Bill (..), BillInput (..), Goods (..), GoodsInput (..), Location (..), LocationInput (..), Order (..), Payment (..), PaymentInput (..), Person (..), PersonInput (..), QueryResult (..))
+import DAL.Types (AuditLog, Bill (..), BillInput (..), Currency (..), Goods (..), GoodsInput (..), Location (..), LocationInput (..), Order (..), Payment (..), PaymentInput (..), Person (..), PersonInput (..), QueryResult (..))
 import Data.Aeson (object, (.=))
 import qualified Data.ByteString.Lazy as LBS
 import Data.Int (Int64)
@@ -28,6 +28,7 @@ import Hasql.Pool (Pool)
 import Network.Wai.Handler.Warp (run)
 import Servant hiding (err403)
 import Surypus.API.Bills
+import Surypus.API.Currency
 import Surypus.API.Goods
 import Surypus.API.Location
 import Surypus.API.Order
@@ -100,11 +101,7 @@ server env =
       taxesHandler =
         taxesList env :<|> taxesCreate env :<|> taxesGet env :<|> taxesUpdate env :<|> taxesDelete env
       currenciesHandler =
-        currenciesList
-          :<|> currenciesCreate
-          :<|> currenciesGet
-          :<|> currenciesUpdate
-          :<|> currenciesDelete
+        currenciesList env :<|> currenciesCreate env :<|> currenciesGet env :<|> currenciesUpdate env :<|> currenciesDelete env
       vatHandler =
         vatCalculate :<|> (vatRates env)
       stockHandler = stockList :<|> stockSummary :<|> stockByLoc :<|> stockByGoods
@@ -613,30 +610,38 @@ vatCalculate req =
 vatRates :: Env -> Handler TaxesResponse
 vatRates _ = pure $ TaxesResponse [TaxResponse 1 "НДС" 20.0 (Just "VAT") (Just True)]
 
-currenciesList :: Handler CurrenciesResponse
+currenciesList :: Env -> Handler CurrenciesResponse
+currenciesList env = do
+  let pool = envPool env
+  result <- liftIO $ Surypus.API.Currency.listCurrencies pool
+  case result of
+    QuerySuccess currencies -> pure $ CurrenciesResponse (map toCurrencyResponse currencies)
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
 
--- | GET /v1/currencies - Requires CurrenciesWrite permission (for access)
-currenciesList = pure $ CurrenciesResponse [CurrencyResponse 1 "Рубль" "RUB"]
+currenciesCreate :: Env -> CurrencyRequest -> Handler CurrencyResponse
+currenciesCreate _ _ = pure $ CurrencyResponse 100 "New" "XXX"
 
-currenciesCreate :: CurrencyRequest -> Handler CurrencyResponse
+currenciesGet :: Env -> Int64 -> Handler CurrencyResponse
+currenciesGet env cid = do
+  let pool = envPool env
+  result <- liftIO $ Surypus.API.Currency.getCurrency pool cid
+  case result of
+    QuerySuccess currency -> pure $ toCurrencyResponse currency
+    QueryError _ -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack "Currency not found"}
 
--- | POST /v1/currencies - Requires CurrenciesWrite permission
-currenciesCreate _ = pure $ CurrencyResponse 100 "New" "XXX"
+currenciesUpdate :: Env -> Int64 -> CurrencyRequest -> Handler CurrencyResponse
+currenciesUpdate _ _ _ = pure $ CurrencyResponse 1 "Updated" "XXX"
 
-currenciesGet :: Int64 -> Handler CurrencyResponse
+currenciesDelete :: Env -> Int64 -> Handler ()
+currenciesDelete _ _ = pure ()
 
--- | GET /v1/currencies/:id - Requires CurrenciesWrite permission (for access)
-currenciesGet _ = pure $ CurrencyResponse 1 "Рубль" "RUB"
-
-currenciesUpdate :: Int64 -> CurrencyRequest -> Handler CurrencyResponse
-
--- | PUT /v1/currencies/:id - Requires CurrenciesWrite permission
-currenciesUpdate _ _ = pure $ CurrencyResponse 1 "Updated" "XXX"
-
-currenciesDelete :: Int64 -> Handler ()
-
--- | DELETE /v1/currencies/:id - Requires CurrenciesWrite permission
-currenciesDelete _ = pure ()
+toCurrencyResponse :: DAL.Types.Currency -> CurrencyResponse
+toCurrencyResponse (DAL.Types.Currency {currId = cid, currName = cname, currCode = ccode}) =
+  CurrencyResponse
+    { currencyId = cid,
+      currencyName = cname,
+      currencyCode = ccode
+    }
 
 stockList :: Handler StockResponse
 stockList = pure $ StockResponse []
