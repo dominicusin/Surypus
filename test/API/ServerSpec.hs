@@ -233,7 +233,7 @@ spec = do
       res <- runSession (srequest $ jsonlessRequest methodGet "/swagger.json" []) app
       statusCode (simpleStatus res) `shouldBe` 200
 
-    it "GET /api/v1/health/live is public" $ do
+    it "health_live_public" $ do
       app <- mkTestApp
       res <- runSession (srequest $ jsonlessRequest methodGet "/api/v1/health/live" []) app
       statusCode (simpleStatus res) `shouldBe` 200
