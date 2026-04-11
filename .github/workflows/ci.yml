@@ -35,10 +35,6 @@ jobs:
             sleep 2
           done
 
-      - name: Install Stack
-        run: |
-          curl -sSL https://get.haskellstack.org/ | sh
-
       - name: Build
         run: |
           stack build --fast
