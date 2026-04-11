@@ -1,54 +1,10 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 
--- | Location repository interface and implementation.
---
--- This module defines the repository pattern for Location entities, providing
--- CRUD operations and query functions. It abstracts the database access
--- layer and allows for easy mocking in tests.
---
--- The repository is parameterized over a pool type, allowing different
--- connection pool implementations to be used.
---
--- === Examples
---
--- Creating a repository and finding a location by ID:
--- @
--- import DAL.Repository.Location (LocationRepository, mkLocationRepository, runLocationRepository)
--- import DAL.Types (Location)
--- import Hasql.Pool (Pool)
---
--- -- Assuming you have a connection pool
--- let pool :: Pool = undefined -- See issue: https://github.com/dominicusin/Surypus/issues/123
--- let repo :: LocationRepository = mkLocationRepository pool
---
--- -- Find a location by ID
--- result <- runLocationRepository repo $ find 123
--- case result of
---   Right (Just location) -> print (location :: Location)
---   Right Nothing  -> putStrLn "Location not found"
---   Left err       -> putStrLn $ "Error: " ++ err
--- @
---
--- Listing all locations:
--- @
--- import DAL.Repository.Location (LocationRepository, mkLocationRepository, runLocationRepository)
--- import Hasql.Pool (Pool)
---
--- -- Assuming you have a connection pool
--- let pool :: Pool = undefined -- See issue: https://github.com/dominicusin/Surypus/issues/123
--- let repo :: LocationRepository = mkLocationRepository pool
---
--- result <- runLocationRepository repo $ findAll
--- case result of
---   Right locations -> mapM_ print locations
---   Left err       -> putStrLn $ "Error: " ++ err
--- @
 module DAL.Repository.Location
   ( LocationRepository (..),
     HasLocationRepository (..),
     mkLocationRepository,
-    runLocationRepository,
     listLocationsRepo,
     createLocationRepo,
     updateLocationRepo,
@@ -60,7 +16,7 @@ import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Except (ExceptT, throwE)
 import DAL.Mutations (createLocation, deleteLocation, updateLocation)
 import DAL.Queries (getLocationById, getLocations)
-import DAL.Repository
+import DAL.Repository (HasRepository (..), RepositoryError (..), isNotFoundMessage)
 import DAL.Types
 import Data.Int (Int64)
 import Data.Text (Text)
@@ -72,55 +28,32 @@ newtype LocationRepository = LocationRepository
   { lrPool :: Pool
   }
 
-instance Repository LocationRepository Location where
-  find repo locationId = do
-    result <- liftIO $ getLocationById (lrPool repo) locationId
-    case result of
-      QuerySuccess location -> pure (Just location)
-      QueryError err
-        | isNotFoundMessage err -> pure Nothing
-        | otherwise -> throwE (DatabaseError err)
-
-  findAll repo = do
-    result <- liftIO $ getLocations (lrPool repo)
-    case result of
-      QuerySuccess locations -> pure locations
-      QueryError err -> throwE (DatabaseError err)
-
-  create repo location = do
-    created <- createLocationRepo repo (toLocationInput location)
-    pure (lId created)
-
-  update repo locationId location = do
-    updated <- updateLocationRepo repo locationId (toLocationInput location)
-    pure (Just updated)
-
-  delete repo locationId = do
-    deleteLocationRepo repo locationId
-    pure Nothing
-
 listLocationsRepo :: LocationRepository -> ExceptT RepositoryError IO [Location]
-listLocationsRepo = findAll
+listLocationsRepo repo = do
+  result <- liftIO $ getLocations (lrPool repo)
+  case result of
+    QuerySuccess locations -> pure locations
+    QueryError err -> throwE (DatabaseError err)
 
 createLocationRepo :: LocationRepository -> LocationInput -> ExceptT RepositoryError IO Location
 createLocationRepo repo input = do
   validated <- validateLocationInputRepo input
   mutation <- liftIO $ createLocation (lrPool repo) validated
   locationId <- extractMutationId "Location created but id was not returned" mutation
-  mLocation <- find repo locationId
-  case mLocation of
-    Just location -> pure location
-    Nothing -> throwE (NotFound "Created location was not found")
+  result <- liftIO $ getLocationById (lrPool repo) locationId
+  case result of
+    QuerySuccess location -> pure location
+    QueryError err -> throwE (DatabaseError err)
 
 updateLocationRepo :: LocationRepository -> Int64 -> LocationInput -> ExceptT RepositoryError IO Location
 updateLocationRepo repo locationId input = do
   validated <- validateLocationInputRepo input
   mutation <- liftIO $ updateLocation (lrPool repo) locationId validated
   _ <- extractMutationId "Location updated but id was not returned" mutation
-  mLocation <- find repo locationId
-  case mLocation of
-    Just location -> pure location
-    Nothing -> throwE (NotFound "Updated location was not found")
+  result <- liftIO $ getLocationById (lrPool repo) locationId
+  case result of
+    QuerySuccess location -> pure location
+    QueryError err -> throwE (DatabaseError err)
 
 deleteLocationRepo :: LocationRepository -> Int64 -> ExceptT RepositoryError IO ()
 deleteLocationRepo repo locationId = do
@@ -130,14 +63,6 @@ deleteLocationRepo repo locationId = do
     QueryError err
       | isNotFoundMessage err -> throwE (NotFound "Location not found")
       | otherwise -> throwE (DatabaseError err)
-
-toLocationInput :: Location -> LocationInput
-toLocationInput location =
-  LocationInput
-    { liCode = lCode location,
-      liName = lName location,
-      liType = lType location
-    }
 
 validateLocationInputRepo :: LocationInput -> ExceptT RepositoryError IO LocationInput
 validateLocationInputRepo input = case Validation.validateLocationInput input of
@@ -160,10 +85,7 @@ instance HasLocationRepository LocationRepository where
   getLocationRepository = id
 
 instance HasRepository LocationRepository Pool where
-  getRepository = lrPool
+  getPool = lrPool
 
 mkLocationRepository :: Pool -> LocationRepository
 mkLocationRepository = LocationRepository
-
-runLocationRepository :: LocationRepository -> RepositoryT IO a -> IO (Either RepositoryError a)
-runLocationRepository repo = runRepository (defaultRepositoryContext (lrPool repo))

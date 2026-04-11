@@ -11,24 +11,23 @@ module Surypus.WebSocket
     broadcastMessage,
     jwtWebSocketApp,
     runWebSocketServerWithAuth,
+    jwtWebSocketAppWithPath,
+    acceptConnectionWithPath,
+    handleMessage,
+    broadcastToRole,
   )
 where
 
 import Control.Concurrent.STM
 import Control.Exception (SomeException, catch)
-import Control.Monad (forM, forM_, forever, liftM, unless, void, when)
-import Data.Aeson (FromJSON, ToJSON, Value, encode, toJSON)
+import Control.Monad (forM, forM_, forever, unless, void)
+import Data.Aeson (ToJSON, Value, encode, toJSON)
 import Data.Maybe (catMaybes)
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import Data.Time.Clock (UTCTime)
 import GHC.Generics (Generic)
-import Network.HTTP.Types (status400, status401)
-import Network.Wai (Application, Request, responseLBS)
-import qualified Network.Wai as Wai
-import Network.Wai.Handler.Warp (run)
-import Network.Wai.Handler.WebSockets (websocketsOr)
 import qualified Network.WebSockets as WS
 import Surypus.JWT (JWTConfig, JWTPayload, getJwtRole, validateAccessToken)
 
@@ -115,7 +114,7 @@ getTokenFromRequest :: WS.RequestHead -> Maybe Text
 getTokenFromRequest request = do
   let query = TE.decodeUtf8 (WS.requestPath request)
   case T.splitOn "?" query of
-    [path, params] -> do
+    [_path, params] -> do
       let pairs = T.splitOn "&" params
       tokenPair <- find (T.isPrefixOf "token=") pairs
       let token = T.drop 5 tokenPair
@@ -198,4 +197,4 @@ broadcastToRole hub role message = do
     fmap catMaybes . forM targetClients $ \(clientId, connection, _) -> do
       (WS.sendTextData connection (encode message) >> pure Nothing)
         `catch` \(_ :: SomeException) -> pure (Just clientId)
-  unless (null failedClientIds) $ atomically $ modifyTVar' (wshClients hub) (filter (\(cid, _, _) -> cid `notElem` failedClientIds))
+  unless (null failedClientIds) . atomically $ modifyTVar' (wshClients hub) (filter (\(cid, _, _) -> cid `notElem` failedClientIds))

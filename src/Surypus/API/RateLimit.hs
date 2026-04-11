@@ -5,10 +5,15 @@ module Surypus.API.RateLimit
     rateLimitMiddleware,
     RateLimitExceeded (..),
     defaultRateLimitConfig,
+    RateLimitStore (..),
+    createRateLimitStore,
+    getClientIP,
+    checkRateLimit,
+    rateLimitResponse,
   )
 where
 
-import Control.Concurrent.MVar (MVar, modifyMVar, newMVar)
+import Control.Concurrent.MVar (MVar, newMVar)
 import Data.ByteString.Lazy (fromStrict)
 import Data.Text (Text)
 import qualified Data.Text as T

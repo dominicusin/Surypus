@@ -137,12 +137,12 @@ calcDocumentTotal docLines' = sum $ fmap (\(price, qty, discount) -> (price * qt
 -- | Validate document amounts
 -- Инвариант: сумма >= 0, НДС >= 0 и <= сумма, скидка >= 0 и <= сумма
 validateDocumentAmounts :: Double -> Double -> Double -> DocumentOpResult
-validateDocumentAmounts total vat discount
-  | total < 0 = DocumentOpInvalidAmount
+validateDocumentAmounts docTotal vat discount
+  | docTotal < 0 = DocumentOpInvalidAmount
   | vat < 0 = DocumentOpInvalidAmount
-  | vat > total = DocumentOpInvalidAmount
+  | vat > docTotal = DocumentOpInvalidAmount
   | discount < 0 = DocumentOpInvalidAmount
-  | discount > total = DocumentOpInvalidAmount
+  | discount > docTotal = DocumentOpInvalidAmount
   | otherwise = DocumentOpSuccess
 
 -- | Check document dates
@@ -170,14 +170,15 @@ isDocumentExpired doc today =
 -- | Property: document total is non-negative
 prop_documentTotalNonNeg :: Property
 prop_documentTotalNonNeg =
-  forAll (listOf docLineGen `suchThat` (not . null)) $ \lines ->
-    calcDocumentTotal (map (\(p, q, d) -> (p, q, d)) lines) >= 0
+  forAll (listOf docLineGen `suchThat` (not . null)) $ \docLines ->
+    calcDocumentTotal docLines >= 0
 
 -- | Property: validateDocumentAmounts returns success for valid amounts
 prop_validateDocumentAmounts :: Property
 prop_validateDocumentAmounts =
-  forAll docAmountGen $ \(total, vat, discount) ->
-    validateDocumentAmounts total vat discount == DocumentOpSuccess
+  forAll docAmountGen $ \amtTuple ->
+    let (docTotal, vat, discount) = amtTuple
+     in validateDocumentAmounts docTotal vat discount == DocumentOpSuccess
 
 docLineGen :: Gen (Double, Double, Double)
 docLineGen = do
@@ -188,7 +189,7 @@ docLineGen = do
 
 docAmountGen :: Gen (Double, Double, Double)
 docAmountGen = do
-  total <- suchThat arbitrary (> 0)
-  vat <- choose (0, total)
-  discount <- choose (0, total)
-  pure (total, vat, discount)
+  docTotal <- suchThat arbitrary (> 0)
+  vat <- choose (0, docTotal)
+  discount <- choose (0, docTotal)
+  pure (docTotal, vat, discount)

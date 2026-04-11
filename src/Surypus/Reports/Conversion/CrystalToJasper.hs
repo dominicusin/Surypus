@@ -236,16 +236,16 @@ convertCrystalToJasper cr =
       jrBottomMargin = 20,
       jrIsTitleNewPage = False,
       jrIsSummaryNewPage = True,
-      jrFields = undefined,
-      jrVariables = undefined,
-      jrGroups = undefined,
-      jrTitleBand = undefined,
-      jrPageHeaderBand = undefined,
+      jrFields = [],
+      jrVariables = [],
+      jrGroups = [],
+      jrTitleBand = Nothing,
+      jrPageHeaderBand = Nothing,
       jrColumnHeaderBand = Nothing,
-      jrDetailBand = undefined,
+      jrDetailBand = Nothing,
       jrColumnFooterBand = Nothing,
-      jrPageFooterBand = undefined,
-      jrSummaryBand = undefined
+      jrPageFooterBand = Nothing,
+      jrSummaryBand = Nothing
     }
   where
     findSection pred' c = case filter pred' (crSections c) of

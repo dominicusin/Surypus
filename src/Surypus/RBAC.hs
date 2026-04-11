@@ -51,11 +51,11 @@ instance ToJSON Role
 
 instance FromJSON Role
 
-roleToText :: Role -> Text
-roleToText RoleAdmin = "admin"
-roleToText RoleManager = "manager"
-roleToText RoleUser = "user"
-roleToText RoleViewer = "viewer"
+-- roleToText :: Role -> Text
+-- roleToText RoleAdmin = "admin"
+-- roleToText RoleManager = "manager"
+-- roleToText RoleUser = "user"
+-- roleToText RoleViewer = "viewer"
 
 textToRole :: Text -> Maybe Role
 textToRole "admin" = Just RoleAdmin
@@ -99,6 +99,33 @@ data Permission
   | TaxesWrite
   | CurrenciesWrite
   | SalariesWrite
+  | TaxRead
+  | TaxWrite
+  | TaxDelete
+  | SyncRead
+  | SyncWrite
+  | SyncDelete
+  | AuditRead
+  | AuditWrite
+  | AuditDelete
+  | RBACRead
+  | RBACWrite
+  | RBACDelete
+  | JDBCRead
+  | JDBCWrite
+  | JDBCDelete
+  | CacheRead
+  | CacheWrite
+  | CacheDelete
+  | MetricsRead
+  | MetricsWrite
+  | MetricsDelete
+  | HealthRead
+  | HealthWrite
+  | HealthDelete
+  | WSRead
+  | WSWrite
+  | WSDelete
   deriving (Show, Eq, Generic, Ord)
 
 instance ToJSON Permission
@@ -201,6 +228,33 @@ permissionToText OrdersWrite = "orders:write"
 permissionToText TaxesWrite = "taxes:write"
 permissionToText CurrenciesWrite = "currencies:write"
 permissionToText SalariesWrite = "salaries:write"
+permissionToText TaxRead = "tax:read"
+permissionToText TaxWrite = "tax:write"
+permissionToText TaxDelete = "tax:delete"
+permissionToText SyncRead = "sync:read"
+permissionToText SyncWrite = "sync:write"
+permissionToText SyncDelete = "sync:delete"
+permissionToText AuditRead = "audit:read"
+permissionToText AuditWrite = "audit:write"
+permissionToText AuditDelete = "audit:delete"
+permissionToText RBACRead = "rbac:read"
+permissionToText RBACWrite = "rbac:write"
+permissionToText RBACDelete = "rbac:delete"
+permissionToText JDBCRead = "jdbc:read"
+permissionToText JDBCWrite = "jdbc:write"
+permissionToText JDBCDelete = "jdbc:delete"
+permissionToText CacheRead = "cache:read"
+permissionToText CacheWrite = "cache:write"
+permissionToText CacheDelete = "cache:delete"
+permissionToText MetricsRead = "metrics:read"
+permissionToText MetricsWrite = "metrics:write"
+permissionToText MetricsDelete = "metrics:delete"
+permissionToText HealthRead = "health:read"
+permissionToText HealthWrite = "health:write"
+permissionToText HealthDelete = "health:delete"
+permissionToText WSRead = "ws:read"
+permissionToText WSWrite = "ws:write"
+permissionToText WSDelete = "ws:delete"
 
 permissionToDbName :: Permission -> Text
 permissionToDbName PersonRead = "read:persons"
@@ -237,51 +291,39 @@ permissionToDbName OrdersWrite = "write:orders"
 permissionToDbName TaxesWrite = "write:taxes"
 permissionToDbName CurrenciesWrite = "write:currencies"
 permissionToDbName SalariesWrite = "write:salaries"
+permissionToDbName TaxRead = "read:tax"
+permissionToDbName TaxWrite = "write:tax"
+permissionToDbName TaxDelete = "delete:tax"
+permissionToDbName SyncRead = "read:sync"
+permissionToDbName SyncWrite = "write:sync"
+permissionToDbName SyncDelete = "delete:sync"
+permissionToDbName AuditRead = "read:audit"
+permissionToDbName AuditWrite = "write:audit"
+permissionToDbName AuditDelete = "delete:audit"
+permissionToDbName RBACRead = "read:rbac"
+permissionToDbName RBACWrite = "write:rbac"
+permissionToDbName RBACDelete = "delete:rbac"
+permissionToDbName JDBCRead = "read:jdbc"
+permissionToDbName JDBCWrite = "write:jdbc"
+permissionToDbName JDBCDelete = "delete:jdbc"
+permissionToDbName CacheRead = "read:cache"
+permissionToDbName CacheWrite = "write:cache"
+permissionToDbName CacheDelete = "delete:cache"
+permissionToDbName MetricsRead = "read:metrics"
+permissionToDbName MetricsWrite = "write:metrics"
+permissionToDbName MetricsDelete = "delete:metrics"
+permissionToDbName HealthRead = "read:health"
+permissionToDbName HealthWrite = "write:health"
+permissionToDbName HealthDelete = "delete:health"
+permissionToDbName WSRead = "read:ws"
+permissionToDbName WSWrite = "write:ws"
+permissionToDbName WSDelete = "delete:ws"
 
 data RolePermission = RolePermission
   { rpRole :: Role,
     rpPermissions :: [Permission]
   }
   deriving (Show, Eq)
-
-adminRole =
-  RolePermission
-    RoleAdmin
-    [ PersonRead,
-      PersonWrite,
-      PersonDelete,
-      GoodsRead,
-      GoodsWrite,
-      GoodsDelete,
-      BillRead,
-      BillWrite,
-      BillDelete,
-      BillPost,
-      PaymentRead,
-      PaymentWrite,
-      PaymentDelete,
-      LocationRead,
-      LocationWrite,
-      LocationDelete,
-      StockRead,
-      StockWrite,
-      AccountingRead,
-      AccountingWrite,
-      PayrollRead,
-      PayrollWrite,
-      ReportsRead,
-      ReportsWrite,
-      UsersRead,
-      UsersWrite,
-      SettingsRead,
-      SettingsWrite,
-      AdminAccess,
-      BillsWrite,
-      OrdersWrite,
-      TaxesWrite,
-      CurrenciesWrite,
-      SalariesWrite
-    ]
 
 managerRole :: RolePermission
 managerRole =
@@ -329,6 +371,55 @@ viewerRole =
       GoodsRead,
       BillRead,
       ReportsRead
+    ]
+
+adminRole :: RolePermission
+adminRole =
+  RolePermission
+    RoleAdmin
+    [ AdminAccess,
+      PersonRead,
+      PersonWrite,
+      PersonDelete,
+      GoodsRead,
+      GoodsWrite,
+      GoodsDelete,
+      BillRead,
+      BillWrite,
+      BillDelete,
+      BillPost,
+      LocationRead,
+      LocationWrite,
+      LocationDelete,
+      UsersRead,
+      UsersWrite,
+      TaxRead,
+      TaxWrite,
+      TaxDelete,
+      SyncRead,
+      SyncWrite,
+      SyncDelete,
+      AuditRead,
+      AuditWrite,
+      AuditDelete,
+      RBACRead,
+      RBACWrite,
+      RBACDelete,
+      JDBCRead,
+      JDBCWrite,
+      JDBCDelete,
+      CacheRead,
+      CacheWrite,
+      CacheDelete,
+      MetricsRead,
+      MetricsWrite,
+      MetricsDelete,
+      HealthRead,
+      HealthWrite,
+      HealthDelete,
+      WSRead,
+      WSWrite,
+      WSDelete
     ]
 
 defaultPermissions :: [RolePermission]
@@ -441,11 +532,6 @@ logAccessDecision principal role perm mRes allowed = do
         aeAllowed = allowed,
         aeReason = reason
       }
-
--- | Safe head for small lists
-safeHead :: [a] -> Maybe a
-safeHead [] = Nothing
-safeHead (x : _) = Just x
 
 roleFromText :: Text -> Role
 roleFromText t = case textToRole t of

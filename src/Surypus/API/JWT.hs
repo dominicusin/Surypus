@@ -9,16 +9,14 @@ module Surypus.API.JWT
   )
 where
 
-import Control.Monad (when)
 import Data.Aeson (decode)
-import Data.ByteString.Lazy (fromStrict)
 import qualified Data.ByteString.Lazy as LBS
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import Network.Wai (Middleware, Request, requestHeaders)
 import qualified Network.Wai as Wai
-import Surypus.JWT (JWTConfig (..), JWTPayload (..), validateAccessToken)
+import Surypus.JWT (JWTConfig (..), JWTPayload (..))
 import Text.Read (readMaybe)
 
 data JWTClaims = JWTClaims

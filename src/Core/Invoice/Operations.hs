@@ -21,7 +21,6 @@ module Core.Invoice.Operations
 where
 
 import Core.Invoice hiding (calcInvoiceBalance)
-import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Time (Day, fromGregorian)
 import Test.QuickCheck
@@ -139,34 +138,30 @@ calcTotalOverdue invoices today = sum . fmap calcInvoiceBalance $ filter (`isInv
 -- | Property: invoice balance is always non-negative
 prop_invoiceBalanceNonNeg :: Invoice -> Property
 prop_invoiceBalanceNonNeg inv =
-  let total = invTotal inv
-      paid = invPaid inv
-   in total >= 0 && paid >= 0 && paid <= total ==> calcInvoiceBalance inv >= 0
+  let totalVal = invTotal inv
+      paidVal = invPaid inv
+   in totalVal >= 0 && paidVal >= 0 && paidVal <= totalVal ==> calcInvoiceBalance inv >= 0
 
 -- | Property: payment due is always non-negative
 prop_paymentDueNonNeg :: Invoice -> Property
-prop_paymentDueNonNeg _ = forAll invGen $ \inv ->
+prop_paymentDueNonNeg _ = forAll invGen' $ \inv ->
   calcPaymentDue inv >= 0
+  where
+    invGen' = do
+      t <- suchThat arbitrary (>= 0)
+      p <- choose (0, t)
+      pure $ Invoice 0 (T.pack "INV-0000") (fromGregorian 2024 1 1) (fromGregorian 2024 12 31) 0 t p
 
 -- | Property: invoice paid percentage is bounded 0-100
 prop_invoicePaidBounded :: Invoice -> Property
 prop_invoicePaidBounded inv =
-  let total = invTotal inv
-      paid = invPaid inv
-   in total > 0 && paid >= 0 ==> calcInvoicePaid inv >= 0 && calcInvoicePaid inv <= 100
-
-invGen :: Gen Invoice
-invGen = do
-  total <- suchThat arbitrary (>= 0)
-  paid <- choose (0, total)
-  pure $ Invoice 0 (T.pack "INV-0000") (fromGregorian 2024 1 1) (fromGregorian 2024 12 31) 0 total paid
-
-instance Arbitrary Invoice where
-  arbitrary = invGen
+  let totalVal = invTotal inv
+      paidVal = invPaid inv
+   in totalVal > 0 && paidVal >= 0 ==> calcInvoicePaid inv >= 0 && calcInvoicePaid inv <= 100
 
 -- | Property: payment due is non-negative (calcPaymentDue)
 prop_calcPaymentDueNonNeg :: Invoice -> Property
 prop_calcPaymentDueNonNeg inv =
-  let total = invTotal inv
-      paid = invPaid inv
-   in total >= 0 && paid >= 0 && paid <= total ==> calcPaymentDue inv >= 0
+  let totalVal = invTotal inv
+      paidVal = invPaid inv
+   in totalVal >= 0 && paidVal >= 0 && paidVal <= totalVal ==> calcPaymentDue inv >= 0

@@ -150,4 +150,4 @@ prometheusMetricsMiddleware cfg app req respond = do
 
 -- | Insert a key-value pair into a map, updating existing values
 insert :: (Ord k) => k -> v -> Map k v -> Map k v
-insert k v = Map.insert k v
+insert = Map.insert

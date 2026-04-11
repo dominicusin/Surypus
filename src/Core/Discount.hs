@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 -- | Discount module - Discounts
 module Core.Discount
   ( Discount (..),

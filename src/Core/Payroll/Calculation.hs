@@ -10,6 +10,13 @@ module Core.Payroll.Calculation
     calcVacationDays,
     calcVacationPay,
     calcAverageDailyEarnings,
+    calcAdvanceAmount,
+    calcMonthlyAdvance,
+    calcSickLeavePay,
+    calcYearEndBonus,
+    calcFinalSettlement,
+    calcWorkedHours,
+    calcOvertimePay,
     prop_calcIncomeTaxNonNeg,
     prop_calcSocialTaxNonNeg,
     prop_calcNetSalaryFromGrossNonNeg,
@@ -126,7 +133,7 @@ calcYearEndBonus monthsWorked monthlySalary
 -- ============================================================================
 
 calcWorkedHours :: Double -> Double -> Double
-calcWorkedHours total overtime = total + overtime * 1.5 -- 1.5x overtime rate
+calcWorkedHours hours overtime = hours + overtime * 1.5
 
 calcOvertimePay :: Double -> Double -> Double
 calcOvertimePay hourlyRate overtime = hourlyRate * overtime * 1.5

@@ -74,7 +74,7 @@ instance HasPriceRepository PriceRepository where
   getPriceRepository = id
 
 instance HasRepository PriceRepository Pool where
-  getRepository = prcPool
+  getPool = prcPool
 
 mkPriceRepository :: Pool -> PriceRepository
 mkPriceRepository = PriceRepository

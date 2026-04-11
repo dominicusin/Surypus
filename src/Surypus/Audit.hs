@@ -9,27 +9,19 @@ module Surypus.Audit
     logDelete,
     logRead,
     logAction,
-    getAuditRecords,
     logAuditEvent,
   )
 where
 
-import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Except (runExceptT)
 import qualified DAL.Repository.AuditLog as AuditLogRepo
 import DAL.Types (AuditAction (..))
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Int (Int64)
 import Data.Text (Text)
-import qualified Data.Text as T
-import qualified Data.Text.Encoding as TE
 import Data.Time (UTCTime, getCurrentTime)
 import GHC.Generics (Generic)
-import qualified Hasql.Decoders as D
-import qualified Hasql.Encoders as E
-import Hasql.Pool (Pool, use)
-import qualified Hasql.Session as Session
-import Hasql.Statement (Statement (..))
+import Hasql.Pool (Pool)
 
 data SurypusAuditAction
   = SurypusAuditCreate
@@ -45,16 +37,6 @@ data SurypusAuditAction
 instance ToJSON SurypusAuditAction
 
 instance FromJSON SurypusAuditAction
-
-surypusAuditActionToText :: SurypusAuditAction -> Text
-surypusAuditActionToText SurypusAuditCreate = "CREATE"
-surypusAuditActionToText SurypusAuditUpdate = "UPDATE"
-surypusAuditActionToText SurypusAuditDelete = "DELETE"
-surypusAuditActionToText SurypusAuditRead = "READ"
-surypusAuditActionToText SurypusAuditLogin = "LOGIN"
-surypusAuditActionToText SurypusAuditLogout = "LOGOUT"
-surypusAuditActionToText SurypusAuditPost = "POST"
-surypusAuditActionToText SurypusAuditCancel = "CANCEL"
 
 data SurypusAuditLogEntry = SurypusAuditLogEntry
   { salId :: Maybe Int64,
@@ -73,8 +55,6 @@ data SurypusAuditLogEntry = SurypusAuditLogEntry
 instance ToJSON SurypusAuditLogEntry
 
 instance FromJSON SurypusAuditLogEntry
-
-type SurypusAuditRecord = SurypusAuditLogEntry
 
 logCreate :: Int -> Text -> Text -> Int64 -> Text -> IO SurypusAuditLogEntry
 logCreate userId userName entityType entityId newValue = do
@@ -160,9 +140,6 @@ logAction userId userName action entityType entityId oldValue newValue = do
         salTimestamp = now,
         salIpAddress = Nothing
       }
-
-getAuditRecords :: [SurypusAuditLogEntry] -> [SurypusAuditLogEntry]
-getAuditRecords = id
 
 logAuditEvent :: Pool -> SurypusAuditAction -> Text -> Maybe Int64 -> Maybe Int64 -> Maybe Text -> Maybe Text -> IO (Either String Int64)
 logAuditEvent pool action entityName mUserId mEntityId mDetails mIP = do

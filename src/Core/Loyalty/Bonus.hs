@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 -- | Bonus/Points system types
 module Core.Loyalty.Bonus
   ( BonusOp (..),

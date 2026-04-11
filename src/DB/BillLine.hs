@@ -18,8 +18,7 @@ import Hasql.Statement (Statement)
 
 billLineRow :: D.Row BillLine
 billLineRow =
-  BillLine
-    <$> (Just <$> D.column (D.nonNullable D.int8))
+  (BillLine . Just <$> D.column (D.nonNullable D.int8))
     <*> D.column (D.nonNullable D.int8)
     <*> D.column (D.nonNullable D.float8)
     <*> D.column (D.nonNullable D.float8)

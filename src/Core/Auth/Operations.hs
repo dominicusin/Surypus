@@ -19,6 +19,10 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Time (UTCTime, diffUTCTime)
 
+-- | Non-negative time in seconds
+
+{-@ type NonNeg = {v:Double | v >= 0} @-}
+
 -- | Auth operation result
 data AuthOpResult
   = AuthOpSuccess
@@ -90,11 +94,15 @@ checkSessionExpired session now = now > sExpireTime session
 
 -- | Check if session is valid
 -- Инвариант: сессия валидна если не истекла и токен не пуст
+
+{-@ checkSessionValid :: Session -> UTCTime -> Bool @-}
 checkSessionValid :: Session -> UTCTime -> Bool
 checkSessionValid session now = not (checkSessionExpired session now) && not (T.null (sToken session))
 
 -- | Calculate remaining session time in seconds
 -- Инвариант: result >= 0
+
+{-@ calcSessionRemainingTime :: Session -> UTCTime -> NonNeg @-}
 calcSessionRemainingTime :: Session -> UTCTime -> Double
 calcSessionRemainingTime session now =
   if checkSessionExpired session now

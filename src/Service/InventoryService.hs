@@ -1,6 +1,3 @@
-{-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE OverloadedStrings #-}
-
 -- | Inventory/stock management service.
 --
 -- Provides stock operations including receipts, issues, transfers, and balance queries.
@@ -121,21 +118,21 @@ processStockTransfer service goodsId fromLocation toLocation qty = do
 -- | Get current stock balance for goods at location
 getStockBalance :: InventoryService -> Int64 -> Int64 -> IO (Either Text Double)
 getStockBalance service goodsId locationId = do
-  result <- use (isPool service) $ Session.query selectStockBalanceStmt
-    ( goodsId
-    , locationId
-    )
-   pure $ case result of
-     Left err -> Left (T.pack (show err))
-     Right [] -> Right 0.0
-     Right [(bal, _)] -> Right (fromIntegral (bal :: Int64) / 10000.0)
-     Right _ -> Right 0.0
+  result <- use (isPool service) $ Session.query selectStockBalanceStmt (goodsId, locationId)
+  pure $ case result of
+    Left err -> Left (T.pack (show err))
+    Right [] -> Right 0.0
+    Right [bal] -> Right (fromIntegral (bal :: Int64) / 10000.0)
+    Right _ -> Right 0.0
 
 -- | Get all stock at a location (returns goods IDs with quantities)
 getStockByLocation :: InventoryService -> Int64 -> IO (Either Text [(Int64, Double)])
 getStockByLocation service locationId = do
-  result <- use (isPool service) $ Session.query selectStockByLocationStmt
-    (locationId)
+  result <-
+    use (isPool service) $
+      Session.query
+        selectStockByLocationStmt
+        locationId
   pure $ case result of
     Left err -> Left (T.pack (show err))
     Right rows -> Right [(g, fromIntegral (q :: Int64) / 10000.0) | (g, q) <- rows]
@@ -143,8 +140,11 @@ getStockByLocation service locationId = do
 -- | Get all stock for a goods item (returns location IDs with quantities)
 getStockByGoods :: InventoryService -> Int64 -> IO (Either Text [(Int64, Double)])
 getStockByGoods service goodsId = do
-  result <- use (isPool service) $ Session.query selectStockByGoodsStmt
-    (goodsId)
+  result <-
+    use (isPool service) $
+      Session.query
+        selectStockByGoodsStmt
+        goodsId
   pure $ case result of
     Left err -> Left (T.pack (show err))
     Right rows -> Right [(l, fromIntegral (q :: Int64) / 10000.0) | (l, q) <- rows]
@@ -154,9 +154,9 @@ insertStockReceiptStmt =
   Session.statement
     "INSERT INTO stock (goods_id, location_id, qty) VALUES ($1, $2, $3) ON CONFLICT (goods_id, location_id) DO UPDATE SET qty = stock.qty + EXCLUDED.qty RETURNING id"
     ( (,,)
-        <$> (E.param (E.nonNullable E.int8))
-        <*> (E.param (E.nonNullable E.int8))
-        <*> (E.param (E.nonNullable E.int8))
+        <$> E.param (E.nonNullable E.int8)
+        <*> E.param (E.nonNullable E.int8)
+        <*> E.param (E.nonNullable E.int8)
     )
     (D.singleRow (D.column (D.nonNullable D.int8)))
 
@@ -165,9 +165,9 @@ insertStockIssueStmt =
   Session.statement
     "INSERT INTO stock (goods_id, location_id, qty) VALUES ($1, $2, -$3) ON CONFLICT (goods_id, location_id) DO UPDATE SET qty = stock.qty - EXCLUDED.qty RETURNING id"
     ( (,,)
-        <$> (E.param (E.nonNullable E.int8))
-        <*> (E.param (E.nonNullable E.int8))
-        <*> (E.param (E.nonNullable E.int8))
+        <$> E.param (E.nonNullable E.int8)
+        <*> E.param (E.nonNullable E.int8)
+        <*> E.param (E.nonNullable E.int8)
     )
     (D.singleRow (D.column (D.nonNullable D.int8)))
 
@@ -178,11 +178,11 @@ selectLastStockIdStmt =
     Session.noParams
     (D.singleRow (D.column (D.nonNullable D.int8)))
 
-selectStockBalanceStmt :: Statement (Int64, Int64) (Int64,)
+selectStockBalanceStmt :: Statement (Int64, Int64) Int64
 selectStockBalanceStmt =
   Session.statement
     "SELECT COALESCE(qty, 0) FROM stock WHERE goods_id = $1 AND location_id = $2"
-    ( (,) <$> E.param (E.nonNullable E.int8) <*> E.param (E.nonNullable E.int8) )
+    ((,) <$> E.param (E.nonNullable E.int8) <*> E.param (E.nonNullable E.int8))
     (D.singleRow (D.column (D.nonNullable D.int8)))
 
 selectStockByLocationStmt :: Statement Int64 [(Int64, Int64)]
@@ -191,8 +191,8 @@ selectStockByLocationStmt =
     "SELECT goods_id, qty FROM stock WHERE location_id = $1 AND qty > 0"
     (E.param (E.nonNullable E.int8))
     ( D.rowList
-        ( D.column (D.nonNullable D.int8)
-        , D.column (D.nonNullable D.int8)
+        ( D.column (D.nonNullable D.int8),
+          D.column (D.nonNullable D.int8)
         )
     )
 
@@ -202,7 +202,7 @@ selectStockByGoodsStmt =
     "SELECT location_id, qty FROM stock WHERE goods_id = $1 AND qty > 0"
     (E.param (E.nonNullable E.int8))
     ( D.rowList
-        ( D.column (D.nonNullable D.int8)
-        , D.column (D.nonNullable D.int8)
+        ( D.column (D.nonNullable D.int8),
+          D.column (D.nonNullable D.int8)
         )
     )

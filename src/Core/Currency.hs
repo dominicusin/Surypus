@@ -6,6 +6,18 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import Test.QuickCheck
 
+-- | Non-negative amount
+
+{-@ type NonNeg = {v:Double | v >= 0} @-}
+
+-- | Positive precision
+
+{-@ type Precision = {v:Int | v >= 0 && v <= 6} @-}
+
+-- | Exchange rate must be positive
+
+{-@ type Rate = {v:Double | v > 0} @-}
+
 -- | Currency - Currency
 data Currency = Currency
   { curId :: Int64,
@@ -36,18 +48,27 @@ data ExchangeRate = ExchangeRate
   deriving (Show, Eq)
 
 -- | Convert amount between currencies
+-- = Invariant: result >= 0 if input >= 0
+
+{-@ convertAmount :: Currency -> Currency -> NonNeg -> NonNeg @-}
 convertAmount :: Currency -> Currency -> Double -> Double
 convertAmount from to amount
   | curRate to == 0 = 0
   | otherwise = amount * curRate from / curRate to
 
 -- | Round to currency precision
+-- = Invariant: result is bounded by input ± 0.5 * 10^(-precision)
+
+{-@ roundToCurrency :: Currency -> NonNeg -> NonNeg @-}
 roundToCurrency :: Currency -> Double -> Double
 roundToCurrency cur amount =
   let factor = 10 ^ curPrecision cur
    in fromInteger (round (amount * factor)) / factor
 
 -- | Format amount with currency symbol
+-- = Invariant: result is non-empty
+
+{-@ formatAmount :: Currency -> NonNeg -> NonEmpty Text @-}
 formatAmount :: Currency -> Double -> Text
 formatAmount cur amount =
   let rounded = roundToCurrency cur amount

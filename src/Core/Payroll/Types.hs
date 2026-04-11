@@ -5,9 +5,6 @@
 -- | Payroll Types - Salary calculations and HR
 module Core.Payroll.Types
   ( module Core.Payroll.Types,
-    prop_calcNetSalaryNonNeg,
-    prop_calcGrossFromNetPos,
-    prop_calcTaxAmountNonNeg,
   )
 where
 
@@ -38,6 +35,23 @@ data SalaryRec = SalaryRec
     sLinkBillId :: Int64,
     sGenBillId :: Int64,
     sRByGenBill :: Int64
+  }
+  deriving (Show, Eq)
+
+-- | Salary details for net salary computation
+
+{-@ data SalaryDetails = SalaryDetails
+  { sdEmployeeId :: Int64
+  , sdGross :: NonNeg
+  , sdTaxRate :: TaxRate
+  , sdNet :: NonNeg
+  }
+@-}
+data SalaryDetails = SalaryDetails
+  { sdEmployeeId :: Int64,
+    sdGross :: Double,
+    sdTaxRate :: Double,
+    sdNet :: Double
   }
   deriving (Show, Eq)
 

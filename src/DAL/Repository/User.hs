@@ -1,8 +1,9 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 
 module DAL.Repository.User
-  ( UserRepository,
+  ( UserRepository (..),
     mkUserRepository,
+    getUserPool,
   )
 where
 
@@ -13,4 +14,7 @@ newtype UserRepository = UserRepository
   }
 
 mkUserRepository :: Pool -> UserRepository
-mkUserRepository = UserRepository
+mkUserRepository pool = UserRepository {urPool = pool}
+
+getUserPool :: UserRepository -> Pool
+getUserPool = urPool

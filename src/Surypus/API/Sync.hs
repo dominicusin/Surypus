@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 -- | Sync API
 --
 -- This module provides data synchronization API functionality.
@@ -12,7 +10,6 @@ module Surypus.API.Sync
   )
 where
 
-import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Time (UTCTime, getCurrentTime)
 

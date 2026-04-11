@@ -32,7 +32,6 @@ module Surypus.API.Health
 where
 
 import Control.Exception (SomeException, try)
-import Data.Aeson (object, (.=))
 import Data.Int (Int64)
 import Data.Text (Text)
 import qualified Data.Text as T

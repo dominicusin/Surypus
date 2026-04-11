@@ -1,34 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 
--- | Person repository interface and implementation.
---
--- This module defines the repository pattern for Person entities, providing
--- CRUD operations and query functions. It abstracts the database access
--- layer and allows for easy mocking in tests.
---
--- The repository is parameterized over a pool type, allowing different
--- connection pool implementations to be used.
---
--- === Examples
---
--- Creating a repository and finding a person:
--- @
--- import DAL.Repository.Person (PersonRepository, mkPersonRepository, runPersonRepository)
--- import DAL.Types (Person)
--- import Hasql.Pool (Pool)
---
--- -- Assuming you have a connection pool
--- let pool :: Pool = undefined -- TODO: Initialize pool
--- let repo :: PersonRepository = mkPersonRepository pool
---
--- -- Find a person by ID
--- result <- runPersonRepository repo $ find 123
--- case result of
---   Right (Just person) -> print (person :: Person)
---   Right Nothing  -> putStrLn "Person not found"
---   Left err       -> putStrLn $ "Error: " ++ err
--- @
 module DAL.Repository.Person
   ( PersonRepository (..),
     HasPersonRepository (..),
@@ -43,10 +15,10 @@ module DAL.Repository.Person
 where
 
 import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Trans.Except (ExceptT, throwE)
+import Control.Monad.Trans.Except (ExceptT, runExceptT, throwE)
 import DAL.Mutations (createPerson, deletePerson, updatePerson)
-import DAL.Queries (getPersonById, getPersons, getPersonsPaginated, searchPersons)
-import DAL.Repository
+import DAL.Queries (getPersonById, getPersonsPaginated, searchPersons)
+import DAL.Repository (HasRepository (..), RepositoryError (..), isNotFoundMessage)
 import DAL.Types
 import Data.Int (Int64)
 import Data.Text (Text)
@@ -58,43 +30,19 @@ newtype PersonRepository = PersonRepository
   { prPool :: Pool
   }
 
-instance Repository PersonRepository Person where
-  find repo pid = do
-    result <- liftIO $ getPersonById (prPool repo) pid
-    case result of
-      QuerySuccess person -> pure (Just person)
-      QueryError err
-        | isNotFoundMessage err -> pure Nothing
-        | otherwise -> throwE (DatabaseError err)
+runPersonRepository :: PersonRepository -> ExceptT RepositoryError IO a -> IO (Either RepositoryError a)
+runPersonRepository = runExceptT
 
-  findAll repo = do
-    result <- liftIO $ getPersons (prPool repo)
-    case result of
-      QuerySuccess persons -> pure persons
-      QueryError err -> throwE (DatabaseError err)
-
-  create repo person = do
-    created <- createPersonRepo repo (toPersonInput person)
-    pure (pId created)
-
-  update repo pid person = do
-    updated <- updatePersonRepo repo pid (toPersonInput person)
-    pure (Just updated)
-
-  delete repo pid = do
-    deletePersonRepo repo pid
-    pure Nothing
-
-listPersonsPage :: PersonRepository -> PersonFilter -> Pagination -> Maybe PersonSortBy -> Maybe SortDir -> ExceptT RepositoryError IO (PaginatedResult Person)
-listPersonsPage repo personFilter pagination sortBy sortDir = do
-  result <- liftIO $ getPersonsPaginated (prPool repo) personFilter sortBy sortDir pagination
+listPersonsPage :: PersonRepository -> PersonFilter -> Maybe PersonSortBy -> Maybe SortDir -> Pagination -> ExceptT RepositoryError IO (PaginatedResult Person)
+listPersonsPage repo filter' mSortBy mSortDir pagination = do
+  result <- liftIO $ getPersonsPaginated (prPool repo) filter' mSortBy mSortDir pagination
   case result of
-    QuerySuccess page -> pure page
+    QuerySuccess persons -> pure persons
     QueryError err -> throwE (DatabaseError err)
 
 searchPersonsRepo :: PersonRepository -> Text -> ExceptT RepositoryError IO [Person]
-searchPersonsRepo repo queryText = do
-  result <- liftIO $ searchPersons (prPool repo) queryText
+searchPersonsRepo repo query = do
+  result <- liftIO $ searchPersons (prPool repo) query
   case result of
     QuerySuccess persons -> pure persons
     QueryError err -> throwE (DatabaseError err)
@@ -103,41 +51,30 @@ createPersonRepo :: PersonRepository -> PersonInput -> ExceptT RepositoryError I
 createPersonRepo repo input = do
   validated <- validatePersonInputRepo input
   mutation <- liftIO $ createPerson (prPool repo) validated
-  personId <- extractMutationId "Person created but id was not returned" mutation
-  mPerson <- find repo personId
-  case mPerson of
-    Just person -> pure person
-    Nothing -> throwE (NotFound "Created person was not found")
+  pid <- extractMutationId "Person created but id was not returned" mutation
+  result <- liftIO $ getPersonById (prPool repo) pid
+  case result of
+    QuerySuccess person -> pure person
+    QueryError err -> throwE (DatabaseError err)
 
 updatePersonRepo :: PersonRepository -> Int64 -> PersonInput -> ExceptT RepositoryError IO Person
-updatePersonRepo repo personId input = do
+updatePersonRepo repo pid input = do
   validated <- validatePersonInputRepo input
-  mutation <- liftIO $ updatePerson (prPool repo) personId validated
+  mutation <- liftIO $ updatePerson (prPool repo) pid validated
   _ <- extractMutationId "Person updated but id was not returned" mutation
-  mPerson <- find repo personId
-  case mPerson of
-    Just person -> pure person
-    Nothing -> throwE (NotFound "Updated person was not found")
+  result <- liftIO $ getPersonById (prPool repo) pid
+  case result of
+    QuerySuccess person -> pure person
+    QueryError err -> throwE (DatabaseError err)
 
 deletePersonRepo :: PersonRepository -> Int64 -> ExceptT RepositoryError IO ()
-deletePersonRepo repo personId = do
-  mutation <- liftIO $ deletePerson (prPool repo) personId
+deletePersonRepo repo pid = do
+  mutation <- liftIO $ deletePerson (prPool repo) pid
   case mutation of
     QuerySuccess _ -> pure ()
     QueryError err
       | isNotFoundMessage err -> throwE (NotFound "Person not found")
       | otherwise -> throwE (DatabaseError err)
-
-toPersonInput :: Person -> PersonInput
-toPersonInput person =
-  PersonInput
-    { piCode = pCode person,
-      piName = pName person,
-      piINN = pINN person,
-      piKPP = pKPP person,
-      piPersonType = pPersonType person,
-      piStatus = pStatus person
-    }
 
 validatePersonInputRepo :: PersonInput -> ExceptT RepositoryError IO PersonInput
 validatePersonInputRepo input = case Validation.validatePersonInput input of
@@ -160,10 +97,7 @@ instance HasPersonRepository PersonRepository where
   getPersonRepository = id
 
 instance HasRepository PersonRepository Pool where
-  getRepository = prPool
+  getPool = prPool
 
 mkPersonRepository :: Pool -> PersonRepository
 mkPersonRepository = PersonRepository
-
-runPersonRepository :: PersonRepository -> RepositoryT IO a -> IO (Either RepositoryError a)
-runPersonRepository repo = runRepository (defaultRepositoryContext (prPool repo))

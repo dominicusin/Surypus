@@ -1,5 +1,3 @@
-
-
 module DB.TechCard
   ( listTechCards,
     getTechCard,
@@ -22,8 +20,7 @@ import Hasql.Statement (Statement)
 
 techCardRow :: D.Row TechCard
 techCardRow =
-  TechCard
-    <$> (Just <$> D.column (D.nonNullable D.int8))
+  (TechCard . Just <$> D.column (D.nonNullable D.int8))
     <*> D.column (D.nonNullable D.int8)
     <*> D.column (D.nonNullable D.int8)
     <*> (fromIntegral <$> D.column (D.nonNullable D.int4))

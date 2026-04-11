@@ -25,8 +25,7 @@ import Hasql.Statement (unStatement)
 
 counterRow :: D.Row DocumentOpCounter
 counterRow =
-  DocumentOpCounter
-    <$> (Just <$> D.column (D.nonNullable D.int8))
+  (DocumentOpCounter . Just <$> D.column (D.nonNullable D.int8))
     <*> D.column (D.nonNullable D.text)
     <*> D.column (D.nonNullable D.int4)
     <*> D.column (D.nullable D.text)

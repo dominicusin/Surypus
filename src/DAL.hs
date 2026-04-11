@@ -4,8 +4,6 @@ module DAL
     module DAL.Queries,
     module DAL.Mutations,
     module DAL.Repository,
-    module DAL.Repository.Person,
-    module DAL.Repository.Goods,
     module DAL.Repository.Location,
     module DAL.Repository.Payment,
     module DAL.Repository.Price,
@@ -32,11 +30,9 @@ import DAL.Repository.AuditLog
 import DAL.Repository.Bill
 import DAL.Repository.Container
 import DAL.Repository.Currency
-import DAL.Repository.Goods
 import DAL.Repository.Location
 import DAL.Repository.Order
 import DAL.Repository.Payment
-import DAL.Repository.Person
 import DAL.Repository.Price
 import DAL.Repository.RBAC
 import DAL.Repository.RefreshToken

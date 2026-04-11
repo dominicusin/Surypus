@@ -45,8 +45,7 @@ listAccounts pool (Pagination limit offset) AccountFilter {..} = do
 
 accountRowDecoder :: D.Row AccAccount
 accountRowDecoder =
-  AccAccount
-    <$> (Just <$> D.column (D.nonNullable D.int8))
+  (AccAccount . Just <$> D.column (D.nonNullable D.int8))
     <*> D.column (D.nonNullable D.int8)
     <*> D.column (D.nonNullable D.text)
     <*> D.column (D.nonNullable D.text)
@@ -116,8 +115,7 @@ listEntries pool (Pagination limit offset) EntryFilter {..} = do
 
 entryRowDecoder :: D.Row AccEntry
 entryRowDecoder =
-  AccEntry
-    <$> (Just <$> D.column (D.nonNullable D.int8))
+  (AccEntry . Just <$> D.column (D.nonNullable D.int8))
     <*> D.column (D.nonNullable D.date)
     <*> D.column (D.nullable D.int8)
     <*> D.column (D.nonNullable D.int8)

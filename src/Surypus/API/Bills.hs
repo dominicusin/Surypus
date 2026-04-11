@@ -20,7 +20,6 @@ import DAL.Types
     BillFilter (..),
     BillInput (..),
     BillLine (..),
-    BillLineInput (..),
     MutationResult (..),
     PaginatedResult (..),
     Pagination (..),
@@ -28,7 +27,7 @@ import DAL.Types
   )
 import Data.Int (Int64)
 import Data.Maybe (fromMaybe)
-import Data.Text (Text)
+-- import Data.Text (Text)  -- unused, removed to satisfy -Werror
 import Data.Time (Day)
 import Hasql.Pool (Pool)
 
@@ -53,7 +52,7 @@ listBills pool mType mStatus mPerson mDateFrom mDateTo mLimit = do
     QueryError err -> pure (QueryError err)
 
 createBill :: Pool -> BillInput -> IO (QueryResult MutationResult)
-createBill pool input = M.createBill pool input
+createBill = M.createBill
 
 getBill :: Pool -> Int64 -> IO (QueryResult Bill)
 getBill = Q.getBillById
@@ -62,7 +61,7 @@ updateBill :: Pool -> Int64 -> BillInput -> IO (QueryResult MutationResult)
 updateBill _pool _bid _input = pure (QueryError "Not implemented")
 
 deleteBill :: Pool -> Int64 -> IO (QueryResult MutationResult)
-deleteBill pool bid = M.deleteBill pool bid
+deleteBill = M.deleteBill
 
 getBillLines :: Pool -> Int64 -> IO (QueryResult [BillLine])
 getBillLines = Q.getBillLines

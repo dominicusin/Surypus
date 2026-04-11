@@ -11,7 +11,6 @@ module Surypus.API.AuthMiddleware
   )
 where
 
-import Control.Monad.IO.Class (liftIO)
 import Data.Aeson (decode)
 import Data.ByteString.Lazy (fromStrict)
 import Data.Text (Text)
@@ -22,7 +21,7 @@ import Network.HTTP.Types (status401, status403)
 import Network.Wai (Middleware, Request, rawPathInfo, requestHeaders, responseLBS)
 import qualified Network.Wai as Wai
 import Surypus.API.Authorization (normalizeResourcePath)
-import Surypus.JWT (JWTConfig (..), JWTPayload (..), validateAccessToken)
+import Surypus.JWT (JWTConfig (..), JWTPayload (..))
 import Surypus.RBAC
   ( AuditEntry,
     DynamicRole,
@@ -32,7 +31,6 @@ import Surypus.RBAC
     checkPermissionWithCustom,
     hasDelegatedPermission,
     logAccessDecision,
-    roleFromText,
   )
 import Text.Read (readMaybe)
 
@@ -46,7 +44,6 @@ withAuthAndPermission jwtCfg publicPaths requiredPerm app req respond
         Left err -> respond $ unauthorizedResponse (T.pack err)
         Right payload -> do
           let userRoleText = jwtRole payload
-              userRole = roleFromText userRoleText
           case checkPermission userRoleText requiredPerm of
             Left err -> respond $ forbiddenResponse (T.pack err)
             Right () -> do

@@ -3,12 +3,13 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeOperators #-}
 
 module Surypus.API.Root where
 
 import DAL.Types (AuditLog)
-import Data.Aeson (FromJSON, ToJSON, Value)
+import Data.Aeson (FromJSON, ToJSON, Value (String))
 import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Time (Day)
@@ -20,12 +21,17 @@ import Surypus.API.Types
     LoginResponse (..),
     UserResponse (..),
   )
-import Surypus.JWT (JWTPayload (..))
 import Surypus.RBAC (AuditEntry)
 
 type APIv1 = "v1" :> (AuthAPI :<|> ProtectedAPI)
 
-type ProtectedAPI = PersonsAPI :<|> GoodsAPI :<|> LocationsAPI :<|> BillsAPI :<|> PaymentsAPI :<|> OrdersAPI :<|> TaxesAPI :<|> CurrenciesAPI :<|> StockAPI :<|> AccountingAPI :<|> PayrollAPI :<|> ReportsAPI :<|> DashboardAPI :<|> UsersAPI :<|> AuditLogAPI :<|> RbacAPI :<|> JobsAPI :<|> HealthAPI :<|> MetricsAPI
+type ProtectedAPI = PersonsAPI :<|> GoodsAPI :<|> LocationsAPI :<|> BillsAPI :<|> PaymentsAPI :<|> OrdersAPI :<|> TaxesAPI :<|> VATAPI :<|> CurrenciesAPI :<|> StockAPI :<|> AccountingAPI :<|> PayrollAPI :<|> ReportsAPI :<|> DashboardAPI :<|> UsersAPI :<|> AuditLogAPI :<|> RbacAPI :<|> JobsAPI :<|> HealthAPI :<|> MetricsAPI
+
+-- | Full API with Swagger documentation
+type APIWithDoc = APIv1 :<|> "swagger.json" :> Get '[JSON] Value
+
+apiSwagger :: Value
+apiSwagger = String "Swagger documentation endpoint"
 
 type AuthAPI =
   "login" :> ReqBody '[JSON] LoginRequest :> Post '[JSON] LoginResponse
@@ -37,15 +43,23 @@ type RolesAPI = "roles" :> Get '[JSON] [ApiRole]
 
 type PersonsAPI =
   "persons"
-    :> ( Get '[JSON] PersonsResponse
+    :> ( QueryParam "name" Text :> QueryParam "inn" Text :> QueryParam "type" Int :> QueryParam "status" Int :> QueryParam "limit" Int :> Get '[JSON] PersonsResponse
            :<|> ReqBody '[JSON] PersonRequest :> Post '[JSON] PersonResponse
            :<|> Capture "id" Int64 :> Get '[JSON] PersonResponse
            :<|> Capture "id" Int64 :> ReqBody '[JSON] PersonRequest :> Put '[JSON] PersonResponse
            :<|> Capture "id" Int64 :> Delete '[JSON] ()
-           :<|> "search" :> Capture "query" Text :> Get '[JSON] PersonsResponse
+           :<|> "search" :> QueryParam "q" Text :> Get '[JSON] PersonsResponse
        )
 
-type GoodsAPI = "goods" :> Get '[JSON] GoodsResponse
+type GoodsAPI =
+  "goods"
+    :> ( QueryParam "name" Text :> QueryParam "barcode" Text :> QueryParam "code" Text :> Get '[JSON] GoodsResponse
+           :<|> ReqBody '[JSON] GoodRequest :> Post '[JSON] GoodResponse
+           :<|> Capture "id" Int64 :> Get '[JSON] GoodResponse
+           :<|> Capture "id" Int64 :> ReqBody '[JSON] GoodRequest :> Put '[JSON] GoodResponse
+           :<|> Capture "id" Int64 :> Delete '[JSON] ()
+           :<|> "search" :> QueryParam "q" Text :> Get '[JSON] GoodsResponse
+       )
 
 type LocationsAPI =
   "locations"
@@ -382,7 +396,7 @@ data LocationRequest = LocationRequest
 data LocationResponse = LocationResponse
   { locationId :: Int64,
     locationName :: Text,
-    locationType :: Int
+    locationType :: Maybe Int
   }
   deriving (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
@@ -464,7 +478,9 @@ data OrdersResponse = OrdersResponse
 
 data TaxRequest = TaxRequest
   { taxName :: Text,
-    taxRate :: Double
+    taxRate :: Double,
+    taxType :: Maybe Text,
+    taxInclusive :: Maybe Bool
   }
   deriving (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
@@ -472,7 +488,9 @@ data TaxRequest = TaxRequest
 data TaxResponse = TaxResponse
   { taxId :: Int64,
     taxName :: Text,
-    taxRate :: Double
+    taxRate :: Double,
+    taxType :: Maybe Text,
+    taxInclusive :: Maybe Bool
   }
   deriving (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
@@ -482,6 +500,32 @@ data TaxesResponse = TaxesResponse
   }
   deriving (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
+
+-- | VAT calculation request
+data VATCalcRequest = VATCalcRequest
+  { vatAmount :: Double,
+    vatRate :: Double,
+    vatInclusive :: Bool
+  }
+  deriving (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON)
+
+-- | VAT calculation response
+data VATCalcResponse = VATCalcResponse
+  { vatNetAmount :: Double,
+    vatTaxAmount :: Double,
+    vatGrossAmount :: Double,
+    vatAppliedRate :: Double
+  }
+  deriving (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON)
+
+-- | VAT API endpoint
+type VATAPI =
+  "vat"
+    :> ( "calculate" :> ReqBody '[JSON] VATCalcRequest :> Post '[JSON] VATCalcResponse
+           :<|> "rates" :> Get '[JSON] TaxesResponse
+       )
 
 data CurrencyRequest = CurrencyRequest
   { currencyName :: Text,

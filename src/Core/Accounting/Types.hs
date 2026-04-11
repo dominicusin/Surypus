@@ -4,9 +4,12 @@
 -- | Accounting Types - Account, Ledger, Transactions
 module Core.Accounting.Types where
 
+{-@ type NonNeg = {v:Double | v >= 0} @-}
+
 import Data.Int (Int64)
 import Data.Text (Text)
-import Data.Time (Day)
+import Data.Time (Day, fromGregorian)
+import Test.QuickCheck (Arbitrary (..), suchThat)
 
 -- ============================================================================
 -- ACCOUNT TYPES (from account.cpp)
@@ -157,7 +160,7 @@ accountBalanceInvariant acc turns =
         ATExpense -> debitSum - creditSum
    in abs (calcBalance - aBalance acc) < 0.01
 
--- | Trial balance
+{-@ trialBalance :: balances:[Balance] -> NonNeg @-}
 trialBalance :: [Balance] -> Double
 trialBalance balances =
   let totalDebit = sum (fmap bDebit balances)
@@ -167,3 +170,33 @@ trialBalance balances =
 -- | Trial balance zero
 trialBalanceZero :: [Balance] -> Bool
 trialBalanceZero balances = trialBalance balances < 0.01
+
+-- ============================================================================
+-- ARBITRARY INSTANCES
+-- ============================================================================
+
+instance Arbitrary AccTurn where
+  arbitrary =
+    AccTurn
+      <$> arbitrary
+      <*> arbitrary
+      <*> arbitrary
+      <*> (fromGregorian <$> arbitrary <*> arbitrary <*> arbitrary)
+      <*> suchThat arbitrary (>= 0)
+      <*> arbitrary
+      <*> suchThat arbitrary (>= 0)
+      <*> arbitrary
+      <*> arbitrary
+      <*> arbitrary
+      <*> suchThat arbitrary (>= 0)
+      <*> suchThat arbitrary (>= 0)
+
+instance Arbitrary Accrual where
+  arbitrary =
+    Accrual
+      <$> arbitrary
+      <*> arbitrary
+      <*> arbitrary
+      <*> suchThat arbitrary (>= 0)
+      <*> (fromGregorian <$> arbitrary <*> arbitrary <*> arbitrary)
+      <*> arbitrary

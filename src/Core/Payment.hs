@@ -9,6 +9,10 @@ import Test.QuickCheck
 -- PAYMENT TYPES
 -- ============================================================================
 
+-- | Non-negative amount
+
+{-@ type NonNeg = {v:Double | v >= 0} @-}
+
 -- | Payment - Payment record
 data Payment = Payment
   { payId :: Int64,
@@ -55,18 +59,29 @@ data PaymentFlags = PaymentFlags
 -- ============================================================================
 
 -- | Check if payment is completed
+
+{-@ isCompleted :: Payment -> Bool @-}
 isCompleted :: Payment -> Bool
 isCompleted p = payStatus p == PSCompleted
 
 -- | Check if payment can be refunded
+-- = Invariant: can only refund completed positive payments
+
+{-@ canRefund :: Payment -> Bool @-}
 canRefund :: Payment -> Bool
 canRefund p = payStatus p == PSCompleted && payAmount p > 0
 
 -- | Calculate payment amount (ensure non-negative)
+-- = Invariant: result >= 0
+
+{-@ calcPaymentAmount :: Double -> NonNeg @-}
 calcPaymentAmount :: Double -> Double
 calcPaymentAmount = max 0
 
 -- | Validate payment
+-- = Invariant: amount must be positive
+
+{-@ validatePayment :: Payment -> Bool @-}
 validatePayment :: Payment -> Bool
 validatePayment p = payAmount p > 0
 

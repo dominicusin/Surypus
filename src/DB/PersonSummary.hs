@@ -16,8 +16,7 @@ import Hasql.Statement (Statement)
 
 personSummaryRowDecoder :: D.Row PersonSummary
 personSummaryRowDecoder =
-  PersonSummary
-    <$> (fromIntegral <$> D.column (D.nonNullable D.int4))
+  (PersonSummary . fromIntegral <$> D.column (D.nonNullable D.int4))
     <*> (fromIntegral <$> D.column (D.nonNullable D.int4))
     <*> D.column (D.nonNullable D.int8)
     <*> D.column (D.nonNullable D.numeric)
