@@ -9,12 +9,13 @@
 module Surypus.API.Root where
 
 import DAL.Types (AuditLog)
-import Data.Aeson (FromJSON, ToJSON, Value (String))
+import Data.Aeson (FromJSON, ToJSON, Value)
 import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Time (Day)
 import GHC.Generics (Generic)
 import Servant
+import Surypus.API.OpenApi (apiSwaggerSpec)
 import Surypus.API.Types
   ( ApiRole (..),
     LoginRequest (..),
@@ -31,7 +32,7 @@ type ProtectedAPI = PersonsAPI :<|> GoodsAPI :<|> LocationsAPI :<|> BillsAPI :<|
 type APIWithDoc = "api" :> APIv1 :<|> "swagger.json" :> Get '[JSON] Value
 
 apiSwagger :: Value
-apiSwagger = String "Swagger documentation endpoint"
+apiSwagger = apiSwaggerSpec
 
 type AuthAPI =
   "login" :> ReqBody '[JSON] LoginRequest :> Post '[JSON] LoginResponse

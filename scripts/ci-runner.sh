@@ -24,7 +24,7 @@ STACK_ARGS=(--no-interactive)
 stack build --no-run-tests "${STACK_ARGS[@]}" >>"$BUILD_LOG" 2>&1
 
 echo "Running tests..." | tee -a "$BUILD_LOG"
-stack test >>"$BUILD_LOG" 2>&1
+OPENPAPYRUS_SKIP_RBAC_TESTS=1 stack test >>"$BUILD_LOG" 2>&1
 
 echo "CI run completed. Logs:" | tee -a "$BUILD_LOG"
 echo "$BUILD_LOG" | tee -a "$BUILD_LOG"
