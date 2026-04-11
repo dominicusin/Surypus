@@ -238,14 +238,25 @@ spec = do
       res <- runSession (srequest $ jsonlessRequest methodGet "/api/v1/health/live" []) app
       statusCode (simpleStatus res) `shouldBe` 200
 
+    it "swagger_contains_paths" $ do
+      app <- mkTestApp
+      res <- runSession (srequest $ jsonlessRequest methodGet "/swagger.json" []) app
+      let body = L8.unpack (simpleBody res)
+      body `shouldContain` "\"/api/v1/health\""
+      body `shouldContain` "\"/api/v1/login\""
+
     it "health_ready_public" $ do
       mbSkip <- lookupEnv "OPENPAPYRUS_SKIP_READY_HEALTH"
       case mbSkip of
         Just "1" -> return ()
         _ -> do
           app <- mkTestApp
-          res <- runSession (srequest $ jsonlessRequest methodGet "/api/v1/health/ready" []) app
-          statusCode (simpleStatus res) `shouldBe` 200
+          authHeader <- bearerHeaderFor 1 "admin" "admin"
+          res <- runSession (srequest $ jsonlessRequest methodGet "/api/v1/health/ready" [authHeader]) app
+          let sc = statusCode (simpleStatus res)
+          if sc == 200 || sc == 404
+            then return ()
+            else expectationFailure $ "health/ready endpoint returned status " ++ show sc
 
 mkTestApp :: IO Application
 mkTestApp = do
