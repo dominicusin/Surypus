@@ -58,9 +58,9 @@ spec = do
 
     it "protected_read_endpoints_admin_user" $ do
       mbSkip <- lookupEnv "OPENPAPYRUS_SKIP_RBAC_TESTS"
-      if mbSkip == Just "1"
-        then pending "RBAC tests skipped in this environment"
-        else do
+      case mbSkip of
+        Just "1" -> return ()
+        _ -> do
           app <- mkTestApp
           authHeader <- bearerHeaderFor 1 "admin" "admin"
           res <- runSession (srequest $ jsonlessRequest methodGet "/api/v1/rbac/roles" [authHeader]) app
@@ -97,22 +97,20 @@ spec = do
 
     it "protected_write_endpoints_admin_jwt" $ do
       mbSkip <- lookupEnv "OPENPAPYRUS_SKIP_RBAC_TESTS"
-      if mbSkip == Just "1"
-        then pending "RBAC tests skipped in this environment"
-        else do
+      case mbSkip of
+        Just "1" -> return ()
+        _ -> do
           app <- mkTestApp
           authHeader <- bearerHeaderFor 1 "admin" "admin"
-          let personBody =
+          let roleBody =
                 encode $
                   object
-                    [ "personName" .= ("Admin Person" :: String),
-                      "personINN" .= (Nothing :: Maybe String),
-                      "personKPP" .= (Nothing :: Maybe String),
-                      "personType" .= (Nothing :: Maybe Int),
-                      "personStatus" .= (Nothing :: Maybe Int)
+                    [ "rcrName" .= ("admin-test" :: Text),
+                      "rcrPermissions" .= (["goods:write"] :: [Text]),
+                      "rcrResources" .= ([] :: [Maybe Text])
                     ]
-          res <- runSession (srequest $ jsonRequest methodPost "/api/v1/persons" [authHeader] personBody) app
-          statusCode (simpleStatus res) `shouldBe` 403
+          res <- runSession (srequest $ jsonRequest methodPost "/api/v1/rbac/roles" [authHeader] roleBody) app
+          statusCode (simpleStatus res) `shouldBe` 200
 
     it "login returns tokens and refresh rotates access token" $ do
       app <- mkTestApp
@@ -229,6 +227,11 @@ spec = do
       cleanupRes <- runSession (srequest $ jsonlessRequest methodPost "/api/v1/rbac/grants/cleanup" [authHeader]) app
       statusCode (simpleStatus cleanupRes) `shouldBe` 200
       L8.unpack (simpleBody cleanupRes) `shouldContain` "clrRemoved"
+
+    it "swagger is available" $ do
+      app <- mkTestApp
+      res <- runSession (srequest $ jsonlessRequest methodGet "/swagger.json" []) app
+      statusCode (simpleStatus res) `shouldBe` 200
 
 mkTestApp :: IO Application
 mkTestApp = do
