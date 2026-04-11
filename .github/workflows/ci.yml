@@ -26,9 +26,9 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y docker-compose
 
-      - name: Start DB and API
+      - name: Start DB
         run: |
-          docker compose up -d db api
+          docker compose up -d db
           echo "Waiting for DB to be ready..."
           for i in {1..60}; do
             if docker compose exec -T db pg_isready -U surypus -d surypus >/dev/null 2>&1; then echo 'DB ready'; break; fi
@@ -51,4 +51,4 @@ jobs:
 
       - name: Teardown
         if: always()
-        run: docker compose down
+        run: docker compose down --remove-orphans
