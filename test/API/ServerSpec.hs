@@ -238,6 +238,15 @@ spec = do
       res <- runSession (srequest $ jsonlessRequest methodGet "/api/v1/health/live" []) app
       statusCode (simpleStatus res) `shouldBe` 200
 
+    it "health_ready_public" $ do
+      mbSkip <- lookupEnv "OPENPAPYRUS_SKIP_READY_HEALTH"
+      case mbSkip of
+        Just "1" -> return ()
+        _ -> do
+          app <- mkTestApp
+          res <- runSession (srequest $ jsonlessRequest methodGet "/api/v1/health/ready" []) app
+          statusCode (simpleStatus res) `shouldBe` 200
+
 mkTestApp :: IO Application
 mkTestApp = do
   let jwtCfg = jwtConfigFromSecret "test-secret"
