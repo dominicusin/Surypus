@@ -228,7 +228,7 @@ spec = do
       statusCode (simpleStatus cleanupRes) `shouldBe` 200
       L8.unpack (simpleBody cleanupRes) `shouldContain` "clrRemoved"
 
-    it "swagger is available" $ do
+    it "swagger_is_available" $ do
       app <- mkTestApp
       res <- runSession (srequest $ jsonlessRequest methodGet "/swagger.json" []) app
       statusCode (simpleStatus res) `shouldBe` 200
