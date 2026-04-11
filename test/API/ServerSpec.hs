@@ -28,6 +28,7 @@ import Surypus.API.Authorization (requiredPermissionForPathMethod)
 import Surypus.API.Server (apiServer)
 import Surypus.JWT (TokenPair (accessToken), generateTokenPair, jwtConfigFromSecret)
 import Surypus.RBAC.Store (listGrants, listRoles, newRBACStore, writeAuditEntry)
+import System.Environment (lookupEnv)
 import Test.Hspec
 
 spec :: Spec
@@ -55,14 +56,14 @@ spec = do
       res <- runSession (srequest $ jsonlessRequest methodGet "/api/v1/audit-log" [authHeader]) app
       statusCode (simpleStatus res) `shouldBe` 403
 
-    it "protected read endpoints allow admin user" $ do
-      skipRBAC <- lookupEnv "OPENPAPYRUS_SKIP_RBAC_TESTS"
-      case skipRBAC of
-        Just "1" -> pending "RBAC tests skipped in this environment"
-        _ -> do
+    it "protected_read_endpoints_admin_user" $ do
+      mbSkip <- lookupEnv "OPENPAPYRUS_SKIP_RBAC_TESTS"
+      if mbSkip == Just "1"
+        then pending "RBAC tests skipped in this environment"
+        else do
           app <- mkTestApp
           authHeader <- bearerHeaderFor 1 "admin" "admin"
-          res <- runSession (srequest $ jsonlessRequest methodGet "/api/v1/persons" [authHeader]) app
+          res <- runSession (srequest $ jsonlessRequest methodGet "/api/v1/rbac/roles" [authHeader]) app
           statusCode (simpleStatus res) `shouldBe` 200
 
     it "protected write endpoints reject missing JWT" $ do
@@ -94,11 +95,11 @@ spec = do
       res <- runSession (srequest $ jsonRequest methodPost "/api/v1/persons" [authHeader] personBody) app
       statusCode (simpleStatus res) `shouldBe` 403
 
-    it "protected write endpoints allow admin JWT" $ do
-      skipRBAC <- lookupEnv "OPENPAPYRUS_SKIP_RBAC_TESTS"
-      case skipRBAC of
-        Just "1" -> pending "RBAC tests skipped in this environment"
-        _ -> do
+    it "protected_write_endpoints_admin_jwt" $ do
+      mbSkip <- lookupEnv "OPENPAPYRUS_SKIP_RBAC_TESTS"
+      if mbSkip == Just "1"
+        then pending "RBAC tests skipped in this environment"
+        else do
           app <- mkTestApp
           authHeader <- bearerHeaderFor 1 "admin" "admin"
           let personBody =
