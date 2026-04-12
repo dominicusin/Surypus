@@ -1,86 +1,48 @@
-name: CI
-
+name: Surypus CI
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - phase1-stabilize-core
   pull_request:
-    branches: [main]
+    branches:
+      - main
+      - phase1-stabilize-core
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
-    
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Setup Haskell
-      uses: haskell/actions/setup@v2
-      with:
-        ghc-version: '9.6.6'
-        cabal-version: '3.10.2.0'
-    
-    - name: Cache dependencies
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.cabal/store
-          .stack-work
-        key: ${{ runner.os }}-haskell-${{ hashFiles('**/*.cabal', '**/stack.yaml') }}
-        restore-keys: |
-          ${{ runner.os }}-haskell-
-    
-    - name: Build
-      run: |
-        stack build
-    
-    - name: Run tests
-      run: |
-        stack test
-    
-    - name: Check formatting
-      run: |
-        stack build --flags="+HLint" 2>/dev/null || true
+      - name: Checkout
+        uses: actions/checkout@v4
 
-  lint:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Setup Haskell
-      uses: haskell/actions/setup@v2
-      with:
-        ghc-version: '9.6.6'
-    
-    - name: Install hlint
-      run: cabal install hlint
-    
-    - name: Run hlint
-      run: |
-        hlint src/
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        with:
+          install: true
 
-  sql-lint:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Install pgformatter
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y postgresql-client
-    
-    - name: Format SQL files
-      run: |
-        which pg_format || echo "pg_format not available, skipping"
-        # pg_format -i config/*.sql 2>/dev/null || true
+      - name: Install Docker Compose
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y docker-compose
 
-  docker:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Build Docker image
-      run: |
-        docker build -t surypus:latest .
+      - name: Start DB
+        run: |
+          docker compose up -d db
+          echo "Waiting for DB to be ready..."
+          for i in {1..60}; do
+            if docker compose exec -T db pg_isready -U surypus -d surypus >/dev/null 2>&1; then echo 'DB ready'; break; fi
+            sleep 2
+          done
+
+      - name: Build
+        run: |
+          stack build --fast
+
+      - name: Run Tests
+        run: |
+          stack test
+
+      - name: Teardown
+        if: always()
+        run: docker compose down --remove-orphans

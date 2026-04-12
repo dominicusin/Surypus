@@ -22,6 +22,7 @@ import Network.Wai (Middleware, Request, rawPathInfo, requestHeaders, responseLB
 import qualified Network.Wai as Wai
 import Surypus.API.Authorization (normalizeResourcePath)
 import Surypus.JWT (JWTConfig (..), JWTPayload (..))
+import Surypus.Logging (debugLog)
 import Surypus.RBAC
   ( AuditEntry,
     DynamicRole,
@@ -39,6 +40,7 @@ withAuthAndPermission :: JWTConfig -> [Text] -> Permission -> Middleware
 withAuthAndPermission jwtCfg publicPaths requiredPerm app req respond
   | isPublicPath = app req respond
   | otherwise = do
+      debugLog $ T.pack $ "Auth check: path=" ++ show (pathInfo req) ++ ", method=" ++ show (Wai.requestMethod req)
       let authResult = validateJWT jwtCfg req
       case authResult of
         Left err -> respond $ unauthorizedResponse (T.pack err)
@@ -125,7 +127,9 @@ withAuthzResolverAdvanced ::
   (AuditEntry -> IO ()) ->
   Middleware
 withAuthzResolverAdvanced jwtCfg publicPaths resolvePermission loadRoles loadGrants checkStoredPermission auditSink app req respond
-  | isPublicPath = app req respond
+  | isPublicPath = do
+      debugLog $ T.pack $ "Public endpoint (RBAC): path=" ++ show (pathInfo req) ++ ", method=" ++ show (Wai.requestMethod req)
+      app req respond
   | otherwise = do
       let authResult = validateJWT jwtCfg req
       case authResult of

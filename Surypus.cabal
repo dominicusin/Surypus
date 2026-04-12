@@ -119,6 +119,7 @@ library
         Surypus.I18n
         Surypus.Reports
         Surypus.API.Root
+        Surypus.API.OpenApi
         Surypus.API.Server
         Surypus.API.Auth
         Surypus.API.Authorization

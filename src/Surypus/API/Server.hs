@@ -38,6 +38,7 @@ import Surypus.API.Root
 import Surypus.API.Types
 import Surypus.Database.Pool (pingDatabasePool)
 import Surypus.JWT (JWTConfig (..), TokenPair (accessToken, refreshToken), generateTokenPair, rtUserId, validateRefreshToken)
+import Surypus.Logging (debugLog, debugLogIf)
 import Surypus.RBAC
   ( AuditEntry (..),
     DynamicRole (..),
@@ -139,11 +140,13 @@ authLogin :: Env -> LoginRequest -> Handler LoginResponse
 authLogin env req = do
   let user = username req
       pwd = password req
+  liftIO $ debugLogIf (pwd /= "admin123" && pwd /= "demo") $ "Login failed for user: " <> user
   if pwd == "admin123" || pwd == "demo"
     then do
       tokenResult <- liftIO $ generateTokenPair (envJWTConfig env) 1 user "admin"
       let tp = tokenResult
       liftIO $ persistRefreshTokenBestEffort env 1 (Surypus.JWT.refreshToken tp)
+      liftIO $ debugLog $ "Login succeeded for user: " <> user
       pure LoginResponse {accessToken = Surypus.JWT.accessToken tp, refreshToken = Surypus.JWT.refreshToken tp, userId = 1, userName = user, role = "admin"}
     else throwError err401 {errBody = "Invalid credentials"}
 
@@ -756,6 +759,7 @@ healthGet env = do
       dbStatus = if dbOk then "ok" else "failed"
       overall :: Text
       overall = if dbOk then "ok" else "degraded"
+  liftIO $ debugLogIf (not dbOk) $ "Health check: DB status=" <> dbStatus
   pure $ HealthResponse overall (object ["db" .= dbStatus])
 
 metricsGet :: Handler MetricsResponse
@@ -971,5 +975,5 @@ parsePermissionText p =
 
 startServantServer :: Int -> Pool -> JWTConfig -> RBACStore -> IO ()
 startServantServer port pool jwtConfig rbacStore = do
-  putStrLn $ "Starting Servant server on port " <> show port
+  debugLog $ "Starting Servant server on port " <> T.pack (show port)
   run port $ apiServer pool jwtConfig rbacStore

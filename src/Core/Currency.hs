@@ -2,6 +2,7 @@
 module Core.Currency where
 
 import Data.Int (Int64)
+import Data.Ratio ((%))
 import Data.Text (Text)
 import qualified Data.Text as T
 import Test.QuickCheck
@@ -56,14 +57,19 @@ convertAmount from to amount
   | curRate to == 0 = 0
   | otherwise = amount * curRate from / curRate to
 
--- | Round to currency precision
--- = Invariant: result is bounded by input ± 0.5 * 10^(-precision)
+--- | Round to currency precision
+--- = Invariant: result is bounded by input ± 0.5 * 10^(-precision)
 
 {-@ roundToCurrency :: Currency -> NonNeg -> NonNeg @-}
 roundToCurrency :: Currency -> Double -> Double
 roundToCurrency cur amount =
-  let factor = 10 ^ curPrecision cur
-   in fromInteger (round (amount * factor)) / factor
+  let factor :: Integer
+      factor = 10 ^ curPrecision cur
+      amountR = toRational amount
+      scaled = amountR * (toRational factor)
+      roundedInt = (round scaled) :: Integer
+      out = fromRational (roundedInt % factor)
+   in out
 
 -- | Format amount with currency symbol
 -- = Invariant: result is non-empty

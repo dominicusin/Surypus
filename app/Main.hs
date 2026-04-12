@@ -67,6 +67,7 @@ main = do
             "/api/v1/refresh",
             "/api/v1/health",
             "/api/v1/metrics",
+            "/swagger.json",
             "/ws"
           ]
         securedApp =
