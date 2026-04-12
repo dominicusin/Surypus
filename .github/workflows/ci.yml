@@ -41,9 +41,7 @@ jobs:
 
       - name: Run Tests
         run: |
-          # Gate RBAC tests by default in CI until environment is stable
-          # Swagger tests are now enabled (real OpenAPI spec is served)
-          OPENPAPYRUS_SKIP_RBAC_TESTS=1 stack test
+          stack test
 
       - name: Teardown
         if: always()

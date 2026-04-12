@@ -39,10 +39,10 @@ stack exec surypus
 Откройте `web/index.html` в браузере
 
 ### CI gating for RBAC tests
-- To skip RBAC tests in CI (when the RBAC environment is not ready), set the environment variable OPENPAPYRUS_SKIP_RBAC_TESTS=1. The RBAC test suite (RBACSpec.hs) is guarded to be skipped when this flag is set.
-- Swagger tests are now fully enabled (real OpenAPI 3.0.3 spec served at /swagger.json).
-- Locally you can run with gating as well:
-  - `OPENPAPYRUS_SKIP_RBAC_TESTS=1 stack test` (skip RBAC tests)
+- CI runs all 164 tests (RBAC gating is not needed — all tests pass).
+- For local development, you can skip RBAC tests if needed:
+  - `OPENPAPYRUS_SKIP_RBAC_TESTS=1 stack test`
+- Swagger tests are fully enabled (real OpenAPI 3.0.3 spec at /swagger.json).
 
 ### Debug logging (OPENPAPYRUS_DEBUG)
 - Set `OPENPAPYRUS_DEBUG=1` to enable verbose debug output throughout the server and middleware.

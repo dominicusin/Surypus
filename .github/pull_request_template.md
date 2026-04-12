@@ -59,21 +59,21 @@ OPENPAPYRUS_DEBUG=1 stack exec surypus
 
 ## Risks
 
-- **RBAC gating**: `OPENPAPYRUS_SKIP_RBAC_TESTS=1` in CI means ~15 RBAC tests are skipped. These tests **do pass** locally without gating. Remove the flag from CI once the RBAC environment stabilizes in CI.
 - **Swagger/OpenAPI**: Real spec covers major endpoints. Missing: goods/locations/bills CRUD details, stock, accounting, payroll, reports. Expand `src/Surypus/API/OpenApi.hs` as needed.
 
 ## Environment Variables
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `OPENPAPYRUS_SKIP_RBAC_TESTS` | CI: `1` | Skip RBAC test suite |
+| `OPENPAPYRUS_SKIP_RBAC_TESTS` | (none) | Skip RBAC test suite locally |
 | `OPENPAPYRUS_DEBUG` | `0` | Enable verbose debug output |
 
 ## Checklist
 
 - [x] All 164 tests pass locally (with and without RBAC gating)
 - [x] Build clean (`stack build --fast`, no errors, no warnings)
-- [x] CI workflow passes (GitHub Actions)
+- [x] CI workflow passes — all 164 tests (GitHub Actions)
 - [x] Swagger endpoint returns real OpenAPI 3.0.3 at `/swagger.json`
 - [x] `OPENPAPYRUS_DEBUG=1` produces debug output
+- [x] RBAC gating removed from CI (all tests pass)
 - [x] PR description updated with changelog
