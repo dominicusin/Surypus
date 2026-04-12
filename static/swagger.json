@@ -1,0 +1,1090 @@
+{
+    "info": {
+        "description": "REST API for Surypus ERP/CRM system",
+        "title": "Surypus ERP API",
+        "version": "0.1.0"
+    },
+    "openapi": "3.0.3",
+    "paths": {
+        "/api/v1/accounting": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Chart of accounts"
+                    }
+                },
+                "summary": "List accounts"
+            },
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Account created"
+                    }
+                },
+                "summary": "Create account"
+            }
+        },
+        "/api/v1/accounting/entries": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Accounting entries"
+                    }
+                },
+                "summary": "List accounting entries"
+            },
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Entry created"
+                    }
+                },
+                "summary": "Create accounting entry"
+            }
+        },
+        "/api/v1/accounting/entries/{id}": {
+            "delete": {
+                "parameters": {
+                    "id": {
+                        "type": "integer"
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Entry deleted"
+                    }
+                },
+                "summary": "Delete entry"
+            },
+            "get": {
+                "parameters": {
+                    "id": {
+                        "type": "integer"
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Entry"
+                    }
+                },
+                "summary": "Get entry by ID"
+            },
+            "put": {
+                "parameters": {
+                    "id": {
+                        "type": "integer"
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Entry updated"
+                    }
+                },
+                "summary": "Update entry"
+            }
+        },
+        "/api/v1/accounting/{id}": {
+            "delete": {
+                "parameters": {
+                    "id": {
+                        "type": "integer"
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Account deleted"
+                    }
+                },
+                "summary": "Delete account"
+            },
+            "get": {
+                "parameters": {
+                    "id": {
+                        "type": "integer"
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Account"
+                    }
+                },
+                "summary": "Get account by ID"
+            },
+            "put": {
+                "parameters": {
+                    "id": {
+                        "type": "integer"
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Account updated"
+                    }
+                },
+                "summary": "Update account"
+            }
+        },
+        "/api/v1/audit-log": {
+            "get": {
+                "parameters": {
+                    "limit": {
+                        "type": "integer"
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Audit log entries"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                },
+                "summary": "General audit log"
+            }
+        },
+        "/api/v1/bills": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "List of bills"
+                    }
+                },
+                "summary": "List bills"
+            },
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Bill created"
+                    }
+                },
+                "summary": "Create bill"
+            }
+        },
+        "/api/v1/bills/{id}": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Bill"
+                    }
+                },
+                "summary": "Get bill by ID"
+            }
+        },
+        "/api/v1/bills/{id}/status": {
+            "put": {
+                "responses": {
+                    "200": {
+                        "description": "Status updated"
+                    }
+                },
+                "summary": "Update bill status"
+            }
+        },
+        "/api/v1/currencies": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "List of currencies"
+                    }
+                },
+                "summary": "List currencies"
+            },
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Currency created"
+                    }
+                },
+                "summary": "Create currency"
+            }
+        },
+        "/api/v1/currencies/{id}": {
+            "delete": {
+                "parameters": {
+                    "id": {
+                        "type": "integer"
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Currency deleted"
+                    }
+                },
+                "summary": "Delete currency"
+            },
+            "get": {
+                "parameters": {
+                    "id": {
+                        "type": "integer"
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Currency"
+                    }
+                },
+                "summary": "Get currency by ID"
+            },
+            "put": {
+                "parameters": {
+                    "id": {
+                        "type": "integer"
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Currency updated"
+                    }
+                },
+                "summary": "Update currency"
+            }
+        },
+        "/api/v1/dashboard": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Dashboard"
+                    }
+                },
+                "summary": "Dashboard data"
+            }
+        },
+        "/api/v1/goods": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "List of goods"
+                    }
+                },
+                "summary": "List goods"
+            },
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Goods created"
+                    }
+                },
+                "summary": "Create goods"
+            }
+        },
+        "/api/v1/goods/search": {
+            "get": {
+                "parameters": {
+                    "q": {
+                        "type": "string"
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Search results"
+                    }
+                },
+                "summary": "Search goods"
+            }
+        },
+        "/api/v1/goods/{id}": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Goods"
+                    }
+                },
+                "summary": "Get goods by ID"
+            }
+        },
+        "/api/v1/health": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "summary": "Health check"
+            }
+        },
+        "/api/v1/health/live": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "summary": "Liveness probe"
+            }
+        },
+        "/api/v1/health/ready": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "summary": "Readiness probe"
+            }
+        },
+        "/api/v1/jobs": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Job list"
+                    }
+                },
+                "summary": "List jobs"
+            },
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Job created"
+                    }
+                },
+                "summary": "Create job"
+            }
+        },
+        "/api/v1/jobs/pending": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Pending jobs"
+                    }
+                },
+                "summary": "List pending jobs"
+            }
+        },
+        "/api/v1/locations": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "List of locations"
+                    }
+                },
+                "summary": "List locations"
+            },
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Location created"
+                    }
+                },
+                "summary": "Create location"
+            }
+        },
+        "/api/v1/locations/{id}": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Location"
+                    }
+                },
+                "summary": "Get location by ID"
+            }
+        },
+        "/api/v1/login": {
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "password": {
+                                        "type": "string"
+                                    },
+                                    "username": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "username",
+                                    "password"
+                                ],
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Login successful"
+                    },
+                    "401": {
+                        "description": "Invalid credentials"
+                    }
+                },
+                "summary": "User login"
+            }
+        },
+        "/api/v1/logout": {
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Logged out"
+                    }
+                },
+                "summary": "User logout"
+            }
+        },
+        "/api/v1/me": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Current user"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                },
+                "summary": "Current user info"
+            }
+        },
+        "/api/v1/metrics": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Metrics data"
+                    }
+                },
+                "summary": "Application metrics"
+            }
+        },
+        "/api/v1/orders": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "List of orders"
+                    }
+                },
+                "summary": "List orders"
+            },
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Order created"
+                    }
+                },
+                "summary": "Create order"
+            }
+        },
+        "/api/v1/orders/{id}": {
+            "delete": {
+                "parameters": {
+                    "id": {
+                        "type": "integer"
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Order deleted"
+                    }
+                },
+                "summary": "Delete order"
+            },
+            "get": {
+                "parameters": {
+                    "id": {
+                        "type": "integer"
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Order"
+                    }
+                },
+                "summary": "Get order by ID"
+            },
+            "put": {
+                "parameters": {
+                    "id": {
+                        "type": "integer"
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Order updated"
+                    }
+                },
+                "summary": "Update order"
+            }
+        },
+        "/api/v1/orders/{id}/status": {
+            "put": {
+                "parameters": {
+                    "id": {
+                        "type": "integer"
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Status updated"
+                    }
+                },
+                "summary": "Update order status"
+            }
+        },
+        "/api/v1/payments": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "List of payments"
+                    }
+                },
+                "summary": "List payments"
+            },
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Payment created"
+                    }
+                },
+                "summary": "Create payment"
+            }
+        },
+        "/api/v1/payments/{id}": {
+            "delete": {
+                "parameters": {
+                    "id": {
+                        "type": "integer"
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Payment deleted"
+                    }
+                },
+                "summary": "Delete payment"
+            },
+            "get": {
+                "parameters": {
+                    "id": {
+                        "type": "integer"
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Payment"
+                    }
+                },
+                "summary": "Get payment by ID"
+            },
+            "put": {
+                "parameters": {
+                    "id": {
+                        "type": "integer"
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Payment updated"
+                    }
+                },
+                "summary": "Update payment"
+            }
+        },
+        "/api/v1/payroll": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Payroll info"
+                    }
+                },
+                "summary": "Get payroll info"
+            }
+        },
+        "/api/v1/payroll/employees": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Employee list"
+                    }
+                },
+                "summary": "List employees"
+            }
+        },
+        "/api/v1/payroll/employees/{id}": {
+            "get": {
+                "parameters": {
+                    "id": {
+                        "type": "integer"
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Employee"
+                    }
+                },
+                "summary": "Get employee by ID"
+            }
+        },
+        "/api/v1/payroll/salaries": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Salary list"
+                    }
+                },
+                "summary": "List salaries"
+            }
+        },
+        "/api/v1/payroll/salary/{eid}": {
+            "get": {
+                "parameters": {
+                    "eid": {
+                        "type": "integer"
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Salary"
+                    }
+                },
+                "summary": "Get salary by employee ID"
+            }
+        },
+        "/api/v1/persons": {
+            "get": {
+                "parameters": {
+                    "inn": {
+                        "type": "string"
+                    },
+                    "limit": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "integer"
+                    },
+                    "type": {
+                        "type": "integer"
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "List of persons"
+                    }
+                },
+                "summary": "List persons"
+            },
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Person created"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                },
+                "summary": "Create person"
+            }
+        },
+        "/api/v1/persons/search": {
+            "get": {
+                "parameters": {
+                    "q": {
+                        "type": "string"
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Search results"
+                    }
+                },
+                "summary": "Search persons"
+            }
+        },
+        "/api/v1/persons/{id}": {
+            "delete": {
+                "parameters": {
+                    "id": {
+                        "type": "integer"
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Person deleted"
+                    }
+                },
+                "summary": "Delete person"
+            },
+            "get": {
+                "parameters": {
+                    "id": {
+                        "type": "integer"
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Person"
+                    }
+                },
+                "summary": "Get person by ID"
+            },
+            "put": {
+                "parameters": {
+                    "id": {
+                        "type": "integer"
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Person updated"
+                    }
+                },
+                "summary": "Update person"
+            }
+        },
+        "/api/v1/rbac/audit": {
+            "get": {
+                "parameters": {
+                    "limit": {
+                        "type": "integer"
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Audit entries"
+                    }
+                },
+                "summary": "RBAC audit log"
+            }
+        },
+        "/api/v1/rbac/grants": {
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Grant created"
+                    }
+                },
+                "summary": "Create permission grant"
+            }
+        },
+        "/api/v1/rbac/grants/active": {
+            "get": {
+                "parameters": {
+                    "principal": {
+                        "type": "string"
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Active grants"
+                    }
+                },
+                "summary": "List active grants"
+            }
+        },
+        "/api/v1/rbac/grants/cleanup": {
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Cleanup completed"
+                    }
+                },
+                "summary": "Cleanup expired grants"
+            }
+        },
+        "/api/v1/rbac/roles": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "List of roles"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                },
+                "summary": "List RBAC roles"
+            },
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Role created"
+                    }
+                },
+                "summary": "Create RBAC role"
+            }
+        },
+        "/api/v1/refresh": {
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "refreshToken": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Token refreshed"
+                    },
+                    "401": {
+                        "description": "Invalid token"
+                    }
+                },
+                "summary": "Refresh access token"
+            }
+        },
+        "/api/v1/reports": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Report list"
+                    }
+                },
+                "summary": "List reports"
+            }
+        },
+        "/api/v1/reports/jrxml/{name}": {
+            "get": {
+                "parameters": {
+                    "name": {
+                        "type": "string"
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "JRXML report"
+                    }
+                },
+                "summary": "Get JRXML report template"
+            }
+        },
+        "/api/v1/reports/metadata": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Report metadata"
+                    }
+                },
+                "summary": "Get report metadata"
+            }
+        },
+        "/api/v1/reports/templates": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Report templates"
+                    }
+                },
+                "summary": "List report templates"
+            }
+        },
+        "/api/v1/reports/{id}": {
+            "get": {
+                "parameters": {
+                    "id": {
+                        "type": "integer"
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Report"
+                    }
+                },
+                "summary": "Get report by ID"
+            }
+        },
+        "/api/v1/stock": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Stock overview"
+                    }
+                },
+                "summary": "Get stock overview"
+            }
+        },
+        "/api/v1/stock/goods/{gid}": {
+            "get": {
+                "parameters": {
+                    "gid": {
+                        "type": "integer"
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Stock by goods"
+                    }
+                },
+                "summary": "Get stock by goods ID"
+            }
+        },
+        "/api/v1/stock/summary": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Stock summary"
+                    }
+                },
+                "summary": "Get stock summary"
+            }
+        },
+        "/api/v1/stock/{gid}/locations/{lid}": {
+            "get": {
+                "parameters": {
+                    "gid": {
+                        "type": "integer"
+                    },
+                    "lid": {
+                        "type": "integer"
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Stock item"
+                    }
+                },
+                "summary": "Get stock by goods and location"
+            }
+        },
+        "/api/v1/taxes": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "List of taxes"
+                    }
+                },
+                "summary": "List taxes"
+            },
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Tax created"
+                    }
+                },
+                "summary": "Create tax"
+            }
+        },
+        "/api/v1/taxes/{id}": {
+            "delete": {
+                "parameters": {
+                    "id": {
+                        "type": "integer"
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Tax deleted"
+                    }
+                },
+                "summary": "Delete tax"
+            },
+            "get": {
+                "parameters": {
+                    "id": {
+                        "type": "integer"
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Tax"
+                    }
+                },
+                "summary": "Get tax by ID"
+            },
+            "put": {
+                "parameters": {
+                    "id": {
+                        "type": "integer"
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Tax updated"
+                    }
+                },
+                "summary": "Update tax"
+            }
+        },
+        "/api/v1/users": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "User list"
+                    }
+                },
+                "summary": "List users"
+            }
+        },
+        "/api/v1/vat/calculate": {
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "VAT calculation result"
+                    }
+                },
+                "summary": "Calculate VAT"
+            }
+        },
+        "/api/v1/vat/rates": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "VAT rates"
+                    }
+                },
+                "summary": "Get VAT rates"
+            }
+        }
+    },
+    "servers": [
+        {
+            "description": "Local server",
+            "url": "http://localhost:8080"
+        }
+    ]
+}
