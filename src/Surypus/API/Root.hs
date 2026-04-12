@@ -197,13 +197,26 @@ type JobsAPI =
            :<|> ReqBody '[JSON] JobRequest :> Post '[JSON] JobResponse
        )
 
-type HealthAPI = "health" :> Get '[JSON] HealthResponse
+type HealthAPI = "health" :> (Get '[JSON] HealthResponse :<|> "live" :> Get '[JSON] HealthLiveResponse :<|> "ready" :> Get '[JSON] HealthReadyResponse)
 
 type MetricsAPI = "metrics" :> Get '[JSON] MetricsResponse
 
 data HealthResponse = HealthResponse
   { status :: Text,
     checks :: Value
+  }
+  deriving (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON)
+
+data HealthLiveResponse = HealthLiveResponse
+  { liveStatus :: Text
+  }
+  deriving (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON)
+
+data HealthReadyResponse = HealthReadyResponse
+  { readyStatus :: Text,
+    readyDb :: Text
   }
   deriving (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)

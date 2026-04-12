@@ -132,7 +132,7 @@ server env =
           :<|> (rbacGrantsList env :<|> rbacGrantCreate env :<|> rbacActiveGrantsList env :<|> rbacGrantsCleanup env :<|> rbacGrantUpdate env :<|> rbacGrantDelete env)
           :<|> (rbacAuditList env :<|> rbacAuditCleanup env)
       jobsHandler = jobsList :<|> jobsPending :<|> jobsCreate
-      healthHandler = healthGet env
+      healthHandler = healthGet env :<|> healthLiveGet :<|> healthReadyGet env
       metricsHandler = metricsGet
    in authHandler :<|> (personsHandler :<|> goodsHandler :<|> locationsHandler :<|> billsHandler :<|> paymentsHandler :<|> ordersHandler :<|> taxesHandler :<|> vatHandler :<|> currenciesHandler :<|> stockHandler :<|> accountingHandler :<|> payrollHandler :<|> reportsHandler :<|> dashboardHandler :<|> usersHandler :<|> auditLogHandler :<|> rbacHandler :<|> jobsHandler :<|> healthHandler :<|> metricsHandler)
 
@@ -761,6 +761,18 @@ healthGet env = do
       overall = if dbOk then "ok" else "degraded"
   liftIO $ debugLogIf (not dbOk) $ "Health check: DB status=" <> dbStatus
   pure $ HealthResponse overall (object ["db" .= dbStatus])
+
+healthLiveGet :: Handler HealthLiveResponse
+healthLiveGet = pure $ HealthLiveResponse "ok"
+
+healthReadyGet :: Env -> Handler HealthReadyResponse
+healthReadyGet env = do
+  dbOk <- liftIO $ do
+    result <- try (pingDatabasePool (envPool env)) :: IO (Either SomeException Bool)
+    pure $ either (const False) id result
+  let dbStatus = if dbOk then "ok" else "failed"
+      overall = if dbOk then "ok" else "not_ready"
+  pure $ HealthReadyResponse overall dbStatus
 
 metricsGet :: Handler MetricsResponse
 metricsGet = pure $ MetricsResponse 0 0 0

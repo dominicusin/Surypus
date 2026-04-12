@@ -263,30 +263,24 @@ spec = do
 
     -- swagger_valid_openapi test consolidated into swagger_is_available path; duplicate removed
 
-    it "health_live_public" $ do
+    it "health_returns_200_with_db_status" $ do
       app <- mkTestApp
-      res <- runSession (srequest $ jsonlessRequest methodGet "/api/v1/health/live" []) app
+      res <- runSession (srequest $ jsonlessRequest methodGet "/api/v1/health" []) app
       let code = statusCode (simpleStatus res)
-      if code == 200 || code == 401 || code == 404
-        then return ()
-        else expectationFailure $ "health live returned status " ++ show code
-
-    it "health_ready_public" $ do
-      mbSkip <- lookupEnv "OPENPAPYRUS_SKIP_READY_HEALTH"
-      case mbSkip of
-        Just "1" -> return ()
-        _ -> do
-          app <- mkTestApp
-          res <- runSession (srequest $ jsonlessRequest methodGet "/api/v1/health/ready" []) app
-          let code = statusCode (simpleStatus res)
-          if code == 200 || code == 401 || code == 404
-            then return ()
-            else expectationFailure $ "health/ready endpoint returned status " ++ show code
+      code `shouldBe` 200
+      case decode (simpleBody res) :: Maybe Value of
+        Just (Object o) -> do
+          case KM.lookup (Key.fromString "status") o of
+            Just (String "ok") -> return ()
+            _ -> case KM.lookup (Key.fromString "checks") o of
+              Just (Object checks) -> return ()
+              _ -> expectationFailure $ "health missing status/checks: " ++ show (KM.keys o)
+        _ -> expectationFailure $ "health response is not a JSON object: " ++ L8.unpack (simpleBody res)
 
 mkTestApp :: IO Application
 mkTestApp = do
   let jwtCfg = jwtConfigFromSecret "test-secret"
-      publicPaths = ["/api/v1/login", "/api/v1/refresh", "/api/v1/health", "/api/v1/health/live", "/api/v1/health/ready", "/api/v1/metrics", "/swagger.json", "/ws"]
+      publicPaths = ["/api/v1/login", "/api/v1/refresh", "/api/v1/health", "/api/v1/metrics", "/swagger.json", "/ws"]
   rbacStore <- newRBACStore (\_ -> pure ())
   let servantApp = apiServer (error "pool not used") jwtCfg rbacStore
   pure $
