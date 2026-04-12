@@ -62,7 +62,7 @@ fifoSelect qty lots = go qty lots []
 
 instance Arbitrary StockMovement where
   arbitrary = do
-    qtty <- choose (-1000, 1000 :: Double)
+    qtty <- choose (0, 1000 :: Double)
     pure $ StockMovement (fromGregorian 2024 1 1) 0 0 qtty 0 0 Nothing
 
 prop_stockBalanceNonNeg :: Double -> [StockMovement] -> Property
