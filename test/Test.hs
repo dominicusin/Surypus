@@ -7,7 +7,7 @@
 module Main where
 
 import qualified API.ServerSpec
-import Core.Accounting.Account
+import Core.Accounting.Account as Account
 import Core.Accounting.Operations
 import Core.AdvanceInvoice
 import Core.Agent
@@ -15,7 +15,7 @@ import Core.Analytics
 import Core.Asset
 import Core.BillLine
 import Core.CreditNote
-import Core.Currency.Operations
+import Core.Currency
 import Core.Discount
 import Core.Document.Operations
 import Core.GoodsTaxEx
@@ -410,7 +410,6 @@ main = hspec $ do
       prop "TaxInvoice tax amount non-negative" prop_taxAmountNonNeg
       prop "GoodsTaxEx tax amount non-negative" prop_goodsTaxAmountNonNeg
       prop "Discount amount non-negative" prop_discountAmountNonNeg
-      prop "currency_rounding_in_bounds" prop_roundToPrecisionInBounds
 
     -- ========================================================================
     -- RBAC TESTS

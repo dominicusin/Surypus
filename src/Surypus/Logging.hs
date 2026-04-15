@@ -38,7 +38,7 @@ initLogger = do
 debugLog :: Text -> IO ()
 debugLog msg = do
   m <- lookupEnv "OPENPAPYRUS_DEBUG"
-  when (m == Just "1") $ putStrLn $ "[OPENPAPYRUS-DEBUG] " ++ T.unpack msg
+  when (m == Just "1") $ putStrLn ("[OPENPAPYRUS-DEBUG] " <> T.unpack msg)
 
 -- | Conditional debug log: only prints when OPENPAPYRUS_DEBUG=1 and condition is True.
 debugLogIf :: Bool -> Text -> IO ()

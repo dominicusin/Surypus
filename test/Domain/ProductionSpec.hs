@@ -1,11 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
+
 module Domain.ProductionSpec where
 
+import Data.Either (isLeft, isRight)
+import Data.Time (UTCTime (..), fromGregorian)
+import Domain.Production
 import Test.Hspec
 import Test.QuickCheck
-import Data.Either (isLeft, isRight)
-import Domain.Production
-import Data.Time (UTCTime(..), fromGregorian)
 
 spec :: Spec
 spec = do
@@ -23,11 +24,12 @@ spec = do
       validateWorkOrder base `shouldSatisfy` isRight
 
   describe "WorkOrder properties" $ do
-    it "released never exceed planned" $ property $ 
-      (Positive plan) (NonNegative released) ->
-        released <= plan `implies` \
-          let candidate = WorkOrder 1 "PROP" 1 1 plan released WO_Released (UTCTime (fromGregorian 2026 2 1) 0) Nothing Nothing
-           in validateWorkOrder candidate `shouldSatisfy` isRight
+    it "released never exceed planned" $
+      property $
+        \(Positive plan) (NonNegative released) ->
+          released <= plan
+            `implies` let candidate = WorkOrder 1 "PROP" 1 1 plan released WO_Released (UTCTime (fromGregorian 2026 2 1) 0) Nothing Nothing
+                       in validateWorkOrder candidate `shouldSatisfy` isRight
 
 implies :: Bool -> Bool -> Bool
 implies a b = not a || b

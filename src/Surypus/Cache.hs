@@ -35,7 +35,7 @@ import Data.Text (Text)
 --
 -- Contains an IORef to a Map for storing key-value pairs.
 -- The cache is thread-safe for read/write operations.
-data Cache = Cache
+newtype Cache = Cache
   { cacheRef :: IORef (M.Map Text Text)
   }
 

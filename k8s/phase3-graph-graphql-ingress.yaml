@@ -1,0 +1,16 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: surypus-graphql-ingress
+spec:
+  rules:
+  - host: surypus-graphql.local
+    http:
+      paths:
+      - path: /graphql
+        pathType: Prefix
+        backend:
+          service:
+            name: surypus-graphql
+            port:
+              number: 80

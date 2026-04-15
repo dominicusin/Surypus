@@ -1,0 +1,38 @@
+cabal-version: 3.0
+name:               surypus-frontend
+version:            0.1.0.0
+synopsis:           Reflex Frontend for Surypus ERP
+description:         FRP Frontend using Reflex and GHCJS
+license:             AGPL-3.0-only
+author:              dominicusin
+maintainer:          dev@surypus.com
+copyright:           2024 Surypus
+category:            Web
+
+executable surypus-web
+  main-is:             Main.hs
+  other-modules:
+    Surypus.Frontend.Pages.Bills
+    Surypus.Frontend.Pages.Payments
+    Surypus.Frontend.Pages.Dashboard
+    Surypus.Frontend.Pages.Stock
+    Surypus.Frontend.Components.Table
+    Surypus.Frontend.Components.Navigation
+    Surypus.Frontend.API.Client
+  build-depends:
+    base >= 4.16 && < 4.18,
+    surypus-common,
+    reflex >= 0.6,
+    reflex-dom >= 0.6,
+    text,
+    aeson,
+    bytestring,
+    time,
+    containers
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+  ghc-options:         -O2
+  default-extensions:
+    OverloadedStrings
+    RecursiveDo
+    CPP

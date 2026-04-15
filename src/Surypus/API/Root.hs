@@ -5,20 +5,96 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE UndecidableInstances #-}
 
-module Surypus.API.Root where
+module Surypus.API.Root
+  ( LoginRequest (..),
+    LoginResponse (..),
+    LogoutResponse (..),
+    RefreshRequest (..),
+    RefreshResponse (..),
+    CurrentUserResponse (..),
+    RoleCreateRequest (..),
+    RoleInfoResponse (..),
+    GrantsListResponse (..),
+    GrantCreateRequest (..),
+    GrantUpdateRequest (..),
+    GrantInfoResponse (..),
+    AuditListResponse (..),
+    CleanupResponse (..),
+    HealthResponse (..),
+    HealthLiveResponse (..),
+    HealthReadyResponse (..),
+    MetricsResponse (..),
+    RolesListResponse (..),
+    JobRequest (..),
+    JobResponse (..),
+    JobsPendingResponse (..),
+    UsersResponse (..),
+    AuditLogListResponse (..),
+    JobsResponse (..),
+    ReportResponse (..),
+    ReportJRXMLResponse (..),
+    DashboardResponse (..),
+    ReportsResponse (..),
+    ReportsMetadataResponse (..),
+    EmployeeResponse (..),
+    SalaryResponse (..),
+    SalariesResponse (..),
+    AccEntryResponse (..),
+    PayrollResponse (..),
+    EmployeesResponse (..),
+    AccEntryRequest (..),
+    AccEntriesResponse (..),
+    AccPlanRequest (..),
+    AccPlanResponse (..),
+    AccountsResponse (..),
+    StockResponse (..),
+    StockItemResponse (..),
+    CurrencyResponse (..),
+    CurrenciesResponse (..),
+    CurrencyRequest (..),
+    PersonRequest (..),
+    PersonsResponse (..),
+    PersonResponse (..),
+    GoodRequest (..),
+    GoodsResponse (..),
+    GoodResponse (..),
+    LocationRequest (..),
+    LocationsResponse (..),
+    LocationResponse (..),
+    BillRequest (..),
+    BillsResponse (..),
+    BillResponse (..),
+    PaymentRequest (..),
+    PaymentsResponse (..),
+    PaymentResponse (..),
+    OrderRequest (..),
+    OrdersResponse (..),
+    OrderResponse (..),
+    TaxResponse (..),
+    TaxesResponse (..),
+    TaxRequest (..),
+    VATCalcRequest (..),
+    VATCalcResponse (..),
+    APIv1,
+    ProtectedAPI,
+    API,
+    APIWithDoc,
+    apiSwagger,
+  )
+where
 
 import DAL.Types (AuditLog)
-import Data.Aeson (FromJSON, ToJSON, Value)
+import Data.Aeson (FromJSON, ToJSON, Value, object, (.=))
 import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Time (Day)
 import GHC.Generics (Generic)
 import Servant
-import Surypus.API.OpenApi (apiSwaggerSpec)
+import Surypus.API.Balance (BalanceAPI)
 import Surypus.API.Types
-  ( ApiRole (..),
-    LoginRequest (..),
+  ( LoginRequest (..),
     LoginResponse (..),
     UserResponse (..),
   )
@@ -26,21 +102,26 @@ import Surypus.RBAC (AuditEntry)
 
 type APIv1 = "v1" :> (AuthAPI :<|> ProtectedAPI)
 
-type ProtectedAPI = PersonsAPI :<|> GoodsAPI :<|> LocationsAPI :<|> BillsAPI :<|> PaymentsAPI :<|> OrdersAPI :<|> TaxesAPI :<|> VATAPI :<|> CurrenciesAPI :<|> StockAPI :<|> AccountingAPI :<|> PayrollAPI :<|> ReportsAPI :<|> DashboardAPI :<|> UsersAPI :<|> AuditLogAPI :<|> RbacAPI :<|> JobsAPI :<|> HealthAPI :<|> MetricsAPI
+type API = APIv1
+
+type ProtectedAPI = PersonsAPI :<|> GoodsAPI :<|> LocationsAPI :<|> BillsAPI :<|> PaymentsAPI :<|> OrdersAPI :<|> TaxesAPI :<|> VATAPI :<|> CurrenciesAPI :<|> StockAPI :<|> AccountingAPI :<|> PayrollAPI :<|> ReportsAPI :<|> DashboardAPI :<|> BalanceAPI :<|> UsersAPI :<|> AuditLogAPI :<|> RbacAPI :<|> JobsAPI :<|> HealthAPI :<|> MetricsAPI
 
 -- | Full API with Swagger documentation
 type APIWithDoc = "api" :> APIv1 :<|> "swagger.json" :> Get '[JSON] Value
 
 apiSwagger :: Value
-apiSwagger = apiSwaggerSpec
+apiSwagger =
+  object
+    [ "openapi" .= ("3.0.0" :: Text),
+      "info" .= object ["title" .= ("Surypus API" :: Text), "version" .= ("1.0.0" :: Text)],
+      "paths" .= object []
+    ]
 
 type AuthAPI =
   "login" :> ReqBody '[JSON] LoginRequest :> Post '[JSON] LoginResponse
     :<|> "logout" :> Post '[JSON] LogoutResponse
     :<|> "refresh" :> ReqBody '[JSON] RefreshRequest :> Post '[JSON] RefreshResponse
     :<|> "me" :> Get '[JSON] CurrentUserResponse
-
-type RolesAPI = "roles" :> Get '[JSON] [ApiRole]
 
 type PersonsAPI =
   "persons"
@@ -328,7 +409,8 @@ data RefreshRequest = RefreshRequest
 
 data RefreshResponse = RefreshResponse
   { accessToken :: Text,
-    refreshToken :: Text
+    refreshToken :: Text,
+    expiresIn :: Int
   }
   deriving (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
@@ -725,8 +807,3 @@ data JobsPendingResponse = JobsPendingResponse
   }
   deriving (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
-
-api :: Proxy API
-api = Proxy
-
-type API = "api" :> APIv1

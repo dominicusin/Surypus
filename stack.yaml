@@ -4,6 +4,7 @@ resolver: nightly-2026-04-05
 packages:
   - surypus-common
   - surypus-api-shim
+  - surypus-api-core
   - .
 
 ghc-options:

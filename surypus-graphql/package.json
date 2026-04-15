@@ -1,0 +1,14 @@
+{
+  "name": "surypus-graphql",
+  "version": "1.0.0",
+  "description": "GraphQL proxy over REST API for SURYPUS MVP (Phase 3)",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "axios": "^0.27.2",
+    "apollo-server": "^3.11.0",
+    "graphql": "^16.6.0"
+  }
+}

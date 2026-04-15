@@ -15,7 +15,67 @@
 -- * Output types: @EntityName@ (e.g., 'Person')
 -- * Filter types: @EntityNameFilter@ (e.g., 'PersonFilter')
 -- * Sort types: @EntityNameSortBy@ (e.g., 'PersonSortBy')
-module DAL.Types where
+module DAL.Types
+  ( Decimal (..),
+    PersonInput (..),
+    UserInput (..),
+    GoodsInput (..),
+    LocationInput (..),
+    Person (..),
+    Goods (..),
+    Bill (..),
+    BillLine (..),
+    Unit (..),
+    Location (..),
+    Stock (..),
+    AccPlan (..),
+    AccTurn (..),
+    User (..),
+    Order (..),
+    GoodsPrice (..),
+    Payment (..),
+    PaymentInput (..),
+    Salary (..),
+    Employee (..),
+    ReportTemplate (..),
+    Job (..),
+    Tax (..),
+    Currency (..),
+    DashboardStats (..),
+    QueryResult (..),
+    Pagination (..),
+    PaginatedResult (..),
+    PersonFilter (..),
+    GoodsFilter (..),
+    BillFilter (..),
+    OrderFilter (..),
+    SortDir (..),
+    PersonSortBy (..),
+    GoodsSortBy (..),
+    BillSortBy (..),
+    OrderSortBy (..),
+    MutationResult (..),
+    BillInput (..),
+    OrderInput (..),
+    BillLineInput (..),
+    PriceInput (..),
+    TaxInput (..),
+    CurrencyInput (..),
+    AccPlanInput (..),
+    AccTurnInput (..),
+    EntityType (..),
+    Permission (..),
+    Role (..),
+    UserWithRole (..),
+    AuditAction (..),
+    AuditLog (..),
+    EmployeeInput (..),
+    ReportTemplateInput (..),
+    OrderLineInput (..),
+    StockAdjustInput (..),
+    JobInput (..),
+  )
+where
 
 import Data.Aeson (FromJSON, ToJSON, object, toJSON, (.=))
 import Data.Int (Int16, Int64)
@@ -363,8 +423,8 @@ data Pagination = Pagination
 
 instance FromJSON Pagination
 
-defaultPagination :: Pagination
-defaultPagination = Pagination 50 0
+-- defaultPagination :: Pagination
+-- defaultPagination = Pagination 50 0
 
 -- | Paginated result type
 data PaginatedResult a = PaginatedResult
@@ -395,8 +455,8 @@ data PersonFilter = PersonFilter
 
 instance FromJSON PersonFilter
 
-defaultPersonFilter :: PersonFilter
-defaultPersonFilter = PersonFilter Nothing Nothing Nothing Nothing
+-- defaultPersonFilter :: PersonFilter
+-- defaultPersonFilter = PersonFilter Nothing Nothing Nothing Nothing
 
 -- | Goods filter
 data GoodsFilter = GoodsFilter
@@ -408,8 +468,8 @@ data GoodsFilter = GoodsFilter
 
 instance FromJSON GoodsFilter
 
-defaultGoodsFilter :: GoodsFilter
-defaultGoodsFilter = GoodsFilter Nothing Nothing Nothing
+-- defaultGoodsFilter :: GoodsFilter
+-- defaultGoodsFilter = GoodsFilter Nothing Nothing Nothing
 
 -- | Bill filter
 data BillFilter = BillFilter
@@ -423,8 +483,8 @@ data BillFilter = BillFilter
 
 instance FromJSON BillFilter
 
-defaultBillFilter :: BillFilter
-defaultBillFilter = BillFilter Nothing Nothing Nothing Nothing Nothing
+-- defaultBillFilter :: BillFilter
+-- defaultBillFilter = BillFilter Nothing Nothing Nothing Nothing Nothing
 
 -- | Order filter
 data OrderFilter = OrderFilter
@@ -437,8 +497,8 @@ data OrderFilter = OrderFilter
 
 instance FromJSON OrderFilter
 
-defaultOrderFilter :: OrderFilter
-defaultOrderFilter = OrderFilter Nothing Nothing Nothing Nothing
+-- defaultOrderFilter :: OrderFilter
+-- defaultOrderFilter = OrderFilter Nothing Nothing Nothing Nothing
 
 -- | Sort direction
 data SortDir = Asc | Desc

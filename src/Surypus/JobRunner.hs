@@ -91,7 +91,7 @@ processJobs queue = forever $ do
   job <- atomically $ readTQueue queue
   result <- processJob job
   -- Store result or notify
-  putStrLn $ ("Job completed: " <> show result)
+  putStrLn $ "Job completed: " <> show result
 
 -- | Start background job worker
 --

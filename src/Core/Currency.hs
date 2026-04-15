@@ -66,8 +66,8 @@ roundToCurrency cur amount =
   let factor :: Integer
       factor = 10 ^ curPrecision cur
       amountR = toRational amount
-      scaled = amountR * (toRational factor)
-      roundedInt = (round scaled) :: Integer
+      scaled = amountR * toRational factor
+      roundedInt = round scaled :: Integer
       out = fromRational (roundedInt % factor)
    in out
 

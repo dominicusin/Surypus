@@ -31,7 +31,7 @@ import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
 import Hasql.Statement (Statement (..))
-import Surypus.Types (Decimal, fromDecimal)
+import Surypus.Types (fromDecimal)
 
 -- | Helper to create non-prepared statements (old hasql API compatibility)
 unpreparable :: T.Text -> E.Params params -> D.Result result -> Statement params result

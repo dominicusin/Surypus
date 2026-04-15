@@ -53,6 +53,8 @@ data JWTPayload = JWTPayload
     jwtUsername :: Text,
     -- | User role for authorization
     jwtRole :: Text,
+    -- | Tenant ID for multi-tenant isolation (CRITICAL for security)
+    jwtTenantId :: Maybe Int,
     -- | Expiration timestamp (epoch seconds)
     jwtExp :: Int
   }
@@ -116,12 +118,13 @@ jwtConfigFromSecret :: Text -> JWTConfig
 jwtConfigFromSecret secret = JWTConfig secret 1800 1209600
 
 -- | Generate access and refresh token pair
-generateTokenPair :: JWTConfig -> Int -> Text -> Text -> IO TokenPair
-generateTokenPair cfg userId username role = do
+-- | Includes tenant_id for multi-tenant security
+generateTokenPair :: JWTConfig -> Int -> Text -> Text -> Maybe Int -> IO TokenPair
+generateTokenPair cfg userId username role mTenantId = do
   currentEpoch <- getCurrentEpoch
   let expEpoch = currentEpoch + jwtExpiry cfg
       refreshEpoch = currentEpoch + jwtRefreshExpiry cfg
-      accessPayload = JWTPayload userId username role expEpoch
+      accessPayload = JWTPayload userId username role mTenantId expEpoch
       refreshPayload = RefreshTokenPayload userId (T.pack $ show expEpoch) refreshEpoch
       accessTokenBS = encode accessPayload
       refreshTokenBS = encode refreshPayload

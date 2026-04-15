@@ -27,6 +27,7 @@ import Data.Time (addUTCTime, getCurrentTime)
 import Hasql.Pool (Pool)
 import Network.Wai.Handler.Warp (run)
 import Servant hiding (err403)
+import Surypus.API.Balance
 import Surypus.API.Bills
 import Surypus.API.Currency
 import Surypus.API.Goods
@@ -35,7 +36,6 @@ import Surypus.API.Order
 import Surypus.API.Payment
 import Surypus.API.Persons
 import Surypus.API.Root
-import Surypus.API.Types
 import Surypus.Database.Pool (pingDatabasePool)
 import Surypus.JWT (JWTConfig (..), TokenPair (accessToken, refreshToken), generateTokenPair, rtUserId, validateRefreshToken)
 import Surypus.Logging (debugLog, debugLogIf)
@@ -125,6 +125,8 @@ server env =
           :<|> salaryGet
       reportsHandler = reportsList :<|> reportsMeta :<|> reportsTemplates :<|> reportGet :<|> reportJrxml
       dashboardHandler = dashboardGet
+      -- Balance REST endpoint (Phase 3)
+      balanceRESTServer = balanceHandler
       usersHandler = usersList
       auditLogHandler = auditLogList env
       rbacHandler =
@@ -134,7 +136,7 @@ server env =
       jobsHandler = jobsList :<|> jobsPending :<|> jobsCreate
       healthHandler = healthGet env :<|> healthLiveGet :<|> healthReadyGet env
       metricsHandler = metricsGet
-   in authHandler :<|> (personsHandler :<|> goodsHandler :<|> locationsHandler :<|> billsHandler :<|> paymentsHandler :<|> ordersHandler :<|> taxesHandler :<|> vatHandler :<|> currenciesHandler :<|> stockHandler :<|> accountingHandler :<|> payrollHandler :<|> reportsHandler :<|> dashboardHandler :<|> usersHandler :<|> auditLogHandler :<|> rbacHandler :<|> jobsHandler :<|> healthHandler :<|> metricsHandler)
+   in authHandler :<|> (personsHandler :<|> goodsHandler :<|> locationsHandler :<|> billsHandler :<|> paymentsHandler :<|> ordersHandler :<|> taxesHandler :<|> vatHandler :<|> currenciesHandler :<|> stockHandler :<|> accountingHandler :<|> payrollHandler :<|> reportsHandler :<|> dashboardHandler :<|> balanceRESTServer :<|> usersHandler :<|> auditLogHandler :<|> rbacHandler :<|> jobsHandler :<|> healthHandler :<|> metricsHandler)
 
 authLogin :: Env -> LoginRequest -> Handler LoginResponse
 authLogin env req = do
@@ -143,11 +145,13 @@ authLogin env req = do
   liftIO $ debugLogIf (pwd /= "admin123" && pwd /= "demo") $ "Login failed for user: " <> user
   if pwd == "admin123" || pwd == "demo"
     then do
-      tokenResult <- liftIO $ generateTokenPair (envJWTConfig env) 1 user "admin"
+      -- TODO: Fetch tenant_id from user database
+      let tenantId = Just 1
+      tokenResult <- liftIO $ generateTokenPair (envJWTConfig env) 1 user "admin" tenantId
       let tp = tokenResult
       liftIO $ persistRefreshTokenBestEffort env 1 (Surypus.JWT.refreshToken tp)
       liftIO $ debugLog $ "Login succeeded for user: " <> user
-      pure LoginResponse {accessToken = Surypus.JWT.accessToken tp, refreshToken = Surypus.JWT.refreshToken tp, userId = 1, userName = user, role = "admin"}
+      pure LoginResponse {accessToken = Surypus.JWT.accessToken tp, refreshToken = Surypus.JWT.refreshToken tp, expiresIn = 3600, userId = 1, userName = user, role = "admin"}
     else throwError err401 {errBody = "Invalid credentials"}
 
 logoutHandler' :: Handler LogoutResponse
@@ -163,14 +167,16 @@ refreshHandler' env jwtCfg (RefreshRequest {refreshToken = token}) = do
     Left _err -> throwError err401 {errBody = "Invalid refresh token"}
     Right payload -> do
       let jwtUserId = rtUserId payload
-      newTokens <- liftIO $ generateTokenPair jwtCfg jwtUserId "user" "user"
+      -- TODO: Fetch tenant_id from user database using jwtUserId
+      let mTenantId = Just 1
+      newTokens <- liftIO $ generateTokenPair jwtCfg jwtUserId "user" "user" mTenantId
       rotation <- liftIO $ rotateRefreshTokenBestEffort env token (Surypus.JWT.refreshToken newTokens)
       case rotation of
         Just (Left _err) -> throwError err401 {errBody = "Invalid refresh token"}
         Just (Right storedUserId)
           | storedUserId /= fromIntegral jwtUserId -> throwError err401 {errBody = "Invalid refresh token"}
         _ -> pure ()
-      pure $ RefreshResponse (Surypus.JWT.accessToken newTokens) (Surypus.JWT.refreshToken newTokens)
+      pure $ RefreshResponse (Surypus.JWT.accessToken newTokens) (Surypus.JWT.refreshToken newTokens) 3600
 
 persistRefreshTokenBestEffort :: Env -> Int64 -> Text -> IO ()
 persistRefreshTokenBestEffort env usrId token = do

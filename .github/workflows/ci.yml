@@ -35,6 +35,15 @@ jobs:
             sleep 2
           done
 
+      - name: Start API (Docker)
+        run: |
+          docker compose up -d api
+          echo "Waiting for API to be ready..."
+          for i in {1..60}; do
+            if curl -s http://localhost:8080/api/v1/health/live >/dev/null 2>&1; then echo 'API live'; break; fi
+            sleep 2
+          done
+
       - name: Build
         run: |
           stack build --fast
@@ -42,7 +51,45 @@ jobs:
       - name: Run Tests
         run: |
           stack test
+          # Run APICrud MakeTest module to ensure unified environment
+          stack test test/Integration/APICrudSpec.MakeTest.hs
 
       - name: Teardown
         if: always()
         run: docker compose down --remove-orphans
+
+  rbac-tests:
+    name: RBAC HTTP tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: surypus
+          POSTGRES_PASSWORD: surypus
+          POSTGRES_DB: surypus
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v3
+      - uses: haskell/setup-haskell@v2
+      - name: Wait for DB
+        run: |
+          for i in {1..60}; do
+            pg_isready -h localhost -U surypus -d surypus && break || true
+            sleep 2
+          done
+      - name: Run RBAC tests
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USER: surypus
+          DB_PASSWORD: surypus
+          DB_NAME: surypus
+        run: |
+          OPENPAPYRUS_SKIP_RBAC_TESTS=0 stack test test/API/RBACSpec.hs

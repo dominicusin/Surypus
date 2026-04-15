@@ -1,0 +1,59 @@
+cabal-version: 3.0
+name:                surypus-common
+version:             0.1.0.0
+synopsis:            Shared types and API definitions for Surypus ERP
+description:         Core types, Servant API definitions, and codecs shared between backend and frontend
+license:             AGPL-3.0-only
+author:              dominicusin
+maintainer:          dev@surypus.com
+copyright:           2024 Surypus
+category:            Web
+
+library
+  exposed-modules:
+    Surypus.Types
+    Surypus.Api
+    Surypus.Codecs
+    Surypus.Types.Auth
+    Surypus.Types.Bill
+    Surypus.Types.Common
+    Surypus.Types.Goods
+    Surypus.Types.Legacy
+    Surypus.Types.Payment
+    Surypus.Types.Person
+    Surypus.Types.Stock
+  build-depends:
+    base >= 4.16 && < 4.18,
+    aeson >= 2.1,
+    text >= 2.0,
+    time >= 1.11,
+    containers >= 0.6,
+    servant >= 0.20,
+    servant-server >= 0.20,
+    servant-client >= 0.20,
+    bytestring >= 0.11,
+    unordered-containers >= 0.2,
+    uuid >= 1.3,
+    deriving-aeson >= 0.2
+  hs-source-dirs:      src
+  default-language:  Haskell2010
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Widentities
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -Wmissing-export-lists
+    -Wmissing-home-modules
+    -Wpartial-fields
+    -Wredundant-constraints
+    -fhide-source-paths
+
+test-suite surypus-common-test
+  type:                exitcode-stdio-1.0
+  main-is:             Test.hs
+  hs-source-dirs:      test
+  build-depends:
+    base >= 4.16 && < 4.18,
+    surypus-common
+  default-language:    Haskell2010

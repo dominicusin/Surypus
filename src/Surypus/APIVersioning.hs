@@ -55,10 +55,11 @@ supportedAPIVersions =
 
 latestAPIVersion :: APIVersion
 latestAPIVersion =
-  case ([ v | v <- supportedAPIVersions, apiStatus v == VersionCurrent
-    ]) of
-  x : _ -> x
-  [] -> error _
+  case ( [ v | v <- supportedAPIVersions, apiStatus v == VersionCurrent
+         ]
+       ) of
+    x : _ -> x
+    [] -> error _
 
 data APIVersionConfig = APIVersionConfig
   { avcDefaultVersion :: Text,
@@ -99,8 +100,9 @@ addVersionHeaders version =
       headersWithDeprecation =
         case status of
           VersionDeprecated ->
-            headers <> [ ("Deprecation", "true"),
-                   ("Link", T.encodeUtf8 $ "<https://api.example.com/v2/docs>; rel=\"successor-version\"")
+            headers
+              <> [ ("Deprecation", "true"),
+                   ("Link", T.encodeUtf8 "<https://api.example.com/v2/docs>; rel=\"successor-version\"")
                  ]
           _ -> headers
    in Wai.mapResponseHeaders (headersWithDeprecation ++)

@@ -47,6 +47,7 @@ data LoginRequest = LoginRequest
 data LoginResponse = LoginResponse
   { accessToken :: Text,
     refreshToken :: Text,
+    expiresIn :: Int,
     userId :: Int64,
     userName :: Text,
     role :: Text

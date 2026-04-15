@@ -1,0 +1,25 @@
+name: SURYPUS Phase 3
+on:
+  push:
+    branches: [ main, phase3 ]
+  pull_request:
+    branches: [ main, phase3 ]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - name: Set up Docker Buildx
+        uses: docker/setup-qemu-action@v3
+      - name: Build GraphQL proxy image
+        run: |
+          docker build -t surypus-graphql:latest ./surypus-graphql
+      - name: Build API image
+        run: |
+          docker build -t surypus-api:latest .
+      - name: Run migrations and tests (placeholder)
+        run: |
+          echo "Migrations and tests would run here"

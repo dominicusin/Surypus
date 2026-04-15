@@ -1,0 +1,6 @@
+List,Card,Description
+Backlog,Phase 2: Accounts CRUD,"Create, read, update, delete accounts with RBAC and ACID" 
+Backlog,Phase 2: JournalEntry CRUD,"CRUD for journal entries; update balances in read models" 
+Backlog,Phase 3: Accounts ES,"Add accounting_events and replay for accounts (audit)" 
+Backlog,Phase 3: Read Models & CQRS,"Implement account_balances and ledger_projection; caching" 
+Backlog,Phase 3: GraphQL Proxy,"Set up GraphQL proxy service for Phase 3" 

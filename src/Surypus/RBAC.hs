@@ -35,6 +35,7 @@ where
 
 import Data.Aeson (FromJSON, ToJSON)
 import Data.List (find)
+import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Time (UTCTime, getCurrentTime)
@@ -534,6 +535,4 @@ logAccessDecision principal role perm mRes allowed = do
       }
 
 roleFromText :: Text -> Role
-roleFromText t = case textToRole t of
-  Just r -> r
-  Nothing -> RoleViewer
+roleFromText t = fromMaybe RoleViewer (textToRole t)

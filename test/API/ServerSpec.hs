@@ -326,7 +326,7 @@ jsonRequest method path headers body =
 bearerHeaderFor :: Int -> Text -> Text -> IO Header
 bearerHeaderFor userId username role = do
   let jwtCfg = jwtConfigFromSecret "test-secret"
-  tokenPair <- generateTokenPair jwtCfg userId username role
+  tokenPair <- generateTokenPair jwtCfg userId username role (Just 1)
   pure ("Authorization", TE.encodeUtf8 ("Bearer " <> accessToken tokenPair))
 
 extractJsonStringField :: String -> L8.ByteString -> String

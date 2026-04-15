@@ -1,5 +1,4 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
@@ -22,7 +21,7 @@ import DAL.Types (Pagination (..))
 import Data.Text (Text)
 import qualified Data.Text as T
 
-data AppError = AppError Text deriving (Show, Eq)
+newtype AppError = AppError Text deriving (Show, Eq)
 
 data RepositoryError
   = NotFound Text
