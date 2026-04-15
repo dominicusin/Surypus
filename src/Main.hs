@@ -20,13 +20,15 @@ import DB.Connection
     initSchema,
     withPool,
   )
+import Data.Char (toLower)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Hasql.Pool (Pool)
 import Surypus.API.Server (startServantServer)
-import Surypus.JWT (defaultJWTConfig)
-import Surypus.RBAC.Store (mkRBACStore)
-import System.Environment (getArgs)
+import Surypus.APIShim.Server (startServantServerShim)
+import Surypus.JWT (jwtConfigFromSecret)
+import Surypus.RBAC.Store (newRBACStore)
+import System.Environment (getArgs, lookupEnv)
 import System.IO (hPutStrLn, stderr)
 
 main :: IO ()
@@ -44,9 +46,13 @@ main = do
       Just cmd -> runServiceMode pool cmd
       Nothing -> do
         putStrLn "Starting Servant API server..."
-        jwtCfg <- defaultJWTConfig
-        rbacStore <- mkRBACStore pool
-        startServantServer 3000 pool jwtCfg rbacStore
+        let jwtCfg = jwtConfigFromSecret "surypus-jwt-secret"
+        rbacStore <- newRBACStore $ \_ -> pure ()
+        useShim <- lookupEnv "USE_API_SHIM"
+        let useShimFlag = maybe False (\s -> map toLower s `elem` ["true", "1", "yes"]) useShim
+        if useShimFlag
+          then startServantServerShim 3000 pool jwtCfg rbacStore
+          else startServantServer 3000 pool jwtCfg rbacStore
 
 runServiceMode :: Pool -> ServiceCommand -> IO ()
 runServiceMode _ CmdHelp = putStrLn (T.unpack serviceCommandHelp)
@@ -57,8 +63,8 @@ runServiceMode pool cmd = case transition initialServiceState cmd of
     case cmd of
       CmdRun -> do
         putStrLn "Starting API server..."
-        jwtCfg <- defaultJWTConfig
-        rbacStore <- mkRBACStore pool
+        let jwtCfg = jwtConfigFromSecret "surypus-jwt-secret"
+        rbacStore <- newRBACStore $ \_ -> pure ()
         startServantServer 3000 pool jwtCfg rbacStore
       CmdInstall login pw -> do
         putStrLn $ "Installing service (login=" <> show login <> ", password=" <> show pw <> ")"
