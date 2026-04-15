@@ -40,7 +40,11 @@ withAuthAndPermission :: JWTConfig -> [Text] -> Permission -> Middleware
 withAuthAndPermission jwtCfg publicPaths requiredPerm app req respond
   | isPublicPath = app req respond
   | otherwise = do
-      debugLog $ T.pack $ "Auth check: path=" ++ show (pathInfo req) ++ ", method=" ++ show (Wai.requestMethod req)
+      debugLog $
+        (T.pack "Auth check: path=")
+          <> T.pack (show (pathInfo req))
+          <> T.pack ", method="
+          <> T.pack (show (Wai.requestMethod req))
       let authResult = validateJWT jwtCfg req
       case authResult of
         Left err -> respond $ unauthorizedResponse (T.pack err)

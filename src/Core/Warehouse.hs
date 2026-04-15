@@ -40,7 +40,7 @@ data StockMovement = StockMovement
 calcStockBalance :: Double -> [StockMovement] -> Double
 calcStockBalance initial movements =
   let s = initial + sum (fmap smQtty movements)
-   in if s < 0 then 0 else s
+   in max s 0
 
 -- | Check stock availability
 checkStockAvailable :: Lot -> Double -> Bool
