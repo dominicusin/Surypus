@@ -2,6 +2,44 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.0.0] - 2026-04-17
+
+### Added
+- **Stability Phase**: Major refactoring toward production-ready architecture
+- **Real OpenAPI**: Auto-generated Swagger documentation at `/swagger.json`
+- **RBAC In-Memory**: Role-based access control with in-memory authorization
+- **JWT Refresh Tokens**: Token refresh endpoint `/auth/refresh`
+- **Service Layer Refactoring**: Domain-driven service functions (Core.Services.*)
+- **API Conventions**: Standardized response format `{status, data, error}`
+- **Property-Based Testing**: QuickCheck for domain invariants
+- **Database Migrations**: Flyway-style migrations V001-V010 in `config/migrations/`
+
+### Changed
+- API response format: all endpoints return `{status, data, error}`
+- Error handling: proper HTTP status codes (400/401/403/404/409/500)
+- Pagination: `limit`, `offset`, `total` query parameters
+- Field naming: camelCase with domain prefixes (bill*, person*, sr*)
+
+### Modules
+- Core.Services (Tax, Goods, Person, Accounting, Inventory)
+- Core.API (Handlers, Middleware, Types)
+- DAL.Repository (Person, Goods, Bill, Stock)
+- Surypus.RBAC
+- Surypus.JWT
+- Surypus.OpenAPI
+
+### Database Tables
+- New: roles, permissions, user_roles, role_permissions
+- New: job_types, job_payloads
+
+### API Endpoints
+- Auth: login, logout, me, refresh
+- RBAC: GET /roles, GET /permissions
+- Jobs: GET /jobs, POST /jobs, GET /jobs/:id
+- OpenAPI: GET /swagger.json, GET /api-docs
+
+---
+
 ## [0.1.0.0] - 2026-03-11
 
 ### Added

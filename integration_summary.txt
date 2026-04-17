@@ -1,0 +1,1 @@
+Integration of SQL stored procedures with Haskell DAL completed.

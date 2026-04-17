@@ -58,7 +58,7 @@ spec = do
       statusCode (simpleStatus res) `shouldBe` 403
 
     it "protected_read_endpoints_admin_user" $ do
-      mbSkip <- lookupEnv "OPENPAPYRUS_SKIP_RBAC_TESTS"
+      mbSkip <- lookupEnv "SURYPUS_SKIP_RBAC_TESTS"
       case mbSkip of
         Just "1" -> return ()
         _ -> do
@@ -97,7 +97,7 @@ spec = do
       statusCode (simpleStatus res) `shouldBe` 403
 
     it "protected_write_endpoints_admin_jwt" $ do
-      mbSkip <- lookupEnv "OPENPAPYRUS_SKIP_RBAC_TESTS"
+      mbSkip <- lookupEnv "SURYPUS_SKIP_RBAC_TESTS"
       case mbSkip of
         Just "1" -> return ()
         _ -> do
@@ -132,7 +132,7 @@ spec = do
       L8.unpack (simpleBody refreshRes) `shouldContain` "accessToken"
 
     it "admin can create and list dynamic roles" $ do
-      mbSkip <- lookupEnv "OPENPAPYRUS_SKIP_RBAC_TESTS"
+      mbSkip <- lookupEnv "SURYPUS_SKIP_RBAC_TESTS"
       case mbSkip of
         Just "1" -> return ()
         _ -> do

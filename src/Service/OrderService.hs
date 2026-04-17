@@ -1,4 +1,3 @@
-
 -- | Order management service.
 --
 -- Provides access to order operations through the database connection pool.

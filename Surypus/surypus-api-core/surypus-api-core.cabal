@@ -1,4 +1,4 @@
-cabal-version: 3.2
+cabal-version: 2.0
 name: surypus-api-core
 version: 0.1.0.0
 synopsis: Core API surface for Surypus API (partial migration)

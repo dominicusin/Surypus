@@ -2,28 +2,28 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 
-{-|
-Module      : Core.Document.Types
-Description : Domain types for document registers, counters and validation invariants
--}
+-- |
+-- Module      : Core.Document.Types
+-- Description : Domain types for document registers, counters and validation invariants
 module Core.Document.Types
-  ( DocumentRegister(..)
-  , DocumentRegisterType(..)
-  , DocumentRegisterFlag(..)
-  , DocumentOpCounter(..)
-  , DocumentRegisterStatus(..)
-  , validateDocumentRegister
-  , validateDocumentRegisterType
-  , validateDocumentOpCounter
-  , documentRegisterTypeAllowsDuplicateNumbers
-  , documentRegisterTypeForLocation
-  , documentRegisterTypeInsertOnCreate
-  , documentRegisterTypeOnlyNumber
-  , documentRegisterTypeRequiresUnique
-  , documentRegisterTypeWarnsAbsence
-  , documentRegisterTypeWarnsExpiry
-  , documentRegisterTypeHasFlag
-  ) where
+  ( DocumentRegister (..),
+    DocumentRegisterType (..),
+    DocumentRegisterFlag (..),
+    DocumentOpCounter (..),
+    DocumentRegisterStatus (..),
+    validateDocumentRegister,
+    validateDocumentRegisterType,
+    validateDocumentOpCounter,
+    documentRegisterTypeAllowsDuplicateNumbers,
+    documentRegisterTypeForLocation,
+    documentRegisterTypeInsertOnCreate,
+    documentRegisterTypeOnlyNumber,
+    documentRegisterTypeRequiresUnique,
+    documentRegisterTypeWarnsAbsence,
+    documentRegisterTypeWarnsExpiry,
+    documentRegisterTypeHasFlag,
+  )
+where
 
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Bits ((.&.))
@@ -50,20 +50,21 @@ import GHC.Generics (Generic)
   , drAutoNumber :: Maybe Bool
   } @-}
 data DocumentRegister = DocumentRegister
-  { drId         :: Maybe Int64
-  , drPersonId   :: Int64
-  , drTypeId     :: Int64
-  , drSeries     :: Maybe Text
-  , drNumber     :: Text
-  , drIssueDate  :: Day
-  , drExpiryDate :: Maybe Day
-  , drIssuer     :: Maybe Text
-  , drFlags      :: Int
-  , drAutoNumber :: Maybe Bool
+  { drId :: Maybe Int64,
+    drPersonId :: Int64,
+    drTypeId :: Int64,
+    drSeries :: Maybe Text,
+    drNumber :: Text,
+    drIssueDate :: Day,
+    drExpiryDate :: Maybe Day,
+    drIssuer :: Maybe Text,
+    drFlags :: Int,
+    drAutoNumber :: Maybe Bool
   }
   deriving (Eq, Show, Generic)
 
 instance FromJSON DocumentRegister
+
 instance ToJSON DocumentRegister
 
 {-@ data DocumentRegisterType = DocumentRegisterType
@@ -73,14 +74,15 @@ instance ToJSON DocumentRegister
   , drtFlags :: SmallFlags
   } @-}
 data DocumentRegisterType = DocumentRegisterType
-  { drtId    :: Maybe Int64
-  , drtName  :: Text
-  , drtCode  :: Maybe Text
-  , drtFlags :: Int
+  { drtId :: Maybe Int64,
+    drtName :: Text,
+    drtCode :: Maybe Text,
+    drtFlags :: Int
   }
   deriving (Eq, Show, Generic)
 
 instance FromJSON DocumentRegisterType
+
 instance ToJSON DocumentRegisterType
 
 {-@ data DocumentRegisterFlag = DocumentRegisterFlag @-}
@@ -100,19 +102,19 @@ data DocumentRegisterFlag
 documentRegisterFlagMask :: DocumentRegisterFlag -> Int
 documentRegisterFlagMask flag =
   case flag of
-    DocFlagUnique          -> 0x0001
-    DocFlagPrivate         -> 0x0002
-    DocFlagLegal           -> 0x0004
-    DocFlagWarnExpiry      -> 0x0008
-    DocFlagInsert          -> 0x0010
-    DocFlagWarnAbsence     -> 0x0020
+    DocFlagUnique -> 0x0001
+    DocFlagPrivate -> 0x0002
+    DocFlagLegal -> 0x0004
+    DocFlagWarnExpiry -> 0x0008
+    DocFlagInsert -> 0x0010
+    DocFlagWarnAbsence -> 0x0020
     DocFlagDuplicateNumber -> 0x0040
-    DocFlagOnlyNumber      -> 0x0080
-    DocFlagLocation        -> 0x0100
+    DocFlagOnlyNumber -> 0x0080
+    DocFlagLocation -> 0x0100
 
 {-@ reflect documentRegisterTypeHasFlag @-}
 documentRegisterTypeHasFlag :: DocumentRegisterType -> DocumentRegisterFlag -> Bool
-documentRegisterTypeHasFlag DocumentRegisterType{..} flag =
+documentRegisterTypeHasFlag DocumentRegisterType {..} flag =
   (drtFlags .&. documentRegisterFlagMask flag) /= 0
 
 documentRegisterTypeRequiresUnique :: DocumentRegisterType -> Bool
@@ -138,10 +140,11 @@ documentRegisterTypeInsertOnCreate = flip documentRegisterTypeHasFlag DocFlagIns
 
 {-@ validateDocumentRegisterType :: DocumentRegisterType -> Either Text DocumentRegisterType @-}
 validateDocumentRegisterType :: DocumentRegisterType -> Either Text DocumentRegisterType
-validateDocumentRegisterType drt@DocumentRegisterType{..}
+validateDocumentRegisterType drt@DocumentRegisterType {..}
   | T.null drtName =
       Left "register type name must not be empty"
-  | Just code <- drtCode, T.length code > 32 =
+  | Just code <- drtCode,
+    T.length code > 32 =
       Left "register type code may contain at most 32 characters"
   | otherwise =
       Right drt
@@ -154,15 +157,16 @@ validateDocumentRegisterType drt@DocumentRegisterType{..}
   , docCounterFlags :: SmallFlags
   } @-}
 data DocumentOpCounter = DocumentOpCounter
-  { docCounterId      :: Maybe Int64
-  , docCounterName    :: Text
-  , docCounterOpKindId :: Int
-  , docCounterPrefix   :: Maybe Text
-  , docCounterFlags   :: Int
+  { docCounterId :: Maybe Int64,
+    docCounterName :: Text,
+    docCounterOpKindId :: Int,
+    docCounterPrefix :: Maybe Text,
+    docCounterFlags :: Int
   }
   deriving (Eq, Show, Generic)
 
 instance FromJSON DocumentOpCounter
+
 instance ToJSON DocumentOpCounter
 
 data DocumentRegisterStatus
@@ -173,17 +177,18 @@ data DocumentRegisterStatus
 
 {-@ validateDocumentRegister :: DocumentRegister -> Either Text DocumentRegister @-}
 validateDocumentRegister :: DocumentRegister -> Either Text DocumentRegister
-validateDocumentRegister dr@DocumentRegister{..}
+validateDocumentRegister dr@DocumentRegister {..}
   | not (fromMaybe False drAutoNumber) && T.null drNumber =
       Left "register number must not be empty"
-  | Just expiry <- drExpiryDate, expiry < drIssueDate =
+  | Just expiry <- drExpiryDate,
+    expiry < drIssueDate =
       Left "expiry must not precede issue date"
   | otherwise =
       Right dr
 
 {-@ validateDocumentOpCounter :: DocumentOpCounter -> Either Text DocumentOpCounter @-}
 validateDocumentOpCounter :: DocumentOpCounter -> Either Text DocumentOpCounter
-validateDocumentOpCounter doc@DocumentOpCounter{..}
+validateDocumentOpCounter doc@DocumentOpCounter {..}
   | T.length (fromMaybe T.empty docCounterPrefix) > 16 =
       Left "counter prefix may contain at most 16 characters"
   | otherwise =

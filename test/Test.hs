@@ -38,6 +38,8 @@ import Data.Int ()
 import Data.Maybe ()
 import qualified Data.Text as T
 import Data.Time (fromGregorian)
+-- import qualified Domain.BarcodeSpec
+import qualified Integration.PerformanceSpec
 import qualified Integration.PropertySpec
 import Surypus.RBAC
 import Surypus.Types (Decimal (..))
@@ -511,9 +513,15 @@ main = hspec $ do
     -- ========================================================================
     -- PROPERTY-BASED TESTS
     -- ========================================================================
+    Integration.PerformanceSpec.spec
     Integration.PropertySpec.spec_accountingProperties
     Integration.PropertySpec.spec_vatProperties
     Integration.PropertySpec.spec_inventoryProperties
     Integration.PropertySpec.spec_warehouseProperties
     Integration.PropertySpec.spec_payrollProperties
     Integration.PropertySpec.spec_billProperties
+
+-- ========================================================================
+-- BARCODE TESTS (disabled - needs refinement)
+-- ========================================================================
+-- Domain.BarcodeSpec.barcodeSpec

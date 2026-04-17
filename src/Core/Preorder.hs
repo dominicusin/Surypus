@@ -1,19 +1,20 @@
 -- | Preorder module - Preorders
 module Core.Preorder where
 
-import           Data.Int  (Int64)
-import           Data.Text (Text)
-import           Data.Time (Day)
+import Data.Int (Int64)
+import Data.Text (Text)
+import Data.Time (Day)
 
 -- | Preorder - Preorder
 data Preorder = Preorder
-  { poId           :: Int64
-  , poCode         :: Text
-  , poDate         :: Day
-  , poCustomerId   :: Int64
-  , poExpectedDate:: Day
-  , poStatus       :: PreorderStatus
-  } deriving (Show, Eq)
+  { poId :: Int64,
+    poCode :: Text,
+    poDate :: Day,
+    poCustomerId :: Int64,
+    poExpectedDate :: Day,
+    poStatus :: PreorderStatus
+  }
+  deriving (Show, Eq)
 
 data PreorderStatus = POSPending | POSConfirmed | POSShipped | POSCompleted | POSCancelled
   deriving (Show, Eq)

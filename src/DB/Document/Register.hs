@@ -48,7 +48,6 @@ listRegisters pool (Pagination limit offset) DocumentRegisterFilter {..} =
         )
         (D.rowList documentRegisterRow)
 
-
 getRegister :: Pool -> Int64 -> IO (Maybe DocumentRegister)
 getRegister pool rid =
   use pool $
@@ -59,7 +58,6 @@ getRegister pool rid =
         "SELECT id, person_id, type_id, series, number, issue_date, expiry_date, issuer, flags, auto_number FROM document_register WHERE id = $1"
         (E.param (E.nonNullable E.int8))
         (D.rowMaybe documentRegisterRow)
-
 
 createRegister :: Pool -> DocumentRegister -> IO Int64
 createRegister pool DocumentRegister {..} =
@@ -91,7 +89,6 @@ createRegister pool DocumentRegister {..} =
             <> E.param (E.nullable E.bool)
         )
         (D.singleRow $ D.column (D.nonNullable D.int8))
-
 
 updateRegister :: Pool -> Int64 -> DocumentRegister -> IO Bool
 updateRegister pool rid DocumentRegister {..} =
@@ -126,7 +123,6 @@ updateRegister pool rid DocumentRegister {..} =
         )
         (D.singleRow $ D.column (D.nonNullable D.bool))
 
-
 deleteRegister :: Pool -> Int64 -> IO Bool
 deleteRegister pool rid = do
   mb <- use pool $ Session.statement rid stmt
@@ -137,4 +133,3 @@ deleteRegister pool rid = do
         "DELETE FROM document_register WHERE id = $1 RETURNING id"
         (E.param (E.nonNullable E.int8))
         (D.rowMaybe (D.column (D.nonNullable D.int8)))
-

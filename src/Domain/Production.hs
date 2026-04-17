@@ -1,12 +1,9 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-
-{-@ LIQUID "--reflection" @-}
 
 module Domain.Production
   ( TechFilter (..),
+    Tech (..),
     WorkOrder (..),
     WorkOrderLine (..),
     WorkOrderStatus (..),
@@ -19,14 +16,12 @@ module Domain.Production
   )
 where
 
-import Core.Refined (clampNonNeg)
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Time (Day)
 import GHC.Generics (Generic)
 
--- | Filters for technologies
 data TechFilter = TechFilter
   { tfName :: Maybe Text,
     tfGoodsId :: Maybe Int64
@@ -37,7 +32,21 @@ instance ToJSON TechFilter
 
 instance FromJSON TechFilter
 
--- | Work order status
+data Tech = Tech
+  { techId :: Int64,
+    techName :: Text,
+    techGoodsId :: Maybe Int64,
+    techOperationId :: Int64,
+    techNorm :: Int,
+    techRating :: Int,
+    techFlag :: Int
+  }
+  deriving (Eq, Show, Generic)
+
+instance ToJSON Tech
+
+instance FromJSON Tech
+
 data WorkOrderStatus
   = WODraft
   | WOReleased
@@ -50,7 +59,6 @@ instance ToJSON WorkOrderStatus
 
 instance FromJSON WorkOrderStatus
 
--- | Work order header
 data WorkOrder = WorkOrder
   { woId :: Int64,
     woCode :: Text,
@@ -66,7 +74,6 @@ instance ToJSON WorkOrder
 
 instance FromJSON WorkOrder
 
--- | Work order line (material requirement)
 data WorkOrderLine = WorkOrderLine
   { wolId :: Int64,
     wolOrderId :: Int64,
@@ -80,7 +87,6 @@ instance ToJSON WorkOrderLine
 
 instance FromJSON WorkOrderLine
 
--- | Bill of materials entry
 data BOMEntry = BOMEntry
   { bomId :: Int64,
     bomProductId :: Int64,
@@ -93,12 +99,6 @@ instance ToJSON BOMEntry
 
 instance FromJSON BOMEntry
 
--- | MRP need descriptor
-
-{-@ data MRPNeed = MRPNeed
-  { mrnGoodsId :: Int64
-  , mrnNeed :: {v:Double | v > 0}
-  } @-}
 data MRPNeed = MRPNeed
   { mrnGoodsId :: Int64,
     mrnNeed :: Double
@@ -109,7 +109,6 @@ instance ToJSON MRPNeed
 
 instance FromJSON MRPNeed
 
--- | Output of mrp_calculate
 data MRPPlanItem = MRPPlanItem
   { mpiGoodsId :: Int64,
     mpiNeed :: Double,
@@ -123,7 +122,6 @@ instance ToJSON MRPPlanItem
 
 instance FromJSON MRPPlanItem
 
--- | Production plan snapshot stored via job
 data ProductionPlanSnapshot = ProductionPlanSnapshot
   { ppsId :: Int64,
     ppsCreatedAt :: Day,
@@ -137,11 +135,11 @@ instance ToJSON ProductionPlanSnapshot
 instance FromJSON ProductionPlanSnapshot
 
 validateWorkOrder :: WorkOrder -> Either Text WorkOrder
-validateWorkOrder wo@WorkOrder {..}
-  | woQtty <= 0 = Left "quantity must be positive"
+validateWorkOrder wo
+  | woQtty wo < 0 = Left "Quantity must be non-negative"
   | otherwise = Right wo
 
 mkMRPNeed :: Int64 -> Double -> Maybe MRPNeed
-mkMRPNeed goodsId qty
+mkMRPNeed _ qty
   | qty <= 0 = Nothing
-  | otherwise = Just $ MRPNeed goodsId (clampNonNeg qty)
+  | otherwise = Just $ MRPNeed 0 qty

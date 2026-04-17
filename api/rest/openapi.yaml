@@ -1,0 +1,898 @@
+openapi: 3.0.0
+info:
+  title: Surypus Event Sourcing API
+  description: |
+    REST API for Surypus ERP/CRM system with Event Sourcing architecture.
+    
+    ## Architecture
+    
+    - **Commands**: Write operations that append events to the event store
+    - **Queries**: Read operations from projections (read models)
+    - **Sagas**: Distributed transaction orchestration
+    - **Event Streaming**: Real-time updates via Kafka/Redpanda
+    
+    ## Authentication
+    
+    All endpoints require authentication via JWT token or API key.
+  version: 1.0.0
+  contact:
+    name: Surypus Team
+    email: api@surypus.io
+
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Local development
+  - url: https://api.surypus.io/v1
+    description: Production
+
+security:
+  - BearerAuth: []
+  - ApiKeyAuth: []
+
+tags:
+  - name: Commands
+    description: Write operations (append events)
+  - name: Queries
+    description: Read operations (from projections)
+  - name: Sagas
+    description: Distributed transaction orchestration
+  - name: Events
+    description: Event streaming and subscriptions
+  - name: Inventory
+    description: Inventory management
+  - name: Bills
+    description: Bill/document management
+  - name: Accounting
+    description: Accounting operations
+
+paths:
+  # ============================================================================
+  # HEALTH CHECK
+  # ============================================================================
+  /health:
+    get:
+      summary: Health check
+      description: Returns API health status
+      security: []
+      responses:
+        200:
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+        503:
+          description: Service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+
+  # ============================================================================
+  # INVENTORY COMMANDS
+  # ============================================================================
+  /inventory/receive:
+    post:
+      tags: [Commands, Inventory]
+      summary: Receive stock
+      description: Appends StockReceived event and creates lot
+      operationId: receiveStock
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReceiveStockCommand'
+      responses:
+        201:
+          description: Stock received successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandResult'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        409:
+          $ref: '#/components/responses/Conflict'
+
+  /inventory/issue:
+    post:
+      tags: [Commands, Inventory]
+      summary: Issue stock (FIFO)
+      description: Issues stock using FIFO method
+      operationId: issueStock
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IssueStockCommand'
+      responses:
+        201:
+          description: Stock issued successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssueStockResult'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        422:
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /inventory/adjust:
+    post:
+      tags: [Commands, Inventory]
+      summary: Adjust stock
+      description: Adjusts stock quantity
+      operationId: adjustStock
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdjustStockCommand'
+      responses:
+        201:
+          description: Stock adjusted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandResult'
+
+  /inventory/reserve:
+    post:
+      tags: [Commands, Inventory]
+      summary: Reserve stock
+      description: Reserves stock for later use
+      operationId: reserveStock
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReserveStockCommand'
+      responses:
+        201:
+          description: Stock reserved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandResult'
+
+  # ============================================================================
+  # INVENTORY QUERIES
+  # ============================================================================
+  /inventory/balance:
+    get:
+      tags: [Queries, Inventory]
+      summary: Get stock balance
+      description: Returns stock balance from projection
+      operationId: getStockBalance
+      parameters:
+        - name: goodsId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: locationId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: tenantId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: Stock balances
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StockBalance'
+
+  /inventory/lots:
+    get:
+      tags: [Queries, Inventory]
+      summary: Get FIFO lots
+      description: Returns available lots in FIFO order
+      operationId: getFifoLots
+      parameters:
+        - name: goodsId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: locationId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: qtyNeeded
+          in: query
+          schema:
+            type: number
+      responses:
+        200:
+          description: FIFO lots
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LotInfo'
+
+  # ============================================================================
+  # BILL COMMANDS
+  # ============================================================================
+  /bills:
+    post:
+      tags: [Commands, Bills]
+      summary: Create bill
+      description: Creates a new bill
+      operationId: createBill
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBillCommand'
+      responses:
+        201:
+          description: Bill created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandResult'
+
+  /bills/{billId}/lines:
+    post:
+      tags: [Commands, Bills]
+      summary: Add bill line
+      description: Adds a line item to a bill
+      operationId: addBillLine
+      parameters:
+        - name: billId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddBillLineCommand'
+      responses:
+        201:
+          description: Line added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandResult'
+
+  /bills/{billId}/post:
+    post:
+      tags: [Commands, Bills]
+      summary: Post bill
+      description: Posts the bill (creates accounting entries and stock movements)
+      operationId: postBill
+      parameters:
+        - name: billId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: Bill posted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandResult'
+        409:
+          description: Bill cannot be posted (wrong status)
+
+  /bills/{billId}/cancel:
+    post:
+      tags: [Commands, Bills]
+      summary: Cancel bill
+      description: Cancels a posted bill with compensation
+      operationId: cancelBill
+      parameters:
+        - name: billId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+      responses:
+        200:
+          description: Bill cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandResult'
+
+  # ============================================================================
+  # BILL QUERIES
+  # ============================================================================
+  /bills/{billId}:
+    get:
+      tags: [Queries, Bills]
+      summary: Get bill
+      description: Returns bill details from projection
+      operationId: getBill
+      parameters:
+        - name: billId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: Bill details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bill'
+        404:
+          $ref: '#/components/responses/NotFound'
+
+  # ============================================================================
+  # SAGA OPERATIONS
+  # ============================================================================
+  /sagas:
+    post:
+      tags: [Sagas]
+      summary: Start saga
+      description: Starts a new saga (distributed transaction)
+      operationId: startSaga
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartSagaCommand'
+      responses:
+        201:
+          description: Saga started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SagaStarted'
+
+  /sagas/{sagaId}:
+    get:
+      tags: [Sagas]
+      summary: Get saga status
+      description: Returns saga execution status
+      operationId: getSagaStatus
+      parameters:
+        - name: sagaId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: Saga status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SagaStatus'
+        404:
+          $ref: '#/components/responses/NotFound'
+
+  /sagas/{sagaId}/execute:
+    post:
+      tags: [Sagas]
+      summary: Execute saga step
+      description: Executes the next pending saga step
+      operationId: executeSagaStep
+      parameters:
+        - name: sagaId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: Step executed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SagaStepResult'
+
+  /sagas/{sagaId}/compensate:
+    post:
+      tags: [Sagas]
+      summary: Compensate saga
+      description: Triggers compensation for failed saga
+      operationId: compensateSaga
+      parameters:
+        - name: sagaId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: Compensation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SagaStatus'
+
+  # ============================================================================
+  # EVENTS
+  # ============================================================================
+  /events:
+    get:
+      tags: [Events]
+      summary: Get events
+      description: Returns events from event store
+      operationId: getEvents
+      parameters:
+        - name: aggregateId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: eventTypes
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+        - name: fromSequence
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+      responses:
+        200:
+          description: Events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Event'
+
+  /events/stream:
+    get:
+      tags: [Events]
+      summary: Event stream (SSE)
+      description: Server-sent events for real-time updates
+      operationId: eventStream
+      parameters:
+        - name: topics
+          in: query
+          description: Comma-separated list of topics to subscribe
+          schema:
+            type: string
+      responses:
+        200:
+          description: Event stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  schemas:
+    # ============================================================================
+    # BASE TYPES
+    # ============================================================================
+    UUID:
+      type: string
+      format: uuid
+      example: "550e8400-e29b-41d4-a716-446655440000"
+
+    Money:
+      type: number
+      format: decimal
+      minimum: 0
+      example: 100.50
+
+    Timestamp:
+      type: string
+      format: date-time
+      example: "2024-01-15T10:30:00Z"
+
+    # ============================================================================
+    # COMMAND SCHEMAS
+    # ============================================================================
+    ReceiveStockCommand:
+      type: object
+      required: [aggregateId, goodsId, locationId, qty, cost]
+      properties:
+        aggregateId:
+          $ref: '#/components/schemas/UUID'
+        goodsId:
+          $ref: '#/components/schemas/UUID'
+        locationId:
+          $ref: '#/components/schemas/UUID'
+        qty:
+          type: number
+          minimum: 0
+        cost:
+          $ref: '#/components/schemas/Money'
+        price:
+          $ref: '#/components/schemas/Money'
+        lotNumber:
+          type: string
+        expiryDate:
+          type: string
+          format: date
+        expectedVersion:
+          type: integer
+          description: For optimistic concurrency control
+
+    IssueStockCommand:
+      type: object
+      required: [aggregateId, goodsId, locationId, qty]
+      properties:
+        aggregateId:
+          $ref: '#/components/schemas/UUID'
+        goodsId:
+          $ref: '#/components/schemas/UUID'
+        locationId:
+          $ref: '#/components/schemas/UUID'
+        qty:
+          type: number
+          minimum: 0
+        method:
+          type: string
+          enum: [FIFO, LIFO, FEFO]
+          default: FIFO
+        expectedVersion:
+          type: integer
+
+    AdjustStockCommand:
+      type: object
+      required: [aggregateId, goodsId, locationId, adjustmentQty]
+      properties:
+        aggregateId:
+          $ref: '#/components/schemas/UUID'
+        goodsId:
+          $ref: '#/components/schemas/UUID'
+        locationId:
+          $ref: '#/components/schemas/UUID'
+        adjustmentQty:
+          type: number
+          description: Can be negative
+        reason:
+          type: string
+
+    ReserveStockCommand:
+      type: object
+      required: [aggregateId, goodsId, locationId, qty]
+      properties:
+        aggregateId:
+          $ref: '#/components/schemas/UUID'
+        goodsId:
+          $ref: '#/components/schemas/UUID'
+        locationId:
+          $ref: '#/components/schemas/UUID'
+        qty:
+          type: number
+          minimum: 0
+        reservationType:
+          type: string
+          default: order
+        reservationRef:
+          type: string
+
+    CreateBillCommand:
+      type: object
+      required: [aggregateId, billCode, billDate, personId, locationId]
+      properties:
+        aggregateId:
+          $ref: '#/components/schemas/UUID'
+        billCode:
+          type: string
+        billDate:
+          type: string
+          format: date
+        personId:
+          $ref: '#/components/schemas/UUID'
+        locationId:
+          $ref: '#/components/schemas/UUID'
+        opKindId:
+          $ref: '#/components/schemas/UUID'
+        notes:
+          type: string
+
+    AddBillLineCommand:
+      type: object
+      required: [goodsId, quantity, price]
+      properties:
+        lineId:
+          $ref: '#/components/schemas/UUID'
+        goodsId:
+          $ref: '#/components/schemas/UUID'
+        quantity:
+          type: number
+          minimum: 0
+        price:
+          $ref: '#/components/schemas/Money'
+        discount:
+          type: number
+          default: 0
+        vatRate:
+          type: number
+          default: 20
+
+    StartSagaCommand:
+      type: object
+      required: [sagaType, correlationId, tenantId]
+      properties:
+        sagaType:
+          type: string
+          enum: [sales_order, purchase_order, stock_transfer]
+        correlationId:
+          $ref: '#/components/schemas/UUID'
+        tenantId:
+          $ref: '#/components/schemas/UUID'
+        inputData:
+          type: object
+
+    # ============================================================================
+    # QUERY SCHEMAS
+    # ============================================================================
+    StockBalance:
+      type: object
+      properties:
+        goodsId:
+          $ref: '#/components/schemas/UUID'
+        locationId:
+          $ref: '#/components/schemas/UUID'
+        currentQty:
+          type: number
+        reservedQty:
+          type: number
+        availableQty:
+          type: number
+        avgCost:
+          type: number
+        totalValue:
+          type: number
+
+    LotInfo:
+      type: object
+      properties:
+        lotId:
+          $ref: '#/components/schemas/UUID'
+        qtyAvailable:
+          type: number
+        lotCost:
+          type: number
+        lotPrice:
+          type: number
+        expiryDate:
+          type: string
+          format: date
+
+    Bill:
+      type: object
+      properties:
+        billId:
+          $ref: '#/components/schemas/UUID'
+        billCode:
+          type: string
+        billDate:
+          type: string
+          format: date
+        personId:
+          $ref: '#/components/schemas/UUID'
+        locationId:
+          $ref: '#/components/schemas/UUID'
+        status:
+          type: string
+          enum: [draft, posted, cancelled]
+        lines:
+          type: array
+          items:
+            type: object
+        totalAmount:
+          type: number
+        totalVat:
+          type: number
+
+    Event:
+      type: object
+      properties:
+        eventId:
+          type: integer
+        aggregateId:
+          $ref: '#/components/schemas/UUID'
+        aggregateType:
+          type: string
+        eventType:
+          type: string
+        eventVersion:
+          type: integer
+        eventData:
+          type: object
+        sequenceNumber:
+          type: integer
+        createdAt:
+          $ref: '#/components/schemas/Timestamp'
+
+    # ============================================================================
+    # RESULT SCHEMAS
+    # ============================================================================
+    CommandResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        eventId:
+          type: integer
+        sequenceNumber:
+          type: integer
+        aggregateVersion:
+          type: integer
+
+    IssueStockResult:
+      allOf:
+        - $ref: '#/components/schemas/CommandResult'
+        - type: object
+          properties:
+            lots:
+              type: array
+              items:
+                type: object
+                properties:
+                  lotId:
+                    $ref: '#/components/schemas/UUID'
+                  qtyUsed:
+                    type: number
+                  cost:
+                    type: number
+
+    SagaStarted:
+      type: object
+      properties:
+        sagaId:
+          $ref: '#/components/schemas/UUID'
+        status:
+          type: string
+        correlationId:
+          $ref: '#/components/schemas/UUID'
+
+    SagaStatus:
+      type: object
+      properties:
+        sagaId:
+          $ref: '#/components/schemas/UUID'
+        sagaType:
+          type: string
+        status:
+          type: string
+          enum: [started, running, completed, compensating, compensated, failed]
+        currentStep:
+          type: integer
+        totalSteps:
+          type: integer
+        progressPct:
+          type: number
+        startedAt:
+          $ref: '#/components/schemas/Timestamp'
+        updatedAt:
+          $ref: '#/components/schemas/Timestamp'
+
+    SagaStepResult:
+      type: object
+      properties:
+        stepNumber:
+          type: integer
+        status:
+          type: string
+        errorMessage:
+          type: string
+
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, unhealthy]
+        services:
+          type: object
+          properties:
+            database:
+              type: string
+            kafka:
+              type: string
+            opa:
+              type: string
+
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Forbidden:
+      description: Permission denied
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Conflict:
+      description: Concurrency conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    UnprocessableEntity:
+      description: Business rule violation
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

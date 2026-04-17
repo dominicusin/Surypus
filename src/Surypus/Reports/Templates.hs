@@ -1,15 +1,15 @@
-
 -- ============================================================================
 -- REPORT TEMPLATE LOADER
 -- ============================================================================
+{-# LANGUAGE OverloadedStrings #-}
 
+-- ============================================================================
+-- REPORT TEMPLATES - simple loader and helpers
+-- ============================================================================
 module Surypus.Reports.Templates
-  ( ReportTemplate (..),
-    loadTemplate,
-    loadTemplateFromFile,
-    listTemplates,
-    getTemplatePath,
-    TemplateType (..),
+  ( TemplateType (..),
+    templateTypeToFile,
+    templateTypeToName,
   )
 where
 
@@ -23,21 +23,21 @@ import System.FilePath ((</>))
 -- ============================================================================
 
 data TemplateType
-  = Invoice -- Счёт-фактура
-  | Order -- Счёт на оплату
-  | GoodsRequisition -- Товарная накладная (ТОРГ-12)
-  | Act -- Акт выполненных работ
-  | Payroll -- Расчётная ведомость
-  | Inventory -- Остатки товаров
-  | Balance -- Бухгалтерский баланс
-  | CashIn -- Приходный кассовый ордер
-  | CashOut -- Расходный кассовый ордер
-  | Custom Text -- Пользовательский шаблон
+  = Invoice
+  | OrderDoc
+  | GoodsRequisition
+  | Act
+  | Payroll
+  | Inventory
+  | Balance
+  | CashIn
+  | CashOut
+  | Custom Text
   deriving (Show, Eq)
 
 templateTypeToFile :: TemplateType -> Text
 templateTypeToFile Invoice = "invoice.yaml"
-templateTypeToFile Order = "order.yaml"
+templateTypeToFile OrderDoc = "order.yaml"
 templateTypeToFile GoodsRequisition = "goods_requisition.yaml"
 templateTypeToFile Act = "act.yaml"
 templateTypeToFile Payroll = "payroll.yaml"
@@ -49,7 +49,7 @@ templateTypeToFile (Custom name) = name <> ".yaml"
 
 templateTypeToName :: TemplateType -> Text
 templateTypeToName Invoice = "Счёт-фактура"
-templateTypeToName Order = "Счёт на оплату"
+templateTypeToName OrderDoc = "Счёт на оплату"
 templateTypeToName GoodsRequisition = "Товарная накладная"
 templateTypeToName Act = "Акт выполненных работ"
 templateTypeToName Payroll = "Расчётная ведомость"

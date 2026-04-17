@@ -5,6 +5,27 @@
 
 packages:
 - completed:
+    hackage: liquidhaskell-0.8.10.7.1@sha256:4dbe02abcad5e5e9b85309db81d92152a7fb48bc7af61b580ce0fb9a50b0f948,16307
+    pantry-tree:
+      sha256: 69695836eaf6ff5f06d3bc66b54eaa95394e122f12590e784ab918201079208f
+      size: 70673
+  original:
+    hackage: liquidhaskell-0.8.10.7.1
+- completed:
+    hackage: liquid-base-4.15.1.0@sha256:2dd56691a8ce1fdfef4cfedc22a7f960a2caf279c71520fd3019f5842b6edd58,9396
+    pantry-tree:
+      sha256: 020b23aca25c0c7445500a6aa4a77cb6c8458ab9f422647bbe49ae190fbca918
+      size: 15044
+  original:
+    hackage: liquid-base-4.15.1.0
+- completed:
+    hackage: liquid-containers-0.6.4.1@sha256:0b748ba45ecbf02f46492c119907330f579fa3a7c976659d68a1dc67e062632d,2351
+    pantry-tree:
+      sha256: 817840cb9068e5c7d872699026fbbadd279a99db3727a2764764cc28a3378282
+      size: 2143
+  original:
+    hackage: liquid-containers-0.6.4.1
+- completed:
     hackage: validation-selective-0.2.0.0@sha256:9168753264dc499cb9f6c393f81c89d85818c8b0301b6c20c2f5c0b47f8da079,3917
     pantry-tree:
       sha256: ff57a31905b92ae118eead6ad69ff56f1dfa77f83acccb8f5d025e740d215c61
@@ -32,6 +53,13 @@ packages:
       size: 2192
   original:
     hackage: swagger2-2.8.10
+- completed:
+    hackage: Decimal-0.5.2@sha256:83dd16a1c0737fd35fdb1088af36e1a53034e75090e3f0d4ad32296f1a35a13b,1711
+    pantry-tree:
+      sha256: 8d94b732e9ea24ab4f0aa185a5128f83cf049d6995747335ad49420d325c1a91
+      size: 373
+  original:
+    hackage: Decimal-0.5.2
 snapshots:
 - completed:
     sha256: f4c745366a9b72a2b998c86106cabe6e0955e6af062e228b4fb42aa4712d4da6

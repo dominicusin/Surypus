@@ -1,0 +1,441 @@
+// ============================================================================
+// Surypus Event Sourcing gRPC API
+// ============================================================================
+// Protocol Buffers definition for high-performance communication
+// ============================================================================
+
+syntax = "proto3";
+
+package surypus.v1;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+option go_package = "github.com/surypus/api/grpc/v1";
+option java_package = "io.surypus.grpc.v1";
+
+// ============================================================================
+// SERVICES
+// ============================================================================
+
+// Command Service for write operations
+service CommandService {
+  // Inventory commands
+  rpc ReceiveStock(ReceiveStockRequest) returns (CommandResponse);
+  rpc IssueStock(IssueStockRequest) returns (IssueStockResponse);
+  rpc AdjustStock(AdjustStockRequest) returns (CommandResponse);
+  rpc ReserveStock(ReserveStockRequest) returns (CommandResponse);
+  
+  // Bill commands
+  rpc CreateBill(CreateBillRequest) returns (CommandResponse);
+  rpc AddBillLine(AddBillLineRequest) returns (CommandResponse);
+  rpc PostBill(PostBillRequest) returns (CommandResponse);
+  rpc CancelBill(CancelBillRequest) returns (CommandResponse);
+}
+
+// Query Service for read operations
+service QueryService {
+  // Inventory queries
+  rpc GetStockBalance(GetStockBalanceRequest) returns (StockBalanceResponse);
+  rpc GetFifoLots(GetFifoLotsRequest) returns (FifoLotsResponse);
+  rpc GetStockReport(GetStockReportRequest) returns (StockReportResponse);
+  
+  // Bill queries
+  rpc GetBill(GetBillRequest) returns (BillResponse);
+  rpc GetBills(GetBillsRequest) returns (BillsResponse);
+}
+
+// Saga Service for distributed transactions
+service SagaService {
+  rpc StartSaga(StartSagaRequest) returns (StartSagaResponse);
+  rpc GetSagaStatus(GetSagaStatusRequest) returns (SagaStatusResponse);
+  rpc ExecuteSagaStep(ExecuteSagaStepRequest) returns (SagaStepResponse);
+  rpc CompensateSaga(CompensateSagaRequest) returns (SagaStatusResponse);
+}
+
+// Event Streaming Service
+service EventStreamService {
+  // Subscribe to events stream
+  rpc SubscribeToEvents(SubscribeRequest) returns (stream Event);
+  
+  // Get events by aggregate
+  rpc GetEventsByAggregate(GetEventsByAggregateRequest) returns (EventsResponse);
+  
+  // Get events by type
+  rpc GetEventsByType(GetEventsByTypeRequest) returns (EventsResponse);
+}
+
+// ============================================================================
+// COMMON TYPES
+// ============================================================================
+
+message Money {
+  string currency = 1;
+  int64 amount_cents = 2;  // Store as cents to avoid floating point issues
+}
+
+message UUID {
+  string value = 1;
+}
+
+message Metadata {
+  UUID tenant_id = 1;
+  UUID user_id = 2;
+  UUID correlation_id = 3;
+  google.protobuf.Timestamp timestamp = 4;
+}
+
+// ============================================================================
+// INVENTORY MESSAGES
+// ============================================================================
+
+message ReceiveStockRequest {
+  UUID aggregate_id = 1;
+  UUID goods_id = 2;
+  UUID location_id = 3;
+  double quantity = 4;
+  Money cost = 5;
+  Money price = 6;
+  string lot_number = 7;
+  google.protobuf.Timestamp expiry_date = 8;
+  int32 expected_version = 9;
+  Metadata metadata = 10;
+}
+
+message IssueStockRequest {
+  UUID aggregate_id = 1;
+  UUID goods_id = 2;
+  UUID location_id = 3;
+  double quantity = 4;
+  IssueMethod method = 5;
+  int32 expected_version = 6;
+  Metadata metadata = 7;
+}
+
+enum IssueMethod {
+  ISSUE_METHOD_UNSPECIFIED = 0;
+  ISSUE_METHOD_FIFO = 1;
+  ISSUE_METHOD_LIFO = 2;
+  ISSUE_METHOD_FEFO = 3;
+}
+
+message IssueStockResponse {
+  bool success = 1;
+  int64 event_id = 2;
+  int64 sequence_number = 3;
+  int32 aggregate_version = 4;
+  repeated LotUsage lots_used = 5;
+}
+
+message LotUsage {
+  UUID lot_id = 1;
+  double quantity_used = 2;
+  Money cost = 3;
+  Money amount = 4;
+}
+
+message AdjustStockRequest {
+  UUID aggregate_id = 1;
+  UUID goods_id = 2;
+  UUID location_id = 3;
+  double adjustment_quantity = 4;
+  string reason = 5;
+  int32 expected_version = 6;
+  Metadata metadata = 7;
+}
+
+message ReserveStockRequest {
+  UUID aggregate_id = 1;
+  UUID goods_id = 2;
+  UUID location_id = 3;
+  double quantity = 4;
+  string reservation_type = 5;
+  string reservation_ref = 6;
+  int32 expected_version = 7;
+  Metadata metadata = 8;
+}
+
+message GetStockBalanceRequest {
+  UUID goods_id = 1;
+  UUID location_id = 2;
+  UUID tenant_id = 3;
+}
+
+message StockBalanceResponse {
+  repeated StockBalance balances = 1;
+}
+
+message StockBalance {
+  UUID goods_id = 1;
+  UUID location_id = 2;
+  double current_quantity = 3;
+  double reserved_quantity = 4;
+  double available_quantity = 5;
+  Money average_cost = 6;
+  Money total_value = 7;
+  google.protobuf.Timestamp last_movement_at = 8;
+}
+
+message GetFifoLotsRequest {
+  UUID goods_id = 1;
+  UUID location_id = 2;
+  double quantity_needed = 3;
+}
+
+message FifoLotsResponse {
+  repeated LotInfo lots = 1;
+}
+
+message LotInfo {
+  UUID lot_id = 1;
+  double quantity_available = 2;
+  Money cost = 3;
+  Money price = 4;
+  google.protobuf.Timestamp expiry_date = 5;
+  google.protobuf.Timestamp received_at = 6;
+}
+
+message GetStockReportRequest {
+  UUID tenant_id = 1;
+  UUID location_id = 2;
+  google.protobuf.Timestamp date_from = 3;
+  google.protobuf.Timestamp date_to = 4;
+}
+
+message StockReportResponse {
+  repeated StockReportItem items = 1;
+}
+
+message StockReportItem {
+  UUID goods_id = 1;
+  string goods_name = 2;
+  double beginning_balance = 3;
+  double receipts = 4;
+  double issues = 5;
+  double ending_balance = 6;
+}
+
+// ============================================================================
+// BILL MESSAGES
+// ============================================================================
+
+message CreateBillRequest {
+  UUID aggregate_id = 1;
+  string bill_code = 2;
+  google.protobuf.Timestamp bill_date = 3;
+  UUID person_id = 4;
+  UUID location_id = 5;
+  UUID op_kind_id = 6;
+  string notes = 7;
+  int32 expected_version = 8;
+  Metadata metadata = 9;
+}
+
+message AddBillLineRequest {
+  UUID bill_id = 1;
+  UUID line_id = 2;
+  UUID goods_id = 3;
+  double quantity = 4;
+  Money price = 5;
+  double discount_percent = 6;
+  double vat_rate = 7;
+  Metadata metadata = 8;
+}
+
+message PostBillRequest {
+  UUID bill_id = 1;
+  int32 expected_version = 2;
+  Metadata metadata = 3;
+}
+
+message CancelBillRequest {
+  UUID bill_id = 1;
+  string reason = 2;
+  Metadata metadata = 3;
+}
+
+message GetBillRequest {
+  UUID bill_id = 1;
+}
+
+message BillResponse {
+  Bill bill = 1;
+}
+
+message Bill {
+  UUID bill_id = 1;
+  string bill_code = 2;
+  google.protobuf.Timestamp bill_date = 3;
+  UUID person_id = 4;
+  UUID location_id = 5;
+  BillStatus status = 6;
+  repeated BillLine lines = 7;
+  Money total_amount = 8;
+  Money total_vat = 9;
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp updated_at = 11;
+}
+
+enum BillStatus {
+  BILL_STATUS_UNSPECIFIED = 0;
+  BILL_STATUS_DRAFT = 1;
+  BILL_STATUS_POSTED = 2;
+  BILL_STATUS_CANCELLED = 3;
+}
+
+message BillLine {
+  UUID line_id = 1;
+  UUID goods_id = 2;
+  double quantity = 3;
+  Money price = 4;
+  double discount = 5;
+  double vat_rate = 6;
+  Money amount = 7;
+  Money vat_amount = 8;
+  Money line_total = 9;
+}
+
+message GetBillsRequest {
+  UUID tenant_id = 1;
+  google.protobuf.Timestamp date_from = 2;
+  google.protobuf.Timestamp date_to = 3;
+  BillStatus status = 4;
+  int32 page_size = 5;
+  string page_token = 6;
+}
+
+message BillsResponse {
+  repeated Bill bills = 1;
+  string next_page_token = 2;
+  int32 total_count = 3;
+}
+
+// ============================================================================
+// SAGA MESSAGES
+// ============================================================================
+
+message StartSagaRequest {
+  string saga_type = 1;
+  UUID correlation_id = 2;
+  SagaInputData input_data = 3;
+  Metadata metadata = 4;
+}
+
+message SagaInputData {
+  UUID inventory_aggregate_id = 1;
+  UUID bill_aggregate_id = 2;
+  UUID goods_id = 3;
+  UUID location_id = 4;
+  UUID person_id = 5;
+  double quantity = 6;
+  Money price = 7;
+  Money cost = 8;
+  string bill_code = 9;
+}
+
+message StartSagaResponse {
+  UUID saga_id = 1;
+  SagaStatus status = 2;
+}
+
+message GetSagaStatusRequest {
+  UUID saga_id = 1;
+}
+
+message SagaStatusResponse {
+  UUID saga_id = 1;
+  string saga_type = 2;
+  SagaStatus status = 3;
+  int32 current_step = 4;
+  int32 total_steps = 5;
+  double progress_percent = 6;
+  google.protobuf.Timestamp started_at = 7;
+  google.protobuf.Timestamp completed_at = 8;
+  string error_message = 9;
+}
+
+enum SagaStatus {
+  SAGA_STATUS_UNSPECIFIED = 0;
+  SAGA_STATUS_STARTED = 1;
+  SAGA_STATUS_RUNNING = 2;
+  SAGA_STATUS_COMPLETED = 3;
+  SAGA_STATUS_COMPENSATING = 4;
+  SAGA_STATUS_COMPENSATED = 5;
+  SAGA_STATUS_FAILED = 6;
+}
+
+message ExecuteSagaStepRequest {
+  UUID saga_id = 1;
+  Metadata metadata = 2;
+}
+
+message SagaStepResponse {
+  int32 step_number = 1;
+  string step_status = 2;
+  string error_message = 3;
+}
+
+message CompensateSagaRequest {
+  UUID saga_id = 1;
+  Metadata metadata = 2;
+}
+
+// ============================================================================
+// EVENT MESSAGES
+// ============================================================================
+
+message SubscribeRequest {
+  repeated string event_types = 1;
+  repeated string aggregate_types = 2;
+  UUID tenant_id = 3;
+  int64 from_sequence = 4;
+}
+
+message Event {
+  int64 event_id = 1;
+  UUID aggregate_id = 2;
+  string aggregate_type = 3;
+  string event_type = 4;
+  int32 event_version = 5;
+  bytes event_data = 6;
+  Metadata metadata = 7;
+  int64 sequence_number = 8;
+  google.protobuf.Timestamp created_at = 9;
+}
+
+message GetEventsByAggregateRequest {
+  UUID aggregate_id = 1;
+  int32 from_version = 2;
+  int32 limit = 3;
+}
+
+message GetEventsByTypeRequest {
+  repeated string event_types = 1;
+  google.protobuf.Timestamp from_time = 2;
+  google.protobuf.Timestamp to_time = 3;
+  int32 limit = 4;
+}
+
+message EventsResponse {
+  repeated Event events = 1;
+  bool has_more = 2;
+  int64 last_sequence = 3;
+}
+
+// ============================================================================
+// COMMON RESPONSES
+// ============================================================================
+
+message CommandResponse {
+  bool success = 1;
+  int64 event_id = 2;
+  int64 sequence_number = 3;
+  int32 aggregate_version = 4;
+  string error_message = 5;
+}
+
+message ErrorResponse {
+  int32 code = 1;
+  string message = 2;
+  map<string, string> details = 3;
+}

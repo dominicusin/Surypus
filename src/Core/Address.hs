@@ -1,17 +1,18 @@
 -- | Address module - Addresses
 module Core.Address where
 
-import           Data.Int (Int64)
+import Data.Int (Int64)
 
 -- | Address - Address
 data Address = Address
-  { adrId       :: Int64
-  , adrPersonId :: Int64
-  , adrCityId   :: Int64
-  , adrStreet   :: String
-  , adrBuilding :: String
-  , adrOffice   :: String
-  } deriving (Show, Eq)
+  { adrId :: Int64,
+    adrPersonId :: Int64,
+    adrCityId :: Int64,
+    adrStreet :: String,
+    adrBuilding :: String,
+    adrOffice :: String
+  }
+  deriving (Show, Eq)
 
 -- | Get full address
 getFullAddress :: Address -> String

@@ -28,6 +28,7 @@ module Surypus.Validation
     validatePersonInput,
     validateGoodsInput,
     validateBillInput,
+    validateInventoryInput,
     validateLocationInput,
     validateOrderInput,
     validatePaymentInput,
@@ -39,8 +40,8 @@ module Surypus.Validation
   )
 where
 
-import DAL.Types
-import Data.Text (Text)
+import           DAL.Types
+import           Data.Text (Text)
 import qualified Data.Text as T
 
 -- | Validation error with descriptive message
@@ -66,7 +67,7 @@ combineValidators :: Validator a -> Validator a -> Validator a
 combineValidators v1 v2 a = case v1 a of
   Left errs1 -> case v2 a of
     Left errs2 -> Left (errs1 <> errs2)
-    Right _ -> Left errs1
+    Right _    -> Left errs1
   Right _ -> v2 a
 
 -- | Validate INN (Russian tax identification number)
@@ -162,6 +163,14 @@ validateOrderInput input
   | oiTotal input < 0 = Left [ValidationError "Total cannot be negative"]
   | oiDiscount input < 0 = Left [ValidationError "Discount cannot be negative"]
   | oiTax input < 0 = Left [ValidationError "Tax cannot be negative"]
+  | otherwise = Right input
+
+-- | Validate InventoryInput
+validateInventoryInput :: Validator InventoryInput
+validateInventoryInput input
+  | iiGoodsId input <= 0 = Left [ValidationError "GoodsId must be positive"]
+  | iiLocationId input <= 0 = Left [ValidationError "LocationId must be positive"]
+  | iiQty input <= 0 = Left [ValidationError "Quantity must be positive"]
   | otherwise = Right input
 
 -- | Validate PaymentInput

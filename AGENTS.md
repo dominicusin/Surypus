@@ -281,3 +281,140 @@ Use LiquidHaskell to prove critical properties:
 {-@ type NonNeg = {v:Double | v >= 0} @-}
 {-@ calcVAT :: Double -> NonNeg -> NonNeg @-}
 ```
+
+---
+
+## Service Layer
+
+### Pattern
+Service functions orchestrate business logic between API handlers and DAL:
+
+```haskell
+-- Signature: context -> input -> IO (Either Error Output)
+createBill :: AuthContext -> CreateBillInput -> IO (Either ServiceError Bill)
+createBill ctx input = do
+  -- 1. Validate input
+  case validateBillInput input of
+    Left err -> return (Left (ValidationError err))
+    Right valid -> do
+      -- 2. Check permissions
+      case hasPermission ctx "bill:create" of
+        False -> return (Left Forbidden)
+        True -> do
+          -- 3. Call DAL
+          result <- DAL.Bill.create valid
+          -- 4. Process result
+          case result of
+            Left dbErr -> return (Left (DBError dbErr))
+            Right bill -> return (Right bill)
+```
+
+### Error Types
+```haskell
+data ServiceError
+  = ValidationError Text
+  | NotFound Text
+  | Forbidden
+  | Conflict Text
+  | DBError DBError
+  | InternalError Text
+```
+
+### Service Module Structure
+- `Core.Services.Tax` - Tax calculations
+- `Core.Services.Goods` - Goods management
+- `Core.Services.Person` - Person/Employee operations
+- `Core.Services.Accounting` - Double-entry operations
+- `Core.Services.Inventory` - Stock operations
+
+---
+
+## Database Migrations
+
+### Order of Application
+Apply migrations in numeric order:
+
+| Migration | Description |
+|-----------|-------------|
+| V001 | Initial schema (companies, persons, etc.) |
+| V002 | Goods and inventory tables |
+| V003 | Bills and orders |
+| V004 | Accounting tables |
+| V005 | Payroll tables |
+| V006 | Jobs and reports |
+| V007 | Auth and sessions |
+| V008 | Audit logging |
+| V009 | RBAC tables |
+| V010 | Production enhancements |
+
+### Migration Files Location
+```
+config/migrations/
+├── V001__initial_schema.sql
+├── V002__goods.sql
+├── V003__bills.sql
+├── V004__accounting.sql
+├── V005__payroll.sql
+├── V006__jobs.sql
+├── V007__auth.sql
+├── V008__audit.sql
+├── V009__rbac_store.sql
+└── V010__production.sql
+```
+
+### Running Migrations
+```bash
+# Apply all pending migrations
+psql -h localhost -U surypus -d surypus -f config/migrations/init_db.sh
+
+# Apply single migration
+psql -h localhost -U surypus -d surypus -f config/migrations/V009__rbac_store.sql
+```
+
+---
+
+## Job Types
+
+### Overview
+Background jobs are stored in `jobs` table with type and payload.
+
+### Job Types
+
+| Type | Description | Payload Fields |
+|------|-------------|----------------|
+| `report_generate` | Generate PDF report | `reportType`, `params`, `format` |
+| `data_export` | Export data to CSV/Excel | `entity`, `filters`, `format` |
+| `data_import` | Import data from CSV | `entity`, `filePath`, `mapping` |
+| `notification_send` | Send email/push notification | `type`, `recipients`, `template`, `data` |
+| `cleanup_old_data` | Archive/delete old records | `entity`, `olderThanDays`, `dryRun` |
+| `sync_external` | Sync with external API | `service`, `direction`, `batchSize` |
+
+### Job Payload Example (JSON)
+```json
+{
+  "jobType": "report_generate",
+  "payload": {
+    "reportType": "invoice",
+    "params": {
+      "billId": 12345,
+      "template": "invoice.yaml"
+    },
+    "format": "pdf"
+  }
+}
+```
+
+### Job Status Flow
+`pending` → `processing` → `completed` | `failed`
+
+### Querying Jobs
+```sql
+SELECT id, job_type, status, created_at, started_at, completed_at
+FROM jobs
+WHERE status IN ('pending', 'processing')
+ORDER BY created_at ASC;
+```
+
+---
+
+## PostgreSQL Integration

@@ -25,9 +25,9 @@ module Surypus.Event
 where
 
 import Control.Concurrent.STM (TQueue, atomically, newTQueueIO, readTQueue, writeTQueue)
-import Control.Monad (forever, void)
-import Control.Monad.IO.Class (liftIO)
-import Data.Aeson (ToJSON, Value (..), object, toJSON, (.=))
+-- (no Monad import needed for now)
+-- Removed liftIO import; not used directly in event bus now
+import Data.Aeson (ToJSON (..), Value (..), object, (.=))
 import Data.Int (Int64)
 import Data.Text (Text)
 import qualified Data.Text as T

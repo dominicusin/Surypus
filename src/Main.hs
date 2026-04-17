@@ -1,6 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 -- | Main entry point for Surypus API server
+-- ============================================================================
+-- Main entry point for Surypus API server
+-- ==========================================================================
 module Main where
 
 import Core.Service
@@ -23,6 +26,7 @@ import DB.Connection
 import Data.Char (toLower)
 import Data.Text (Text)
 import qualified Data.Text as T
+-- no lazy text IO here; use regular Text for consistency
 import Hasql.Pool (Pool)
 import Surypus.API.Server (startServantServer)
 import Surypus.APIShim.Server (startServantServerShim)
@@ -49,7 +53,7 @@ main = do
         let jwtCfg = jwtConfigFromSecret "surypus-jwt-secret"
         rbacStore <- newRBACStore $ \_ -> pure ()
         useShim <- lookupEnv "USE_API_SHIM"
-        let useShimFlag = maybe False (\s -> map toLower s `elem` ["true", "1", "yes"]) useShim
+        let useShimFlag = any (\s -> lower s `elem` ["true", "1", "yes"]) useShim
         if useShimFlag
           then startServantServerShim 3000 pool jwtCfg rbacStore
           else startServantServer 3000 pool jwtCfg rbacStore

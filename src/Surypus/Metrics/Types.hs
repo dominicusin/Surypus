@@ -1,4 +1,3 @@
-
 module Surypus.Metrics.Types
   ( MetricsConfig (..),
     CounterMap,

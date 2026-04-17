@@ -1,18 +1,19 @@
 -- | InventoryEx module - Extended inventory
 module Core.InventoryEx where
 
-import           Data.Int  (Int64)
-import           Data.Text (Text)
-import           Data.Time (Day)
+import Data.Int (Int64)
+import Data.Text (Text)
+import Data.Time (Day)
 
 -- | InventoryEx - Extended inventory
 data InventoryEx = InventoryEx
-  { invId         :: Int64
-  , invCode       :: Text
-  , invDate       :: Day
-  , invLocationId :: Int64
-  , invStatus     :: InvStatus
-  } deriving (Show, Eq)
+  { invId :: Int64,
+    invCode :: Text,
+    invDate :: Day,
+    invLocationId :: Int64,
+    invStatus :: InvStatus
+  }
+  deriving (Show, Eq)
 
 data InvStatus = ISDraft | ISInProgress | ISCompleted | ISCancelled
   deriving (Show, Eq)

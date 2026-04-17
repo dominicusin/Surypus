@@ -1,0 +1,1614 @@
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+
+-- | Database Procedures (Stored Function Wrappers)
+--
+-- This module provides Haskell wrappers for SQL stored functions.
+-- All business logic that can be pushed to the database is implemented
+-- here as thin wrappers around the SQL procedures.
+module DAL.Procedures where
+
+import DAL.Types
+import Data.Functor.Contravariant ((>$<))
+import Data.Int (Int16, Int64)
+import Data.Scientific (Scientific)
+import Data.Text (Text)
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
+import Data.Time (Day)
+import qualified Hasql.Decoders as D
+import qualified Hasql.Encoders as E
+import Hasql.Pool (Pool, use)
+import qualified Hasql.Session as Session
+import Hasql.Statement (Statement (..))
+import Surypus.Types (fromDecimal)
+
+unpreparable :: T.Text -> E.Params params -> D.Result result -> Statement params result
+unpreparable sql encoder decoder = Statement (TE.encodeUtf8 sql) encoder decoder False
+
+preparable :: T.Text -> E.Params params -> D.Result result -> Statement params result
+preparable sql encoder decoder = Statement (TE.encodeUtf8 sql) encoder decoder True
+
+toDouble :: Decimal -> Double
+toDouble = fromDecimal
+
+fromDouble :: Double -> Decimal
+fromDouble = Decimal . round
+
+-- | Convert Scientific to Decimal
+-- ============================================================================
+-- TAX CALCULATION PROCEDURES
+-- ============================================================================
+
+calcVat :: Pool -> Double -> Double -> IO (QueryResult Double)
+calcVat pool amount rate = do
+  let stmt =
+        preparable
+          "SELECT calc_vat($1, $2)"
+          ( (fst >$< E.param (E.nonNullable E.float8))
+              <> (snd >$< E.param (E.nonNullable E.float8))
+          )
+          (D.singleRow (realToFrac <$> D.column (D.nonNullable D.numeric)))
+  res <- use pool $ Session.statement (amount, rate) stmt
+  case res of
+    Right v -> pure $ QuerySuccess (realToFrac v)
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+calcVatInclusive :: Pool -> Double -> Double -> IO (QueryResult Double)
+calcVatInclusive pool inclusive rate = do
+  let stmt =
+        preparable
+          "SELECT calc_vat_inclusive($1, $2)"
+          ( (fst >$< E.param (E.nonNullable E.float8))
+              <> (snd >$< E.param (E.nonNullable E.float8))
+          )
+          (D.singleRow (D.column (D.nonNullable D.numeric)))
+  res <- use pool $ Session.statement (inclusive, rate) stmt
+  case res of
+    Right v -> pure $ QuerySuccess (realToFrac v)
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+calcPriceWithoutVat :: Pool -> Double -> Double -> IO (QueryResult Double)
+calcPriceWithoutVat pool inclusive rate = do
+  let stmt =
+        preparable
+          "SELECT calc_price_without_vat($1, $2)"
+          ( (fst >$< E.param (E.nonNullable E.float8))
+              <> (snd >$< E.param (E.nonNullable E.float8))
+          )
+          (D.singleRow (D.column (D.nonNullable D.numeric)))
+  res <- use pool $ Session.statement (inclusive, rate) stmt
+  case res of
+    Right v -> pure $ QuerySuccess (realToFrac v)
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- ============================================================================
+-- STOCK/WAREHOUSE PROCEDURES
+-- ============================================================================
+
+data StockBalance = StockBalance
+  { sbGoodsId :: Int64,
+    sbLocationId :: Int64,
+    sbQuantity :: Decimal
+  }
+
+stockBalanceDecoder :: D.Row StockBalance
+stockBalanceDecoder =
+  StockBalance
+    <$> D.column (D.nonNullable D.int8)
+    <*> D.column (D.nonNullable D.int8)
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+
+calcStockBalance :: Pool -> Int64 -> Int64 -> Maybe Double -> IO (QueryResult Decimal)
+calcStockBalance pool goodsId locationId mInitialQty = do
+  let stmt =
+        preparable
+          "SELECT calc_stock_balance($1, $2, $3)"
+          ( (fst >$< E.param (E.nonNullable E.int8))
+              <> ((snd . fst) >$< E.param (E.nonNullable E.int8))
+              <> (snd >$< E.param (E.nullable E.float8))
+          )
+          (D.singleRow (Decimal . round <$> D.column (D.nonNullable D.numeric)))
+  res <- use pool $ Session.statement (goodsId, locationId, fmap fromDouble mInitialQty) stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+calcGoodsAvgCost :: Pool -> Int64 -> Int64 -> IO (QueryResult Decimal)
+calcGoodsAvgCost pool goodsId locationId = do
+  let stmt =
+        preparable
+          "SELECT calc_goods_avg_cost($1, $2)"
+          ( (fst >$< E.param (E.nonNullable E.int8))
+              <> (snd >$< E.param (E.nonNullable E.int8))
+          )
+          (D.singleRow (Decimal . round <$> D.column (D.nonNullable D.numeric)))
+  res <- use pool $ Session.statement (goodsId, locationId) stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+data LowStockItem = LowStockItem
+  { lsiGoodsId :: Int64,
+    lsiGoodsName :: Text,
+    lsiCurrentQty :: Decimal,
+    lsiReorderPoint :: Decimal
+  }
+
+lowStockItemDecoder :: D.Row LowStockItem
+lowStockItemDecoder =
+  LowStockItem
+    <$> D.column (D.nonNullable D.int8)
+    <*> D.column (D.nonNullable D.text)
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+
+getLowStockItems :: Pool -> Maybe Double -> IO (QueryResult [LowStockItem])
+getLowStockItems pool mThreshold = do
+  let stmt =
+        preparable
+          "SELECT goods_id, name, current_qty, reorder_point FROM get_low_stock_items($1)"
+          (E.param (E.nullable E.float8))
+          (D.rowList lowStockItemDecoder)
+  res <- use pool $ Session.statement (fmap fromDouble mThreshold) stmt
+  case res of
+    Right items -> pure $ QuerySuccess items
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+checkReorderNeeded :: Pool -> Int64 -> Int64 -> IO (QueryResult Bool)
+checkReorderNeeded pool goodsId locationId = do
+  let stmt =
+        preparable
+          "SELECT check_reorder_needed($1, $2)"
+          ( (fst >$< E.param (E.nonNullable E.int8))
+              <> (snd >$< E.param (E.nonNullable E.int8))
+          )
+          (D.singleRow (D.column D.bool))
+  res <- use pool $ Session.statement (goodsId, locationId) stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- ============================================================================
+-- FIFO INVENTORY PROCEDURES
+-- ============================================================================
+
+data FifoLot = FifoLot
+  { flLotId :: Int64,
+    flLotDate :: Day,
+    flQtyUsed :: Decimal,
+    flCost :: Decimal
+  }
+
+fifoLotDecoder :: D.Row FifoLot
+fifoLotDecoder =
+  FifoLot
+    <$> D.column (D.nonNullable D.int8)
+    <*> D.column (D.nonNullable D.date)
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+
+fifoSelectLots :: Pool -> Int64 -> Int64 -> Double -> IO (QueryResult [FifoLot])
+fifoSelectLots pool goodsId locationId qtyNeeded = do
+  let stmt =
+        preparable
+          "SELECT lot_id, lot_date, qty_used, cost FROM fifo_select_lots($1, $2, $3)"
+          ( (fst >$< E.param (E.nonNullable E.int8))
+              <> ((snd . fst) >$< E.param (E.nonNullable E.int8))
+              <> (snd >$< E.param (E.nonNullable E.float8))
+          )
+          (D.rowList fifoLotDecoder)
+  res <- use pool $ Session.statement (goodsId, locationId, fromDouble qtyNeeded) stmt
+  case res of
+    Right lots -> pure $ QuerySuccess lots
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- ============================================================================
+-- GOODS PROCEDURES
+-- ============================================================================
+
+data GoodsByBarcode = GoodsByBarcode
+  { gbbGoodsId :: Int64,
+    gbbGoodsCode :: Maybe Text,
+    gbbGoodsName :: Text,
+    gbbGoodsPrice :: Decimal,
+    gbbGoodsCost :: Decimal
+  }
+
+goodsByBarcodeDecoder :: D.Row GoodsByBarcode
+goodsByBarcodeDecoder =
+  GoodsByBarcode
+    <$> D.column (D.nonNullable D.int8)
+    <*> D.column (D.nullable D.text)
+    <*> D.column (D.nonNullable D.text)
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+
+getGoodsByBarcode :: Pool -> Text -> IO (QueryResult GoodsByBarcode)
+getGoodsByBarcode pool barcode = do
+  let stmt =
+        preparable
+          "SELECT goods_id, goods_code, goods_name, goods_price, goods_cost FROM get_goods_by_barcode($1)"
+          (E.param (E.nonNullable E.text))
+          (D.rowMaybe goodsByBarcodeDecoder)
+  res <- use pool $ Session.statement barcode stmt
+  case res of
+    Right (Just g) -> pure $ QuerySuccess g
+    Right Nothing -> pure $ QueryError "Goods not found"
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+getCurrentPrice :: Pool -> Int64 -> Maybe Text -> IO (QueryResult Decimal)
+getCurrentPrice pool goodsId mPriceType = do
+  let stmt =
+        preparable
+          "SELECT get_current_price($1, $2)"
+          ( (fst >$< E.param (E.nonNullable E.int8))
+              <> (snd >$< E.param (E.nullable E.text))
+          )
+          (D.singleRow (Decimal . round <$> D.column (D.nonNullable D.numeric)))
+  res <- use pool $ Session.statement (goodsId, mPriceType) stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+calcAverageCost :: Pool -> Int64 -> IO (QueryResult Decimal)
+calcAverageCost pool goodsId = do
+  let stmt =
+        preparable
+          "SELECT calc_average_cost($1)"
+          (E.param (E.nonNullable E.int8))
+          (D.singleRow (Decimal . round <$> D.column (D.nonNullable D.numeric)))
+  res <- use pool $ Session.statement goodsId stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+getLastPurchasePrice :: Pool -> Int64 -> IO (QueryResult Decimal)
+getLastPurchasePrice pool goodsId = do
+  let stmt =
+        preparable
+          "SELECT get_last_purchase_price($1)"
+          (E.param (E.nonNullable E.int8))
+          (D.singleRow (Decimal . round <$> D.column (D.nonNullable D.numeric)))
+  res <- use pool $ Session.statement goodsId stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- ============================================================================
+-- BILL PROCEDURES
+-- ============================================================================
+
+data BillTotals = BillTotals
+  { btTotal :: Decimal,
+    btDiscount :: Decimal,
+    btVatAmount :: Decimal,
+    btTotalWithVat :: Decimal
+  }
+
+billTotalsDecoder :: D.Row BillTotals
+billTotalsDecoder =
+  BillTotals
+    <$> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+
+calcBillTotals :: Pool -> Int64 -> IO (QueryResult BillTotals)
+calcBillTotals pool billId = do
+  let stmt =
+        preparable
+          "SELECT total, discount, vat_amount, total_with_vat FROM calc_bill_totals($1)"
+          (E.param (E.nonNullable E.int8))
+          (D.rowMaybe billTotalsDecoder)
+  res <- use pool $ Session.statement billId stmt
+  case res of
+    Right (Just t) -> pure $ QuerySuccess t
+    Right Nothing -> pure $ QueryError "Bill not found"
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+data LineTotals = LineTotals
+  { ltAmount :: Decimal,
+    ltDiscount :: Decimal,
+    ltVatAmount :: Decimal,
+    ltTotal :: Decimal
+  }
+
+lineTotalsDecoder :: D.Row LineTotals
+lineTotalsDecoder =
+  LineTotals
+    <$> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+
+calcLineTotals :: Pool -> Double -> Double -> Double -> Double -> IO (QueryResult LineTotals)
+calcLineTotals pool qty price discount vatRate = do
+  let stmt =
+        preparable
+          "SELECT amount, discount, vat_amount, total FROM calc_line_totals($1, $2, $3, $4)"
+          ( ((\(a, _, _, _) -> a) >$< E.param (E.nonNullable E.float8))
+              <> ((\(_, b, _, _) -> b) >$< E.param (E.nonNullable E.float8))
+              <> ((\(_, _, c, _) -> c) >$< E.param (E.nonNullable E.float8))
+              <> ((\(_, _, _, d) -> d) >$< E.param (E.nonNullable E.float8))
+          )
+          (D.rowMaybe lineTotalsDecoder)
+  res <- use pool $ Session.statement (qty, price, discount, vatRate) stmt
+  case res of
+    Right (Just t) -> pure $ QuerySuccess t
+    Right Nothing -> pure $ QueryError "Calculation failed"
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+recalcBillTotals :: Pool -> Int64 -> IO (QueryResult Bool)
+recalcBillTotals pool billId = do
+  let stmt =
+        preparable
+          "SELECT recalc_bill_totals($1)"
+          (E.param (E.nonNullable E.int8))
+          (D.singleRow (D.column D.bool))
+  res <- use pool $ Session.statement billId stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+postBill :: Pool -> Int64 -> IO (QueryResult Bool)
+postBill pool billId = do
+  let stmt =
+        preparable
+          "SELECT post_bill($1)"
+          (E.param (E.nonNullable E.int8))
+          (D.singleRow D.bool)
+  res <- use pool $ Session.statement billId stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+cancelBill :: Pool -> Int64 -> IO (QueryResult Bool)
+cancelBill pool billId = do
+  let stmt =
+        preparable
+          "SELECT cancel_bill($1)"
+          (E.param (E.nonNullable E.int8))
+          (D.singleRow D.bool)
+  res <- use pool $ Session.statement billId stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+cancelBillWithReason :: Pool -> Int64 -> Text -> IO (QueryResult Bool)
+cancelBillWithReason pool billId reason = do
+  let stmt =
+        preparable
+          "SELECT cancel_bill($1, $2)"
+          ( (fst >$< E.param (E.nonNullable E.int8))
+              <> (snd >$< E.param (E.nonNullable E.text))
+          )
+          (D.singleRow D.bool)
+  res <- use pool $ Session.statement (billId, reason) stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+batchPostBills :: Pool -> [Int64] -> IO (QueryResult Int)
+batchPostBills pool billIds = do
+  let stmt =
+        preparable
+          "SELECT batch_post_bills($1)"
+          (E.param (E.nonNullable (E.array E.int8)))
+          (D.singleRow (fromIntegral <$> D.column D.int4))
+  res <- use pool $ Session.statement billIds stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- ============================================================================
+-- BILL LINE PROCEDURES
+-- ============================================================================
+
+createBillLine :: Pool -> Int64 -> Int64 -> Double -> Double -> Double -> Double -> Double -> Double -> IO (QueryResult Int64)
+createBillLine pool billId goodsId qty price discount vatRate vatAmount lineTotal = do
+  let stmt =
+        preparable
+          "SELECT create_bill_line($1, $2, $3, $4, $5, $6, $7, $8)"
+          ( ((\(a, _, _, _, _, _, _, _) -> a) >$< E.param (E.nonNullable E.int8))
+              <> ((\(_, b, _, _, _, _, _, _) -> b) >$< E.param (E.nonNullable E.int8))
+              <> ((\(_, _, c, _, _, _, _, _) -> c) >$< E.param (E.nonNullable E.float8))
+              <> ((\(_, _, _, d, _, _, _, _) -> d) >$< E.param (E.nonNullable E.float8))
+              <> ((\(_, _, _, _, e, _, _, _) -> e) >$< E.param (E.nonNullable E.float8))
+              <> ((\(_, _, _, _, _, f, _, _) -> f) >$< E.param (E.nonNullable E.float8))
+              <> ((\(_, _, _, _, _, _, g, _) -> g) >$< E.param (E.nonNullable E.float8))
+              <> ((\(_, _, _, _, _, _, _, h) -> h) >$< E.param (E.nonNullable E.float8))
+          )
+          (D.singleRow (D.column D.int8))
+  res <- use pool $ Session.statement (billId, goodsId, qty, price, discount, vatRate, vatAmount, lineTotal) stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- ============================================================================
+-- STOCK RESERVATION PROCEDURES
+-- ============================================================================
+
+reserveStock :: Pool -> Int64 -> IO (QueryResult Bool)
+reserveStock pool orderId = do
+  let stmt =
+        preparable
+          "SELECT reserve_stock($1)"
+          (E.param (E.nonNullable E.int8))
+          (D.singleRow D.bool)
+  res <- use pool $ Session.statement orderId stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+releaseStockReservation :: Pool -> Text -> Int64 -> IO (QueryResult Bool)
+releaseStockReservation pool sourceType sourceId = do
+  let stmt =
+        preparable
+          "SELECT release_stock_reservation($1, $2)"
+          ( (fst >$< E.param (E.nonNullable E.text))
+              <> (snd >$< E.param (E.nonNullable E.int8))
+          )
+          (D.singleRow D.bool)
+  res <- use pool $ Session.statement (sourceType, sourceId) stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+allocateStock :: Pool -> Int64 -> Int64 -> IO (QueryResult Bool)
+allocateStock pool orderId locationId = do
+  let stmt =
+        preparable
+          "SELECT allocate_stock($1, $2)"
+          ( (fst >$< E.param (E.nonNullable E.int8))
+              <> (snd >$< E.param (E.nonNullable E.int8))
+          )
+          (D.singleRow D.bool)
+  res <- use pool $ Session.statement (orderId, locationId) stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- ============================================================================
+-- ACCOUNTING PROCEDURES
+-- ============================================================================
+
+data TrialBalanceEntry = TrialBalanceEntry
+  { tbeAccountCode :: Text,
+    tbeAccountName :: Text,
+    tbeDebit :: Decimal,
+    tbeCredit :: Decimal
+  }
+
+trialBalanceDecoder :: D.Row TrialBalanceEntry
+trialBalanceDecoder =
+  TrialBalanceEntry
+    <$> D.column (D.nonNullable D.text)
+    <*> D.column (D.nonNullable D.text)
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+
+getTrialBalance :: Pool -> Day -> Day -> IO (QueryResult [TrialBalanceEntry])
+getTrialBalance pool dateFrom dateTo = do
+  let stmt =
+        preparable
+          "SELECT account_code, account_name, debit, credit FROM get_trial_balance($1, $2)"
+          ( (fst >$< E.param (E.nonNullable E.date))
+              <> (snd >$< E.param (E.nonNullable E.date))
+          )
+          (D.rowList trialBalanceDecoder)
+  res <- use pool $ Session.statement (dateFrom, dateTo) stmt
+  case res of
+    Right entries -> pure $ QuerySuccess entries
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+calcAccountBalance :: Pool -> Int64 -> Maybe Day -> IO (QueryResult Decimal)
+calcAccountBalance pool accId mAsOfDate = do
+  let stmt =
+        preparable
+          "SELECT calc_account_balance($1, $2)"
+          ( (fst >$< E.param (E.nonNullable E.int8))
+              <> (snd >$< E.param (E.nullable E.date))
+          )
+          (D.singleRow (Decimal . round <$> D.column (D.nonNullable D.numeric)))
+  res <- use pool $ Session.statement (accId, mAsOfDate) stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+validateDoubleEntry :: Pool -> Int64 -> IO (QueryResult Bool)
+validateDoubleEntry pool billId = do
+  let stmt =
+        preparable
+          "SELECT validate_double_entry($1)"
+          (E.param (E.nonNullable E.int8))
+          (D.singleRow D.bool)
+  res <- use pool $ Session.statement billId stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- ============================================================================
+-- REPORTING PROCEDURES
+-- ============================================================================
+
+data SalesReportEntry = SalesReportEntry
+  { sreDate :: Day,
+    sreSales :: Decimal,
+    sreCost :: Decimal,
+    sreProfit :: Decimal
+  }
+
+salesReportDecoder :: D.Row SalesReportEntry
+salesReportDecoder =
+  SalesReportEntry
+    <$> D.column (D.nonNullable D.date)
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+
+getSalesReport :: Pool -> Day -> Day -> IO (QueryResult [SalesReportEntry])
+getSalesReport pool dateFrom dateTo = do
+  let stmt =
+        preparable
+          "SELECT doc_date, sales, cost, profit FROM get_sales_report($1, $2)"
+          ( (fst >$< E.param (E.nonNullable E.date))
+              <> (snd >$< E.param (E.nonNullable E.date))
+          )
+          (D.rowList salesReportDecoder)
+  res <- use pool $ Session.statement (dateFrom, dateTo) stmt
+  case res of
+    Right entries -> pure $ QuerySuccess entries
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+data ProfitLossEntry = ProfitLossEntry
+  { pleAccountCode :: Text,
+    pleAccountName :: Text,
+    pleAmount :: Decimal
+  }
+
+profitLossDecoder :: D.Row ProfitLossEntry
+profitLossDecoder =
+  ProfitLossEntry
+    <$> D.column (D.nonNullable D.text)
+    <*> D.column (D.nonNullable D.text)
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+
+getProfitLoss :: Pool -> Day -> Day -> IO (QueryResult [ProfitLossEntry])
+getProfitLoss pool dateFrom dateTo = do
+  let stmt =
+        preparable
+          "SELECT account_code, account_name, amount FROM get_profit_loss($1, $2)"
+          ( (fst >$< E.param (E.nonNullable E.date))
+              <> (snd >$< E.param (E.nonNullable E.date))
+          )
+          (D.rowList profitLossDecoder)
+  res <- use pool $ Session.statement (dateFrom, dateTo) stmt
+  case res of
+    Right entries -> pure $ QuerySuccess entries
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- ============================================================================
+-- PAYROLL/HR PROCEDURES
+-- ============================================================================
+
+data PayrollSummaryEntry = PayrollSummaryEntry
+  { pseEmployeeId :: Int64,
+    pseEmployeeName :: Text,
+    psePositionName :: Text,
+    pseTotalSalary :: Decimal
+  }
+
+payrollSummaryDecoder :: D.Row PayrollSummaryEntry
+payrollSummaryDecoder =
+  PayrollSummaryEntry
+    <$> D.column (D.nonNullable D.int8)
+    <*> D.column (D.nonNullable D.text)
+    <*> D.column (D.nonNullable D.text)
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+
+hrPayrollSummary :: Pool -> Day -> Day -> IO (QueryResult [PayrollSummaryEntry])
+hrPayrollSummary pool periodStart periodEnd = do
+  let stmt =
+        preparable
+          "SELECT employee_id, employee_name, position_name, total_salary FROM hr_payroll_summary($1, $2)"
+          ( (fst >$< E.param (E.nonNullable E.date))
+              <> (snd >$< E.param (E.nonNullable E.date))
+          )
+          (D.rowList payrollSummaryDecoder)
+  res <- use pool $ Session.statement (periodStart, periodEnd) stmt
+  case res of
+    Right entries -> pure $ QuerySuccess entries
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+calcSalarySum :: Pool -> Int64 -> Int64 -> Day -> Day -> IO (QueryResult Decimal)
+calcSalarySum pool employeeId chargeId periodStart periodEnd = do
+  let stmt =
+        preparable
+          "SELECT calc_salary_sum($1, $2, $3, $4)"
+          ( ((\(a, _, _, _) -> a) >$< E.param (E.nonNullable E.int8))
+              <> ((\(_, b, _, _) -> b) >$< E.param (E.nonNullable E.int8))
+              <> ((\(_, _, c, _) -> c) >$< E.param (E.nonNullable E.date))
+              <> ((\(_, _, _, d) -> d) >$< E.param (E.nonNullable E.date))
+          )
+          (D.singleRow (Decimal . round <$> D.column (D.nonNullable D.numeric)))
+  res <- use pool $ Session.statement (employeeId, chargeId, periodStart, periodEnd) stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+createSalaryRecord :: Pool -> Int64 -> Int64 -> Day -> Day -> Double -> IO (QueryResult Int64)
+createSalaryRecord pool employeeId chargeId periodStart periodEnd amount = do
+  let stmt =
+        preparable
+          "SELECT create_salary_record($1, $2, $3, $4, $5, 0, 0, 0)"
+          ( ((\(a, _, _, _, _) -> a) >$< E.param (E.nonNullable E.int8))
+              <> ((\(_, b, _, _, _) -> b) >$< E.param (E.nonNullable E.int8))
+              <> ((\(_, _, c, _, _) -> c) >$< E.param (E.nonNullable E.date))
+              <> ((\(_, _, _, d, _) -> d) >$< E.param (E.nonNullable E.date))
+              <> ((\(_, _, _, _, e) -> e) >$< E.param (E.nonNullable E.float8))
+          )
+          (D.singleRow (D.column D.int8))
+  res <- use pool $ Session.statement (employeeId, chargeId, periodStart, periodEnd, fromDouble amount) stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- ============================================================================
+-- CURRENCY PROCEDURES
+-- ============================================================================
+
+convertCurrency :: Pool -> Double -> Int64 -> Int64 -> IO (QueryResult Double)
+convertCurrency pool amount fromCurrencyId toCurrencyId = do
+  let stmt =
+        preparable
+          "SELECT convert_currency($1, $2, $3)"
+          ( ((\(a, _, _) -> a) >$< E.param (E.nonNullable E.float8))
+              <> ((\(_, b, _) -> b) >$< E.param (E.nonNullable E.int8))
+              <> ((\(_, _, c) -> c) >$< E.param (E.nonNullable E.int8))
+          )
+          (D.singleRow (realToFrac <$> D.column (D.nonNullable D.numeric)))
+  res <- use pool $ Session.statement (amount, fromCurrencyId, toCurrencyId) stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+getAvgExchangeRate :: Pool -> Int64 -> Int64 -> Day -> Day -> IO (QueryResult Double)
+getAvgExchangeRate pool fromCurrencyId toCurrencyId dateFrom dateTo = do
+  let stmt =
+        preparable
+          "SELECT get_avg_exchange_rate($1, $2, $3, $4)"
+          ( ((\(a, _, _, _) -> a) >$< E.param (E.nonNullable E.int8))
+              <> ((\(_, b, _, _) -> b) >$< E.param (E.nonNullable E.int8))
+              <> ((\(_, _, c, _) -> c) >$< E.param (E.nonNullable E.date))
+              <> ((\(_, _, _, d) -> d) >$< E.param (E.nonNullable E.date))
+          )
+          (D.singleRow (realToFrac <$> D.column (D.nonNullable D.numeric)))
+  res <- use pool $ Session.statement (fromCurrencyId, toCurrencyId, dateFrom, dateTo) stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- ============================================================================
+-- VALIDATION PROCEDURES
+-- ============================================================================
+
+validateINN :: Pool -> Text -> IO (QueryResult Bool)
+validateINN pool inn = do
+  let stmt =
+        preparable
+          "SELECT validate_inn($1)"
+          (E.param (E.nonNullable E.text))
+          (D.singleRow D.bool)
+  res <- use pool $ Session.statement inn stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+validateBillTotals :: Pool -> Int64 -> IO (QueryResult Bool)
+validateBillTotals pool billId = do
+  let stmt =
+        preparable
+          "SELECT validate_bill_totals($1)"
+          (E.param (E.nonNullable E.int8))
+          (D.singleRow D.bool)
+  res <- use pool $ Session.statement billId stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- ============================================================================
+-- DISCOUNT PROCEDURES
+-- ============================================================================
+
+applyDiscount :: Pool -> Double -> Double -> IO (QueryResult Double)
+applyDiscount pool price discountPercent = do
+  let stmt =
+        preparable
+          "SELECT apply_discount($1, $2)"
+          ( (fst >$< E.param (E.nonNullable E.float8))
+              <> (snd >$< E.param (E.nonNullable E.float8))
+          )
+          (D.singleRow (realToFrac <$> D.column (D.nonNullable D.numeric)))
+  res <- use pool $ Session.statement (price, discountPercent) stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- ============================================================================
+-- DOCUMENT NUMBERING
+-- ============================================================================
+
+generateDocNumber :: Pool -> Text -> Maybe Day -> IO (QueryResult Text)
+generateDocNumber pool docType mDate = do
+  let stmt =
+        preparable
+          "SELECT generate_doc_number($1, $2)"
+          ( (fst >$< E.param (E.nonNullable E.text))
+              <> (snd >$< E.param (E.nullable E.date))
+          )
+          (D.singleRow (D.column D.text))
+  res <- use pool $ Session.statement (docType, mDate) stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- ============================================================================
+-- UTILITY PROCEDURES
+-- ============================================================================
+
+batchUpdatePrices :: Pool -> Text -> IO (QueryResult Int)
+batchUpdatePrices pool updatesJson = do
+  let stmt =
+        preparable
+          "SELECT batch_update_prices($1::jsonb)"
+          (E.param (E.nonNullable E.text))
+          (D.singleRow (fromIntegral <$> D.column D.int4))
+  res <- use pool $ Session.statement updatesJson stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+vacuumAnalyzeAll :: Pool -> IO (QueryResult Bool)
+vacuumAnalyzeAll pool = do
+  let stmt =
+        preparable
+          "SELECT vacuum_analyze_all()"
+          E.noParams
+          (D.singleRow D.bool)
+  res <- use pool $ Session.statement () stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+reindexAll :: Pool -> IO (QueryResult Bool)
+reindexAll pool = do
+  let stmt =
+        preparable
+          "SELECT reindex_all()"
+          E.noParams
+          (D.singleRow D.bool)
+  res <- use pool $ Session.statement () stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- ============================================================================
+-- PRODUCTION/MRP PROCEDURES
+-- ============================================================================
+
+calcMaterialRequirements :: Pool -> Int64 -> IO (QueryResult Int)
+calcMaterialRequirements pool workOrderId = do
+  let stmt =
+        preparable
+          "SELECT calc_material_requirements($1)"
+          (E.param (E.nonNullable E.int8))
+          (D.singleRow (fromIntegral <$> D.column D.int4))
+  res <- use pool $ Session.statement workOrderId stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+canStartProduction :: Pool -> Int64 -> IO (QueryResult Bool)
+canStartProduction pool workOrderId = do
+  let stmt =
+        preparable
+          "SELECT can_start_production($1)"
+          (E.param (E.nonNullable E.int8))
+          (D.singleRow D.bool)
+  res <- use pool $ Session.statement workOrderId stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+calcProductionCost :: Pool -> Int64 -> IO (QueryResult Decimal)
+calcProductionCost pool workOrderId = do
+  let stmt =
+        preparable
+          "SELECT calc_production_cost($1)"
+          (E.param (E.nonNullable E.int8))
+          (D.singleRow (Decimal . round <$> D.column (D.nonNullable D.numeric)))
+  res <- use pool $ Session.statement workOrderId stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- ============================================================================
+-- QUALITY CONTROL PROCEDURES
+-- ============================================================================
+
+recordQCInspection :: Pool -> Int64 -> Int64 -> Int64 -> Double -> Double -> Text -> IO (QueryResult Int64)
+recordQCInspection pool workOrderId goodsId employeeId defectCount sampleSize notes = do
+  let stmt =
+        preparable
+          "SELECT record_qc_inspection($1, $2, $3, $4, $5, $6)"
+          ( ((\(a, _, _, _, _, _) -> a) >$< E.param (E.nonNullable E.int8))
+              <> ((\(_, b, _, _, _, _) -> b) >$< E.param (E.nonNullable E.int8))
+              <> ((\(_, _, c, _, _, _) -> c) >$< E.param (E.nonNullable E.int8))
+              <> ((\(_, _, _, d, _, _) -> d) >$< E.param (E.nonNullable E.float8))
+              <> ((\(_, _, _, _, e, _) -> e) >$< E.param (E.nonNullable E.float8))
+              <> ((\(_, _, _, _, _, f) -> f) >$< E.param (E.nonNullable E.text))
+          )
+          (D.singleRow (D.column D.int8))
+  res <- use pool $ Session.statement (workOrderId, goodsId, employeeId, defectCount, sampleSize, notes) stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+calcDefectRate :: Pool -> Int64 -> IO (QueryResult Double)
+calcDefectRate pool workOrderId = do
+  let stmt =
+        preparable
+          "SELECT calc_defect_rate($1)"
+          (E.param (E.nonNullable E.int8))
+          (D.singleRow (realToFrac <$> D.column (D.nonNullable D.numeric)))
+  res <- use pool $ Session.statement workOrderId stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- ============================================================================
+-- BUDGET PROCEDURES
+-- ============================================================================
+
+createBudget :: Pool -> Int64 -> Text -> Day -> Day -> Double -> IO (QueryResult Int64)
+createBudget pool departmentId name startDate endDate amount = do
+  let stmt =
+        preparable
+          "SELECT create_budget($1, $2, $3, $4, $5)"
+          ( ((\(a, _, _, _, _) -> a) >$< E.param (E.nonNullable E.int8))
+              <> ((\(_, b, _, _, _) -> b) >$< E.param (E.nonNullable E.text))
+              <> ((\(_, _, c, _, _) -> c) >$< E.param (E.nonNullable E.date))
+              <> ((\(_, _, _, d, _) -> d) >$< E.param (E.nonNullable E.date))
+              <> ((\(_, _, _, _, e) -> e) >$< E.param (E.nonNullable E.float8))
+          )
+          (D.singleRow (D.column D.int8))
+  res <- use pool $ Session.statement (departmentId, name, startDate, endDate, amount) stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- ============================================================================
+-- BANKING PROCEDURES
+-- ============================================================================
+
+matchBankTransactions :: Pool -> Text -> IO (QueryResult Int)
+matchBankTransactions pool bankStatementJson = do
+  let stmt =
+        preparable
+          "SELECT match_bank_transactions($1::jsonb)"
+          (E.param (E.nonNullable E.text))
+          (D.singleRow (fromIntegral <$> D.column D.int4))
+  res <- use pool $ Session.statement bankStatementJson stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+calcBankBalance :: Pool -> Int64 -> IO (QueryResult Decimal)
+calcBankBalance pool bankAccountId = do
+  let stmt =
+        preparable
+          "SELECT calc_bank_balance($1)"
+          (E.param (E.nonNullable E.int8))
+          (D.singleRow (Decimal . round <$> D.column (D.nonNullable D.numeric)))
+  res <- use pool $ Session.statement bankAccountId stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- ============================================================================
+-- GOODS CRUD PROCEDURES (sp_goods_*)
+-- ============================================================================
+
+goodsSpDecoder :: D.Row Goods
+goodsSpDecoder =
+  Goods
+    <$> D.column (D.nonNullable D.int8)
+    <*> D.column (D.nullable D.text)
+    <*> D.column (D.nonNullable D.text)
+    <*> D.column (D.nullable D.text)
+    <*> D.column (D.nonNullable D.int8)
+    <*> D.column (D.nullable D.int8)
+
+spGoodsCreate :: Pool -> Maybe Text -> Text -> Maybe Text -> Int64 -> Maybe Int64 -> IO (QueryResult Int64)
+spGoodsCreate pool mCode name barcode unitId mParentId = do
+  let stmt =
+        preparable
+          "SELECT sp_goods_create($1, $2, $3, $4, $5)"
+          ( ((\(a, _, _, _, _) -> a) >$< E.param (E.nullable E.text))
+              <> ((\(_, b, _, _, _) -> b) >$< E.param (E.nonNullable E.text))
+              <> ((\(_, _, c, _, _) -> c) >$< E.param (E.nullable E.text))
+              <> ((\(_, _, _, d, _) -> d) >$< E.param (E.nonNullable E.int8))
+              <> ((\(_, _, _, _, e) -> e) >$< E.param (E.nullable E.int8))
+          )
+          (D.singleRow (D.column D.int8))
+  res <- use pool $ Session.statement (mCode, name, barcode, unitId, mParentId) stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+spGoodsRead :: Pool -> Int64 -> IO (QueryResult Goods)
+spGoodsRead pool goodsId = do
+  let stmt =
+        preparable
+          "SELECT id, code, name, barcode, unit_id, parent_id FROM sp_goods_read($1)"
+          (E.param (E.nonNullable E.int8))
+          (D.rowMaybe goodsSpDecoder)
+  res <- use pool $ Session.statement goodsId stmt
+  case res of
+    Right (Just g) -> pure $ QuerySuccess g
+    Right Nothing -> pure $ QueryError "Goods not found"
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+spGoodsUpdate :: Pool -> Int64 -> Maybe Text -> Text -> Maybe Text -> Int64 -> Maybe Int64 -> IO (QueryResult Int64)
+spGoodsUpdate pool goodsId mCode name barcode unitId mParentId = do
+  let stmt =
+        preparable
+          "SELECT sp_goods_update($1, $2, $3, $4, $5, $6)"
+          ( ((\(a, _, _, _, _, _) -> a) >$< E.param (E.nonNullable E.int8))
+              <> ((\(_, b, _, _, _, _) -> b) >$< E.param (E.nullable E.text))
+              <> ((\(_, _, c, _, _, _) -> c) >$< E.param (E.nonNullable E.text))
+              <> ((\(_, _, _, d, _, _) -> d) >$< E.param (E.nullable E.text))
+              <> ((\(_, _, _, _, e, _) -> e) >$< E.param (E.nonNullable E.int8))
+              <> ((\(_, _, _, _, _, f) -> f) >$< E.param (E.nullable E.int8))
+          )
+          (D.singleRow (D.column D.int8))
+  res <- use pool $ Session.statement (goodsId, mCode, name, barcode, unitId, mParentId) stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+spGoodsDelete :: Pool -> Int64 -> IO (QueryResult Int64)
+spGoodsDelete pool goodsId = do
+  let stmt =
+        preparable
+          "SELECT sp_goods_delete($1)"
+          (E.param (E.nonNullable E.int8))
+          (D.singleRow (D.column D.int8))
+  res <- use pool $ Session.statement goodsId stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- | List goods with pagination using stored procedure
+data GoodsListResult = GoodsListResult
+  { glrItems :: [Goods],
+    glrTotal :: Int64
+  }
+
+goodsListResultDecoder :: D.Row GoodsListResult
+goodsListResultDecoder =
+  GoodsListResult
+    <$> (D.rowList goodsSpDecoder)
+    <*> D.column (D.nonNullable D.int8)
+
+spGoodsList :: Pool -> Maybe Text -> Maybe Text -> Maybe Text -> Maybe Text -> Bool -> Int -> Int -> IO (QueryResult GoodsListResult)
+spGoodsList pool mNameFilter mBarcodeFilter mCodeFilter mSortBy sortDesc limit offset = do
+  let stmt =
+        preparable
+          "SELECT id, code, name, barcode, unit_id, parent_id FROM sp_goods_list($1, $2, $3, $4, $5, $6, $7, $8)"
+          ( ((\(a, _, _, _, _, _, _, _) -> a) >$< E.param (E.nullable E.text))
+              <> ((\(_, b, _, _, _, _, _, _) -> b) >$< E.param (E.nullable E.text))
+              <> ((\(_, _, c, _, _, _, _, _) -> c) >$< E.param (E.nullable E.text))
+              <> ((\(_, _, _, d, _, _, _, _) -> d) >$< E.param (E.nullable E.text))
+              <> ((\(_, _, _, _, e, _, _, _) -> e) >$< E.param (E.nonNullable E.bool))
+              <> ((\(_, _, _, _, _, f, _, _) -> f) >$< E.param (E.nonNullable E.int4))
+              <> ((\(_, _, _, _, _, _, g, _) -> g) >$< E.param (E.nonNullable E.int4))
+              <> ((\(_, _, _, _, _, _, _, h) -> h) >$< E.param (E.nonNullable E.int4))
+          )
+          (D.rowMaybe goodsListResultDecoder)
+  res <- use pool $ Session.statement (mNameFilter, mBarcodeFilter, mCodeFilter, mSortBy, sortDesc, limit, offset) stmt
+  case res of
+    Right (Just r) -> pure $ QuerySuccess r
+    Right Nothing -> pure $ QuerySuccess (GoodsListResult [] 0)
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- ============================================================================
+-- PERSON CRUD PROCEDURES (sp_person_*)
+-- ============================================================================
+
+personSpDecoder :: D.Row Person
+personSpDecoder =
+  Person
+    <$> D.column (D.nonNullable D.int8)
+    <*> D.column (D.nullable D.text)
+    <*> D.column (D.nonNullable D.text)
+    <*> D.column (D.nullable D.text)
+    <*> D.column (D.nullable D.text)
+    <*> D.column (D.nonNullable D.int2)
+    <*> D.column (D.nonNullable D.int2)
+
+spPersonCreate :: Pool -> Maybe Text -> Text -> Maybe Text -> Maybe Text -> Int16 -> Int16 -> IO (QueryResult Int64)
+spPersonCreate pool mCode name mINN mKPP personType status = do
+  let stmt =
+        preparable
+          "SELECT sp_person_create($1, $2, $3, $4, $5, $6)"
+          ( ((\(a, _, _, _, _, _) -> a) >$< E.param (E.nullable E.text))
+              <> ((\(_, b, _, _, _, _) -> b) >$< E.param (E.nonNullable E.text))
+              <> ((\(_, _, c, _, _, _) -> c) >$< E.param (E.nullable E.text))
+              <> ((\(_, _, _, d, _, _) -> d) >$< E.param (E.nullable E.text))
+              <> ((\(_, _, _, _, e, _) -> e) >$< E.param (E.nonNullable E.int2))
+              <> ((\(_, _, _, _, _, f) -> f) >$< E.param (E.nonNullable E.int2))
+          )
+          (D.singleRow (D.column D.int8))
+  res <- use pool $ Session.statement (mCode, name, mINN, mKPP, personType, status) stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+spPersonRead :: Pool -> Int64 -> IO (QueryResult Person)
+spPersonRead pool personId = do
+  let stmt =
+        preparable
+          "SELECT id, code, name, inn, kpp, person_type, status FROM sp_person_read($1)"
+          (E.param (E.nonNullable E.int8))
+          (D.rowMaybe personSpDecoder)
+  res <- use pool $ Session.statement personId stmt
+  case res of
+    Right (Just p) -> pure $ QuerySuccess p
+    Right Nothing -> pure $ QueryError "Person not found"
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+spPersonUpdate :: Pool -> Int64 -> Maybe Text -> Text -> Maybe Text -> Maybe Text -> Int16 -> Int16 -> IO (QueryResult Int64)
+spPersonUpdate pool personId mCode name mINN mKPP personType status = do
+  let stmt =
+        preparable
+          "SELECT sp_person_update($1, $2, $3, $4, $5, $6, $7)"
+          ( ((\(a, _, _, _, _, _, _) -> a) >$< E.param (E.nonNullable E.int8))
+              <> ((\(_, b, _, _, _, _, _) -> b) >$< E.param (E.nullable E.text))
+              <> ((\(_, _, c, _, _, _, _) -> c) >$< E.param (E.nonNullable E.text))
+              <> ((\(_, _, _, d, _, _, _) -> d) >$< E.param (E.nullable E.text))
+              <> ((\(_, _, _, _, e, _, _) -> e) >$< E.param (E.nullable E.text))
+              <> ((\(_, _, _, _, _, f, _) -> f) >$< E.param (E.nonNullable E.int2))
+              <> ((\(_, _, _, _, _, _, g) -> g) >$< E.param (E.nonNullable E.int2))
+          )
+          (D.singleRow (D.column D.int8))
+  res <- use pool $ Session.statement (personId, mCode, name, mINN, mKPP, personType, status) stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+spPersonDelete :: Pool -> Int64 -> IO (QueryResult Int64)
+spPersonDelete pool personId = do
+  let stmt =
+        preparable
+          "SELECT sp_person_delete($1)"
+          (E.param (E.nonNullable E.int8))
+          (D.singleRow (D.column D.int8))
+  res <- use pool $ Session.statement personId stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- ============================================================================
+-- BILL CRUD PROCEDURES (sp_bill_*)
+-- ============================================================================
+
+billSpDecoder :: D.Row Bill
+billSpDecoder =
+  Bill
+    <$> D.column (D.nonNullable D.int8)
+    <*> D.column (D.nullable D.text)
+    <*> (fromIntegral <$> D.column (D.nonNullable D.int2))
+    <*> (fromIntegral <$> D.column (D.nonNullable D.int2))
+    <*> D.column (D.nonNullable D.date)
+    <*> D.column (D.nullable D.int8)
+    <*> D.column (D.nullable D.int8)
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+
+spBillCreate :: Pool -> Maybe Text -> Int16 -> Int16 -> Day -> Maybe Int64 -> Maybe Int64 -> Double -> Double -> Double -> IO (QueryResult Int64)
+spBillCreate pool mCode billType status date personId locationId total discount tax = do
+  let stmt =
+        preparable
+          "SELECT sp_bill_create($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)"
+          ( ((\(a, _, _, _, _, _, _, _, _) -> a) >$< E.param (E.nullable E.text))
+              <> ((\(_, b, _, _, _, _, _, _, _) -> b) >$< E.param (E.nonNullable E.int2))
+              <> ((\(_, _, c, _, _, _, _, _, _) -> c) >$< E.param (E.nonNullable E.int2))
+              <> ((\(_, _, _, d, _, _, _, _, _) -> d) >$< E.param (E.nonNullable E.date))
+              <> ((\(_, _, _, _, e, _, _, _, _) -> e) >$< E.param (E.nullable E.int8))
+              <> ((\(_, _, _, _, _, f, _, _, _) -> f) >$< E.param (E.nullable E.int8))
+              <> ((\(_, _, _, _, _, _, g, _, _) -> g) >$< E.param (E.nonNullable E.float8))
+              <> ((\(_, _, _, _, _, _, _, h, _) -> h) >$< E.param (E.nonNullable E.float8))
+              <> ((\(_, _, _, _, _, _, _, _, i) -> i) >$< E.param (E.nonNullable E.float8))
+          )
+          (D.singleRow (D.column D.int8))
+  res <- use pool $ Session.statement (mCode, billType, status, date, personId, locationId, total, discount, tax) stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+spBillRead :: Pool -> Int64 -> IO (QueryResult Bill)
+spBillRead pool billId = do
+  let stmt =
+        preparable
+          "SELECT id, code, bill_type, doc_status, doc_date, person_id, location_id, total, discount_amount, tax_amount FROM sp_bill_read($1)"
+          (E.param (E.nonNullable E.int8))
+          (D.rowMaybe billSpDecoder)
+  res <- use pool $ Session.statement billId stmt
+  case res of
+    Right (Just b) -> pure $ QuerySuccess b
+    Right Nothing -> pure $ QueryError "Bill not found"
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+spBillUpdate :: Pool -> Int64 -> Maybe Text -> Int16 -> Int16 -> Day -> Maybe Int64 -> Maybe Int64 -> Double -> Double -> Double -> IO (QueryResult Int64)
+spBillUpdate pool billId mCode billType status date personId locationId total discount tax = do
+  let stmt =
+        preparable
+          "SELECT sp_bill_update($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)"
+          ( ((\(a, _, _, _, _, _, _, _, _) -> a) >$< E.param (E.nonNullable E.int8))
+              <> ((\(_, b, _, _, _, _, _, _, _) -> b) >$< E.param (E.nullable E.text))
+              <> ((\(_, _, c, _, _, _, _, _, _) -> c) >$< E.param (E.nonNullable E.int2))
+              <> ((\(_, _, _, d, _, _, _, _, _) -> d) >$< E.param (E.nonNullable E.int2))
+              <> ((\(_, _, _, _, e, _, _, _, _) -> e) >$< E.param (E.nonNullable E.date))
+              <> ((\(_, _, _, _, _, f, _, _, _) -> f) >$< E.param (E.nullable E.int8))
+              <> ((\(_, _, _, _, _, _, g, _, _) -> g) >$< E.param (E.nullable E.int8))
+              <> ((\(_, _, _, _, _, _, _, h, _) -> h) >$< E.param (E.nonNullable E.float8))
+              <> ((\(_, _, _, _, _, _, _, _, i) -> i) >$< E.param (E.nonNullable E.float8))
+              <> ((\(_, _, _, _, _, _, _, _, _) -> tax) >$< E.param (E.nonNullable E.float8))
+          )
+          (D.singleRow (D.column D.int8))
+  res <- use pool $ Session.statement (billId, mCode, billType, status, date, personId, locationId, total, discount, tax) stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+spBillDelete :: Pool -> Int64 -> IO (QueryResult Int64)
+spBillDelete pool billId = do
+  let stmt =
+        preparable
+          "SELECT sp_bill_delete($1)"
+          (E.param (E.nonNullable E.int8))
+          (D.singleRow (D.column D.int8))
+  res <- use pool $ Session.statement billId stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+spBillUpdateStatus :: Pool -> Int64 -> Int16 -> IO (QueryResult Bool)
+spBillUpdateStatus pool billId status = do
+  let stmt =
+        preparable
+          "SELECT sp_bill_update_status($1, $2)"
+          ( (fst >$< E.param (E.nonNullable E.int8))
+              <> (snd >$< E.param (E.nonNullable E.int2))
+          )
+          (D.singleRow D.bool)
+  res <- use pool $ Session.statement (billId, status) stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+spBillPost :: Pool -> Int64 -> IO (QueryResult Bool)
+spBillPost pool billId = do
+  let stmt =
+        preparable
+          "SELECT sp_bill_post($1)"
+          (E.param (E.nonNullable E.int8))
+          (D.singleRow D.bool)
+  res <- use pool $ Session.statement billId stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- ============================================================================
+-- BILL LINE PROCEDURES
+-- ============================================================================
+
+billLineSpDecoder :: D.Row BillLine
+billLineSpDecoder =
+  BillLine
+    <$> D.column (D.nonNullable D.int8)
+    <*> D.column (D.nonNullable D.int8)
+    <*> D.column (D.nonNullable D.int8)
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+
+spBillLineCreate :: Pool -> Int64 -> Int64 -> Double -> Double -> Double -> Double -> Double -> IO (QueryResult Int64)
+spBillLineCreate pool billId goodsId qty price discount vatRate amount = do
+  let stmt =
+        preparable
+          "SELECT sp_bill_line_create($1, $2, $3, $4, $5, $6, $7)"
+          ( ((\(a, _, _, _, _, _, _) -> a) >$< E.param (E.nonNullable E.int8))
+              <> ((\(_, b, _, _, _, _, _) -> b) >$< E.param (E.nonNullable E.int8))
+              <> ((\(_, _, c, _, _, _, _) -> c) >$< E.param (E.nonNullable E.float8))
+              <> ((\(_, _, _, d, _, _, _) -> d) >$< E.param (E.nonNullable E.float8))
+              <> ((\(_, _, _, _, e, _, _) -> e) >$< E.param (E.nonNullable E.float8))
+              <> ((\(_, _, _, _, _, f, _) -> f) >$< E.param (E.nonNullable E.float8))
+              <> ((\(_, _, _, _, _, _, g) -> g) >$< E.param (E.nonNullable E.float8))
+          )
+          (D.singleRow (D.column D.int8))
+  res <- use pool $ Session.statement (billId, goodsId, qty, price, discount, vatRate, amount) stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+spBillLineRead :: Pool -> Int64 -> IO (QueryResult BillLine)
+spBillLineRead pool lineId = do
+  let stmt =
+        preparable
+          "SELECT id, bill_id, goods_id, qtty, price, discount_amount, amount FROM sp_bill_line_read($1)"
+          (E.param (E.nonNullable E.int8))
+          (D.rowMaybe billLineSpDecoder)
+  res <- use pool $ Session.statement lineId stmt
+  case res of
+    Right (Just l) -> pure $ QuerySuccess l
+    Right Nothing -> pure $ QueryError "Bill line not found"
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+spBillLinesByBill :: Pool -> Int64 -> IO (QueryResult [BillLine])
+spBillLinesByBill pool billId = do
+  let stmt =
+        preparable
+          "SELECT id, bill_id, goods_id, qtty, price, discount_amount, amount FROM sp_bill_lines_by_bill($1)"
+          (E.param (E.nonNullable E.int8))
+          (D.rowList billLineSpDecoder)
+  res <- use pool $ Session.statement billId stmt
+  case res of
+    Right lines -> pure $ QuerySuccess lines
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- ============================================================================
+-- LOCATION CRUD PROCEDURES (sp_location_*)
+-- ============================================================================
+
+locationSpDecoder :: D.Row Location
+locationSpDecoder =
+  Location
+    <$> D.column (D.nonNullable D.int8)
+    <*> D.column (D.nullable D.text)
+    <*> D.column (D.nonNullable D.text)
+    <*> (fromIntegral <$> D.column (D.nonNullable D.int2))
+
+spLocationCreate :: Pool -> Maybe Text -> Text -> Int16 -> IO (QueryResult Int64)
+spLocationCreate pool mCode name locationType = do
+  let stmt =
+        preparable
+          "SELECT sp_location_create($1, $2, $3)"
+          ( ((\(a, _, _) -> a) >$< E.param (E.nullable E.text))
+              <> ((\(_, b, _) -> b) >$< E.param (E.nonNullable E.text))
+              <> ((\(_, _, c) -> c) >$< E.param (E.nonNullable E.int2))
+          )
+          (D.singleRow (D.column D.int8))
+  res <- use pool $ Session.statement (mCode, name, locationType) stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+spLocationRead :: Pool -> Int64 -> IO (QueryResult Location)
+spLocationRead pool locationId = do
+  let stmt =
+        preparable
+          "SELECT id, code, name, location_type FROM sp_location_read($1)"
+          (E.param (E.nonNullable E.int8))
+          (D.rowMaybe locationSpDecoder)
+  res <- use pool $ Session.statement locationId stmt
+  case res of
+    Right (Just l) -> pure $ QuerySuccess l
+    Right Nothing -> pure $ QueryError "Location not found"
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+spLocationUpdate :: Pool -> Int64 -> Maybe Text -> Text -> Int16 -> IO (QueryResult Int64)
+spLocationUpdate pool locationId mCode name locationType = do
+  let stmt =
+        preparable
+          "SELECT sp_location_update($1, $2, $3, $4)"
+          ( ((\(a, _, _, _) -> a) >$< E.param (E.nonNullable E.int8))
+              <> ((\(_, b, _, _) -> b) >$< E.param (E.nullable E.text))
+              <> ((\(_, _, c, _) -> c) >$< E.param (E.nonNullable E.text))
+              <> ((\(_, _, _, d) -> d) >$< E.param (E.nonNullable E.int2))
+          )
+          (D.singleRow (D.column D.int8))
+  res <- use pool $ Session.statement (locationId, mCode, name, locationType) stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+spLocationDelete :: Pool -> Int64 -> IO (QueryResult Int64)
+spLocationDelete pool locationId = do
+  let stmt =
+        preparable
+          "SELECT sp_location_delete($1)"
+          (E.param (E.nonNullable E.int8))
+          (D.singleRow (D.column D.int8))
+  res <- use pool $ Session.statement locationId stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+spLocationList :: Pool -> IO (QueryResult [Location])
+spLocationList pool = do
+  let stmt =
+        preparable
+          "SELECT id, code, name, location_type FROM sp_location_list()"
+          E.noParams
+          (D.rowList locationSpDecoder)
+  res <- use pool $ Session.statement () stmt
+  case res of
+    Right locations -> pure $ QuerySuccess locations
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- ============================================================================
+-- STOCK PROCEDURES (sp_stock_*)
+-- ============================================================================
+
+stockSpDecoder :: D.Row Stock
+stockSpDecoder =
+  Stock
+    <$> D.column (D.nonNullable D.int8)
+    <*> D.column (D.nonNullable D.int8)
+    <*> D.column (D.nonNullable D.int8)
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+
+spStockRead :: Pool -> Int64 -> Int64 -> IO (QueryResult Stock)
+spStockRead pool goodsId locationId = do
+  let stmt =
+        preparable
+          "SELECT id, goods_id, location_id, qtty, resrv_qtty FROM sp_stock_read($1, $2)"
+          ( (fst >$< E.param (E.nonNullable E.int8))
+              <> (snd >$< E.param (E.nonNullable E.int8))
+          )
+          (D.rowMaybe stockSpDecoder)
+  res <- use pool $ Session.statement (goodsId, locationId) stmt
+  case res of
+    Right (Just s) -> pure $ QuerySuccess s
+    Right Nothing -> pure $ QueryError "Stock not found"
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+spStockUpdate :: Pool -> Int64 -> Int64 -> Double -> Double -> IO (QueryResult Int64)
+spStockUpdate pool goodsId locationId qty resrvQty = do
+  let stmt =
+        preparable
+          "SELECT sp_stock_update($1, $2, $3, $4)"
+          ( ((\(a, _, _, _) -> a) >$< E.param (E.nonNullable E.int8))
+              <> ((\(_, b, _, _) -> b) >$< E.param (E.nonNullable E.int8))
+              <> ((\(_, _, c, _) -> c) >$< E.param (E.nonNullable E.float8))
+              <> ((\(_, _, _, d) -> d) >$< E.param (E.nonNullable E.float8))
+          )
+          (D.singleRow (D.column D.int8))
+  res <- use pool $ Session.statement (goodsId, locationId, qty, resrvQty) stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+spStockReserve :: Pool -> Int64 -> Int64 -> Double -> IO (QueryResult Int64)
+spStockReserve pool goodsId locationId qty = do
+  let stmt =
+        preparable
+          "SELECT sp_stock_reserve($1, $2, $3)"
+          ( ((\(a, _, _) -> a) >$< E.param (E.nonNullable E.int8))
+              <> ((\(_, b, _) -> b) >$< E.param (E.nonNullable E.int8))
+              <> ((\(_, _, c) -> c) >$< E.param (E.nonNullable E.float8))
+          )
+          (D.singleRow (D.column D.int8))
+  res <- use pool $ Session.statement (goodsId, locationId, qty) stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+spStockRelease :: Pool -> Int64 -> Int64 -> Double -> IO (QueryResult Int64)
+spStockRelease pool goodsId locationId qty = do
+  let stmt =
+        preparable
+          "SELECT sp_stock_release($1, $2, $3)"
+          ( ((\(a, _, _) -> a) >$< E.param (E.nonNullable E.int8))
+              <> ((\(_, b, _) -> b) >$< E.param (E.nonNullable E.int8))
+              <> ((\(_, _, c) -> c) >$< E.param (E.nonNullable E.float8))
+          )
+          (D.singleRow (D.column D.int8))
+  res <- use pool $ Session.statement (goodsId, locationId, qty) stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+spStockList :: Pool -> Maybe Int64 -> IO (QueryResult [Stock])
+spStockList pool mLocationId = do
+  let stmt =
+        preparable
+          "SELECT id, goods_id, location_id, qtty, resrv_qtty FROM sp_stock_list($1)"
+          (E.param (E.nullable E.int8))
+          (D.rowList stockSpDecoder)
+  res <- use pool $ Session.statement mLocationId stmt
+  case res of
+    Right stocks -> pure $ QuerySuccess stocks
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- ============================================================================
+-- ORDER PROCEDURES (sp_order_*)
+-- ============================================================================
+
+orderSpDecoder :: D.Row Order
+orderSpDecoder =
+  Order
+    <$> D.column (D.nonNullable D.int8)
+    <*> D.column (D.nullable D.text)
+    <*> D.column (D.nullable D.text)
+    <*> D.column (D.nonNullable D.date)
+    <*> D.column (D.nullable D.int8)
+    <*> D.column (D.nullable D.int8)
+    <*> (fromIntegral <$> D.column (D.nonNullable D.int2))
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+
+spOrderCreate :: Pool -> Maybe Text -> Maybe Text -> Day -> Maybe Int64 -> Maybe Int64 -> Int16 -> Double -> Double -> Double -> IO (QueryResult Int64)
+spOrderCreate pool mCode mName date personId locationId status total discount tax = do
+  let stmt =
+        preparable
+          "SELECT sp_order_create($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)"
+          ( ((\(a, _, _, _, _, _, _, _, _) -> a) >$< E.param (E.nullable E.text))
+              <> ((\(_, b, _, _, _, _, _, _, _) -> b) >$< E.param (E.nullable E.text))
+              <> ((\(_, _, c, _, _, _, _, _, _) -> c) >$< E.param (E.nonNullable E.date))
+              <> ((\(_, _, _, d, _, _, _, _, _) -> d) >$< E.param (E.nullable E.int8))
+              <> ((\(_, _, _, _, e, _, _, _, _) -> e) >$< E.param (E.nullable E.int8))
+              <> ((\(_, _, _, _, _, f, _, _, _) -> f) >$< E.param (E.nonNullable E.int2))
+              <> ((\(_, _, _, _, _, _, g, _, _) -> g) >$< E.param (E.nonNullable E.float8))
+              <> ((\(_, _, _, _, _, _, _, h, _) -> h) >$< E.param (E.nonNullable E.float8))
+              <> ((\(_, _, _, _, _, _, _, _, i) -> i) >$< E.param (E.nonNullable E.float8))
+          )
+          (D.singleRow (D.column D.int8))
+  res <- use pool $ Session.statement (mCode, mName, date, personId, locationId, status, total, discount, tax) stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+spOrderRead :: Pool -> Int64 -> IO (QueryResult Order)
+spOrderRead pool orderId = do
+  let stmt =
+        preparable
+          "SELECT id, code, name, doc_date, person_id, location_id, doc_status, total, discount_amount, tax_amount FROM sp_order_read($1)"
+          (E.param (E.nonNullable E.int8))
+          (D.rowMaybe orderSpDecoder)
+  res <- use pool $ Session.statement orderId stmt
+  case res of
+    Right (Just o) -> pure $ QuerySuccess o
+    Right Nothing -> pure $ QueryError "Order not found"
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+spOrderUpdateStatus :: Pool -> Int64 -> Int16 -> IO (QueryResult Bool)
+spOrderUpdateStatus pool orderId status = do
+  let stmt =
+        preparable
+          "SELECT sp_order_update_status($1, $2)"
+          ( (fst >$< E.param (E.nonNullable E.int8))
+              <> (snd >$< E.param (E.nonNullable E.int2))
+          )
+          (D.singleRow D.bool)
+  res <- use pool $ Session.statement (orderId, status) stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+spOrderDelete :: Pool -> Int64 -> IO (QueryResult Int64)
+spOrderDelete pool orderId = do
+  let stmt =
+        preparable
+          "SELECT sp_order_delete($1)"
+          (E.param (E.nonNullable E.int8))
+          (D.singleRow (D.column D.int8))
+  res <- use pool $ Session.statement orderId stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- ============================================================================
+-- PAYMENT PROCEDURES (sp_payment_*)
+-- ============================================================================
+
+paymentSpDecoder :: D.Row Payment
+paymentSpDecoder =
+  Payment
+    <$> D.column (D.nonNullable D.int8)
+    <*> D.column (D.nonNullable D.int8)
+    <*> D.column (D.nonNullable D.date)
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+    <*> (fromIntegral <$> D.column (D.nonNullable D.int2))
+    <*> (fromIntegral <$> D.column (D.nonNullable D.int2))
+
+spPaymentCreate :: Pool -> Int64 -> Day -> Double -> Int16 -> Int16 -> IO (QueryResult Int64)
+spPaymentCreate pool billId date amount payMethod payStatus = do
+  let stmt =
+        preparable
+          "SELECT sp_payment_create($1, $2, $3, $4, $5)"
+          ( ((\(a, _, _, _, _) -> a) >$< E.param (E.nonNullable E.int8))
+              <> ((\(_, b, _, _, _) -> b) >$< E.param (E.nonNullable E.date))
+              <> ((\(_, _, c, _, _) -> c) >$< E.param (E.nonNullable E.float8))
+              <> ((\(_, _, _, d, _) -> d) >$< E.param (E.nonNullable E.int2))
+              <> ((\(_, _, _, _, e) -> e) >$< E.param (E.nonNullable E.int2))
+          )
+          (D.singleRow (D.column D.int8))
+  res <- use pool $ Session.statement (billId, date, amount, payMethod, payStatus) stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+spPaymentRead :: Pool -> Int64 -> IO (QueryResult Payment)
+spPaymentRead pool paymentId = do
+  let stmt =
+        preparable
+          "SELECT id, bill_id, date, amount, payment_method, payment_status FROM sp_payment_read($1)"
+          (E.param (E.nonNullable E.int8))
+          (D.rowMaybe paymentSpDecoder)
+  res <- use pool $ Session.statement paymentId stmt
+  case res of
+    Right (Just p) -> pure $ QuerySuccess p
+    Right Nothing -> pure $ QueryError "Payment not found"
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+spPaymentUpdate :: Pool -> Int64 -> Int64 -> Day -> Double -> Int16 -> Int16 -> IO (QueryResult Int64)
+spPaymentUpdate pool paymentId billId date amount payMethod payStatus = do
+  let stmt =
+        preparable
+          "SELECT sp_payment_update($1, $2, $3, $4, $5, $6)"
+          ( ((\(a, _, _, _, _, _) -> a) >$< E.param (E.nonNullable E.int8))
+              <> ((\(_, b, _, _, _, _) -> b) >$< E.param (E.nonNullable E.int8))
+              <> ((\(_, _, c, _, _, _) -> c) >$< E.param (E.nonNullable E.date))
+              <> ((\(_, _, _, d, _, _) -> d) >$< E.param (E.nonNullable E.float8))
+              <> ((\(_, _, _, _, e, _) -> e) >$< E.param (E.nonNullable E.int2))
+              <> ((\(_, _, _, _, _, f) -> f) >$< E.param (E.nonNullable E.int2))
+          )
+          (D.singleRow (D.column D.int8))
+  res <- use pool $ Session.statement (paymentId, billId, date, amount, payMethod, payStatus) stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+spPaymentDelete :: Pool -> Int64 -> IO (QueryResult Int64)
+spPaymentDelete pool paymentId = do
+  let stmt =
+        preparable
+          "SELECT sp_payment_delete($1)"
+          (E.param (E.nonNullable E.int8))
+          (D.singleRow (D.column D.int8))
+  res <- use pool $ Session.statement paymentId stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+spPaymentsByBill :: Pool -> Int64 -> IO (QueryResult [Payment])
+spPaymentsByBill pool billId = do
+  let stmt =
+        preparable
+          "SELECT id, bill_id, date, amount, payment_method, payment_status FROM sp_payments_by_bill($1)"
+          (E.param (E.nonNullable E.int8))
+          (D.rowList paymentSpDecoder)
+  res <- use pool $ Session.statement billId stmt
+  case res of
+    Right payments -> pure $ QuerySuccess payments
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+spPaymentTotalByBill :: Pool -> Int64 -> IO (QueryResult Decimal)
+spPaymentTotalByBill pool billId = do
+  let stmt =
+        preparable
+          "SELECT sp_payment_total_by_bill($1)"
+          (E.param (E.nonNullable E.int8))
+          (D.singleRow (fromDouble . realToFrac <$> D.column (D.nonNullable D.numeric)))
+  res <- use pool $ Session.statement billId stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)

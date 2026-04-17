@@ -1,30 +1,80 @@
--- | Surypus - Formally verified ERP system
---
--- This module re-exports the core subsystems of the Surypus ERP:
---
--- * 'Surypus.Core' - Unified domain model with entity classes
--- * 'Surypus.RBAC' - Role-based access control
--- * 'Surypus.JWT' - JSON Web Token authentication
--- * 'Surypus.Types' - Core types (Decimal, etc.)
--- * 'Surypus.Error' - Error types
--- * 'Surypus.Validation' - Input validation
--- * 'Surypus.Cache' - Caching infrastructure
+{-# LANGUAGE DuplicateRecordFields #-}
+
+-- ==========================================================================
+-- Surypus - ERP system (Header and annotations)
+-- ==========================================================================
 module Surypus
-  ( -- * Core Domain
-    module Surypus.Core,
+  ( -- * Core Domain - explicit exports to avoid conflicts
+    Surypus.Core.Person (..),
+    Surypus.Core.Goods (..),
+    Surypus.Core.Location (..),
+    Surypus.Core.Bill (..),
+    Surypus.Core.BillLine (..),
+    Surypus.Core.Stock (..),
+    Surypus.Core.Account (..),
+    Surypus.Core.AccTurn (..),
+    Surypus.Core.Payment (..),
+    Surypus.Core.Currency (..),
+    Surypus.Core.Tax (..),
+    Surypus.Core.Unit (..),
+    Surypus.Core.User (..),
+    Surypus.Core.Order (..),
+    Surypus.Core.Entity (..),
+    Surypus.Core.Timestamped (..),
+    Surypus.Core.Statusable (..),
+    Surypus.Core.Activatable (..),
+    Surypus.Core.EntityStatus (..),
+    Surypus.Core.PersonKind (..),
+    Surypus.Core.GoodsType (..),
+    Surypus.Core.LocationType (..),
+    Surypus.Core.BillType (..),
+    Surypus.Core.BillStatus (..),
+    Surypus.Core.AccountType (..),
+    Surypus.Core.PaymentMethod (..),
+    Surypus.Core.PaymentStatus (..),
+    Surypus.Core.TaxType (..),
+    Surypus.Core.OrderStatus (..),
+    Surypus.Core.MovementType (..),
+    Surypus.Core.calcBillLineAmount,
+    Surypus.Core.calcBillTotal,
+    Surypus.Core.calcStockAvailable,
+    Surypus.Core.needsReorder,
+    Surypus.Core.calcTax,
+    Surypus.Core.calcDiscount,
+    Surypus.Core.calcFinalPrice,
+    Surypus.Core.validateINN,
+    Surypus.Core.validateKPP,
+    Surypus.Core.validateBarcode,
+    Surypus.Core.validateEmail,
+    Surypus.Core.validatePhone,
 
     -- * Access Control
-    module Surypus.RBAC,
-    module Surypus.RBAC.Store,
+    Surypus.RBAC.Permission (..),
+    Surypus.RBAC.PermissionScope (..),
+    Surypus.RBAC.ScopedPermission (..),
+    Surypus.RBAC.DynamicRole (..),
+    Surypus.RBAC.PermissionGrant (..),
+    Surypus.RBAC.AuditEntry (..),
+    Surypus.RBAC.hasPermission,
+    Surypus.RBAC.checkPermission,
+    Surypus.RBAC.defaultPermissions,
+    Surypus.RBAC.adminRole,
+    Surypus.RBAC.managerRole,
+    Surypus.RBAC.Store.RBACStore (..),
+    Surypus.RBAC.Store.newRBACStore,
+    Surypus.RBAC.Store.listRoles,
+    Surypus.RBAC.Store.upsertRole,
+    Surypus.RBAC.Store.listGrants,
+    Surypus.RBAC.Store.addGrant,
+    Surypus.RBAC.Store.removeGrant,
 
     -- * Authentication
     module Surypus.JWT,
 
     -- * Types
     module Surypus.Types,
-    module Surypus.Error,
-    module Surypus.Validation,
-    module Surypus.Cache,
+    Surypus.Error.AppError (..),
+    Surypus.Validation.ValidationError,
 
     -- * API
     module Surypus.API.Server,
@@ -32,8 +82,19 @@ module Surypus
     module Surypus.API.Health,
 
     -- * Reporting
-    module Surypus.Reports,
-    module Surypus.Reports.Templates,
+    Surypus.Reports.ReportDef (..),
+    Surypus.Reports.ReportCategory (..),
+    Surypus.Reports.ParamDef (..),
+    Surypus.Reports.ParamType (..),
+    Surypus.Reports.FieldDef (..),
+    Surypus.Reports.FieldType (..),
+    Surypus.Reports.GroupDef (..),
+    Surypus.Reports.allReports,
+    Surypus.Reports.getReport,
+    Surypus.Reports.getReportsByCategory,
+    Surypus.Reports.generateJRXML,
+    Surypus.Reports.exportReportToPDF,
+    Surypus.Reports.exportReportToHTML,
 
     -- * Infrastructure
     module Surypus.Config,
@@ -46,7 +107,6 @@ where
 import Surypus.API.Authorization
 import Surypus.API.Health
 import Surypus.API.Server
-import Surypus.Cache
 import Surypus.Config
 import Surypus.Core
 import Surypus.Error
@@ -57,6 +117,5 @@ import Surypus.Logging
 import Surypus.RBAC
 import Surypus.RBAC.Store
 import Surypus.Reports
-import Surypus.Reports.Templates
 import Surypus.Types
 import Surypus.Validation

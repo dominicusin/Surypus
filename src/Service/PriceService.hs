@@ -1,4 +1,3 @@
-
 -- | Price management service.
 --
 -- Provides access to goods price operations through the database connection pool.

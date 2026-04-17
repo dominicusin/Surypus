@@ -1,35 +1,38 @@
 -- | Auth module - Authentication and users
 module Core.Auth where
 
-import           Data.Int  (Int64)
-import           Data.Text (Text)
+import Data.Int (Int64)
+import Data.Text (Text)
 import qualified Data.Text as T
-import           Data.Time (UTCTime)
+import Data.Time (UTCTime)
 
 -- | User - System user
 data User = User
-  { uId      :: Int64
-  , uLogin   :: Text
-  , uName    :: Text
-  , uGroupId :: Int64
-  , uFlags   :: Int
-  } deriving (Show, Eq)
+  { uId :: Int64,
+    uLogin :: Text,
+    uName :: Text,
+    uGroupId :: Int64,
+    uFlags :: Int
+  }
+  deriving (Show, Eq)
 
 -- | UserGroup - User group
 data UserGroup = UserGroup
-  { ugId     :: Int64
-  , ugName   :: Text
-  , ugRights :: Int  -- Bitmask
-  } deriving (Show, Eq)
+  { ugId :: Int64,
+    ugName :: Text,
+    ugRights :: Int -- Bitmask
+  }
+  deriving (Show, Eq)
 
 -- | Session - User session
 data Session = Session
-  { sId         :: Int64
-  , sUserId     :: Int64
-  , sToken      :: Text
-  , sStartTime  :: UTCTime
-  , sExpireTime:: UTCTime
-  } deriving (Show, Eq)
+  { sId :: Int64,
+    sUserId :: Int64,
+    sToken :: Text,
+    sStartTime :: UTCTime,
+    sExpireTime :: UTCTime
+  }
+  deriving (Show, Eq)
 
 -- | Validate password strength (simple)
 validatePassword :: Text -> Bool

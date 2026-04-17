@@ -1,4 +1,3 @@
-
 -- | Person/counterparty service.
 --
 -- Provides access to person (customer/supplier) operations through the database connection pool.

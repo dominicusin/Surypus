@@ -2,6 +2,7 @@
 # ============================================================================
 # Surypus PostgreSQL Database Initialization
 # ============================================================================
+# B1-5: Fixed order and removed hardcoded references
 
 set -e
 
@@ -27,38 +28,67 @@ sudo -u postgres psql -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASS';" 2>/dev
 sudo -u postgres psql -c "CREATE DATABASE $DB_NAME OWNER $DB_USER;" 2>/dev/null || true
 sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;" 2>/dev/null || true
 
-# Connect to database and run extensions
+# Connect to database and run extensions first
 echo "Setting up extensions..."
 sudo -u postgres psql -d $DB_NAME -c "CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";"
 sudo -u postgres psql -d $DB_NAME -c "CREATE EXTENSION IF NOT EXISTS \"pg_trgm\";"
 sudo -u postgres psql -d $DB_NAME -c "CREATE EXTENSION IF NOT EXISTS \"hstore\";"
 sudo -u postgres psql -d $DB_NAME -c "CREATE EXTENSION IF NOT EXISTS \"jsonb\";"
 
-# Run migrations in order
-echo "Running migrations..."
+# Run migrations in correct order: V1 -> V2 -> ... -> V012
+echo "Running migrations in order..."
 MIGRATIONS_DIR="$PROJECT_DIR/sql/migrations"
 
-for migration in "$MIGRATIONS_DIR"/V*.sql; do
+# Explicit order to avoid conflicts
+MIGRATION_ORDER=(
+	"V1__initial_schema.sql"
+	"V2__multi_currency.sql"
+	"V005__refresh_tokens.sql"
+	"V006__roles.sql"
+	"V007__permissions.sql"
+	"V008__audit_log.sql"
+	"V009__rbac_store.sql"
+	"V010__production.sql"
+	"V011__fix_schema_columns.sql"
+	"V012__snapshot_tables.sql"
+	"20240616_create_core_tables.sql"
+	"20240617_create_event_store.sql"
+	"20240618_create_read_models_views.sql"
+)
+
+for migration_name in "${MIGRATION_ORDER[@]}"; do
+	migration="$MIGRATIONS_DIR/$migration_name"
 	if [ -f "$migration" ]; then
-		echo "  Applying $(basename "$migration")"
+		echo "  Applying $migration_name"
 		sudo -u postgres psql -d $DB_NAME -f "$migration" 2>/dev/null || true
+	else
+		echo "  Skipping $migration_name (not found)"
 	fi
 done
 
 # Run procedures
 echo "Running procedures..."
 if [ -f "$PROJECT_DIR/sql/procedures.sql" ]; then
+	echo "  Applying procedures.sql"
 	sudo -u postgres psql -d $DB_NAME -f "$PROJECT_DIR/sql/procedures.sql" 2>/dev/null || true
 fi
 
-# Run seeds
+# Run seeds if directory exists
 echo "Running seed data..."
-for seed in "$PROJECT_DIR/sql/seeds"/*.sql; do
-	if [ -f "$seed" ]; then
-		echo "  Running $(basename "$seed")"
-		sudo -u postgres psql -d $DB_NAME -f "$seed" 2>/dev/null || true
-	fi
-done
+if [ -d "$PROJECT_DIR/sql/seeds" ]; then
+	for seed in "$PROJECT_DIR/sql/seeds"/*.sql; do
+		if [ -f "$seed" ]; then
+			echo "  Running $(basename "$seed")"
+			sudo -u postgres psql -d $DB_NAME -f "$seed" 2>/dev/null || true
+		fi
+	done
+fi
+
+# Check schema uniqueness
+echo "Checking schema uniqueness..."
+if [ -f "$SCRIPT_DIR/check_schema_uniqueness.sh" ]; then
+	bash "$SCRIPT_DIR/check_schema_uniqueness.sh" || echo "  Schema check had warnings"
+fi
 
 echo "========================================="
 echo "  Database initialized successfully"

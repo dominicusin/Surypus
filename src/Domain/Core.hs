@@ -1,5 +1,6 @@
 module Domain.Core
-  ( module Domain.Types
-  ) where
+  ( module Domain.Types,
+  )
+where
 
 import Domain.Types

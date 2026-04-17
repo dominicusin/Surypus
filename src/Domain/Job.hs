@@ -5,21 +5,22 @@
 {-@ LIQUID "--reflection" @-}
 
 module Domain.Job
-  ( JobStatus(..)
-  , JobRecord(..)
-  , JobRequest(..)
-  , JobFilter(..)
-  , jobStatusText
-  , jobStatusFromText
-  , validateJobRequest
-  ) where
+  ( JobStatus (..),
+    JobRecord (..),
+    JobRequest (..),
+    JobFilter (..),
+    jobStatusText,
+    jobStatusFromText,
+    validateJobRequest,
+  )
+where
 
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Int (Int64)
 import Data.Text (Text)
+import qualified Data.Text as T
 import Data.Time.Clock (UTCTime)
 import GHC.Generics (Generic)
-import qualified Data.Text as T
 
 {-@ type NonEmptyText = {v:Text | v /= ""} @-}
 {-@ type PriorityLevel = {v:Int | v >= 1 && v <= 10} @-}
@@ -33,25 +34,28 @@ data JobStatus
   deriving (Eq, Show, Generic)
 
 instance ToJSON JobStatus
+
 instance FromJSON JobStatus
 
 data JobRecord = JobRecord
-  { jobId :: Int64
-  , jobCode :: Text
-  , jobName :: Text
-  , jobType :: Text
-  , jobStatus :: JobStatus
-  , jobPriority :: Int
-  , jobData :: Maybe Text
-  , jobScheduledAt :: Maybe UTCTime
-  , jobCreatedAt :: UTCTime
-  , jobStartedAt :: Maybe UTCTime
-  , jobCompletedAt :: Maybe UTCTime
-  , jobErrorMessage :: Maybe Text
-  , jobDependencies :: [Int64]
-  } deriving (Eq, Show, Generic)
+  { jobId :: Int64,
+    jobCode :: Text,
+    jobName :: Text,
+    jobType :: Text,
+    jobStatus :: JobStatus,
+    jobPriority :: Int,
+    jobData :: Maybe Text,
+    jobScheduledAt :: Maybe UTCTime,
+    jobCreatedAt :: UTCTime,
+    jobStartedAt :: Maybe UTCTime,
+    jobCompletedAt :: Maybe UTCTime,
+    jobErrorMessage :: Maybe Text,
+    jobDependencies :: [Int64]
+  }
+  deriving (Eq, Show, Generic)
 
 instance ToJSON JobRecord
+
 instance FromJSON JobRecord
 
 {-@ data JobFilter = JobFilter
@@ -59,11 +63,13 @@ instance FromJSON JobRecord
   , jfType :: Maybe Text
   } @-}
 data JobFilter = JobFilter
-  { jfStatus :: Maybe JobStatus
-  , jfType :: Maybe Text
-  } deriving (Eq, Show, Generic)
+  { jfStatus :: Maybe JobStatus,
+    jfType :: Maybe Text
+  }
+  deriving (Eq, Show, Generic)
 
 instance ToJSON JobFilter
+
 instance FromJSON JobFilter
 
 {-@ data JobRequest = JobRequest
@@ -75,15 +81,17 @@ instance FromJSON JobFilter
   , jrScheduled :: Maybe UTCTime
   } @-}
 data JobRequest = JobRequest
-  { jrCode :: Text
-  , jrName :: Text
-  , jrType :: Text
-  , jrPriority :: Int
-  , jrPayload :: Maybe Text
-  , jrScheduled :: Maybe UTCTime
-  } deriving (Eq, Show, Generic)
+  { jrCode :: Text,
+    jrName :: Text,
+    jrType :: Text,
+    jrPriority :: Int,
+    jrPayload :: Maybe Text,
+    jrScheduled :: Maybe UTCTime
+  }
+  deriving (Eq, Show, Generic)
 
 instance ToJSON JobRequest
+
 instance FromJSON JobRequest
 
 jobStatusText :: JobStatus -> Text
@@ -103,7 +111,7 @@ jobStatusFromText txt =
     _ -> JobPending
 
 validateJobRequest :: JobRequest -> Either Text JobRequest
-validateJobRequest jr@JobRequest{..}
+validateJobRequest jr@JobRequest {..}
   | T.null (T.strip jrCode) = Left "job code must not be empty"
   | T.null (T.strip jrName) = Left "job name must not be empty"
   | T.null (T.strip jrType) = Left "job type must not be empty"

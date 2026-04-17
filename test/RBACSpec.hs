@@ -12,11 +12,11 @@ import Test.Hspec
 
 main :: IO ()
 main = do
-  skip <- lookupEnv "OPENPAPYRUS_SKIP_RBAC_TESTS"
+  skip <- lookupEnv "SURYPUS_SKIP_RBAC_TESTS"
   case skip of
     Just v | v == "1" || v == "true" || v == "TRUE" ->
       hspec $ do
-        it "RBAC tests are gated out in CI" $ pendingWith "OPENPAPYRUS_SKIP_RBAC_TESTS=1; RBAC tests skipped"
+        it "RBAC tests are gated out in CI" $ pendingWith "SURYPUS_SKIP_RBAC_TESTS=1; RBAC tests skipped"
     _ -> hspec $ describe "RBAC" $ do
       it "admin has PersonRead" $
         hasPermission RoleAdmin PersonRead `shouldBe` True

@@ -1,7 +1,7 @@
 # ============================================================================
 # Surypus ERP/CRM Docker Configuration
 # ============================================================================
-# Multi-stage build for production
+# Multi-stage build for production with Event Sourcing support
 
 # Stage 1: Build environment
 FROM haskell:9.6.6 AS builder
@@ -50,10 +50,11 @@ RUN stack build --install-ghc --copy-bins
 # Stage 2: Production runtime
 FROM debian:bookworm-slim
 
-# Install runtime dependencies only
+# Install runtime dependencies
 RUN apt-get update && apt-get install -y \
     libpq5 \
     ca-certificates \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
@@ -65,25 +66,31 @@ WORKDIR /app
 COPY --from=builder /root/.local/bin/surypus /usr/local/bin/
 
 # Create runtime directories
-RUN mkdir -p /app/config /app/logs && chown -R surypus:surypus /app
+RUN mkdir -p /app/config /app/logs /app/opa \
+    && chown -R surypus:surypus /app
+
+# Copy OPA policies (for local OPA integration)
+COPY opa/policies /app/opa/policies
 
 # Switch to non-root user
 USER surypus
 
 # Environment variables
-ENV PORT=8080
-ENV DB_HOST=localhost
+ENV PORT=3000
+ENV DB_HOST=postgres
 ENV DB_PORT=5432
 ENV DB_NAME=surypus
-ENV DB_USER=postgres
-ENV DB_PASSWORD=
+ENV DB_USER=surypus
+ENV DB_PASSWORD=surypus_secret
+ENV OPA_URL=http://opa:8181
+ENV KAFKA_BROKERS=redpanda:9092
 
 # Expose port
-EXPOSE 8080
+EXPOSE 3000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8080/api/v1/health || exit 1
+    CMD curl -f http://localhost:3000/health || exit 1
 
 # Run the application
 CMD ["surypus"]

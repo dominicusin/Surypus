@@ -1,3 +1,5 @@
+{-# LANGUAGE DuplicateRecordFields #-}
+
 module Surypus.API.Core
   ( module Surypus.API.Root,
     module Surypus.API.Server,

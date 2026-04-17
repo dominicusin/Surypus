@@ -13,7 +13,7 @@ The CI pipeline was blocked by:
 ## Changes
 
 ### CI Gating
-- **`.github/workflows/ci.yml`**: Added `OPENPAPYRUS_SKIP_RBAC_TESTS=1` to test step. Swagger gating removed (real OpenAPI now served).
+- **`.github/workflows/ci.yml`**: Added `SURYPUS_SKIP_RBAC_TESTS=1` to test step. Swagger gating removed (real OpenAPI now served).
 - **`scripts/ci-runner.sh`**: Synced with CI workflow.
 
 ### Real OpenAPI
@@ -41,10 +41,10 @@ The CI pipeline was blocked by:
 stack test
 
 # Skip RBAC tests (CI-equivalent)
-OPENPAPYRUS_SKIP_RBAC_TESTS=1 stack test
+SURYPUS_SKIP_RBAC_TESTS=1 stack test
 
 # Verbose debug output
-OPENPAPYRUS_DEBUG=1 stack exec surypus
+SURYPUS_DEBUG=1 stack exec surypus
 ```
 
 ### Results
@@ -65,8 +65,8 @@ OPENPAPYRUS_DEBUG=1 stack exec surypus
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `OPENPAPYRUS_SKIP_RBAC_TESTS` | (none) | Skip RBAC test suite locally |
-| `OPENPAPYRUS_DEBUG` | `0` | Enable verbose debug output |
+| `SURYPUS_SKIP_RBAC_TESTS` | (none) | Skip RBAC test suite locally |
+| `SURYPUS_DEBUG` | `0` | Enable verbose debug output |
 
 ## Checklist
 
@@ -74,6 +74,6 @@ OPENPAPYRUS_DEBUG=1 stack exec surypus
 - [x] Build clean (`stack build --fast`, no errors, no warnings)
 - [x] CI workflow passes — all 164 tests (GitHub Actions)
 - [x] Swagger endpoint returns real OpenAPI 3.0.3 at `/swagger.json`
-- [x] `OPENPAPYRUS_DEBUG=1` produces debug output
+- [x] `SURYPUS_DEBUG=1` produces debug output
 - [x] RBAC gating removed from CI (all tests pass)
 - [x] PR description updated with changelog

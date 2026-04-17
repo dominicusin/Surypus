@@ -1,4 +1,3 @@
-
 module Surypus.API.Auth
   ( authenticateUser,
     getUserIdFromRequest,

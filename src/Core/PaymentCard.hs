@@ -1,16 +1,17 @@
 -- | PaymentCard module - Payment cards
 module Core.PaymentCard where
 
-import           Data.Int (Int64)
+import Data.Int (Int64)
 
 -- | PaymentCard - Payment card
 data PaymentCard = PaymentCard
-  { pcId       :: Int64
-  , pcNumber   :: String
-  , pcHolderId :: Int64
-  , pcExpiry   :: String
-  , pcType     :: CardType
-  } deriving (Show, Eq)
+  { pcId :: Int64,
+    pcNumber :: String,
+    pcHolderId :: Int64,
+    pcExpiry :: String,
+    pcType :: CardType
+  }
+  deriving (Show, Eq)
 
 data CardType = CTVisa | CTMasterCard | CTMir | CTAmex
   deriving (Show, Eq)

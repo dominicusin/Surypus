@@ -1,16 +1,17 @@
 -- | SheetDiffs module - Sheet differences
 module Core.SheetDiffs where
 
-import           Data.Int (Int64)
+import Data.Int (Int64)
 
 -- | SheetDiffs - Sheet differences
 data SheetDiffs = SheetDiffs
-  { sdId      :: Int64
-  , sdSheetId :: Int64
-  , sdDate    :: Int64
-  , sdDebit   :: Double
-  , sdCredit  :: Double
-  } deriving (Show, Eq)
+  { sdId :: Int64,
+    sdSheetId :: Int64,
+    sdDate :: Int64,
+    sdDebit :: Double,
+    sdCredit :: Double
+  }
+  deriving (Show, Eq)
 
 -- | Is balanced
 isBalanced :: SheetDiffs -> Bool

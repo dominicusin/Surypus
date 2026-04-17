@@ -1,4 +1,3 @@
-
 -- | Location/warehouse service.
 --
 -- Provides access to location and warehouse operations through the database connection pool.

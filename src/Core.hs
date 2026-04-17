@@ -1,4 +1,4 @@
--- | Core module - Main entry point 
+-- | Core module - Main entry point
 -- This is the formally verified ERP system core
 module Core where
 

@@ -383,12 +383,13 @@ genValidTaxVector = do
   e <- Decimal . abs <$> choose (0, 10000000 :: Int64)
   s <- Decimal . abs <$> choose (0, 10000000 :: Int64)
   p <- Decimal . abs <$> choose (0, 10000000 :: Int64)
-  pure $ TaxVector
-    { tvAmount = amount,
-      tvQtty = qty,
-      tvRates = (0, 0, 0, 0),
-      tvValues = (v, e, s, p),
-      tvAbsVect = 0,
-      tvUnionVect = 0,
-      tvRoundPrec = 2
-    }
+  pure $
+    TaxVector
+      { tvAmount = amount,
+        tvQtty = qty,
+        tvRates = (0, 0, 0, 0),
+        tvValues = (v, e, s, p),
+        tvAbsVect = 0,
+        tvUnionVect = 0,
+        tvRoundPrec = 2
+      }

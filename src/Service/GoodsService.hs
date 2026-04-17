@@ -1,4 +1,3 @@
-
 -- | Goods management service.
 --
 -- Provides access to goods/product operations through the database connection pool.

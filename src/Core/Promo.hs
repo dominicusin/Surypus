@@ -1,18 +1,19 @@
 -- | Promo module - Promotions
 module Core.Promo where
 
-import           Data.Int  (Int64)
-import           Data.Time (Day)
+import Data.Int (Int64)
+import Data.Time (Day)
 
 -- | Promo - Promotion
 data Promo = Promo
-  { pmId        :: Int64
-  , pmCode      :: String
-  , pmName      :: String
-  , pmStartDate :: Day
-  , pmEndDate   :: Day
-  , pmDiscount  :: Double
-  } deriving (Show, Eq)
+  { pmId :: Int64,
+    pmCode :: String,
+    pmName :: String,
+    pmStartDate :: Day,
+    pmEndDate :: Day,
+    pmDiscount :: Double
+  }
+  deriving (Show, Eq)
 
 -- | Is active
 isPromoActive :: Promo -> Day -> Bool

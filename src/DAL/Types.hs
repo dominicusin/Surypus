@@ -74,6 +74,10 @@ module DAL.Types
     OrderLineInput (..),
     StockAdjustInput (..),
     JobInput (..),
+    InventoryInput (..),
+    FifoLot (..),
+    LotBounds (..),
+    LowStockItem (..),
   )
 where
 
@@ -191,6 +195,18 @@ data BillLine = BillLine
   deriving (Show, Eq, Generic)
 
 instance ToJSON BillLine
+
+-- | Inventory input for stock receipt (pilot)
+data InventoryInput = InventoryInput
+  { iiGoodsId :: Int64,
+    iiLocationId :: Int64,
+    iiQty :: Double
+  }
+  deriving (Show, Eq, Generic)
+
+instance FromJSON InventoryInput
+
+instance ToJSON InventoryInput
 
 -- | Unit types (for goods)
 data Unit = Unit
@@ -769,3 +785,42 @@ data JobInput = JobInput
   deriving (Show, Eq, Generic)
 
 instance FromJSON JobInput
+
+-- ============================================================================
+-- STOCK TYPES
+-- ============================================================================
+
+data FifoLot = FifoLot
+  { flLotId :: Int64,
+    flGoodsId :: Int64,
+    flLocationId :: Int64,
+    flQty :: Decimal,
+    flCost :: Decimal,
+    flReceivedDate :: Day
+  }
+  deriving (Show, Eq, Generic)
+
+instance ToJSON FifoLot
+
+data LotBounds = LotBounds
+  { lbGoodsId :: Int64,
+    lbLocationId :: Int64,
+    lbMinLotDate :: Maybe Day,
+    lbMaxLotDate :: Maybe Day,
+    lbTotalQty :: Decimal
+  }
+  deriving (Show, Eq, Generic)
+
+instance ToJSON LotBounds
+
+data LowStockItem = LowStockItem
+  { lsiGoodsId :: Int64,
+    lsiGoodsName :: Text,
+    lsiLocationId :: Int64,
+    lsiLocationName :: Text,
+    lsiCurrentQty :: Decimal,
+    lsiMinQty :: Decimal
+  }
+  deriving (Show, Eq, Generic)
+
+instance ToJSON LowStockItem

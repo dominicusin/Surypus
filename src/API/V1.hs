@@ -1,0 +1,77 @@
+module API.V1 where
+
+import API.V1.Bills
+import API.V1.Inventory
+import API.V1.Payrolls
+import API.V1.Persons
+import API.V1.Reports
+import Servant
+import qualified Service.BillService as BS
+import qualified Service.InventoryService as IS
+import qualified Service.PayrollService as PS
+import qualified Service.ProductionService as ProdS
+import qualified Service.ReportService as RS
+
+-- | Full API combining all versioned endpoints
+api ::
+  BS.BillService ->
+  PS.PayrollService ->
+  ProdS.ProductionService ->
+  IS.InventoryService ->
+  RS.ReportService ->
+  API
+api bs payroll prod inv report =
+  "v1"
+    :> ( billsAPI bs
+           :<|> payrollAPI payroll
+           :<|> inventoryAPI inv
+           :<|> reportsAPI report
+           :<|> personsAPI
+       )
+
+-- | Server for the full API
+server ::
+  BS.BillService ->
+  PS.PayrollService ->
+  ProdS.ProductionService ->
+  IS.InventoryService ->
+  RS.ReportService ->
+  Server (api BS PS ProdS.InventoryService RS.ReportService)
+server bs payroll prod inv report =
+  billServer bs
+    :<|> payrollServer payroll
+    :<|> inventoryServer inv
+    :<|> reportsServer report
+    :<|> personsServer
+  where
+    billServer = serverFor (Proxy :: Proxy (api BS PS ProdS.InventoryService RS.ReportService))
+    payrollServer = serverFor (Proxy :: Proxy (api BS PS ProdS.InventoryService RS.ReportService))
+    inventoryServer = serverFor (Proxy :: Proxy (api BS PS ProdS.InventoryService RS.ReportService))
+    reportsServer = serverFor (Proxy :: Proxy (api BS PS ProdS.InventoryService RS.ReportService))
+    personsServer = serverFor (Proxy :: Proxy (api BS PS ProdS.InventoryService RS.ReportService))
+
+-- | Application with authentication middleware
+app ::
+  BS.BillService ->
+  PS.PayrollService ->
+  ProdS.ProductionService ->
+  IS.InventoryService ->
+  RS.ReportService ->
+  Application
+app bs payroll prod inv report =
+  serveWithContext (Proxy :: Proxy (api BS PS ProdS.InventoryService RS.ReportService)) ctx $ server bs payroll prod inv report
+  where
+    ctx = ()
+
+-- | Run the application on a given port
+runAppOn ::
+  Int ->
+  BS.BillService ->
+  PS.PayrollService ->
+  ProdS.ProductionService ->
+  IS.InventoryService ->
+  RS.ReportService ->
+  IO ()
+runAppOn port bs payroll prod inv report = do
+  let cfg = setPort port defaultServConfig
+  runSettings cfg $ app bs payroll prod inv report

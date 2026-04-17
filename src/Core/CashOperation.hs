@@ -1,19 +1,20 @@
 -- | CashOperation module - Cash operations
 module Core.CashOperation where
 
-import           Data.Int  (Int64)
-import           Data.Text (Text)
-import           Data.Time (Day)
+import Data.Int (Int64)
+import Data.Text (Text)
+import Data.Time (Day)
 
 -- | CashOperation - Cash operation
 data CashOperation = CashOperation
-  { coId         :: Int64
-  , coDate       :: Day
-  , coType       :: CashOpType
-  , coAmount     :: Double
-  , coRegisterId :: Int64
-  , coReason     :: Text
-  } deriving (Show, Eq)
+  { coId :: Int64,
+    coDate :: Day,
+    coType :: CashOpType,
+    coAmount :: Double,
+    coRegisterId :: Int64,
+    coReason :: Text
+  }
+  deriving (Show, Eq)
 
 data CashOpType = COIncome | COExpense | COTransfer | COExchange
   deriving (Show, Eq)

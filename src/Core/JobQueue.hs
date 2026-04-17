@@ -1,22 +1,23 @@
 -- | JobQueue module - Background jobs
 module Core.JobQueue where
 
-import           Data.Int  (Int64)
-import           Data.Text (Text)
-import           Data.Time (UTCTime)
+import Data.Int (Int64)
+import Data.Text (Text)
+import Data.Time (UTCTime)
 
 -- | Job - Background job
 data Job = Job
-  { jobId       :: Int64
-  , jobType     :: JobType
-  , jobParams   :: Text  -- JSON
-  , jobStatus   :: JobStatus
-  , jobPriority :: Int
-  , jobCreated  :: UTCTime
-  , jobStarted  :: Maybe UTCTime
-  , jobFinished :: Maybe UTCTime
-  , jobResult   :: Maybe Text
-  } deriving (Show, Eq)
+  { jobId :: Int64,
+    jobType :: JobType,
+    jobParams :: Text, -- JSON
+    jobStatus :: JobStatus,
+    jobPriority :: Int,
+    jobCreated :: UTCTime,
+    jobStarted :: Maybe UTCTime,
+    jobFinished :: Maybe UTCTime,
+    jobResult :: Maybe Text
+  }
+  deriving (Show, Eq)
 
 data JobType = JTSync | JTImport | JTExport | JTReport | JTCleanup
   deriving (Show, Eq)
@@ -26,13 +27,14 @@ data JobStatus = JSPending | JSRunning | JSCompleted | JSFailed
 
 -- | JobServer - Job processor
 data JobServer = JobServer
-  { jsId     :: Int64
-  , jsName   :: Text
-  , jsHost   :: Text
-  , jsPort   :: Int
-  , jsStatus :: ServerStatus
-  , jsFlags  :: Int
-  } deriving (Show, Eq)
+  { jsId :: Int64,
+    jsName :: Text,
+    jsHost :: Text,
+    jsPort :: Int,
+    jsStatus :: ServerStatus,
+    jsFlags :: Int
+  }
+  deriving (Show, Eq)
 
 data ServerStatus = SSOnline | SSOffline | SSBusy
   deriving (Show, Eq)
@@ -40,5 +42,5 @@ data ServerStatus = SSOnline | SSOffline | SSBusy
 -- | Check if job is overdue (running > 1 hour)
 isJobOverdue :: Job -> UTCTime -> Bool
 isJobOverdue job _now = case jobStarted job of
-  Nothing  -> False
+  Nothing -> False
   Just _st -> jobStatus job == JSRunning

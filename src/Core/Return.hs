@@ -1,19 +1,20 @@
 -- | Return module - Returns
 module Core.Return where
 
-import           Data.Int  (Int64)
-import           Data.Text (Text)
-import           Data.Time (Day)
+import Data.Int (Int64)
+import Data.Text (Text)
+import Data.Time (Day)
 
 -- | Return - Return record
 data Return = Return
-  { retId      :: Int64
-  , retCode    :: Text
-  , retDate    :: Day
-  , retOrderId :: Int64
-  , retReason  :: Text
-  , retStatus  :: ReturnStatus
-  } deriving (Show, Eq)
+  { retId :: Int64,
+    retCode :: Text,
+    retDate :: Day,
+    retOrderId :: Int64,
+    retReason :: Text,
+    retStatus :: ReturnStatus
+  }
+  deriving (Show, Eq)
 
 data ReturnStatus = RSPending | RSApproved | RSRejected | RSCompleted
   deriving (Show, Eq)

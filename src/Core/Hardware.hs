@@ -4,16 +4,17 @@
 {-@ LIQUID "--reflection" @-}
 
 module Core.Hardware
-  ( HardwareLoad(..)
-  , HardwareStatus(..)
-  , validateHardwareLoad
-  ) where
+  ( HardwareLoad (..),
+    HardwareStatus (..),
+    validateHardwareLoad,
+  )
+where
 
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Int (Int64)
+import Data.Text (Text)
 import Data.Time (UTCTime)
 import GHC.Generics (Generic)
-import Data.Text (Text)
 
 {-@ type PosInt = {v:Int | v > 0} @-}
 {-@ type NonNeg = {v:Double | v >= 0} @-}
@@ -27,6 +28,7 @@ data HardwareStatus
   deriving (Show, Eq, Enum, Read, Generic)
 
 instance ToJSON HardwareStatus
+
 instance FromJSON HardwareStatus
 
 {-@ data HardwareLoad = HardwareLoad
@@ -39,16 +41,18 @@ instance FromJSON HardwareStatus
   , hlStatus     :: HardwareStatus
   } @-}
 data HardwareLoad = HardwareLoad
-  { hlId         :: Maybe Int64
-  , hlResourceId :: Int64
-  , hlStartTime  :: UTCTime
-  , hlEndTime    :: UTCTime
-  , hlTechId     :: Int64
-  , hlQuantity   :: Double
-  , hlStatus     :: HardwareStatus
-  } deriving (Show, Eq, Generic)
+  { hlId :: Maybe Int64,
+    hlResourceId :: Int64,
+    hlStartTime :: UTCTime,
+    hlEndTime :: UTCTime,
+    hlTechId :: Int64,
+    hlQuantity :: Double,
+    hlStatus :: HardwareStatus
+  }
+  deriving (Show, Eq, Generic)
 
 instance ToJSON HardwareLoad
+
 instance FromJSON HardwareLoad
 
 validateHardwareLoad :: HardwareLoad -> Either Text HardwareLoad

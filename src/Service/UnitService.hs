@@ -1,4 +1,3 @@
-
 -- | Unit of measure service.
 --
 -- Provides access to unit of measure operations through the database connection pool.

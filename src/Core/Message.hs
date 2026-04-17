@@ -1,19 +1,20 @@
 -- | Message module - Messages
 module Core.Message where
 
-import           Data.Int  (Int64)
-import           Data.Time (Day)
+import Data.Int (Int64)
+import Data.Time (Day)
 
 -- | Message - Message
 data Message = Message
-  { msgId      :: Int64
-  , msgFromId  :: Int64
-  , msgToId    :: Int64
-  , msgSubject :: String
-  , msgBody    :: String
-  , msgDate    :: Day
-  , msgRead    :: Bool
-  } deriving (Show, Eq)
+  { msgId :: Int64,
+    msgFromId :: Int64,
+    msgToId :: Int64,
+    msgSubject :: String,
+    msgBody :: String,
+    msgDate :: Day,
+    msgRead :: Bool
+  }
+  deriving (Show, Eq)
 
 -- | Is unread
 isUnread :: Message -> Bool
