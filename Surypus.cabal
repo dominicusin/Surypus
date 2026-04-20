@@ -72,6 +72,7 @@ library
          Core.Refined
          Surypus.Domain.IdPool
          Surypus.WebSocket
+         Surypus.Metrics
          DAL
          DAL.Types
          DAL.Queries
@@ -138,7 +139,8 @@ library
          Surypus.API.Dashboard
          Surypus.API.Health
          Surypus.API.WebSocket
-         Surypus.API.Documents.Bills
+          Surypus.API.Documents.Bills
+          Surypus.API.Documents.InventoryDocs
          Surypus.AppM
          Surypus.Config
          Surypus.Database.Pool
@@ -154,8 +156,11 @@ library
          Surypus.API.JWTMiddleware
          Surypus.API.AuthMiddleware
          Surypus.API.RateLimit
-          Surypus.JobRunner
-          Surypus.Event
+          Surypus.API.MetricsMiddleware
+          Service.InventoryLifecycleService
+           Surypus.JobRunner
+           Surypus.Event
+           Surypus.EventStore
           -- Surypus.Reports.Templates
           Service.AccountingService
           Service.AuditService

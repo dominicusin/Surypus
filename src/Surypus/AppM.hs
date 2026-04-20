@@ -7,20 +7,6 @@ import Control.Monad.Except
 import Control.Monad.Reader
 import DAL.Repository.Container (RepositoryContainer)
 import Database.Persist.Sql
--- import Service.AccountingService (AccountingService)
--- import Service.AuditService (AuditService)
--- import Service.BillService (BillService)
--- import Service.GoodsService (GoodsService)
--- import Service.InventoryService (InventoryService)
--- import Service.LocationService (LocationService)
--- import Service.OrderService (OrderService)
--- import Service.PaymentService (PaymentService)
--- import Service.PayrollService (PayrollService)
--- import Service.PersonService (PersonService)
--- import Service.PriceService (PriceService)
--- import Service.ReportService (ReportService)
--- import Service.TaxService (TaxService)
--- import Service.UnitService (UnitService)
 import Surypus.Cache (Cache)
 import Surypus.Config
 import Surypus.Error

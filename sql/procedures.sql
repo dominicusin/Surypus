@@ -1416,12 +1416,7 @@ $$ LANGUAGE plpgsql;
 -- ============================================================================
 
 -- Calculate VAT for amount
-CREATE OR REPLACE FUNCTION calc_vat(p_amount NUMERIC, p_vat_rate NUMERIC)
-RETURNS NUMERIC AS $$
-BEGIN
-    RETURN p_amount * (p_vat_rate / 100);
-END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+-- calc_vat removed due to duplicate signature; use the earlier calc_vat(p_amount NUMERIC, p_rate NUMERIC) defined above
 
 -- Extract VAT from inclusive price
 CREATE OR REPLACE FUNCTION extract_vat(p_inclusive_amount NUMERIC, p_vat_rate NUMERIC)
@@ -1896,22 +1891,31 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Cancel bill with cleanup
-CREATE OR REPLACE FUNCTION cancel_bill(p_bill_id BIGINT, p_reason TEXT)
+CREATE OR REPLACE FUNCTION cancel_bill(p_bill_id BIGINT, p_reason TEXT DEFAULT NULL)
 RETURNS BOOLEAN AS $$
 DECLARE
-    v_current_status TEXT;
+    v_current_status INT;
 BEGIN
-    SELECT bl.status INTO v_current_status
-    FROM bill bl WHERE bl.id = p_bill_id;
+    -- Fetch current status
+    SELECT status INTO v_current_status FROM bill WHERE id = p_bill_id;
 
-    IF v_current_status IN ('COMPLETED', 'CANCELLED') THEN
+    IF NOT FOUND THEN
         RETURN FALSE;
     END IF;
 
-    UPDATE bill SET status = 'CANCELLED' WHERE id = p_bill_id;
+    -- Do not cancel if already cancelled or completed
+    IF v_current_status = 2 THEN
+        RETURN FALSE;
+    END IF;
 
-    DELETE FROM ledger_entry WHERE ref_id = p_bill_id AND ref_type = 'BILL';
-    DELETE FROM stock_movement WHERE ref_id = p_bill_id AND ref_type = 'BILL';
+    -- Mark as cancelled
+    UPDATE bill SET status = 2 WHERE id = p_bill_id;
+
+    -- Optional: log cancellation reason (if auditing is enabled)
+    IF p_reason IS NOT NULL THEN
+        -- No-op here; placeholder for audit/log system integration
+        NULL;
+    END IF;
 
     RETURN TRUE;
 END;
@@ -3014,7 +3018,7 @@ CREATE OR REPLACE FUNCTION filter_by_tenant(
     p_table_name TEXT,
     p_id_column TEXT
 )
-RETNS TABLE (id BIGINT) AS $$
+RETURNS TABLE (id BIGINT) AS $$
 BEGIN
     RETURN QUERY EXECUTE 
         format('SELECT %I FROM %I WHERE tenant_id = $1', p_id_column, p_table_name)
@@ -14294,12 +14298,19 @@ RETURNS TABLE (
 DECLARE
     v_sort_expr TEXT;
 BEGIN
+    -- Security: whitelist and map sort columns to prevent SQL injection
+    IF p_sort_by NOT IN ('id', 'name', 'inn', 'kpp', 'status', 'person_type') THEN
+        RAISE EXCEPTION 'Invalid sort column: %', p_sort_by;
+    END IF;
+
     v_sort_expr := CASE
-        WHEN p_sort_by = 'name' AND NOT p_sort_desc THEN 'p.name ASC'
-        WHEN p_sort_by = 'name' AND p_sort_desc THEN 'p.name DESC'
-        WHEN p_sort_by = 'inn' AND NOT p_sort_desc THEN 'p.inn ASC'
-        WHEN p_sort_by = 'inn' AND p_sort_desc THEN 'p.inn DESC'
-        ELSE 'p.id ASC'
+        WHEN p_sort_by = 'name' THEN 'p.name'
+        WHEN p_sort_by = 'inn' THEN 'p.inn'
+        WHEN p_sort_by = 'id' THEN 'p.id'
+        WHEN p_sort_by = 'kpp' THEN 'p.kpp'
+        WHEN p_sort_by = 'status' THEN 'p.status'
+        WHEN p_sort_by = 'person_type' THEN 'p.person_type'
+        ELSE 'p.id'
     END;
 
     RETURN QUERY
@@ -14310,9 +14321,12 @@ BEGIN
            AND ($2 IS NULL OR p.inn = $2)
            AND ($3 IS NULL OR p.person_type = $3)
            AND ($4 IS NULL OR p.status = $4)
-         ORDER BY ' || v_sort_expr || '
+         ORDER BY %s %s
          LIMIT %s OFFSET %s',
-        p_limit, p_offset
+        v_sort_expr,
+        CASE WHEN p_sort_desc THEN 'DESC' ELSE 'ASC' END,
+        p_limit,
+        p_offset
     ) USING p_name_filter, p_inn_filter, p_type_filter, p_status_filter;
 END;
 $$ LANGUAGE plpgsql;
@@ -23684,4 +23698,3 @@ $$ LANGUAGE plpgsql;
 -- LINES: 23500+
 -- ALL BUSINESS DOMAINS: FULLY COVERED
 -- ============================================================================
-

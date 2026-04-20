@@ -1,61 +1,55 @@
 # ============================================================================
 # Surypus ERP/CRM Docker Configuration
 # ============================================================================
-# Multi-stage build for production with Event Sourcing support
+# Multi-stage build for production with optimized caching
 
 # Stage 1: Build environment
-FROM haskell:9.6.6 AS builder
+FROM haskell:9.12.4 AS builder
 
-# Install PostgreSQL 14 development libraries from source
-# (required for hasql-1.10.3 which uses PostgreSQL 14+ pipeline features)
+# Install build dependencies and PostgreSQL 14 dev libraries
 RUN apt-get update && apt-get install -y \
     wget \
     build-essential \
     libssl-dev \
     libreadline-dev \
     zlib1g-dev \
-    && cd /tmp \
-    && wget https://ftp.postgresql.org/pub/source/v14.11/postgresql-14.11.tar.gz \
-    && tar -xzf postgresql-14.11.tar.gz \
-    && cd postgresql-14.11 \
-    && ./configure --prefix=/usr/local/pgsql14 --without-icu \
-    && make -j$(nproc) \
-    && make install \
-    && cd / && rm -rf /tmp/postgresql-14.11* \
-    && echo "/usr/local/pgsql14/lib" > /etc/ld.so.conf.d/pgsql14.conf \
-    && ldconfig
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
 
-# Set PostgreSQL 14 path
-ENV PATH="/usr/local/pgsql14/bin:$PATH"
-ENV LD_LIBRARY_PATH="/usr/local/pgsql14/lib:$LD_LIBRARY_PATH"
-ENV PG_CONFIG="/usr/local/pgsql14/bin/pg_config"
+# Copy lock file first - enables better caching
+COPY stack.yaml stack.yaml.lock* ./
 
-# Copy stack files first for better caching
-COPY stack.yaml stack.yaml.lock ./
-COPY Surypus.cabal ./
-
-# Install dependencies
+# Pre-install dependencies (cached)
 RUN stack setup
 
-# Copy source and build
+# Copy project files
+COPY Surypus.cabal ./
+COPY surypus-common surypus-common/
+COPY surypus-api-shim surypus-api-shim/
+COPY Surypus surypus-api-core/
+
+# Create dummy source files to force rebuild if deps change
 COPY src ./src
 COPY app ./app
-COPY test ./test
 
-# Build production executable
-RUN stack build --install-ghc --copy-bins
+# Build with optimizations
+RUN stack build --install-ghc --copy-bins \
+    --ghc-options="-O2 -j4" \
+    --flag "Surypus:disable-warnings"
 
-# Stage 2: Production runtime
+# Stage 2: Production runtime (minimal)
 FROM debian:bookworm-slim
 
-# Install runtime dependencies
+# Install minimal runtime dependencies
 RUN apt-get update && apt-get install -y \
     libpq5 \
     ca-certificates \
     curl \
-    && rm -rf /var/lib/apt/lists/*
+    dumb-init \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
 # Create non-root user
 RUN groupadd -r surypus && useradd -r -g surypus surypus
@@ -66,11 +60,11 @@ WORKDIR /app
 COPY --from=builder /root/.local/bin/surypus /usr/local/bin/
 
 # Create runtime directories
-RUN mkdir -p /app/config /app/logs /app/opa \
+RUN mkdir -p /app/config /app/logs \
     && chown -R surypus:surypus /app
 
-# Copy OPA policies (for local OPA integration)
-COPY opa/policies /app/opa/policies
+# Copy OPA policies
+COPY opa/policies /app/opa/policies 2>/dev/null || true
 
 # Switch to non-root user
 USER surypus
@@ -83,7 +77,6 @@ ENV DB_NAME=surypus
 ENV DB_USER=surypus
 ENV DB_PASSWORD=surypus_secret
 ENV OPA_URL=http://opa:8181
-ENV KAFKA_BROKERS=redpanda:9092
 
 # Expose port
 EXPOSE 3000
@@ -92,5 +85,6 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:3000/health || exit 1
 
-# Run the application
+# Run with dumb-init to handle signals properly
+ENTRYPOINT ["dumb-init", "--"]
 CMD ["surypus"]

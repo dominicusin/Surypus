@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Surypus ERP - Управление предприятием</title>
+    <script>
+    const API_BASE = 'http://localhost:8080/api/v1';
+    let authToken = null;
+
+    const api = {
+        async request(endpoint, options = {}) {
+            const headers = { 'Content-Type': 'application/json' };
+            if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+            try {
+                const res = await fetch(`${API_BASE}${endpoint}`, { ...options, headers });
+                if (res.status === 401) { window.location.reload(); throw new Error('Unauthorized'); }
+                return { ok: res.ok, status: res.status, data: await res.json().catch(() => ({})) };
+            } catch (e) { console.error('API Error:', e); return { ok: false, error: e.message }; }
+        },
+        async login(username, password) {
+            const result = await this.request('/api/v1/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) });
+            if (result.ok && result.data.refreshToken) { authToken = result.data.refreshToken; localStorage.setItem('token', authToken); }
+            return result;
+        },
+        async getPersons() { return this.request('/api/v1/persons'); },
+        async getGoods() { return this.request('/api/v1/goods'); },
+        async getBills() { return this.request('/api/v1/bills'); },
+        async getLocations() { return this.request('/api/v1/locations'); },
+        async getMetrics() { return this.request('/api/v1/metrics'); },
+        async getHealth() { return this.request('/api/v1/health'); },
+        logout() { authToken = null; localStorage.removeItem('token'); }
+    };
+
+    window.SurypusAPI = api;
+    </script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root { --primary: #1976D2; --primary-dark: #1565C0; --secondary: #FF5722; --background: #F5F5F5; --surface: #FFFFFF; --text-primary: #212121; --text-secondary: #757575; --success: #4CAF50; --warning: #FFC107; --error: #F44336; --divider: #E0E0E0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--background); color: var(--text-primary); min-height: 100vh; }
+        .header { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; padding: 0 24px; height: 64px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,0.15); position: fixed; top: 0; left: 0; right: 0; z-index: 1000; }
+        .header h1 { font-size: 20px; font-weight: 500; }
+        .header-actions button { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-left: 12px; }
+        .header-actions button:hover { background: rgba(255,255,255,0.25); }
+        .main { padding-top: 80px; padding: 24px; max-width: 1400px; margin: 0 auto; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .stat-card { background: var(--surface); padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); }
+        .stat-card h3 { color: var(--text-secondary); font-size: 12px; font-weight: 500; text-transform: uppercase; margin-bottom: 8px; }
+        .stat-card .value { font-size: 28px; font-weight: 600; color: var(--primary); }
+        .stat-card .subtext { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+        .section { background: var(--surface); border-radius: 8px; padding: 20px; margin-bottom: 24px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); }
+        .section h2 { font-size: 18px; font-weight: 500; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+        .table { width: 100%; border-collapse: collapse; }
+        .table th, .table td { padding: 12px; text-align: left; border-bottom: 1px solid var(--divider); }
+        .table th { font-weight: 500; color: var(--text-secondary); font-size: 12px; text-transform: uppercase; }
+        .table tr:hover { background: rgba(0,0,0,0.02); }
+        .status-badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; }
+        .status-badge.success { background: rgba(76, 175, 80, 0.1); color: var(--success); }
+        .status-badge.warning { background: rgba(255, 193, 7, 0.1); color: var(--warning); }
+        .status-badge.error { background: rgba(244, 67, 54, 0.1); color: var(--error); }
+        .loading { opacity: 0.5; pointer-events: none; }
+        .error-message { background: rgba(244, 67, 54, 0.1); color: var(--error); padding: 12px; border-radius: 4px; margin-bottom: 16px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Surypus ERP</h1>
+        <div class="header-actions">
+            <button id="refreshBtn">Обновить</button>
+            <button id="logoutBtn">Выйти</button>
+        </div>
+    </div>
+    <div class="main">
+        <div class="stats-grid">
+            <div class="stat-card"><h3>Запросов</h3><div class="value" id="statRequests">-</div></div>
+            <div class="stat-card"><h3>4xx Ошибки</h3><div class="value" id="stat4xx">-</div></div>
+            <div class="stat-card"><h3>5xx Ошибки</h3><div class="value" id="stat5xx">-</div></div>
+            <div class="stat-card"><h3>Статус БД</h3><div class="value" id="statDbStatus">-</div></div>
+        </div>
+        <div id="errorContainer"></div>
+        <div class="section">
+            <h2>📦 Товары</h2>
+            <table class="table"><thead><tr><th>ID</th><th>Название</th><th>Тип</th><th>Остаток</th></tr></thead><tbody id="goodsTable"></tbody></table>
+        </div>
+        <div class="section">
+            <h2>📍 Склады</h2>
+            <table class="table"><thead><tr><th>ID</th><th>Название</th><th>Тип</th><th>Адрес</th></tr></thead><tbody id="locationsTable"></tbody></table>
+        </div>
+        <div class="section">
+            <h2>👥 Контрагенты</h2>
+            <table class="table"><thead><tr><th>ID</th><th>Название</th><th>Тип</th><th>Телефон</th></tr></thead><tbody id="personsTable"></tbody></table>
+        </div>
+        <div class="section">
+            <h2>📄 Документы</h2>
+            <table class="table"><thead><tr><th>ID</th><th>Номер</th><th>Тип</th><th>Статус</th><th>Сумма</th></tr></thead><tbody id="billsTable"></tbody></table>
+        </div>
+    </div>
+    <script>
+    const api = window.SurypusAPI;
+    document.addEventListener('DOMContentLoaded', async () => {
+        const token = localStorage.getItem('token');
+        if (token) { authToken = token; } else { const result = await api.login('admin', 'admin123'); if (!result.ok) { showError('Ошибка авторизации'); return; } }
+        loadData();
+        document.getElementById('refreshBtn').onclick = loadData;
+        document.getElementById('logoutBtn').onclick = () => { api.logout(); window.location.reload(); };
+    });
+    async function loadData() {
+        document.body.classList.add('loading');
+        try {
+            const [metrics, goods, locations, persons, bills] = await Promise.all([api.getMetrics(), api.getGoods(), api.getLocations(), api.getPersons(), api.getBills()]);
+            if (metrics.ok) { document.getElementById('statRequests').textContent = metrics.data.httpRequestsTotal || 0; document.getElementById('stat4xx').textContent = metrics.data.httpResponses4xx || 0; document.getElementById('stat5xx').textContent = metrics.data.httpResponses5xx || 0; }
+            const health = await api.getHealth(); if (health.ok) { document.getElementById('statDbStatus').innerHTML = `<span class="status-badge ${health.data.ready === 'ok' ? 'success' : 'error'}">${health.data.ready === 'ok' ? 'OK' : 'Ошибка'}</span>`; }
+            renderTable('goodsTable', goods.data, ['goodsId', 'name', 'goodsType']);
+            renderTable('locationsTable', locations.data, ['locationId', 'name', 'locationType']);
+            renderTable('personsTable', persons.data, ['personId', 'name', 'personType']);
+            renderTable('billsTable', bills.data, ['billId', 'billNo', 'billType', 'status'], { status: s => `<span class="status-badge ${s === 'completed' ? 'success' : s === 'pending' ? 'warning' : 'error'}">${s}</span>` });
+        } catch (e) { showError('Ошибка загрузки данных'); }
+        document.body.classList.remove('loading');
+    }
+    function renderTable(id, data, fields, transforms = {}) {
+        const tbody = document.getElementById(id); if (!data || !data.items) { tbody.innerHTML = '<tr><td colspan="100">Нет данных</td></tr>'; return; }
+        tbody.innerHTML = data.items.map(item => `<tr>${fields.map(f => `<td>${transforms[f] ? transforms[f](item[f]) : item[f] ?? '-'}</td>`).join('')}</tr>`).join('');
+    }
+    function showError(msg) { document.getElementById('errorContainer').innerHTML = `<div class="error-message">${msg}</div>`; }
+    </script>
+</body>
+</html>

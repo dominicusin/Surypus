@@ -15,9 +15,11 @@ import Network.Wai.Handler.WebSockets
 import qualified Network.WebSockets as WS
 import Surypus.API.AuthMiddleware (withAuthzResolverAdvanced)
 import Surypus.API.Authorization (requiredPermissionForPathMethod)
+import Surypus.API.MetricsMiddleware (MetricsMiddlewareConfig (..), withMetricsCollection)
 import Surypus.API.Server
 import Surypus.Database.Pool (createDatabasePool, databasePoolConfigFromEnv, pingDatabasePool, releaseDatabasePool, runMigrations)
 import Surypus.JWT (jwtConfigFromSecret)
+import Surypus.Metrics (initMetrics)
 import Surypus.RBAC (Permission)
 import Surypus.RBAC.Store (listGrants, listRoles, newRBACStore, writeAuditEntry)
 import Text.Read (readMaybe)
@@ -57,12 +59,9 @@ main = do
 
     rbacStore <- newRBACStore $ \entry -> putStrLn $ "RBAC audit: " <> show entry
 
-    putStrLn $ "Starting Servant server on port " <> show port
-    putStrLn "API available at: http://localhost:8080/api/v1"
-    putStrLn "WebSocket: ws://localhost:8080/ws"
+    metrics <- initMetrics
 
-    let servantApp = apiServer pool jwtCfg rbacStore
-        publicPaths =
+    let authPublicPaths =
           [ "/api/v1/login",
             "/api/v1/refresh",
             "/api/v1/health",
@@ -70,23 +69,31 @@ main = do
             "/swagger.json",
             "/ws"
           ]
+        metricsCfg = MetricsMiddlewareConfig metrics authPublicPaths
+
+    putStrLn $ "Starting Servant server on port " <> show port
+    putStrLn "API available at: http://localhost:8080/api/v1"
+    putStrLn "WebSocket: ws://localhost:8080/ws"
+
+    let servantApp = apiServer pool jwtCfg rbacStore metrics
         securedApp =
           withAuthzResolverAdvanced
             jwtCfg
-            publicPaths
+            authPublicPaths
             requiredPermissionFor
             (listRoles rbacStore)
             (listGrants rbacStore)
             (checkPermissionInDatabase pool)
             (writeAuditEntry rbacStore)
             servantApp
+        metricsApp = withMetricsCollection metricsCfg securedApp
 
     let combinedApp :: Application
         combinedApp req respond
           | isWsRequest req = do
               putStrLn $ "WS path detected: " <> show (rawPathInfo req)
-              websocketsOr WS.defaultConnectionOptions websocketApp securedApp req respond
-          | otherwise = securedApp req respond
+              websocketsOr WS.defaultConnectionOptions websocketApp metricsApp req respond
+          | otherwise = metricsApp req respond
 
     run port combinedApp
 

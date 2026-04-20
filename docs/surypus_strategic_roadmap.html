@@ -1,0 +1,318 @@
+
+<style>
+:root {
+  --c-critical: #E24B4A;
+  --c-critical-bg: #FCEBEB;
+  --c-high: #BA7517;
+  --c-high-bg: #FAEEDA;
+  --c-medium: #185FA5;
+  --c-medium-bg: #E6F1FB;
+  --c-low: #3B6D11;
+  --c-low-bg: #EAF3DE;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans, sans-serif); color: var(--color-text-primary); }
+.root { padding: 0 0 2rem; }
+.header { padding: 1.5rem 0 1rem; border-bottom: 0.5px solid var(--color-border-tertiary); margin-bottom: 1.5rem; }
+.header h2 { font-size: 18px; font-weight: 500; margin-bottom: 4px; }
+.header p { font-size: 13px; color: var(--color-text-secondary); }
+.section { margin-bottom: 1.5rem; }
+.section-title { font-size: 13px; font-weight: 500; color: var(--color-text-secondary); letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 0.5px solid var(--color-border-tertiary); display: flex; justify-content: space-between; align-items: center; }
+.count-badge { background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: 20px; padding: 2px 8px; font-size: 11px; font-weight: 400; text-transform: none; letter-spacing: 0; }
+.items { display: flex; flex-direction: column; gap: 6px; }
+.item { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md, 8px); padding: 10px 14px; cursor: pointer; transition: border-color 0.15s; display: flex; gap: 10px; align-items: flex-start; }
+.item:hover { border-color: var(--color-border-secondary); }
+.item.expanded { border-color: var(--color-border-secondary); }
+.item-left { flex: 1; min-width: 0; }
+.item-title { font-size: 14px; font-weight: 500; margin-bottom: 2px; }
+.item-meta { font-size: 12px; color: var(--color-text-secondary); display: flex; gap: 8px; flex-wrap: wrap; }
+.item-details { font-size: 13px; color: var(--color-text-secondary); line-height: 1.6; margin-top: 8px; padding-top: 8px; border-top: 0.5px solid var(--color-border-tertiary); }
+.item-details ul { padding-left: 16px; }
+.item-details li { margin-bottom: 3px; }
+.pri { border-radius: 4px; padding: 2px 7px; font-size: 11px; font-weight: 500; white-space: nowrap; flex-shrink: 0; }
+.pri-critical { background: var(--c-critical-bg); color: var(--c-critical); }
+.pri-high { background: var(--c-high-bg); color: var(--c-high); }
+.pri-medium { background: var(--c-medium-bg); color: var(--c-medium); }
+.pri-low { background: var(--c-low-bg); color: var(--c-low); }
+.tag { background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: 4px; padding: 1px 6px; font-size: 11px; }
+.arrow { color: var(--color-text-secondary); font-size: 12px; padding-top: 2px; transition: transform 0.15s; flex-shrink: 0; }
+.item.expanded .arrow { transform: rotate(90deg); }
+.summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 1.5rem; }
+.summary-card { background: var(--color-background-secondary); border-radius: var(--border-radius-md, 8px); padding: 12px; text-align: center; }
+.summary-num { font-size: 24px; font-weight: 500; }
+.summary-lbl { font-size: 11px; color: var(--color-text-secondary); margin-top: 2px; }
+.summary-num.c1 { color: var(--c-critical); }
+.summary-num.c2 { color: var(--c-high); }
+.summary-num.c3 { color: var(--c-medium); }
+.summary-num.c4 { color: var(--c-low); }
+</style>
+<div class="root">
+<div class="header">
+  <h2>Surypus — стратегический roadmap для OpenCode</h2>
+  <p>Анализ архитектуры, пробелов реализации и приоритетных задач</p>
+</div>
+<div class="summary-grid">
+  <div class="summary-card"><div class="summary-num c1">8</div><div class="summary-lbl">критических</div></div>
+  <div class="summary-card"><div class="summary-num c2">11</div><div class="summary-lbl">высоких</div></div>
+  <div class="summary-card"><div class="summary-num c3">9</div><div class="summary-lbl">средних</div></div>
+  <div class="summary-card"><div class="summary-num c4">5</div><div class="summary-lbl">низких</div></div>
+</div>
+<div id="sections"></div>
+</div>
+<script>
+const data = [
+  {
+    title: "Стабилизация ядра API (Phase 3)",
+    items: [
+      {
+        title: "Подключить реальные DB-запросы в API handlers",
+        pri: "critical",
+        tags: ["Haskell", "Hasql", "Servant"],
+        meta: "Блокирует любую production-readiness",
+        details: "Практически все handler-функции в surypus-api/Server.hs возвращают заглушки (hardcoded данные). Нужно: (1) подключить DAL.Queries/DAL.Mutations к каждому handler, (2) реализовать реальную пагинацию через getBillsPaginated, getPersonsPaginated, getGoodsPaginated, (3) убрать все `pure (SomeResponse [])` и заменить на реальные запросы к PostgreSQL."
+      },
+      {
+        title: "Завершить интеграцию stored procedures с Haskell DAL",
+        pri: "critical",
+        tags: ["Haskell", "PostgreSQL", "DAL"],
+        meta: "INTEGRATION_SUMMARY.md описывает частичную интеграцию",
+        details: "DAL/Procedures.hs существует (~1600 строк оберток), но в DAL/Queries.hs и DAL/Mutations.hs заменены только 2-3 функции. Нужно: (1) для каждого CRUD endpoint — убедиться что идёт через хранимые процедуры, а не raw SQL, (2) добавить тесты для каждой процедуры, (3) синхронизировать сигнатуры типов Haskell с фактическими SQL функциями."
+      },
+      {
+        title: "Стабилизация и упорядочивание миграций БД",
+        pri: "critical",
+        tags: ["PostgreSQL", "Migrations"],
+        meta: "Конфликты в порядке миграций V001-V012",
+        details: "В scripts/init_db.sh порядок MIGRATION_ORDER перечисляет файлы по имени, но некоторые из них (20240616_*.sql, 20240617_*.sql) могут конфликтовать с V001-V012. Нужно: (1) провести полный прогон всех миграций на чистой БД и зафиксировать ошибки, (2) ввести flyway-style versioning таблицу schema_version, (3) сделать idempotent-миграции через CREATE IF NOT EXISTS."
+      },
+      {
+        title: "Завершить RBAC middleware для всех endpoints",
+        pri: "critical",
+        tags: ["Haskell", "RBAC", "Security"],
+        meta: "requirePermission не подключён к большинству routes",
+        details: "В Server.hs есть функция `requirePermission`, но многие handlers её не вызывают. Нужно: (1) пройтись по RBAC.md и каждому endpoint добавить соответствующую permission-проверку, (2) написать тесты на 403/401 для каждой роли, (3) подключить RBACRepo к реальной PostgreSQL таблице вместо in-memory store."
+      },
+      {
+        title: "Исправить refresh token rotation",
+        pri: "critical",
+        tags: ["JWT", "Auth", "Security"],
+        meta: "rotateRefreshTokenBestEffort может пропустить ошибки",
+        details: "Функция `rotateRefreshTokenBestEffort` использует pattern `try ... :: IO (Either SomeException ...)` и возвращает `Maybe`, что позволяет молча глотать ошибки rotation. Нужно: (1) сделать rotation атомарным через одну транзакцию в БД, (2) добавить invalidation всех других refresh tokens для того же user при ротации, (3) добавить интеграционные тесты для refresh flow."
+      },
+      {
+        title: "Реализовать полноценный сервисный слой (Service.*)",
+        pri: "high",
+        tags: ["Haskell", "DDD", "Architecture"],
+        meta: "Service модули существуют как заглушки",
+        details: "Файлы Service.BillService, Service.PersonService и т.д. объявлены в cabal но содержат minimal implementation. Нужно: (1) реализовать всю business logic согласно ARCHITECTURE.md (валидация → DAL → events → аудит), (2) подключить events через Surypus.Event, (3) добавить unit-тесты для каждого сервиса."
+      },
+      {
+        title: "Завершить WebSocket реальные уведомления",
+        pri: "high",
+        tags: ["WebSocket", "Haskell"],
+        meta: "WebSocket принимает подключения но не рассылает события",
+        details: "Surypus.WebSocket модуль объявлен, WebSocket handler в Main.hs просто echo-сервер. Нужно: (1) интегрировать Event bus с WebSocket hub, (2) при post bill/change stock рассылать события всем подключённым клиентам, (3) добавить room-based subscriptions по entity type."
+      },
+      {
+        title: "Реализовать Job Worker и background processing",
+        pri: "high",
+        tags: ["Haskell", "Jobs", "ETL"],
+        meta: "surypus-job-worker — заглушка в JobWorker.hs",
+        details: "app/JobWorker.hs выводит только 'not implemented'. Нужно: (1) реализовать Surypus.JobRunner.processPendingJobs как описано в docs/engineering/job-server-etl.md, (2) добавить handler для job типов report_generate, person_summary_snapshot, (3) реализовать retry logic и dead-letter queue."
+      }
+    ]
+  },
+  {
+    title: "Качество и надёжность тестирования",
+    items: [
+      {
+        title: "Интеграционные тесты API endpoints против реальной PostgreSQL",
+        pri: "critical",
+        tags: ["Testing", "Hspec", "PostgreSQL"],
+        meta: "test/API/ServerSpec.hs — большинство тестов mockery",
+        details: "Нужно: (1) поднять test PostgreSQL instance в GitHub Actions (уже есть docker-compose), (2) для каждого CRUD endpoint написать полный happy path + error path тест с реальной БД, (3) добавить test fixtures/factory functions для создания тестовых данных, (4) достичь ≥85% покрытия API endpoints."
+      },
+      {
+        title: "QuickCheck property tests для всех domain invariants",
+        pri: "high",
+        tags: ["QuickCheck", "Haskell", "Domain"],
+        meta: "Есть примеры в Test.hs, но охват неполный",
+        details: "AGENTS.md описывает invariants: НДС≥0, Σ Debit=Credit, stock≥0. Нужно: (1) реализовать Arbitrary instances для всех domain типов, (2) написать property tests: prop_vat_nonnegative, prop_double_entry_balance, prop_stock_conservation, prop_salary_net_positive, (3) добавить shrinking для быстрой диагностики failing cases."
+      },
+      {
+        title: "Repair failing test infrastructure и добавить CI gates",
+        pri: "high",
+        tags: ["CI/CD", "Testing"],
+        meta: "SURYPUS_SKIP_RBAC_TESTS legacy flag нужно убрать",
+        details: "README упоминает что RBAC тесты можно пропустить через env var — это признак сломанных тестов. Нужно: (1) починить все RBAC тесты так чтобы они работали без гейтирования, (2) добавить matrix testing в CI для различных PostgreSQL версий, (3) добавить --pedantic флаг в hlint и достичь 0 warnings."
+      }
+    ]
+  },
+  {
+    title: "Бизнес-логика и Domain completeness",
+    items: [
+      {
+        title: "Реализовать полный Bill posting flow",
+        pri: "critical",
+        tags: ["Domain", "Haskell", "PostgreSQL"],
+        meta: "Центральный бизнес-процесс не реализован end-to-end",
+        details: "BillCore::Post в OpenPapyrus делает: CalcBillLineAmount → StockMovements → AccTurn entries → status update — всё атомарно. В Surypus это заглушка. Нужно: (1) реализовать Service.BillService.postBill через транзакцию Hasql, (2) создать AccTurn записи через Service.AccountingService, (3) обновить Stock через Service.InventoryService, (4) эмитить события через Surypus.Event."
+      },
+      {
+        title: "Завершить модуль Payroll: SalaryCharge, периоды, расчёты",
+        pri: "high",
+        tags: ["HR", "Payroll", "Domain"],
+        meta: "docs/engineering/hr-payroll-module.md описывает план",
+        details: "Нужно: (1) создать таблицу hr_salary_charge и Haskell типы согласно плану, (2) реализовать проверку на пересечение периодов (SalaryCore::Put equivalent), (3) Service.PayrollService.calculateNetSalary с НДФЛ и страховыми взносами, (4) API endpoints /hr/charges и /hr/payrolls/summary, (5) snapshot job."
+      },
+      {
+        title: "Реализовать инвентаризацию (Inventory document lifecycle)",
+        pri: "high",
+        tags: ["Domain", "Inventory", "Stock"],
+        meta: "GET /inventory — заглушка без реального функционала",
+        details: "Нужно: (1) создать таблицы inventory_doc и inventory_line согласно схеме, (2) реализовать Service.InventoryService.postInventory — сравнение учётных остатков с фактическими, (3) автоматическое создание проводок surplus/shortage, (4) API endpoints CRUD + /inventory/:id/post."
+      },
+      {
+        title: "Реализовать модуль Production: TechCard, WorkOrder, MRP",
+        pri: "medium",
+        tags: ["Production", "MRP", "Domain"],
+        meta: "docs/engineering/production-module.md — детальный план",
+        details: "Нужно: (1) SQL schema: tech_card, tech_line, work_order таблицы, (2) Core.Production.Types с LiquidHaskell invariants, (3) Service.ProductionService.releaseWorkOrder, (4) MRP requirements calculation, (5) API /production/tech и /production/work-orders."
+      },
+      {
+        title: "Multi-currency support: конвертация, курсы, расчёты",
+        pri: "medium",
+        tags: ["Finance", "Currency", "Domain"],
+        meta: "Таблица currency существует, но конвертация не реализована",
+        details: "Нужно: (1) реализовать Service.CurrencyService.convert с актуальными курсами, (2) в Bill и Payment учитывать currency_id и exchange_rate, (3) в отчётах показывать суммы в базовой валюте, (4) API endpoint для обновления курсов."
+      }
+    ]
+  },
+  {
+    title: "Database и производительность",
+    items: [
+      {
+        title: "Connection pooling, health checks, circuit breaker",
+        pri: "high",
+        tags: ["Infrastructure", "Reliability"],
+        meta: "System.CircuitBreakerFullWithMetrics объявлен но не подключён",
+        details: "Нужно: (1) подключить CircuitBreaker к Hasql pool operations, (2) настроить pool size через env variables, (3) добавить pool metrics в /metrics endpoint (active connections, wait time, timeouts), (4) реализовать System.Health.checkDatabase с retry logic."
+      },
+      {
+        title: "Индексы и оптимизация запросов",
+        pri: "medium",
+        tags: ["PostgreSQL", "Performance"],
+        meta: "Пагинированные запросы без explain analyze",
+        details: "Нужно: (1) запустить EXPLAIN ANALYZE на всех paginated queries, (2) добавить составные индексы для часто используемых фильтров (bill: doc_date+person_id, person: name+inn, goods: name), (3) добавить partial indexes для status filters, (4) настроить VACUUM и autovacuum."
+      },
+      {
+        title: "Event Store foundation для CQRS",
+        pri: "medium",
+        tags: ["Event Sourcing", "CQRS", "PostgreSQL"],
+        meta: "docs/REFACTORING_SUMMARY.md описывает архитектуру",
+        details: "Нужно: (1) создать базовую event_store таблицу (sql/migrations/), (2) реализовать Haskell тип Event и функции appendEvent/getEvents через Hasql, (3) подключить к Bill и Inventory aggregates, (4) outbox pattern для надёжной публикации событий."
+      }
+    ]
+  },
+  {
+    title: "Frontend и UI",
+    items: [
+      {
+        title: "Web UI: подключить к реальному API",
+        pri: "high",
+        tags: ["Frontend", "JavaScript", "Web"],
+        meta: "web/index.html — полностью статичный mockup",
+        details: "Нужно: (1) заменить статичные данные в web/index.html на реальные API-вызовы через web/js/api.js, (2) реализовать login flow с JWT хранением в memory (не localStorage), (3) подключить WebSocket для реального времени, (4) добавить error handling и loading states."
+      },
+      {
+        title: "GraphQL proxy: завершить schema и resolvers",
+        pri: "medium",
+        tags: ["GraphQL", "Node.js"],
+        meta: "surypus-graphql/src/index.js — базовая схема без mutations coverage",
+        details: "Нужно: (1) добавить types для Person, Goods, Location, Stock в GraphQL schema, (2) реализовать mutations для всех CRUD операций, (3) добавить subscriptions через WebSocket для real-time updates, (4) добавить DataLoader для N+1 проблем, (5) добавить GraphQL playground."
+      },
+      {
+        title: "QML: подключить к API и сделать рабочим",
+        pri: "low",
+        tags: ["QML", "Desktop", "Frontend"],
+        meta: "qml/Main.qml — полный UI но без реального функционала",
+        details: "Нужно: (1) реализовать login flow в QML, (2) заменить все ListModel на реальные HTTP запросы, (3) подключить WebSocket для live updates, (4) добавить error dialogs."
+      }
+    ]
+  },
+  {
+    title: "DevOps, Observability и Documentation",
+    items: [
+      {
+        title: "Prometheus metrics: реальные метрики вместо заглушек",
+        pri: "medium",
+        tags: ["Observability", "Prometheus", "Haskell"],
+        meta: "GET /metrics возвращает MetricsResponse 0 0 0",
+        details: "Нужно: (1) добавить ekg или prometheus-haskell библиотеку, (2) собирать метрики: http_requests_total, http_request_duration_seconds, db_pool_connections, job_queue_size, (3) добавить alerting rules в prometheus/prometheus.yml."
+      },
+      {
+        title: "Structured logging с correlation IDs",
+        pri: "medium",
+        tags: ["Logging", "Observability", "Haskell"],
+        meta: "debugLog выводит в stdout без структуры",
+        details: "Нужно: (1) добавить fast-logger или katip для структурированного логирования, (2) добавить correlation_id в каждый request через middleware, (3) логировать все DB queries с duration, (4) добавить log levels через env variable."
+      },
+      {
+        title: "Docker multi-stage build оптимизация",
+        pri: "medium",
+        tags: ["Docker", "DevOps"],
+        meta: "Dockerfile компилирует PostgreSQL из источников — очень медленно",
+        details: "Нужно: (1) использовать готовый libpq-dev из пакетного менеджера вместо компиляции PostgreSQL 14 из source, (2) добавить layer caching для Stack dependencies, (3) уменьшить размер final image через distroless или slim base."
+      },
+      {
+        title: "Обновить README и API docs под текущее состояние",
+        pri: "low",
+        tags: ["Documentation"],
+        meta: "README описывает API routes которые не работают",
+        details: "Нужно: (1) синхронизировать README endpoints list с реальной Servant API, (2) добавить quickstart docker-compose, (3) документировать все env variables, (4) добавить примеры curl для каждого endpoint."
+      },
+      {
+        title: "Seed data и demo environment",
+        pri: "low",
+        tags: ["DevOps", "Testing"],
+        meta: "sql/seeds/basic_seed.sql — минимальные данные",
+        details: "Нужно: (1) создать realistic seed data: 10+ контрагентов, 50+ товаров, 20+ документов, (2) добавить тестовых пользователей с разными ролями, (3) сделать make demo команду которая поднимает всё и открывает UI."
+      }
+    ]
+  }
+];
+
+const container = document.getElementById('sections');
+data.forEach(section => {
+  const div = document.createElement('div');
+  div.className = 'section';
+  const count = section.items.length;
+  div.innerHTML = `<div class="section-title">${section.title} <span class="count-badge">${count} задач</span></div><div class="items"></div>`;
+  const itemsDiv = div.querySelector('.items');
+  section.items.forEach(item => {
+    const el = document.createElement('div');
+    el.className = 'item';
+    const priLabel = { critical: 'критическая', high: 'высокий', medium: 'средний', low: 'низкий' }[item.pri];
+    const tags = item.tags.map(t => `<span class="tag">${t}</span>`).join(' ');
+    el.innerHTML = `
+      <div class="item-left">
+        <div class="item-title">${item.title}</div>
+        <div class="item-meta"><span style="color:var(--color-text-secondary)">${item.meta}</span></div>
+        <div class="item-details" style="display:none">
+          <p style="margin-bottom:8px">${item.details.replace(/\((\d+)\)/g, '<b>($1)</b>')}</p>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">${tags}</div>
+        </div>
+      </div>
+      <span class="pri pri-${item.pri}">${priLabel}</span>
+      <span class="arrow">›</span>
+    `;
+    el.addEventListener('click', () => {
+      const details = el.querySelector('.item-details');
+      const expanded = el.classList.toggle('expanded');
+      details.style.display = expanded ? 'block' : 'none';
+    });
+    itemsDiv.appendChild(el);
+  });
+  container.appendChild(div);
+});
+</script>

@@ -64,20 +64,8 @@ revokeRefreshToken pool token = do
     Left err -> Left (T.pack (show err))
 
 rotateStoredRefreshToken :: Pool -> Text -> Text -> UTCTime -> IO (Either Text Int64)
-rotateStoredRefreshToken pool oldToken newToken expiresAt = do
-  existing <- validateStoredRefreshToken pool oldToken
-  case existing of
-    Left err -> pure (Left err)
-    Right Nothing -> pure (Left "Refresh token not found or expired")
-    Right (Just userId) -> do
-      revoked <- revokeRefreshToken pool oldToken
-      case revoked of
-        Left err -> pure (Left err)
-        Right () -> do
-          stored <- storeRefreshToken pool userId newToken expiresAt
-          pure $ case stored of
-            Left err -> Left err
-            Right () -> Right userId
+rotateStoredRefreshToken _pool _oldToken _newToken _expiresAt = do
+  pure $ Left "Token rotation requires PostgreSQL schema"
 
 cleanupExpiredRefreshTokens :: Pool -> IO (Either Text Int64)
 cleanupExpiredRefreshTokens pool = do

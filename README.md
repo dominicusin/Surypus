@@ -4,7 +4,7 @@
 
 ## Возможности
 
-- **Backend**: Haskell (GHC 9.6.6)
+- **Backend**: Haskell (GHC 9.12.4)
 - **База данных**: PostgreSQL (30+ таблиц)
 - **API**: REST (Scotty, порт 8080)
 - **UI**: QML Desktop + Web (Desktop + Mobile/PWA)

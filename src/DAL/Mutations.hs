@@ -21,6 +21,8 @@ module DAL.Mutations where
 
 import Control.Monad (forM)
 import DAL.Types
+import qualified Data.Aeson as A
+import qualified Data.ByteString.Lazy as BL
 import Data.Functor.Contravariant ((>$<))
 import Data.Int (Int16, Int64)
 import Data.Text (Text)
@@ -53,6 +55,18 @@ runMutationReturningId pool sql encoder payload successMessage = do
   case res of
     Right rid -> pure $ QuerySuccess (MutationResult True (Just rid) successMessage)
     Left err -> pure $ QueryError (T.pack (show err))
+
+-- Real mutation: report generation via stored procedure
+reportMutation :: Pool -> Text -> IO (QueryResult MutationResult)
+reportMutation pool reportName = do
+  let sql = "SELECT run_report($1)"
+      encoder = E.param (E.nonNullable E.text)
+      -- decode returning id
+      stmt = unpreparable sql encoder mutationIdDecoder
+  res <- use pool $ Session.statement reportName stmt
+  pure $ case res of
+    Right rid -> QuerySuccess (MutationResult True (Just rid) "Report created successfully")
+    Left err -> QueryError (T.pack $ show err)
 
 -- | Execute a mutation multiple times in a single transaction and return a list of generated IDs.
 -- This is more efficient than running each mutation separately as it reduces round-trips to the database.
@@ -646,3 +660,16 @@ deleteAccTurn pool turnId =
     (E.param (E.nonNullable E.int8))
     turnId
     "Accounting entry deleted"
+
+-- Payroll snapshot mutation (returns text path)
+payrollSnapshotMutation :: Pool -> A.Value -> IO (QueryResult Text)
+payrollSnapshotMutation pool payload = do
+  let payloadText = TE.decodeUtf8 $ BL.toStrict $ A.encode payload
+      sql = "SELECT process_payroll_snapshot($1)"
+      encoder = E.param (E.nonNullable E.text)
+      decoder = D.singleRow (D.column (D.nonNullable D.text))
+      stmt = unpreparable sql encoder decoder
+  res <- use pool $ Session.statement payloadText stmt
+  pure $ case res of
+    Right t -> QuerySuccess t
+    Left err -> QueryError (T.pack $ show err)

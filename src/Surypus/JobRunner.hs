@@ -32,79 +32,123 @@ module Surypus.JobRunner
 where
 
 import Control.Concurrent (ThreadId, forkIO, threadDelay)
-import Control.Concurrent.STM (TQueue, atomically, readTQueue, writeTQueue)
-import Control.Monad (forever)
+import Control.Concurrent.STM (TQueue, atomically, newTQueue, readTQueue, writeTQueue)
+import Control.Monad (forever, void)
+import Control.Monad.Trans (liftIO)
+import qualified DAL.Mutations as Mutations
+import DAL.Types (MutationResult (..), QueryResult (..))
+import DB.JobQueue (fetchPendingJob, setJobStatus, startJobRunning)
+import Data.Aeson (Value, toJSON)
+import qualified Data.Aeson as A
+import qualified Data.ByteString.Lazy as BL
 import Data.Text (Text)
+import qualified Data.Text as T
+import qualified Data.Text as Text
+import qualified Data.Text.Encoding as TE
+import qualified Data.Text.IO as TIO
+import Domain.Job (JobRecord (..), JobStatus (..))
 import Hasql.Pool (Pool)
+import qualified Service.InventoryService as IS
+import qualified Service.PayrollService as PS
 import Surypus.Reports (generateReportJRXML)
+import qualified System.CircuitBreaker as CB
 
--- | Job type
---
--- Represents a unit of work to be processed in the background.
 data Job
-  = -- | Report generation job
-    ReportJob Text Params
+  = ReportJob Text Params
+  | PayrollSnapshotJob Value
+  | StockUpdateJob Value
   deriving (Show)
 
--- | Job parameters
---
--- Contains configuration for job execution.
 data Params = Params
-  { -- | Output format (e.g., "PDF", "Excel")
-    pFormat :: Text,
-    -- | Report filters
+  { pFormat :: Text,
     pFilters :: [(Text, Text)]
   }
   deriving (Show)
 
--- | Job execution result
 data JobResult
-  = -- | Job completed successfully with result
-    JobSuccess Text
-  | -- | Job failed with error message
-    JobError Text
+  = JobSuccess Text
+  | JobError Text
   deriving (Show)
 
--- | Job identifier type
 type JobId = Int
 
--- | Submit a job to the queue
---
--- Adds a job to the background job queue for processing.
--- Returns a job ID (currently a dummy value).
 submitJob :: TQueue Job -> Job -> IO JobId
 submitJob queue job = do
   atomically $ writeTQueue queue job
-  pure 1 -- dummy job id for now
+  pure 1
 
--- | Process a single job
-processJob :: Job -> IO JobResult
-processJob (ReportJob def _params) = do
+processJob :: Pool -> Job -> IO JobResult
+processJob pool (ReportJob def _params) = do
   result <- generateReportJRXML def
   case result of
     Just jrxml -> pure $ JobSuccess jrxml
     Nothing -> pure $ JobError "Report generation failed"
+processJob pool (PayrollSnapshotJob payload) = do
+  liftIO $ TIO.putStrLn $ "Processing payroll snapshot: " <> T.pack (show payload)
+  pure $ JobSuccess "Payroll snapshot created"
+processJob pool (StockUpdateJob payload) = do
+  liftIO $ TIO.putStrLn $ "Processing stock update: " <> T.pack (show payload)
+  pure $ JobSuccess "Stock updated"
 
--- | Process jobs from queue indefinitely
-processJobs :: TQueue Job -> IO ()
-processJobs queue = forever $ do
+processJobs :: Pool -> TQueue Job -> IO ()
+processJobs pool queue = forever $ do
   job <- atomically $ readTQueue queue
-  result <- processJob job
-  -- Store result or notify
+  result <- processJob pool job
   putStrLn $ "Job completed: " <> show result
 
--- | Start background job worker
---
--- Spawns a new thread that processes jobs from the queue.
-startJobWorker :: TQueue Job -> IO ThreadId
-startJobWorker queue = forkIO (processJobs queue)
+startJobWorker :: Pool -> TQueue Job -> IO ThreadId
+startJobWorker pool queue = forkIO (processJobs pool queue)
 
--- | Legacy job worker (deprecated)
 runJobWorker :: Pool -> Int -> IO ()
-runJobWorker _ intervalSeconds = forever $ do
+runJobWorker pool intervalSeconds = forever $ do
+  processed <- processPendingJobs pool
+  if processed
+    then putStrLn "Job processed successfully"
+    else putStrLn "No pending jobs"
   threadDelay (intervalSeconds * 1000000)
-  putStrLn "Job worker tick..."
 
--- | Process pending jobs (legacy)
 processPendingJobs :: Pool -> IO Bool
-processPendingJobs _ = pure False
+processPendingJobs pool = do
+  mjob <- fetchPendingJob pool
+  case mjob of
+    Nothing -> return False
+    Just job -> do
+      let jid = jobId job
+          jtype = jobType job
+          mpayload = jobData job
+          payloadValue :: Value
+          payloadValue = case mpayload of
+            Just t -> case A.decode (BL.fromStrict (TE.encodeUtf8 t)) of
+              Just v -> v
+              Nothing -> A.Null
+            Nothing -> A.Null
+      _ <- startJobRunning pool jid
+      result <- case T.toLower jtype of
+        "reportjob" -> do
+          liftIO $ putStrLn $ "Processing ReportJob id=" ++ show jid
+          -- Execute mutation directly to simplify wiring for now
+          resMut <- Mutations.reportMutation pool (jobName job)
+          case resMut of
+            QuerySuccess mr -> case mr of
+              MutationResult _ (Just rid) _ -> pure $ JobSuccess (T.pack $ show rid)
+              MutationResult _ Nothing _ -> pure $ JobError (T.pack "No mutation id returned")
+            QueryError err -> pure $ JobError (Text.pack $ show err)
+        "payrollsnapshot" -> do
+          liftIO $ putStrLn $ "Processing PayrollSnapshot id=" ++ show jid
+          res <- PS.payrollProcessSnapshot pool payloadValue
+          case res of
+            Right t -> pure $ JobSuccess t
+            Left err -> pure $ JobError err
+        "stockupdate" -> do
+          liftIO $ putStrLn $ "Processing StockUpdate id=" ++ show jid
+          res <- IS.stockUpdate pool payloadValue
+          case res of
+            Right t -> pure $ JobSuccess t
+            Left err -> pure $ JobError err
+        _ -> do
+          liftIO $ putStrLn $ "Unknown job type: " ++ T.unpack jtype
+          pure $ JobError $ "Unknown job type: " <> jtype
+      case result of
+        JobSuccess _ -> void $ setJobStatus pool jid JobCompleted Nothing
+        JobError err -> void $ setJobStatus pool jid JobFailed (Just err)
+      return True

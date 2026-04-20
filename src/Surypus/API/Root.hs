@@ -104,7 +104,7 @@ type APIv1 = "v1" :> (AuthAPI :<|> ProtectedAPI)
 
 type API = APIv1
 
-type ProtectedAPI = PersonsAPI :<|> GoodsAPI :<|> LocationsAPI :<|> BillsAPI :<|> PaymentsAPI :<|> OrdersAPI :<|> TaxesAPI :<|> VATAPI :<|> CurrenciesAPI :<|> StockAPI :<|> AccountingAPI :<|> PayrollAPI :<|> ReportsAPI :<|> DashboardAPI :<|> BalanceAPI :<|> UsersAPI :<|> AuditLogAPI :<|> RbacAPI :<|> JobsAPI :<|> HealthAPI :<|> MetricsAPI
+type ProtectedAPI = PersonsAPI :<|> GoodsAPI :<|> LocationsAPI :<|> BillsAPI :<|> PaymentsAPI :<|> OrdersAPI :<|> TaxesAPI :<|> VATAPI :<|> CurrenciesAPI :<|> StockAPI :<|> AccountingAPI :<|> PayrollAPI :<|> ReportsAPI :<|> DashboardAPI :<|> BalanceAPI :<|> UsersAPI :<|> AuditLogAPI :<|> RbacAPI :<|> HealthAPI :<|> MetricsAPI
 
 -- | Full API with Swagger documentation
 type APIWithDoc = "api" :> APIv1 :<|> "swagger.json" :> Get '[JSON] Value
@@ -305,7 +305,13 @@ data HealthReadyResponse = HealthReadyResponse
 data MetricsResponse = MetricsResponse
   { httpRequestsTotal :: Int64,
     httpResponses4xx :: Int64,
-    httpResponses5xx :: Int64
+    httpResponses5xx :: Int64,
+    dbConnectionsActive :: Int64,
+    dbConnectionsIdle :: Int64,
+    jobsPending :: Int64,
+    jobsRunning :: Int64,
+    jobsCompleted :: Int64,
+    jobsFailed :: Int64
   }
   deriving (Show, Eq, Generic)
   deriving anyclass (ToJSON)

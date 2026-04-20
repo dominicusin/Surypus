@@ -15,6 +15,7 @@ module Surypus.WebSocket
     acceptConnectionWithPath,
     handleMessage,
     broadcastToRole,
+    broadcastEvent,
   )
 where
 
@@ -26,7 +27,7 @@ import Data.Maybe (catMaybes)
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
-import Data.Time.Clock (UTCTime)
+import Data.Time.Clock (UTCTime, getCurrentTime)
 import GHC.Generics (Generic)
 import qualified Network.WebSockets as WS
 import Surypus.JWT (JWTConfig, JWTPayload, getJwtRole, validateAccessToken)
@@ -198,3 +199,10 @@ broadcastToRole hub role message = do
       (WS.sendTextData connection (encode message) >> pure Nothing)
         `catch` \(_ :: SomeException) -> pure (Just clientId)
   unless (null failedClientIds) . atomically $ modifyTVar' (wshClients hub) (filter (\(cid, _, _) -> cid `notElem` failedClientIds))
+
+-- | Broadcast a generic event to all connected clients via the event bus
+broadcastEvent :: WebSocketHub -> NotificationType -> Value -> IO ()
+broadcastEvent hub nt payload = do
+  t <- getCurrentTime
+  let msg = WebSocketMessage nt "event" payload t
+  broadcastMessage hub msg

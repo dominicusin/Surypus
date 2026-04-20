@@ -39,6 +39,7 @@ import Surypus.API.Root
 import Surypus.Database.Pool (pingDatabasePool)
 import Surypus.JWT (JWTConfig (..), TokenPair (accessToken, refreshToken), generateTokenPair, rtUserId, validateRefreshToken)
 import Surypus.Logging (debugLog, debugLogIf)
+import Surypus.Metrics (Metrics (..), getMetrics)
 import Surypus.RBAC
   ( AuditEntry (..),
     DynamicRole (..),
@@ -69,12 +70,13 @@ import Surypus.Types (fromDecimal)
 data Env = Env
   { envPool :: Pool,
     envJWTConfig :: JWTConfig,
-    envRBACStore :: RBACStore
+    envRBACStore :: RBACStore,
+    envMetrics :: Metrics
   }
 
-apiServer :: Pool -> JWTConfig -> RBACStore -> Application
-apiServer pool jwtConfig rbacStore =
-  let env = Env pool jwtConfig rbacStore
+apiServer :: Pool -> JWTConfig -> RBACStore -> Metrics -> Application
+apiServer pool jwtConfig rbacStore metrics =
+  let env = Env pool jwtConfig rbacStore metrics
    in serve (Proxy @APIWithDoc) (serverWithDoc env)
 
 serverWithDoc :: Env -> Server APIWithDoc
@@ -133,10 +135,10 @@ server env =
         (rbacRolesList env :<|> rbacRoleCreate env :<|> rbacRoleUpdate env :<|> rbacRoleDelete env)
           :<|> (rbacGrantsList env :<|> rbacGrantCreate env :<|> rbacActiveGrantsList env :<|> rbacGrantsCleanup env :<|> rbacGrantUpdate env :<|> rbacGrantDelete env)
           :<|> (rbacAuditList env :<|> rbacAuditCleanup env)
-      jobsHandler = jobsList :<|> jobsPending :<|> jobsCreate
+      -- jobsHandler = jobsList :<|> jobsPending :<|> jobsCreate
       healthHandler = healthGet env :<|> healthLiveGet :<|> healthReadyGet env
-      metricsHandler = metricsGet
-   in authHandler :<|> (personsHandler :<|> goodsHandler :<|> locationsHandler :<|> billsHandler :<|> paymentsHandler :<|> ordersHandler :<|> taxesHandler :<|> vatHandler :<|> currenciesHandler :<|> stockHandler :<|> accountingHandler :<|> payrollHandler :<|> reportsHandler :<|> dashboardHandler :<|> balanceRESTServer :<|> usersHandler :<|> auditLogHandler :<|> rbacHandler :<|> jobsHandler :<|> healthHandler :<|> metricsHandler)
+      metricsHandler = metricsGet env
+   in authHandler :<|> (personsHandler :<|> goodsHandler :<|> locationsHandler :<|> billsHandler :<|> paymentsHandler :<|> ordersHandler :<|> taxesHandler :<|> vatHandler :<|> currenciesHandler :<|> stockHandler :<|> accountingHandler :<|> payrollHandler :<|> reportsHandler :<|> dashboardHandler :<|> balanceRESTServer :<|> usersHandler :<|> auditLogHandler :<|> rbacHandler :<|> healthHandler :<|> metricsHandler)
 
 authLogin :: Env -> LoginRequest -> Handler LoginResponse
 authLogin env req = do
@@ -780,8 +782,16 @@ healthReadyGet env = do
       overall = if dbOk then "ok" else "not_ready"
   pure $ HealthReadyResponse overall dbStatus
 
-metricsGet :: Handler MetricsResponse
-metricsGet = pure $ MetricsResponse 0 0 0
+metricsGet :: Env -> Handler MetricsResponse
+metricsGet env = do
+  (reqs, r4xx, r5xx) <- liftIO $ getMetrics (envMetrics env)
+  let dbActive = 0
+      dbIdle = 0
+      jobsPending = 0
+      jobsRunning = 0
+      jobsCompleted = 0
+      jobsFailed = 0
+  pure $ MetricsResponse reqs r4xx r5xx dbActive dbIdle jobsPending jobsRunning jobsCompleted jobsFailed
 
 rbacRolesList :: Env -> Handler RolesListResponse
 rbacRolesList env = do
@@ -991,7 +1001,7 @@ parsePermissionText p =
       ("salaries:write", SalariesWrite)
     ]
 
-startServantServer :: Int -> Pool -> JWTConfig -> RBACStore -> IO ()
-startServantServer port pool jwtConfig rbacStore = do
+startServantServer :: Int -> Pool -> JWTConfig -> RBACStore -> Metrics -> IO ()
+startServantServer port pool jwtConfig rbacStore metrics = do
   debugLog $ "Starting Servant server on port " <> T.pack (show port)
-  run port $ apiServer pool jwtConfig rbacStore
+  run port $ apiServer pool jwtConfig rbacStore metrics

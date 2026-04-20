@@ -4,6 +4,11 @@
 -- | GraphQL API module for Surypus (placeholder implementation)
 module Surypus.API.GraphQL
   ( graphQLAPI,
+    graphQLSchema,
+    GraphQLPerson (..),
+    GraphQLGoods (..),
+    GraphQLLocation (..),
+    GraphQLSubscription (..),
   )
 where
 
@@ -18,18 +23,27 @@ data GraphQLBill = GraphQLBill
   }
   deriving (Generic, ToJSON, FromJSON)
 
-data GraphQLGoods = GraphQLGoods
-  { goodsId :: Int,
-    goodsName :: Text,
-    goodsPrice :: Double
-  }
-  deriving (Generic, ToJSON, FromJSON)
+-- GraphQLGoods type defined above (single definition)
 
 data GraphQLPerson = GraphQLPerson
   { personId :: Int,
     personName :: Text
   }
   deriving (Generic, ToJSON, FromJSON)
+
+data GraphQLLocation = GraphQLLocation
+  { locationId :: Int,
+    locationName :: Text
+  }
+  deriving (Generic, ToJSON, FromJSON)
+
+-- | Simple GraphQL schema as text for extension
+graphQLSchema :: Text
+graphQLSchema =
+  "type Person { id: ID!, name: String! } "
+    <> "type Goods { id: ID!, name: String!, price: Float } "
+    <> "type Location { id: ID!, name: String! } "
+    <> "type Query { persons: [Person], goods: [Goods], locations: [Location] }"
 
 data GraphQLDashboard = GraphQLDashboard
   { revenue :: Double,
@@ -43,6 +57,12 @@ data GraphQLQuery = GraphQLQuery
     queryGoods :: [GraphQLGoods],
     queryPersons :: [GraphQLPerson],
     queryDashboard :: GraphQLDashboard
+  }
+  deriving (Generic, ToJSON, FromJSON)
+
+data GraphQLSubscription = GraphQLSubscription
+  { gsId :: Int,
+    gsEvent :: Text
   }
   deriving (Generic, ToJSON, FromJSON)
 

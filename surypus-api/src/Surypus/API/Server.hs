@@ -6,6 +6,9 @@
 
 module Surypus.API.Server (apiServer, startServantServer) where
 
+import DAL.Mutations
+import DAL.Queries
+import DAL.Types (AccTurn (..), Employee (..), Job (..), ReportTemplate (..), Salary (..), Stock (..), User (..))
 import Data.Int (Int64)
 import Data.Proxy (Proxy (..))
 import Data.Text (Text)
@@ -19,6 +22,9 @@ import Surypus.API.Root
     RoleCreateRequest (..),
     RoleInfoResponse (..),
     RolesListResponse (..),
+    StockItemResponse (..),
+    StockResponse (..),
+    UserResponse (..),
   )
 import Surypus.Database.Pool (pingDatabasePool)
 import Surypus.JWT (JWTConfig (..), TokenPair (..), generateTokenPair, rtUserId, validateRefreshToken)
@@ -30,6 +36,7 @@ import Surypus.RBAC
     PermissionScope (..),
     ScopedPermission (..),
     permissionToText,
+    requirePermission,
   )
 
 data RBACStore = RBACStore ()
@@ -59,35 +66,81 @@ server env =
   let jwtCfg = envJWTConfig env
       authHandler = authLogin env :<|> logoutHandler' :<|> refreshHandler' env jwtCfg :<|> meHandler'
       -- Apply RBAC middleware to write endpoints
-      personsHandler =
-        personsList env :<|> personsCreate env :<|> personsGet env :<|> personsUpdate env :<|> personsDelete env :<|> personsSearch env
-      goodsHandler = goodsList env :<|> goodsCreate env :<|> goodsGet env :<|> goodsUpdate env :<|> goodsDelete env :<|> goodsSearch env
-      locationsHandler =
-        locationsList env :<|> locationsCreate env :<|> locationsGet env :<|> locationsUpdate env :<|> locationsDelete env
-      billsHandler =
-        billsList env :<|> billsCreate env :<|> billsGet env :<|> billsUpdate env :<|> billsDelete env :<|> billsStatus env
-      paymentsHandler =
-        paymentsList env :<|> paymentsCreate env :<|> paymentsGet env :<|> paymentsUpdate env :<|> paymentsDelete env
-      ordersHandler =
-        ordersList env :<|> ordersCreate env :<|> ordersGet env :<|> ordersStatus env :<|> ordersDelete env
-      taxesHandler =
-        taxesList env :<|> taxesCreate env :<|> taxesGet env :<|> taxesUpdate env :<|> taxesDelete env
-      currenciesHandler =
-        currenciesList env :<|> currenciesCreate env :<|> currenciesGet env :<|> currenciesUpdate env :<|> currenciesDelete env
-      vatHandler =
-        vatCalculate :<|> (vatRates env)
-      stockHandler = stockList :<|> stockSummary :<|> stockByLoc :<|> stockByGoods
-      accountingHandler =
-        accList
-          :<|> accCreate
-          :<|> accGet
-          :<|> accUpdate
-          :<|> accDelete
-          :<|> entriesList
-          :<|> entriesCreate
-          :<|> entriesGet
-          :<|> entriesUpdate
-          :<|> entriesDelete
+personsHandler =
+  personsList env :<|> 
+  (personsCreate env `requirePermission_` "PersonWrite") :<|> 
+  personsGet env :<|> 
+  (personsUpdate env `requirePermission_` "PersonWrite") :<|> 
+  (personsDelete env `requirePermission_` "PersonDelete") :<|> 
+  personsSearch env
+  where
+    requirePermission_ :: Handler a -> Text -> Handler a
+    requirePermission_ handler perm = do
+      requirePermission perm
+      handler
+      goodsHandler =
+  goodsList env :<|>
+  (goodsCreate env `requirePermission_` "GoodsWrite") :<|>
+  goodsGet env :<|>
+  (goodsUpdate env `requirePermission_` "GoodsWrite") :<|>
+  (goodsDelete env `requirePermission_` "GoodsDelete") :<|>
+  goodsSearch env
+locationsHandler =
+  locationsList env :<|>
+  (locationsCreate env `requirePermission_` "LocationWrite") :<|>
+  locationsGet env :<|>
+  (locationsUpdate env `requirePermission_` "LocationWrite") :<|>
+  (locationsDelete env `requirePermission_` "LocationDelete")
+billsHandler =
+         billsList env :<|>
+         (billsCreate env `requirePermission_` "BillWrite") :<|>
+         billsGet env :<|>
+         (billsUpdate env `requirePermission_` "BillWrite") :<|>
+         (billsDelete env `requirePermission_` "BillDelete") :<|>
+         (billsStatus env `requirePermission_` "BillPost")
+paymentsHandler =
+         paymentsList env :<|>
+         (paymentsCreate env `requirePermission_` "PaymentWrite") :<|>
+         paymentsGet env :<|>
+         (paymentsUpdate env `requirePermission_` "PaymentWrite") :<|>
+         (paymentsDelete env `requirePermission_` "PaymentDelete")
+ordersHandler =
+  ordersList env :<|>
+  (ordersCreate env `requirePermission_` "OrdersWrite") :<|>
+  ordersGet env :<|>
+  (ordersStatus env `requirePermission_` "OrdersWrite") :<|>
+  (ordersDelete env `requirePermission_` "OrdersWrite")
+taxesHandler =
+  (taxesList env `requirePermission_` "TaxesWrite") :<|>
+  (taxesCreate env `requirePermission_` "TaxesWrite") :<|>
+  (taxesGet env `requirePermission_` "TaxesWrite") :<|>
+  (taxesUpdate env `requirePermission_` "TaxesWrite") :<|>
+  (taxesDelete env `requirePermission_` "TaxesWrite")
+currenciesHandler =
+         (currenciesList env `requirePermission_` "CurrenciesWrite") :<|>
+         (currenciesCreate env `requirePermission_` "CurrenciesWrite") :<|>
+         (currenciesGet env `requirePermission_` "CurrenciesWrite") :<|>
+         (currenciesUpdate env `requirePermission_` "CurrenciesWrite") :<|>
+         (currenciesDelete env `requirePermission_` "CurrenciesWrite")
+vatHandler =
+         (vatCalculate `requirePermission_` "TaxesWrite") :<|>
+         (vatRates env `requirePermission_` "TaxesWrite")
+      stockHandler = 
+  (stockList `requirePermission_` "StockRead") :<|>
+  (stockSummary `requirePermission_` "StockRead") :<|>
+  (stockByLoc `requirePermission_` "StockRead") :<|>
+  (stockByGoods `requirePermission_` "StockRead")
+accountingHandler =
+         (accList `requirePermission_` "AccountingRead") :<|>
+         (accCreate `requirePermission_` "AccountingWrite") :<|>
+         (accGet `requirePermission_` "AccountingRead") :<|>
+         (accUpdate `requirePermission_` "AccountingWrite") :<|>
+         (accDelete `requirePermission_` "AccountingWrite") :<|>
+         (entriesList `requirePermission_` "AccountingRead") :<|>
+         (entriesCreate `requirePermission_` "AccountingWrite") :<|>
+         (entriesGet `requirePermission_` "AccountingRead") :<|>
+         (entriesUpdate `requirePermission_` "AccountingWrite") :<|>
+         (entriesDelete `requirePermission_` "AccountingWrite")
       payrollHandler =
         payrollList
           :<|> empList
@@ -529,7 +582,25 @@ ordersList env = do
     QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
 
 ordersCreate :: Env -> OrderRequest -> Handler OrderResponse
-ordersCreate _ _ = pure $ OrderResponse 100 "New" 1 (read "2024-01-01")
+ordersCreate env (OrderRequest n d) = do
+  let pool = envPool env
+      billDate = fromMaybe (read "2024-01-01") d
+      input =
+        DAL.Types.OrderInput
+          { oiCode = Nothing,
+            oiName = n,
+            oiDate = billDate,
+            oiPersonId = Nothing,
+            oiLocationId = Nothing,
+            oiStatus = 1,
+            oiTotal = 0,
+            oiDiscount = 0,
+            oiTax = 0
+          }
+  result <- liftIO $ DAL.Mutations.createOrder pool input
+  case result of
+    QuerySuccess order -> pure $ toOrderResponse order
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
 
 ordersGet :: Env -> Int64 -> Handler OrderResponse
 ordersGet env oid = do
@@ -555,13 +626,29 @@ toOrderResponse (DAL.Types.Order {oId = oid, oName = oname, oStatus = ostatus, o
     }
 
 taxesList :: Env -> Handler TaxesResponse
-taxesList _ = pure $ TaxesResponse [TaxResponse 1 "НДС" 20.0 (Just "VAT") (Just True)]
+taxesList env = do
+  let pool = envPool env
+  result <- liftIO $ DAL.Queries.getTaxes pool
+  case result of
+    QuerySuccess taxes -> pure $ TaxesResponse (map toTaxResponse taxes)
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
 
 taxesCreate :: Env -> TaxRequest -> Handler TaxResponse
-taxesCreate _ _ = pure $ TaxResponse 100 "New" 0.0 (Just "VAT") (Just False)
+taxesCreate env (TaxRequest name rate) = do
+  let pool = envPool env
+      input = DAL.Types.TaxInput {tiName = name, tiRate = rate, tiTaxType = 1, tiIncluded = False}
+  result <- liftIO $ DAL.Mutations.createTax pool input
+  case result of
+    QuerySuccess tax -> pure $ toTaxResponse tax
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
 
 taxesGet :: Env -> Int64 -> Handler TaxResponse
-taxesGet _ _ = pure $ TaxResponse 1 "НДС" 20.0 (Just "VAT") (Just True)
+taxesGet env tid = do
+  let pool = envPool env
+  result <- liftIO $ DAL.Queries.getTaxById pool tid
+  case result of
+    QuerySuccess tax -> pure $ toTaxResponse tax
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
 
 taxesUpdate :: Env -> Int64 -> TaxRequest -> Handler TaxResponse
 taxesUpdate _ _ _ = pure $ TaxResponse 1 "Updated" 0.0 (Just "VAT") (Just False)
@@ -585,12 +672,17 @@ vatCalculate req =
           }
 
 vatRates :: Env -> Handler TaxesResponse
-vatRates _ = pure $ TaxesResponse [TaxResponse 1 "НДС" 20.0 (Just "VAT") (Just True)]
+vatRates env = do
+  let pool = envPool env
+  result <- liftIO $ DAL.Queries.getTaxes pool
+  case result of
+    QuerySuccess taxes -> pure $ TaxesResponse (map toTaxResponse taxes)
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
 
 currenciesList :: Env -> Handler CurrenciesResponse
 currenciesList env = do
   let pool = envPool env
-  result <- liftIO $ Surypus.API.Currency.listCurrencies pool
+  result <- liftIO $ DAL.Queries.getCurrencies pool
   case result of
     QuerySuccess currencies -> pure $ CurrenciesResponse (map toCurrencyResponse currencies)
     QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
@@ -620,20 +712,56 @@ toCurrencyResponse (DAL.Types.Currency {currId = cid, currName = cname, currCode
       currencyCode = ccode
     }
 
-stockList :: Handler StockResponse
-stockList = pure $ StockResponse []
+toStockResponse :: Stock -> StockItemResponse
+toStockResponse (Stock {sGoodsId = gid, sLocationId = lid, sQuantity = qty}) =
+  StockItemResponse
+    { stockGoodsId = gid,
+      stockLocationId = lid,
+      stockQuantity = qty
+    }
 
-stockSummary :: Handler StockResponse
-stockSummary = pure $ StockResponse []
+stockList :: Env -> Handler StockResponse
+stockList _ = do
+  let pool = envPool _
+  result <- liftIO $ DAL.Queries.getStockSummary pool
+  case result of
+    QuerySuccess stocks -> pure $ StockResponse (map toStockResponse stocks)
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
 
-stockByLoc :: Int64 -> Int64 -> Handler StockItemResponse
-stockByLoc _ _ = pure $ StockItemResponse 1 1 100.0
+stockSummary :: Env -> Handler StockResponse
+stockSummary _ = do
+  let pool = envPool _
+  result <- liftIO $ DAL.Queries.getStockSummary pool
+  case result of
+    QuerySuccess stocks -> pure $ StockResponse (map toStockResponse stocks)
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
 
-stockByGoods :: Int64 -> Handler StockResponse
-stockByGoods _ = pure $ StockResponse []
+stockByLoc :: Env -> Int64 -> Int64 -> Handler StockItemResponse
+stockByLoc _ gid lid = do
+  let pool = envPool _
+  result <- liftIO $ DAL.Queries.getStock pool gid lid
+  case result of
+    QuerySuccess stocks ->
+      case stocks of
+        (stock : _) -> pure $ toStockResponse stock
+        [] -> pure $ StockItemResponse 0 0 0.0
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
 
-accList :: Handler AccountsResponse
-accList = pure $ AccountsResponse []
+stockByGoods :: Env -> Int64 -> Handler StockResponse
+stockByGoods _ gid = do
+  let pool = envPool _
+  result <- liftIO $ DAL.Queries.getStockByGoods pool gid
+  case result of
+    QuerySuccess stocks -> pure $ StockResponse (map toStockResponse stocks)
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
+
+accList :: Env -> Handler AccountsResponse
+accList _ = do
+  let pool = envPool _
+  result <- liftIO $ DAL.Queries.getAccPlans pool
+  case result of
+    QuerySuccess accounts -> pure $ AccountsResponse (map toAccPlanResponse accounts)
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
 
 accCreate :: AccPlanRequest -> Handler AccPlanResponse
 accCreate _ = pure $ AccPlanResponse 100 "01" "New"
@@ -647,8 +775,17 @@ accUpdate _ _ = pure $ AccPlanResponse 1 "01" "Updated"
 accDelete :: Int64 -> Handler ()
 accDelete _ = pure ()
 
-entriesList :: Handler AccEntriesResponse
-entriesList = pure $ AccEntriesResponse []
+entriesList :: Env -> Handler AccEntriesResponse
+entriesList _ = do
+  let pool = envPool _
+  result <- liftIO $ DAL.Queries.getAccTurns pool
+  case result of
+    QuerySuccess turns -> pure $ AccEntriesResponse (map toAccEntryResponse turns)
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
+  where
+    toAccEntryResponse :: AccTurn -> AccEntryResponse
+    toAccEntryResponse (AccTurn {atId = id, atDbtAccId = dbt, atCrdAccId = crd, atAmount = amt}) =
+      AccEntryResponse id dbt (fromDecimal amt) (fromDecimal amt)
 
 entriesCreate :: AccEntryRequest -> Handler AccEntryResponse
 entriesCreate _ = pure $ AccEntryResponse 100 1 0.0 0.0
@@ -670,7 +807,17 @@ payrollList = pure $ PayrollResponse []
 empList :: Handler EmployeesResponse
 
 -- | GET /v1/payroll/employees - Requires PayrollRead permission
-empList = pure $ EmployeesResponse []
+empList :: Env -> Handler EmployeesResponse
+empList _ = do
+  let pool = envPool _
+  result <- liftIO $ DAL.Queries.getEmployees pool
+  case result of
+    QuerySuccess employees -> pure $ EmployeesResponse (map toEmployeeResponse employees)
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
+  where
+    toEmployeeResponse :: Employee -> EmployeeResponse
+    toEmployeeResponse (Employee {eId = id, eName = name}) =
+      EmployeeResponse id name
 
 empGet :: Int64 -> Handler EmployeeResponse
 
@@ -680,21 +827,49 @@ empGet _ = pure $ EmployeeResponse 1 "Demo"
 salariesList :: Handler SalariesResponse
 
 -- | GET /v1/payroll/salaries - Requires PayrollRead permission
-salariesList = pure $ SalariesResponse []
+salariesList :: Env -> Handler SalariesResponse
+salariesList _ = do
+  let pool = envPool _
+  result <- liftIO $ DAL.Queries.getSalaries pool
+  case result of
+    QuerySuccess salaries -> pure $ SalariesResponse (map toSalaryResponse salaries)
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
+  where
+    toSalaryResponse :: Salary -> SalaryResponse
+    toSalaryResponse (Salary {sId = id, sAmount = amt}) =
+      SalaryResponse id (fromDecimal amt)
 
 salaryGet :: Int64 -> Handler SalaryResponse
 
 -- | GET /v1/payroll/salaries/:id - Requires SalariesWrite permission (for access)
 salaryGet _ = pure $ SalaryResponse 1 0.0
 
-reportsList :: Handler ReportsResponse
-reportsList = pure $ ReportsResponse []
+reportsList :: Env -> Handler ReportsResponse
+reportsList _ = do
+  let pool = envPool _
+  result <- liftIO $ DAL.Queries.getReports pool
+  case result of
+    QuerySuccess reports -> pure $ ReportsResponse (map toReportResponse reports)
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
+  where
+    toReportResponse :: ReportTemplate -> ReportResponse
+    toReportResponse (ReportTemplate {rtId = rid, rtName = rname}) =
+      ReportResponse rid rname
 
 reportsMeta :: Handler ReportsMetadataResponse
 reportsMeta = pure $ ReportsMetadataResponse []
 
-reportsTemplates :: Handler ReportsResponse
-reportsTemplates = pure $ ReportsResponse []
+reportsTemplates :: Env -> Handler ReportsResponse
+reportsTemplates _ = do
+  let pool = envPool _
+  result <- liftIO $ DAL.Queries.getReports pool
+  case result of
+    QuerySuccess reports -> pure $ ReportsResponse (map toReportResponse reports)
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
+  where
+    toReportResponse :: ReportTemplate -> ReportResponse
+    toReportResponse (ReportTemplate {rtId = rid, rtName = rname}) =
+      ReportResponse rid rname
 
 reportGet :: Int64 -> Handler ReportResponse
 reportGet _ = pure $ ReportResponse 1 "Demo"
@@ -708,7 +883,17 @@ dashboardGet = pure $ DashboardResponse "null"
 usersList :: Handler UsersResponse
 
 -- | GET /v1/users - Requires UsersRead permission
-usersList = pure $ UsersResponse []
+usersList :: Env -> Handler UsersResponse
+usersList _ = do
+  let pool = envPool _
+  result <- liftIO $ DAL.Queries.getUsers pool
+  case result of
+    QuerySuccess users -> pure $ UsersResponse (map toUserResponse users)
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
+  where
+    toUserResponse :: User -> UserResponse
+    toUserResponse (User {uId = id, uLogin = login, uPersonId = personId, uEmail = email, uRoleId = roleId, uStatus = status}) =
+      UserResponse id login (fromIntegral personId) email (fromIntegral roleId) (fromIntegral status)
 
 auditLogList :: Env -> Maybe Text -> Maybe Int64 -> Maybe Int64 -> Handler AuditLogListResponse
 auditLogList env mEntityType mLimit mOffset = do

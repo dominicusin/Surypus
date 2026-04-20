@@ -13,15 +13,20 @@
 -- ============================================================================
 
 -- Aggregate state type
-CREATE TYPE IF NOT EXISTS inventory_state AS (
-    location_id UUID,
-    goods_id UUID,
-    current_qty NUMERIC,
-    reserved_qty NUMERIC,
-    available_qty NUMERIC,
-    lots JSONB,  -- Array of lot objects
-    version INT
-);
+DO $$ BEGIN
+  -- Create inventory_state type idempotently (PostgreSQL may not support IF EXISTS for CREATE TYPE)
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'inventory_state') THEN
+    CREATE TYPE inventory_state AS (
+      location_id UUID,
+      goods_id UUID,
+      current_qty NUMERIC,
+      reserved_qty NUMERIC,
+      available_qty NUMERIC,
+      lots JSONB,  -- Array of lot objects
+      version INT
+    );
+  END IF;
+END $$;
 
 -- ============================================================================
 -- COMMAND HANDLERS
@@ -48,6 +53,26 @@ DECLARE
     v_event_data JSONB;
     v_sequence BIGINT;
 BEGIN
+    -- Security: check permissions for releasing stock from reservation
+    IF NOT sp_check_permission(p_user_id, 'inventory_write') THEN
+        RAISE EXCEPTION 'Access denied: inventory_write required';
+    END IF;
+    -- Security: check permissions for reserving stock
+    IF NOT sp_check_permission(p_user_id, 'inventory_write') THEN
+        RAISE EXCEPTION 'Access denied: inventory_write required';
+    END IF;
+    -- Security: check permissions for adjusting stock
+    IF NOT sp_check_permission(p_user_id, 'inventory_write') THEN
+        RAISE EXCEPTION 'Access denied: inventory_write required';
+    END IF;
+    -- Security: check permissions for issuing stock
+    IF NOT sp_check_permission(p_user_id, 'inventory_write') THEN
+        RAISE EXCEPTION 'Access denied: inventory_write required';
+    END IF;
+    -- Security check: ensure user has write permission on inventory
+    IF NOT sp_check_permission(p_user_id, 'inventory_write') THEN
+        RAISE EXCEPTION 'Access denied: inventory.write required';
+    END IF;
     -- Validate inputs
     IF p_qty <= 0 THEN
         RAISE EXCEPTION 'Quantity must be positive';
