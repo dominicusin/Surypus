@@ -3020,6 +3020,10 @@ CREATE OR REPLACE FUNCTION filter_by_tenant(
 )
 RETURNS TABLE (id BIGINT) AS $$
 BEGIN
+    -- Whitelist allowed id column to prevent SQL injection in dynamic SQL
+    IF p_id_column NOT IN ('id') THEN
+        RAISE EXCEPTION 'Invalid id column: %', p_id_column;
+    END IF;
     RETURN QUERY EXECUTE 
         format('SELECT %I FROM %I WHERE tenant_id = $1', p_id_column, p_table_name)
         USING p_tenant_id;

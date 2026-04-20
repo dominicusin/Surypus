@@ -53,25 +53,9 @@ DECLARE
     v_event_data JSONB;
     v_sequence BIGINT;
 BEGIN
-    -- Security: check permissions for releasing stock from reservation
+    -- Security: check inventory write permission
     IF NOT sp_check_permission(p_user_id, 'inventory_write') THEN
         RAISE EXCEPTION 'Access denied: inventory_write required';
-    END IF;
-    -- Security: check permissions for reserving stock
-    IF NOT sp_check_permission(p_user_id, 'inventory_write') THEN
-        RAISE EXCEPTION 'Access denied: inventory_write required';
-    END IF;
-    -- Security: check permissions for adjusting stock
-    IF NOT sp_check_permission(p_user_id, 'inventory_write') THEN
-        RAISE EXCEPTION 'Access denied: inventory_write required';
-    END IF;
-    -- Security: check permissions for issuing stock
-    IF NOT sp_check_permission(p_user_id, 'inventory_write') THEN
-        RAISE EXCEPTION 'Access denied: inventory_write required';
-    END IF;
-    -- Security check: ensure user has write permission on inventory
-    IF NOT sp_check_permission(p_user_id, 'inventory_write') THEN
-        RAISE EXCEPTION 'Access denied: inventory.write required';
     END IF;
     -- Validate inputs
     IF p_qty <= 0 THEN
