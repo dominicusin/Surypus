@@ -63,8 +63,8 @@ COPY --from=builder /root/.local/bin/surypus /usr/local/bin/
 RUN mkdir -p /app/config /app/logs \
     && chown -R surypus:surypus /app
 
-# Copy OPA policies
-COPY opa/policies /app/opa/policies 2>/dev/null || true
+# Copy OPA policies if exists
+RUN test -d opa/policies && cp -r opa/policies /app/opa/ || true
 
 # Switch to non-root user
 USER surypus
