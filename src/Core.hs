@@ -1,11 +1,4 @@
--- | Core module - Main entry point
--- This is the formally verified ERP system core
+-- | Core domain types - Re-exports common domain modules
 module Core where
 
--- | Version
-version :: String
-version = "0.1.0.0"
-
--- | System name
-name :: String
-name = "Surypus"
+import Finance.Accounting

@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module API.Server
+module API.Server where
   ( app,
     server,
     PersonAPI,

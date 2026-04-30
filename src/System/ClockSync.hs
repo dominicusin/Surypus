@@ -3,7 +3,7 @@ module System.ClockSync where
 import Control.Concurrent.STM (TVar, atomically, newTVarIO, readTVar, writeTVar)
 import Data.List (sort)
 import Data.Time.Clock (UTCTime, diffUTCTime, getCurrentTime)
-import System.Clock (Clock (Monotonic), getTime)
+-- import System.ClockSync (Clock (Monotonic), getTime) -- Removed cyclic import
 
 -- | Clock synchronization configuration
 data ClockSyncConfig = ClockSyncConfig

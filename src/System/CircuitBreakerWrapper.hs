@@ -1,4 +1,4 @@
-module System.CircuitBreakerWrapper
+module System.CircuitBreakerWrapper where
   ( withBreaker,
     BreakerError (..),
   )

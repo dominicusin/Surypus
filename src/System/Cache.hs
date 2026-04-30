@@ -1,108 +1,85 @@
+-- | Cache module - In-memory cache with STM support
 module System.Cache where
 
 import Control.Concurrent.STM (TVar, atomically, newTVarIO, readTVar, writeTVar)
-import qualified Data.Map.Strict as Map
-import Data.Maybe (isJust)
-import Data.Time.Clock (UTCTime, diffUTCTime, getCurrentTime)
+import Data.Int (Int64)
+import Data.Text (Text)
+import Data.Time (UTCTime)
 
--- | Cache entry with TTL
+-- | Cache entry
 data CacheEntry a = CacheEntry
-  { cacheValue :: a,
-    cacheExpiry :: UTCTime,
-    cacheMetadata :: Map.Map Text Text
+  { ceKey :: Text,
+    ceValue :: a,
+    ceExpires :: Maybe UTCTime
   }
-
--- | Cache configuration
-data CacheConfig = CacheConfig
-  { cacheDefaultTTL :: Int,
-    cacheMaxSize :: Int,
-    cacheCleanupInterval :: Int
-  }
-
--- | In-memory cache store
-data CacheStore k a = CacheStore
-  { cacheMap :: TVar (Map.Map k (CacheEntry a)),
-    cacheStats :: TVar CacheStats,
-    cacheConfig :: CacheConfig
-  }
+  deriving (Show, Eq)
 
 -- | Cache statistics
 data CacheStats = CacheStats
-  { hits :: Int,
-    misses :: Int,
-    evictions :: Int
+  { csHits :: Int64,
+    csMisses :: Int64,
+    csSize :: Int64
+  }
+  deriving (Show, Eq)
+
+-- | Calculate hit rate
+calcHitRate :: CacheStats -> Double
+calcHitRate cs
+  | total == 0 = 0
+  | otherwise = fromIntegral (csHits cs) / fromIntegral total
+  where
+    total = csHits cs + csMisses cs
+
+-- | Check if entry is expired
+isExpired :: CacheEntry a -> UTCTime -> Bool
+isExpired ce now = case ceExpires ce of
+  Nothing -> False
+  Just expiryTime -> now > expiryTime
+
+-- | STM-based cache for thread-safe operations
+data STMCache k v = STMCache
+  { stmCache :: TVar [(k, v)],
+    stmMaxSize :: Int
   }
 
--- | Initialize cache
-initCache :: CacheConfig -> IO (CacheStore k a)
-initCache config = do
-  store <- newTVarIO Map.empty
-  stats <- newTVarIO CacheStats {hits = 0, misses = 0, evictions = 0}
-  return $ CacheStore store stats config
+-- | Create new STM cache
+newSTMCache :: Int -> IO (STMCache k v)
+newSTMCache maxSize = STMCache <$> newTVarIO [] <*> pure maxSize
 
--- | Insert into cache with TTL
-cacheInsert :: (Ord k) => CacheStore k a -> k -> a -> Int -> IO ()
-cacheInsert store key value ttlSeconds = do
-  now <- getCurrentTime
-  let expiry = addUTCTime (fromIntegral ttlSeconds) now
-      entry = CacheEntry value expiry Map.empty
-  atomically $ do
-    m <- readTVar (cacheMap store)
-    let m' = Map.insert key entry m
-    writeTVar (cacheMap store) m'
-    -- Cleanup if over capacity
-    cleanupIfNecessary store
+-- | Get from STM cache
+stmCacheGet :: (Eq k) => k -> STMCache k v -> STM (Maybe v)
+stmCacheGet key (STMCache cache _) = do
+  entries <- readTVar cache
+  pure $ lookup key entries
 
--- | Lookup in cache
-cacheLookup :: (Ord k) => CacheStore k a -> k -> IO (Maybe a)
-cacheLookup store key = do
-  now <- getCurrentTime
-  atomically $ do
-    m <- readTVar (cacheMap store)
-    case Map.lookup key m of
-      Nothing -> do
-        -- Update stats
-        return Nothing
-      Just entry ->
-        if cacheExpiry entry > now
-          then do
-            -- Hit
-            return $ Just (cacheValue entry)
-          else do
-            -- Expired - delete
-            let m' = Map.delete key m
-            writeTVar (cacheMap store) m'
-            return Nothing
+-- | Put to STM cache
+stmCachePut :: (Eq k) => k -> v -> STMCache k v -> STM ()
+stmCachePut key val (STMCache cache maxSize) = do
+  entries <- readTVar cache
+  let filtered = filter (key /=) entries
+      newEntries = take maxSize $ (key, val) : filtered
+  writeTVar cache newEntries
 
--- | Delete from cache
-cacheDelete :: (Ord k) => CacheStore k a -> k -> IO ()
-cacheDelete store key = atomically $ do
-  m <- readTVar (cacheMap store)
-  writeTVar (cacheMap store) (Map.delete key m)
+-- | Delete from STM cache
+stmCacheDelete :: (Eq k) => k -> STMCache k v -> STM ()
+stmCacheDelete key (STMCache cache _) = do
+  entries <- readTVar cache
+  writeTVar cache $ filter (key /=) entries
 
--- | Clear cache
-cacheClear :: (Ord k) => CacheStore k a -> IO ()
-cacheClear store = atomically $ writeTVar (cacheMap store) Map.empty
+-- | Clear STM cache
+stmCacheClear :: STMCache k v -> STM ()
+stmCacheClear (STMCache cache _) = writeTVar cache []
 
--- | Get cache stats
-cacheStats :: CacheStore k a -> IO CacheStats
-cacheStats store = readTVarIO (cacheStats store)
+-- | Get cache size
+stmCacheSize :: STMCache k v -> STM Int
+stmCacheSize (STMCache cache _) = length <$> readTVar cache
 
--- | Cleanup expired entries and enforce size limit
-cleanupIfNecessary :: (Ord k) => CacheStore k a -> IO ()
-cleanupIfNecessary store = do
-  now <- getCurrentTime
-  atomically $ do
-    m <- readTVar (cacheMap store)
-    let valid = Map.filter (\e -> cacheExpiry e > now) m
-    writeTVar (cacheMap store) valid
+-- | Optimized VAT calculation with INLINE
+{-# INLINE calcVATStrict #-}
+calcVATStrict :: Double -> Double -> Double
+calcVATStrict amount rate = amount * (rate / 100.0)
 
--- | Cache monad transformer (simplified)
-newtype CacheT m a = CacheT {runCacheT :: m a}
-  deriving (Functor, Applicative, Monad)
-
--- | With cache context
-withCache :: CacheConfig -> (forall k a. (Ord k) => CacheStore k a -> IO r) -> IO r
-withCache config action = do
-  store <- initCache config
-  action store
+-- | Optimized tax inclusive calculation with INLINE
+{-# INLINE calcTaxInclusiveStrict #-}
+calcTaxInclusiveStrict :: Double -> Double -> Double
+calcTaxInclusiveStrict amount rate = amount * (1.0 + rate / 100.0)

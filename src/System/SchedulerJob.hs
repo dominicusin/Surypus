@@ -3,7 +3,7 @@ module System.SchedulerJob where
 import Control.Concurrent.STM (TVar, atomically, newTVarIO, readTVar, writeTVar)
 import Data.Time.Calendar (Day, addDays)
 import Data.Time.Clock (UTCTime, addUTCTime, getCurrentTime)
-import System.HealthCheck (HealthResult)
+import System.HealthCheckCheck (HealthResult)
 import System.JobQueue (JobQueue)
 
 -- | Job types

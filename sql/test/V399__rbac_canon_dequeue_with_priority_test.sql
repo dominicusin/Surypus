@@ -1,0 +1,8 @@
+-- V399__rbac_canon_dequeue_with_priority_test.sql
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.routines WHERE routine_schema = 'rbac' AND routine_name = 'dequeue_canon_batch_priority') THEN
+    PERFORM rbac.dequeue_canon_batch_priority(5);
+  END IF;
+END;
+$$ LANGUAGE plpgsql;

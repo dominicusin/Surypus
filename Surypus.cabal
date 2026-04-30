@@ -7,281 +7,289 @@ category:       Finance
 author:         Surypus Team
 license:        GPL-3.0-or-later
 build-type:     Simple
+
 library
   default-language: Haskell2010
-  exposed-modules:
-         Surypus.Core
-         Core
-         Core.Goods
-         Core.Notification
-         Core.Document
-         Core.Document.Types
-         Core.Person
-         Core.Person.Contact
-         Core.Person.Person
-         Core.Person.Relation
-         Core.Person.Operations
-         Core.Warehouse
-         Core.Auth
-         Core.Auth.Operations
-         Core.Commerce
-         Core.HR
-         Core.HR.Employee
-         Core.HR.Position
-         Core.HR.Types
-         Core.Unit
-         Core.Inventory
-         Core.Inventory.Types
-         Core.Inventory.Types.Location
-         Core.Inventory.Types.Stock
-         Core.Inventory.Types.Lot
-         Core.Inventory.Types.Inventory
-         Core.Inventory.Operations
-         Core.Accounting
-         Core.Accounting.Account
-         Core.Accounting.Ledger
-         Core.Accounting.Types
-         Core.Accounting.Operations
-         Core.Payroll
-         Core.Payroll.Types
-         Core.Payroll.Calculation
-         Core.Payroll.Operations
-         Core.Tax
-         Core.Currency
-         Core.Invoice
-         Core.Invoice.Operations
-         Core.Price
-         Core.Price.Operations
-         Core.Order
-         Core.Production
-         Core.Quotation
-         Core.RetBill
-         Core.SmartReceipt
-         Core.TaxInvoice
-         Core.Transfer
-         Core.Agent
-         Core.BillLine
-         Core.AdvanceInvoice
-         Core.CreditNote
-         Core.Discount
-         Core.GoodsTaxEx
-         Core.Asset
-         Core.Analytics
-         Core.Document.Operations
-         Core.Loyalty.Bonus
-         Core.Refined
-         Surypus.Domain.IdPool
-         Surypus.WebSocket
-         Surypus.Metrics
-         DAL
-         DAL.Types
-         DAL.Queries
-         DAL.Mutations
-         DAL.Procedures
-         DAL.Repository
-         DAL.Repository.Location
-         DAL.Repository.Payment
-         DAL.Repository.Price
-         DAL.Repository.Tax
-         DAL.Repository.Currency
-         DAL.Repository.Bill
-         DAL.Repository.Order
-         DAL.Repository.AccTurn
-         DAL.Repository.Container
-         DAL.Repository.User
-         DAL.Repository.RBAC
-         DAL.Repository.AuditLog
-         DAL.Repository.RefreshToken
-         DB.Connection
-         Domain
-         Domain.Types
-         Domain.Bill
-         Domain.Goods
-         Domain.Person
-         Domain.Location
-         Domain.HR
-         Domain.Payroll
-         Domain.Accounting
-         Domain.Document
-         Domain.Stock
-         Domain.TechCard
-         Domain.Production
-         Domain.Job
-         Domain.Core
-         Domain.Asset
-         Domain.ReportSchedule
-         Domain.ReportJob
-         Surypus.Types
-         Surypus.Error
-         Surypus.Logging
-         Surypus.Validation
-         Surypus.Refined
-         Surypus.Refined.Predicates
-         Surypus.Z3
-         Surypus.I18n
-         Surypus.Reports
-         Surypus.API.Root
-         Surypus.API.OpenApi
-         Surypus.API.Server
-         Surypus.API.Auth
-         Surypus.API.Authorization
-         Surypus.API.JWT
-         Surypus.API.Types
-         Surypus.API.Persons
-         Surypus.API.Goods
-         Surypus.API.Location
-         Surypus.API.Bills
-         Surypus.API.Payment
-         Surypus.API.Order
-         Surypus.API.Currency
-         Surypus.API.Sync
-         Surypus.API.IdPool
-         Surypus.API.Dashboard
-         Surypus.API.Health
-         Surypus.API.WebSocket
-          Surypus.API.Documents.Bills
-          Surypus.API.Documents.InventoryDocs
-         Surypus.AppM
-         Surypus.Config
-         Surypus.Database.Pool
-         Surypus.Cache
-         Surypus.DB.Schema
-         Surypus.DB.Queries
-         Surypus.JWT
-         Surypus.RBAC
-         Surypus.RBAC.Store
-         Surypus.Audit
-         Surypus.API.Balance
-         Surypus.API.BalanceREST
-         Surypus.API.JWTMiddleware
-         Surypus.API.AuthMiddleware
-         Surypus.API.RateLimit
-          Surypus.API.MetricsMiddleware
-          Service.InventoryLifecycleService
-           Surypus.JobRunner
-           Surypus.Event
-           Surypus.EventStore
-          -- Surypus.Reports.Templates
-          Service.AccountingService
-          Service.AuditService
-          Service.InventoryService
-          Service.PayrollService
-          Service.ReportService
-          Service.BillService
-          Service.GoodsService
-          Service.LocationService
-          Service.OrderService
-          Service.PaymentService
-          Service.PersonService
-          Service.PriceService
-          Service.TaxService
-          Service.UnitService
-          Core.Production.Types
-          Domain.Inventory
-          Service.ProductionService
-          System.CircuitBreakerFullWithMetrics
-          System.Health
-
   hs-source-dirs: src
+  exposed-modules:
+          Surypus
+          Surypus.Types
+          Surypus.Core
+          Surypus.Refined
+          Finance
+          Finance.Account
+          Finance.Ledger
+          Finance.Journal
+          Finance.Tax
+          Finance.Asset
+          Finance.Bank
+          Finance.BankAccount
+          Finance.ExchangeRate
+          Finance.Currency
+          Finance.CreditNote
+          Finance.DebitNote
+          Finance.OpKindEx
+          Finance.Types
+          Commerce
+          Commerce.Contract
+          Commerce.Invoice
+          Commerce.Price
+          Commerce.PriceList
+          Commerce.PriceRule
+          Commerce.PriceByAgent
+          Commerce.PriceByQtty
+          Commerce.PriceByTime
+          Commerce.Discount
+          Commerce.Bonus
+          Commerce.BonusPoints
+          Commerce.GiftCard
+          Commerce.Promo
+          Commerce.Loyalty
+          Commerce.Combo
+          Commerce.Package
+          Commerce.Procurement
+          Commerce.MarketPlace
+          Commerce.Notes.Comment
+          Commerce.Visits.Visit
+          Commerce.Orders.Order
+          Commerce.Orders.Preorder
+          Commerce.Orders.Quotation
+          Commerce.Orders.Quote
+          Commerce.Payments.Payment
+          Commerce.Payments.PaymentCard
+          Commerce.Payments.CashOperation
+          Commerce.Payments.CashRegister
+          Commerce.CashSessionTemp
+          Commerce.AdvanceBill
+          Commerce.AdvanceInvoice
+          Commerce.BillLine
+          Commerce.BillStatusEx
+          Commerce.BillTaxDiffs
+          Commerce.RetBill
+          Commerce.Return
+          Commerce.ServiceBill
+          Commerce.Shipment
+          HR
+          HR.Activity
+          HR.Address
+          HR.Contact
+          HR.Employee
+          HR.Goals.Goal
+          HR.Operations
+          HR.Person
+          HR.PersonEx
+          HR.Position
+          HR.Relation
+          HR.Salary
+          HR.Types
+          Inventory
+          Inventory.Goods
+          Inventory.GoodsEx
+          Inventory.GoodsLoc
+          Inventory.GoodsReceipt
+          Inventory.GoodsTaxEx
+          Inventory.Lot
+          Inventory.Stock
+          Inventory.StockOp
+          Inventory.Barcode
+          Inventory.Tag2
+          Inventory.TagObject
+          Inventory.TagValue
+          Inventory.Category
+          Inventory.Brand
+          Inventory.Manufacturer
+          Inventory.Article
+          Inventory.InventoryEx
+          Inventory.Inventory
+          Inventory.Location
+          Inventory.LocationEx
+          Inventory.LocationEx2
+          Inventory.Warehouse
+          Inventory.WarehouseOps
+          Inventory.Unit
+          Inventory.UnitEx
+          Inventory.ObjectType
+          Inventory.Country
+          Inventory.City
+          Inventory.Region
+          Production
+          Production.Components.Component
+          Production.MRP
+          Production.Production
+          Production.TechCard
+          Production.Activity
+          Production.Project
+          Production.Task
+          Production.Service
+          Production.ServiceManager
+          Production.Queue
+          Production.JobQueue
+          Production.JobSystem
+          Production.Scheduling
+          Production.Scheduling.Cron
+          Production.WorkOrder
+          Production.Types
+          Tech
+          Tech.TechCard
+          Tech.TechIssue
+          System
+          System.Settings
+          System.Config
+          System.Configuration
+          System.Log
+          System.Logger
+          System.Validator
+          System.Validation
+          System.Version
+          System.Sequence
+          System.Counter
+          System.Event
+          System.AccessControl
+          System.Audit
+          System.AuditComplete
+          System.Alert
+          System.Auth
+          System.Session
+          System.Cache
+          System.Cron
+          System.Jobs
+          System.Metrics
+          System.MetricsCollector
+          System.MetricsExport
+          System.HealthCheck
+          System.RateLimiter
+          System.RateLimiterAdvanced
+          System.Retry
+          System.CircuitBreakerAdaptive
+          System.CircuitBreakerBulkhead
+          System.CircuitBreakerBulkheadAdvanced
+          System.CircuitBreakerBulkheadFull
+          System.CircuitBreakerBulkheadFullWithMetrics
+          System.CircuitBreakerChained
+          System.CircuitBreakerCircuit
+          System.CircuitBreakerExtended
+          System.CircuitBreakerFull
+          System.CircuitBreakerFullAdvanced
+          System.CircuitBreakerFullTopology
+          System.CircuitBreakerFullWithMetrics
+          System.CircuitBreakerSelfHealing
+          System.CircuitBreakerWrapper
+          System.ClockSync
+          System.Discovery
+          System.LoadBalancer
+          System.Secrets
+          System.Transform
+          System.Monitoring
+          System.Scheduler
+          System.SchedulerJob
+          System.Hardware
+          System.Codes.ExtCode
+          Infrastructure
+          Infrastructure.Backup
+          Infrastructure.BackupManager
+          Infrastructure.EmailSender
+          Infrastructure.Encryption
+          Infrastructure.EncryptionAdvanced
+          Infrastructure.FileStorage
+          Infrastructure.Migration
+          Infrastructure.Notification
+          Infrastructure.Serializer
+          External
+          External.EGAIS
+          External.EGais.EGais
+          External.Jasper.Jasper
+          External.Pentaho.Pentaho
+          External.UHTT.UhttStore
+          External.VETIS
+          Integration
+          Integration.Integration
+          Integration.Sync
+          Integration.ImportExport
+          Integration.API.API
+          Integration.API.EventBusAdvanced
+          Integration.API.EventProcessor
+          Integration.API.EventStore
+          Integration.API.ExternalAPI
+          Integration.EDI.EDI
+          Integration.Hub.Integration
+          Integration.Webhook
+          API
+          API.API
+          API.Server
+          API.Types
+          API.V1
+          Reports
+          Reports.Report
+          Reports.Jasper
+          Reports.Service
+          Analytics
+          Analytics.Analytics
+          Analytics.Chart
+          Analytics.Prediction
+          Messaging
+          Messaging.Message
+          Messaging.Communication
+          Logistics
+          Logistics.Logistics
+          Logistics.Transfer
+          Logistics.Receipt
+          Logistics.Route
+          Logistics.Warehouse
+          Logistics.Transport
+          Logistics.Transport.Transport
+          Retail
+          Retail.Retail
+          Retail.Terminal
+          Retail.CashRegister
+          Retail.CashSessionTemp
+          Retail.Device.Scale
+          Retail.Receipts.SmartReceipt
+          AI
+          AI.AgentFlow
+          AI.DecisionEngine
+          Science
+          Science.Science
+          Science.ML.Helical
+          Service
+          Service.Service
+          Service.Workflow
+          Service.WorkflowEngine
+          Service.Orchestrator
+          Service.UI.Editor
+          Service.UI.Menu
+          Service.UI.Desktop
+          Service.UI.Viewer
+          Service.UI.Widget
+          Service.UI.Dialog
+          Service.Templates.Template
+          Shared
+          Shared.Shared
+          Shared.Common.Conflict
+          Shared.Export.Exporter
+          Shared.Mesh.ServiceMesh
+          Shared.Filter
+          Shared.Grid
+          Shared.World
+          DAL
+          DAL.DAL
+          DAL.DB
+          DAL.Agent
+          DAL.Document
+          DAL.Blockchain
+          DAL.File
+          DAL.Attachment
+          DAL.Types
 
-  build-depends:
-      base >=4.12 && <5,
-      Decimal >=0.5,
-      text >=1.2,
-      time >=1.8,
-      bytestring >=0.10,
-      aeson >=2.2,
-      uuid >=1.3,
-      containers >=0.6,
-      vector >=0.12,
-      hspec >=2.10,
-      QuickCheck >=2.14,
-      cryptonite >=0.30,
-      memory >=0.18,
-      directory >=1.3,
-      transformers >=0.5,
-      mtl >=2.3,
-      stm >=2.5,
-      hasql >=1.10,
-      hasql-pool >=1.4,
-      scientific >=0.3,
-      jose >=0.10,
-      lens >=5.3,
-      wai-websockets >=3.0,
-      websockets >=0.12,
-      warp >=3.3,
-      wai >=3.2,
-      http-types >=0.12,
-      servant >=0.20,
-      servant-server >=0.20,
-      servant-client >=0.20,
-      servant-auth-server >=0.4,
-      servant-swagger >= 0.3,
-      swagger2 >= 2.6,
-      filepath,
-      template-haskell,
-      persistent >=2.14,
-      persistent-template >=2.12,
-      postgresql-simple
-
-  default-language: Haskell2010
-  ghc-options: -Wall
-  other-modules: Surypus
-
-executable surypus
-  main-is: Main.hs
-  hs-source-dirs: app
   build-depends:
       base >=4.12 && <5
-      , Surypus
-      , text >=1.2
-      , aeson >=2.2
-      , warp >=3.3
-      , http-types >=0.12
-      , wai >=3.2
-      , wai-extra >=3.1
-      , wai-websockets >=3.0
-      , websockets >=0.12
-      , bytestring >=0.10
-      , containers >=0.6
-      , transformers >=0.5
-      , hasql-pool >=1.4
-      , hasql >=1.6
-      , lens >=5.3
-      , mtl >=2.3
-      , persistent >=2.14
-      , persistent-postgresql >=2.14
-      , servant >=0.20
-      , servant-server >=0.20
-      , jose >=0.10
-  default-language: Haskell2010
-  ghc-options: -threaded
-
-test-suite test
-  type: exitcode-stdio-1.0
-  main-is: Test.hs
-  hs-source-dirs: test
-  build-depends:
-    base >=4.12 && <5
-    , Surypus
     , text >=1.2
     , time >=1.8
-    , hspec >=2.10
-    , QuickCheck >=2.14
     , uuid >=1.3
-    , bytestring >=0.10
     , aeson >=2.2
     , containers >=0.6
     , vector >=0.12
-    , hasql >=1.10
-    , hasql-pool >=1.4
     , transformers >=0.5
     , mtl >=2.3
-    , wai >=3.2
-    , wai-extra >=3.1
-    , warp >=3.3
-    , http-types >=0.12
-    , scotty >=0.20
-    , lens >=5.3
-  default-language: Haskell2010
-  ghc-options: -Wwarn
+    , QuickCheck >=2.14
+    , Decimal >=0.5
+    , stm >=2.5

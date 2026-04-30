@@ -5,7 +5,7 @@ import Data.Time.Clock (UTCTime, getCurrentTime, diffUTCTime)
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
 import Data.List (sortBy)
-import System.Clock (getTime, Clock(Monotonic))
+import System.ClockSync (getTime, Clock(Monotonic))
 
 -- | Full bulkhead with comprehensive metrics and monitoring
 data CircuitBreakerBulkheadFullWithMetrics = CircuitBreakerBulkheadFullWithMetrics

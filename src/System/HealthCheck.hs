@@ -3,7 +3,7 @@ module System.HealthCheck where
 import Control.Concurrent.STM (TVar, readTVarIO)
 import Data.Text (Text)
 import Data.Time.Clock (UTCTime, getCurrentTime)
-import System.Health
+import System.HealthCheck
 import qualified System.Health.Monad as HM
 
 -- | Health check result

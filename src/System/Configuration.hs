@@ -2,7 +2,7 @@ module System.Configuration where
 
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
-import qualified Data.YAML as Yaml
+-- import qualified Data.YAML as Yaml
 import System.Directory (doesFileExist)
 import System.IO (IOMode (..), hGetContents, withFile)
 

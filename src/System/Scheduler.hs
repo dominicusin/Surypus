@@ -3,7 +3,7 @@ module System.Scheduler where
 import Control.Concurrent (forkIO, killThread, threadDelay)
 import Control.Concurrent.STM (TQueue, isEmptyTQueue, newTQueueIO, readTQueue, writeTQueue)
 import Control.Monad (forever, when)
-import qualified Data.PriorityQueue.FingerTree as PQ
+-- import qualified Data.PriorityQueue.FingerTree as PQ
 import Data.Time.Calendar (Day, addDays)
 import Data.Time.Clock (UTCTime, addUTCTime, getCurrentTime)
 

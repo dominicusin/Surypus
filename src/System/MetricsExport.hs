@@ -3,7 +3,7 @@ module System.MetricsExport where
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
 import Data.Time.Clock (UTCTime)
-import System.JSON (encode)
+import Data.Aeson (encode)
 
 -- | Export formats
 data ExportFormat

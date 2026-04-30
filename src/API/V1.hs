@@ -1,8 +1,8 @@
 module API.V1 where
 
-import API.V1.Bills
-import API.V1.Inventory
-import API.V1.Payrolls
+import Commerce.BillLine
+import Inventory.Inventory
+import HR.Payroll
 import API.V1.Persons
 import API.V1.Reports
 import Servant

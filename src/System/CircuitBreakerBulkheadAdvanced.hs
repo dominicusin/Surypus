@@ -5,7 +5,7 @@ import Control.Concurrent.STM (TVar, atomically, newTVarIO, readTVar, writeTVar)
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
 import Data.Time.Clock (UTCTime, diffUTCTime, getCurrentTime)
-import System.Clock (Clock (Monotonic), getTime)
+import System.ClockSync (Clock (Monotonic), getTime)
 
 -- | Advanced bulkhead with monitoring and dynamic scaling
 data CircuitBreakerBulkheadAdvanced = CircuitBreakerBulkheadAdvanced

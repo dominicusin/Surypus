@@ -5,7 +5,7 @@ import Control.Concurrent (forkIO)
 import Data.Time.Clock (UTCTime, getCurrentTime, diffUTCTime)
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
-import System.Clock (getTime, Clock(Monotonic))
+import System.ClockSync (getTime, Clock(Monotonic))
 
 -- | Full bulkhead with resource isolation, monitoring, and auto-scaling
 data CircuitBreakerBulkheadFull = CircuitBreakerBulkheadFull

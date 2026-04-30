@@ -2,7 +2,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE TypeOperators #-}
 
-module API.Types
+module API.Types where
   ( module API.Types,
     module Servant.API,
   )

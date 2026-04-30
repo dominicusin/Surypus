@@ -1,110 +1,35 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-@ LIQUID "--reflection" @-}
 
--- | Refined Types with LiquidHaskell-style invariants
--- Модуль содержит типы с проверенными инвариантами:
--- - NonNegative: неотрицательные значения (для остатков, сумм)
--- - Positive: строго положительные значения
--- - Percentage: проценты (0-100)
--- - Amount: денежные суммы
-module Surypus.Refined
-  ( -- * Refined Types
-    NonNegative (..),
-    Positive (..),
-    Percentage (..),
-    Amount (..),
-    Quantity (..),
-
-    -- * Smart Constructors
-    mkNonNegative,
-    mkPositive,
-    mkPercentage,
-    mkAmount,
-    mkQuantity,
-
-    -- * Predicates
-    isNonNegative,
-    isPositive,
-    isValidPercentage,
-
-    -- * LiquidHaskell-style type synonyms (for documentation)
-    module Surypus.Refined.Predicates,
+module Surypus.Refined  where
+  ( -- * Functions
+    clampNonNeg,
+    clampPercentage,
+    isNonNeg,
+    combineNonNeg,
   )
 where
 
-import Surypus.Refined.Predicates
-import Surypus.Types (Decimal (..))
+{-@ type NonNegDouble = {v:Double | v >= 0} @-}
+{-@ type PositiveDouble = {v:Double | v > 0} @-}
+{-@ type Percentage = {v:Double | 0 <= v && v <= 100} @-}
+{-@ type NonNegInt = {v:Int | v >= 0} @-}
+{-@ type NonNegInt64 = {v:Int64 | v >= 0} @-}
 
--- | Non-negative number (>= 0)
--- Инвариант: value >= 0
--- Использование: остатки на складе, суммы платежей
-newtype NonNegative a = NonNegative {unNonNegative :: a}
-  deriving (Show, Eq, Ord)
+{-@ clampNonNeg :: x:Double -> {v:Double | v >= 0} @-}
+clampNonNeg :: Double -> Double
+clampNonNeg = max 0
 
--- | Positive number (> 0)
--- Инвариант: value > 0
--- Использование: количество товара, цена
-newtype Positive a = Positive {unPositive :: a}
-  deriving (Show, Eq, Ord)
+{-@ clampPercentage :: x:Double -> {v:Double | 0 <= v && v <= 100} @-}
+clampPercentage :: Double -> Double
+clampPercentage x
+  | x < 0 = 0
+  | x > 100 = 100
+  | otherwise = x
 
--- | Percentage (0-100)
--- Инвариант: 0 <= value <= 100
--- Использование: ставка налога, скидка
-newtype Percentage a = Percentage {unPercentage :: a}
-  deriving (Show, Eq, Ord)
+{-@ isNonNeg :: Double -> Bool @-}
+isNonNeg :: Double -> Bool
+isNonNeg = (>= 0)
 
--- | Money amount
--- Инвариант: value >= 0, ровно 2 знака после запятой
-newtype Amount = Amount {unAmount :: Decimal}
-  deriving (Show, Eq, Ord)
-
--- | Quantity
--- Инвариант: value >= 0
-newtype Quantity = Quantity {unQuantity :: Decimal}
-  deriving (Show, Eq, Ord)
-
--- | Smart constructor for NonNegative
--- Возвращает Nothing если значение отрицательное
-mkNonNegative :: (Ord a, Num a) => a -> Maybe (NonNegative a)
-mkNonNegative a
-  | a >= 0 = Just (NonNegative a)
-  | otherwise = Nothing
-
--- | Smart constructor for Positive
--- Возвращает Nothing если значение <= 0
-mkPositive :: (Ord a, Num a) => a -> Maybe (Positive a)
-mkPositive a
-  | a > 0 = Just (Positive a)
-  | otherwise = Nothing
-
--- | Smart constructor for Percentage
--- Возвращает Nothing если значение вне диапазона [0, 100]
-mkPercentage :: (Ord a, Num a) => a -> Maybe (Percentage a)
-mkPercentage a
-  | a >= 0 && a <= 100 = Just (Percentage a)
-  | otherwise = Nothing
-
--- | Smart constructor for Amount
-mkAmount :: Double -> Maybe Amount
-mkAmount a
-  | a >= 0 = Just (Amount (Decimal (round (a * 100))))
-  | otherwise = Nothing
-
--- | Smart constructor for Quantity
-mkQuantity :: Double -> Maybe Quantity
-mkQuantity q
-  | q >= 0 = Just (Quantity (Decimal (round (q * 100))))
-  | otherwise = Nothing
-
--- | Check if value is non-negative
-isNonNegative :: (Ord a, Num a) => a -> Bool
-isNonNegative a = a >= 0
-
--- | Check if value is positive
-isPositive :: (Ord a, Num a) => a -> Bool
-isPositive a = a > 0
-
--- | Check if percentage is valid (0-100)
-isValidPercentage :: (Ord a, Num a) => a -> Bool
-isValidPercentage p = p >= 0 && p <= 100
+{-@ combineNonNeg :: Double -> Double -> {v:Double | v >= 0} @-}
+combineNonNeg :: Double -> Double -> Double
+combineNonNeg a b = clampNonNeg (a + b)

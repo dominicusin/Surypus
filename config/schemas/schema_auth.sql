@@ -1,0 +1,2 @@
+-- Auth Tables
+CREATE TABLE IF NOT EXISTS auth_token (id BIGSERIAL PRIMARY KEY, token VARCHAR(256) NOT NULL, user_id BIGINT NOT NULL, expires_at TIMESTAMPTZ, UNIQUE(token));

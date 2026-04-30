@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module System.Validation where
 
 import Data.Either (partitionEithers)
