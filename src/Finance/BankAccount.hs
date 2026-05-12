@@ -103,7 +103,7 @@ hasSufficientFunds amount account = baBalance account >= amount
 
 -- | Calculate account age in days
 accountAge :: Day -> BankAccount -> Int
-accountAge today account = truncate (fromIntegral (diffDays today (baOpenedAt account)) / 1) :: Int
+accountAge today account = truncate (fromIntegral (diffDays today (baOpenedAt account)) / (1 :: Double)) :: Int
 
 -- | Pretty print bank account
 prettyBankAccount :: BankAccount -> Text
