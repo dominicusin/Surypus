@@ -25,25 +25,24 @@ allow-different-user: true
 system-ghc: true
 
 extra-deps:
-   - liquidhaskell-0.8.10.7.1
-   - liquid-base-4.15.1.0
-   - liquid-containers-0.6.4.1
-   - validation-selective-0.2.0.0
-   - cryptonite-0.30
-   - servant-swagger-1.2.1
-   - swagger2-2.8.10
-   - Decimal-0.5.2
-   - smtp-mail-0.1.0.0
-   - http-client-0.7.13.1
-   - http-client-tls-0.3.6.1
-   - yaml-0.11.11.0
-   - hasql-1.6.4.2
-    - hasql-pool-0.10.1
-    - postgresql-libpq-0.11.0.0@sha256:682d17c7bce588902dc01dc255328d8de4c633f98c7837eed8e5f1cc8b445af5,2717
-    - postgresql-binary-0.14
-   - hasql-postgres-1.6.4.2
-   - hasql-transaction-1.1.1.2
-   - hasql-notifications-0.2.1.1
+  - liquidhaskell-0.8.10.7.1
+  - liquid-base-4.15.1.0
+  - liquid-containers-0.6.4.1
+  - validation-selective-0.2.0.0
+  - cryptonite-0.30
+  - servant-swagger-1.2.1
+  - swagger2-2.8.10
+  - Decimal-0.5.2
+  - smtp-mail-0.1.0.0
+  - http-client-0.7.13.1
+  - http-client-tls-0.3.6.1
+  - yaml-0.11.11.0
+  - hasql-1.6.4.2
+  - hasql-pool-0.10.1
+  - postgresql-binary-0.14
+  - hasql-postgres-1.6.4.2
+  - hasql-transaction-1.1.1.2
+  - hasql-notifications-0.2.1.1
 #   - reflex-dom-0.6.3.4
 #   - jsaddle-webkit2gtk-0.9.9.3
 #   - gi-webkit2-4.0.32
