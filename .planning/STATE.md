@@ -7,8 +7,8 @@ Current focus: Phase 1 — API Production Readiness
 ## Current Status
 
 - **Phase:** 1 (Active)
-- **Active Plan:** Plan 1.2 — JWT Authentication Middleware (partially done)
-- **Last Milestone:** Reports handlers fixed, JWT dependencies added
+- **Active Plan:** Plan 1.2 — JWT Authentication Middleware (in_progress)
+- **Last Milestone:** RBAC middleware refactored, reports handlers fixed
 
 ## Phase 1 Plans
 
@@ -30,13 +30,15 @@ Current focus: Phase 1 — API Production Readiness
 - `reportsMeta` - calls `getReports`
 - `reportGet` - calls `getReportById`
 
-### JWT Dependencies (ADDED)
-- `jose-0.11` added to stack.yaml
-- JWT module improved with `JWTError` type and `decodeAndValidateToken`
+### Phase 1.2 - RBAC Middleware (REFACTORED)
+- `requirePermissionText_` now accepts `Env` parameter
+- Updated 58 handler calls to use new signature
+- Ready for actual permission checking implementation
 
 ## Known Issues
 - `hashtables-1.3.1` build fails due to C compilation error (system dependency)
 - `empGet`, `jobsList`, `jobsPending`, `jobsCreate` remain as stubs (need DAL functions)
+- Build requires `stack build` due to inter-module dependencies
 
 ---
 *Last updated: 2026-05-13*
