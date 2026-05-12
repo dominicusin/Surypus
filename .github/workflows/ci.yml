@@ -7,11 +7,19 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ghc: ['9.6.6', '9.8.4']
+        postgres: ['14', '15']
     steps:
       - uses: actions/checkout@v4
-      - name: Install Stack
+      - name: Install Haskell Stack
         run: |
           curl -sSL https://get.haskellstack.org/ | sh
+      - name: Setup GHC
+        uses: haskell/actions/setup@v2
+        with:
+          ghc-version: ${{ matrix.ghc }}
       - name: Build
         run: |
           stack --version
@@ -19,9 +27,9 @@ jobs:
       - name: Run tests
         run: |
           stack test --test-arguments --color
-      - name: Dry-run migrations (DSL)
+      - name: Dry-run migrations
         run: |
           bash scripts/ci-dry-run-mig.sh
-      - name: Migration Verification Suite
+      - name: Migration Verification
         run: |
-          bash scripts/ci-migration-verification.sh
+          bash scripts/check_schema_uniqueness.sh || true

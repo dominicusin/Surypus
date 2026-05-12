@@ -35,29 +35,12 @@ sudo -u postgres psql -d $DB_NAME -c "CREATE EXTENSION IF NOT EXISTS \"pg_trgm\"
 sudo -u postgres psql -d $DB_NAME -c "CREATE EXTENSION IF NOT EXISTS \"hstore\";"
 sudo -u postgres psql -d $DB_NAME -c "CREATE EXTENSION IF NOT EXISTS \"jsonb\";"
 
-# Run migrations in correct order: V1 -> V2 -> ... -> V012
+# Run all migrations in numerical order (3-digit V-numbers sort correctly)
 echo "Running migrations in order..."
 MIGRATIONS_DIR="$PROJECT_DIR/sql/migrations"
 
-# Explicit order to avoid conflicts
-MIGRATION_ORDER=(
-	"V1__initial_schema.sql"
-	"V2__multi_currency.sql"
-	"V005__refresh_tokens.sql"
-	"V006__roles.sql"
-	"V007__permissions.sql"
-	"V008__audit_log.sql"
-	"V009__rbac_store.sql"
-	"V010__production.sql"
-	"V011__fix_schema_columns.sql"
-	"V012__snapshot_tables.sql"
-	"20240616_create_core_tables.sql"
-	"20240617_create_event_store.sql"
-	"20240618_create_read_models_views.sql"
-)
-
-for migration_name in "${MIGRATION_ORDER[@]}"; do
-	migration="$MIGRATIONS_DIR/$migration_name"
+for migration in "$MIGRATIONS_DIR"/V*.sql; do
+	migration_name=$(basename "$migration")
 	if [ -f "$migration" ]; then
 		echo "  Applying $migration_name"
 		sudo -u postgres psql -d $DB_NAME -f "$migration" 2>/dev/null || true

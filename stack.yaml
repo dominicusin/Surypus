@@ -1,8 +1,14 @@
 # stack.yaml for Surypus
 resolver: nightly-2026-04-05
 
-#nix:
-#  enable: true
+nix:
+  enable: true
+  packages:
+    - zlib
+    - gmp
+    - pcre
+    - libffi
+    - ncurses
 
 packages:
   - .
@@ -12,7 +18,7 @@ ghc-options:
 
 allow-newer: true
 allow-different-user: true
-system-ghc: false
+system-ghc: true
 
 extra-deps:
   - liquidhaskell-0.8.10.7.1
