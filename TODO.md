@@ -81,7 +81,7 @@
 - [ ] US-3-5: Redis Queue (P3, 5SP) — Redis/Bull for background tasks; retry on failure
 
 ### Epic: US-3 API Gateway
-- [ ] US-3-4: GraphQL Proxy (P2, 5SP) — /graphql returns data consistent with REST; no direct DB access
+- [x] US-3-4: GraphQL Proxy (P2, 5SP) — /graphql returns data consistent with REST; no direct DB access
 - [ ] US-3-6: WebSocket real-time (P3, 5SP) — WebSocket broadcasts events when keys change
 - [ ] US-3-7: Proxy usage and client migration plan (P3, 3SP) — GraphQL client integration plan
 
