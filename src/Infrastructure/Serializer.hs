@@ -34,7 +34,10 @@ serialize (Serializer MessagePack _) = error "MessagePack not implemented"
 
 -- | Deserialize value
 deserialize :: (FromJSON a) => Serializer -> BSL.ByteString -> Either String a
-deserialize (Serializer JSON _) = decode
+deserialize (Serializer JSON _) bs = 
+  case decode bs of
+    Just val -> Right val
+    Nothing -> Left "Failed to decode JSON"
 
 -- | Auto-detect format
 serializeAuto :: (ToJSON a) => SerializationFormat -> a -> BSL.ByteString
@@ -49,6 +52,6 @@ class Serializable a where
   toValue :: a -> Value
   fromValue :: Value -> Either String a
 
-instance (ToJSON a, FromJSON a) => Serializable a where
-  toValue = encode
-  fromValue = decode
+-- instance (ToJSON a, FromJSON a) => Serializable a where
+--   toValue = encode
+--   fromValue = decode

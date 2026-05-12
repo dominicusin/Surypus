@@ -1,14 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 -- | SmartReceipt module - Electronic receipts
-module Retail.Receipts.SmartReceipt where
+module Retail.Receipts.SmartReceipt
   ( SmartReceipt (..),
     PaymentType (..),
     ReceiptStatus (..),
     SmartReceiptLine (..),
     calcReceiptTotal,
     prop_receiptTotalNonNeg
-where
+  ) where
 
 import Data.Int (Int64)
 import Data.Text (Text)

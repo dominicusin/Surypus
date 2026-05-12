@@ -1,7 +1,7 @@
 module Integration.API.EventProcessor where
 
 import Control.Concurrent (forkIO, threadDelay)
-import Control.Concurrent.STM (TQueue, TVar, isEmptyTQueue, newTQueueIO, readTQueue, writeTQueue, readTVar, atomically, newTVarIO, readTVarIO)
+import Control.Concurrent.STM (TQueue, TVar, isEmptyTQueue, newTQueueIO, readTQueue, writeTQueue, readTVar, atomically, newTVarIO, readTVarIO, writeTVar)
 import Control.Monad (forever, when)
 import Data.Text (Text)
 import Data.Time.Clock (UTCTime)

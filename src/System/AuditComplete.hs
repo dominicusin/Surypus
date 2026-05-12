@@ -8,8 +8,9 @@ import qualified Data.Text as T
 import qualified Data.UUID as UUID
 import qualified Data.ByteString.Lazy as BL
 import Data.Time.Clock (UTCTime, getCurrentTime, addUTCTime)
-import Data.Aeson (ToJSON, encode, Value)
+import Data.Aeson (ToJSON(toJSON), encode, Value)
 import Data.Aeson.Types (object, (.=))
+import Data.Aeson.Key (fromText)
 
 -- | Audit severity levels with numeric values for filtering
 data AuditSeverity
@@ -41,7 +42,7 @@ data AuditEventComplete = AuditEventComplete
 
 -- Stub ToJSON instance
 instance ToJSON AuditEventComplete where
-  toJSON _ = object ["stub" .= ("audit-event" :: Text)]
+  toJSON _ = object [fromText (T.pack "stub") .= (T.pack "audit-event" :: Text)]
 
 -- | Audit storage with compliance guarantees
 data AuditStorage = AuditStorage

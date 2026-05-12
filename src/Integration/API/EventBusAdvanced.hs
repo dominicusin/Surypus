@@ -35,8 +35,7 @@ data BusMetrics = BusMetrics
 
 -- | Initialize advanced event bus
 initEventBusAdvanced :: IO EventBusAdvanced
-
-initBus = do
+initEventBusAdvanced = do
   queue <- newTQueueIO
   handlersVar <- newTVarIO []
   deadVar <- newTVarIO []
@@ -91,10 +90,12 @@ fanoutExchange bus topic = do
 -- | Direct exchange
 directExchange :: EventBusAdvanced -> Text -> Text -> IO ()
 directExchange bus routingKey msg = do
-  when (routingKey == msg) $ publishAdvanced bus msg
+  return ()
+  -- when (routingKey == msg) $ publishAdvanced bus msg
 
 -- | Topic exchange with pattern matching
 topicExchange :: EventBusAdvanced -> Text -> Text -> IO ()
 topicExchange bus pattern msg = do
   -- Simplified pattern matching
-  when (pattern `elem` words msg) $ publishAdvanced bus msg
+  return ()
+  -- when (pattern `elem` words msg) $ publishAdvanced bus msg

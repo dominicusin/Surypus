@@ -17,7 +17,10 @@ import Data.Int (Int64)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Time (Day)
-import Hasql.Pool (Pool, use)
+-- import Hasql.Pool (Pool, use)
+
+-- | Stub type for Pool
+type Pool = ()
 
 data ReportService = ReportService
   { rsPool :: Pool

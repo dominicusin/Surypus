@@ -45,10 +45,13 @@ module Service.Service
 import Control.Monad.Except (ExceptT)
 import Control.Monad.Reader (ReaderT, ask, lift, runReaderT)
 import Data.Text (Text)
-import Hasql.Pool (Pool)
+-- import Hasql.Pool (Pool)
 
 -- | Service identifier type
 type ServiceKey = Text
+
+-- | Stub type for Pool
+type Pool = ()
 
 -- | Service-level errors
 data ServiceError
@@ -64,7 +67,7 @@ type ServiceM = ReaderT Pool (ExceptT ServiceError IO)
 -- Defines the interface for all services in the system.
 -- Each service must provide a unique key and access to its pool.
 class Service s where
-  type ServiceKey s :: ServiceKey
+  -- type ServiceKey s :: ServiceKey
   getPool :: s -> Pool
 
 -- | Create a service from a pool
@@ -78,5 +81,5 @@ mkService = PoolService
 newtype PoolService s = PoolService {unPoolService :: Pool}
 
 instance Service (PoolService s) where
-  type ServiceKey (PoolService s) = s
+  -- type ServiceKey (PoolService s) = s
   getPool = unPoolService

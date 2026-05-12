@@ -73,7 +73,7 @@ createBackup state = do
         return True
 
   if not locked
-    then return $ Left "Backup already in progress"
+    then return $ Left (T.pack "Backup already in progress")
     else do
       now <- getCurrentTime
       result <- performBackup (backupConfig state) now
@@ -92,11 +92,11 @@ createBackup state = do
 performBackup :: BackupConfig -> UTCTime -> IO (Either Text FilePath)
 performBackup config now = do
   let src = backupSource config
-      dst = backupDestination config </> show (hash now)
+      dst = T.pack (backupDestination config </> show (hash now))
   -- Create destination directory
-  createDirectoryIfMissing True dst
+  createDirectoryIfMissing True (T.unpack dst)
   -- Copy files (simplified)
-  return $ Right dst
+  return $ Right (T.unpack dst)
   where
     hash t = show (fromEnum t `mod` 1000000)
 

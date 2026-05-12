@@ -2,6 +2,6 @@
 module Logistics where
 
 import Logistics.Warehouse
-import Logistics.Transport
-import Logistics.Receipt
-import Logistics.Transfer
+-- import Logistics.Transport
+-- import Logistics.Receipt
+-- import Logistics.Transfer

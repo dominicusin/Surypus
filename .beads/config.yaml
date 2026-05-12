@@ -36,8 +36,6 @@
 #     - ~/beads-planning  # Personal planning repo
 #     - ~/work-planning   # Work planning repo
 
-dolt:
-  port: 34789
 # Auto-enabled when a git remote exists. Override explicitly:
 # backup:
 #   enabled: false     # Disable auto-backup entirely

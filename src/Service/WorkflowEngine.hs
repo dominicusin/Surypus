@@ -1,6 +1,6 @@
 module Service.WorkflowEngine where
 
-import Control.Concurrent.STM (TVar, newTVarIO, readTVar, writeTVar, atomically)
+import Control.Concurrent.STM (TVar, newTVarIO, readTVar, readTVarIO, writeTVar, atomically)
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
 import Data.Time.Clock (UTCTime, getCurrentTime)
@@ -77,11 +77,11 @@ executeWorkflowStep engine instanceId = do
   
   case mInstance of
     Nothing -> return $ Left "Instance not found"
-    Just instance -> do
-      state <- readTVarIO (instanceState instance)
+    Just inst -> do
+      state <- readTVarIO (instanceState inst)
       case state of
-        InstanceDraft -> advanceStep engine instance
-        InstanceScheduled _ -> advanceStep engine instance
+        InstanceDraft -> advanceStep engine inst
+        InstanceScheduled _ -> advanceStep engine inst
         InstanceRunning _ -> return $ Left "Already running"
         InstanceCompleted _ -> return $ Left "Already completed"
         InstanceFailed _ _ -> return $ Left "Failed, cannot advance"
@@ -89,17 +89,17 @@ executeWorkflowStep engine instanceId = do
 
 -- | Advance to next step
 advanceStep :: WorkflowEngine -> WorkflowInstance -> IO (Either Text ())
-advanceStep engine instance = do
-  steps <- readTVarIO (instanceSteps instance)
-  current <- readTVarIO (instanceCurrentStep instance)
+advanceStep engine winst = do
+  steps <- readTVarIO (instanceSteps winst)
+  current <- readTVarIO (instanceCurrentStep winst)
   let totalSteps = length steps
   if current >= totalSteps
     then do
       now <- getCurrentTime
-      atomically $ writeTVar (instanceState instance) (InstanceCompleted now)
+      atomically $ writeTVar (instanceState winst) (InstanceCompleted now)
       return $ Right ()
     else do
-      atomically $ writeTVar (instanceCurrentStep instance) (current + 1)
+      atomically $ writeTVar (instanceCurrentStep winst) (current + 1)
       return $ Right ()
 
 -- | Cancel workflow instance
@@ -107,8 +107,8 @@ cancelWorkflowInstance :: WorkflowEngine -> Text -> IO ()
 cancelWorkflowInstance engine instanceId = atomically $ do
   insts <- readTVar (engineInstances engine)
   case Map.lookup instanceId insts of
-    Just instance -> do
-      writeTVar (instanceState instance) InstanceCancelled
+    Just winst -> do
+      writeTVar (instanceState winst) InstanceCancelled
       let insts' = Map.delete instanceId insts
       writeTVar (engineInstances engine) insts'
     Nothing -> return ()
@@ -119,11 +119,11 @@ getInstanceStatus engine instanceId = atomically $ do
   insts <- readTVar (engineInstances engine)
   mInstance <- return $ Map.lookup instanceId insts
   case mInstance of
-    Just instance -> Just <$> readTVar (instanceState instance)
+    Just winst -> Just <$> readTVar (instanceState winst)
     Nothing -> return Nothing
 
 -- | List workflow instances
 listWorkflowInstances :: WorkflowEngine -> IO [(Text, InstanceState)]
 listWorkflowInstances engine = do
   insts <- readTVarIO (engineInstances engine)
-  return $ map (\(k, v) -> (k, =<< readTVarIO (instanceState v))) (Map.toList insts)
+  mapM (\(k, v) -> fmap (\s -> (k, s)) (readTVarIO (instanceState v))) (Map.toList insts)

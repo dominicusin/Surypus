@@ -46,12 +46,12 @@ handleAPIError (Right val) = Right val
 -- retryRequest = undefined
 retryRequest :: Int -> IO a -> IO (Either String a)
 retryRequest 0 action = do
-  result <- try action
+  result <- try (action :: IO a)
   return $ case result of
     Right val -> Right val
     Left err -> Left $ "HTTP error: " ++ show (err :: SomeException)
 retryRequest n action = do
-  result <- try action
+  result <- try (action :: IO a)
   case result of
     Right val -> pure $ Right val
     Left err -> do
