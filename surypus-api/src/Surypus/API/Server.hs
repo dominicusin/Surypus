@@ -28,6 +28,8 @@ import Surypus.API.Root
   )
 import Surypus.Database.Pool (pingDatabasePool)
 import Surypus.JWT (JWTConfig (..), TokenPair (..), generateTokenPair, rtUserId, validateRefreshToken)
+import Surypus.Metrics (Metrics)
+import Surypus.RBAC.Store (RBACStore)
 import Surypus.RBAC
   ( AuditEntry (..),
     DynamicRole (..),
@@ -39,23 +41,16 @@ import Surypus.RBAC
     requirePermission,
   )
 
-data RBACStore = RBACStore ()
-
-data RoleCreateRequest = RoleCreateRequest Text [Text] [Maybe Text]
-
-data RoleInfoResponse = RoleInfoResponse Text [Text]
-
-data RolesListResponse = RolesListResponse [RoleInfoResponse]
-
 data Env = Env
   { envPool :: Pool,
     envJWTConfig :: JWTConfig,
-    envRBACStore :: RBACStore
+    envRBACStore :: RBACStore,
+    envMetrics :: Metrics
   }
 
-apiServer :: Pool -> JWTConfig -> RBACStore -> Application
-apiServer pool jwtConfig rbacStore =
-  let env = Env pool jwtConfig rbacStore
+apiServer :: Pool -> JWTConfig -> RBACStore -> Metrics -> Application
+apiServer pool jwtConfig rbacStore metrics =
+  let env = Env pool jwtConfig rbacStore metrics
    in serve (Proxy @SurypusApi) (serverWithDoc env)
 
 serverWithDoc :: Env -> Server SurypusApi

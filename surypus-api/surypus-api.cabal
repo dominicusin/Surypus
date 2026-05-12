@@ -9,9 +9,8 @@ maintainer:          dev@surypus.com
 copyright:           2024 Surypus
 category:            Web
 
-executable surypus-api
-  main-is:             Main.hs
-  other-modules:
+library
+  exposed-modules:
     Surypus.API.Server
     Surypus.API.Bills
     Surypus.API.Payment
@@ -36,7 +35,21 @@ executable surypus-api
     containers,
     mtl,
     bytestring,
-    transformers      >= 0.5
+    transformers      >= 0.5,
+    websockets,
+    wai-websockets
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+  ghc-options:
+    -Wall
+    -Wcompat
+
+executable surypus-api
+  main-is:             Main.hs
+  build-depends:
+    base,
+    surypus-api,
+    warp
   hs-source-dirs:      src
   default-language:    Haskell2010
   ghc-options:
