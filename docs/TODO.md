@@ -1,4 +1,9 @@
-# Surypus TODO
+# Surypus TODO — Unified Task List
+
+> All tasks from all sessions consolidated in one place.
+> Sources: TODO.md, BACKLOG.md, docs/phase2_phase3_backlog.md, .beads/issues.jsonl
+
+---
 
 ## Strategic Goals
 
@@ -43,6 +48,45 @@
 
 ---
 
+## Phase 2 — Accounts & Journal Entries (ACID)
+
+### Epic: US-2 Login & RBAC
+- [x] US-2-1: Login and RBAC (P1, 3SP) — JWT auth with roles/permissions; 200 + token; RBAC per request
+- [x] US-2-5: RBAC negative test (P2, 2SP) — non-authorized user gets 403 Forbidden
+- [x] US-2-7: OpenAPI Docs (P3, 2SP) — /docs or /swagger.json available and valid
+- [x] US-2-6: Health & Readiness (P2, 2SP) — 200 OK with status fields
+
+### Epic: US-2 Account Management
+- [x] US-2-2: Create Account (P1, 5SP) — 201 Created; code unique; stored with timestamps
+- [x] US-2-3: Read Accounts (P2, 3SP) — 200; accounts contain created account; code unique
+
+### Epic: US-2 Journal & Read Models
+- [x] US-2-4: Create Journal Entry (P1, 5SP) — 201 Created; balance updated 5-10s; validates account exists
+- [x] US-2-8: Read model account_balances (P2, 5SP) — API reads balances; updates within 5-10s
+- [x] US-2-9: Read model ledger_projection (P2, 5SP) — correct totals per account per period
+- [x] US-2-10: Dashboard endpoint (P2, 3SP) — /api/v1/dashboard: revenue, stockValue, pendingPayments
+- [x] US-2-11: Read-model caching (P2, 3SP) — in-memory TTL 5-10s; cache hits reduce DB load
+- [x] US-2-12: Phase 2 Integration tests (P2, 5SP) — all phase-2 tests pass in CI
+
+---
+
+## Phase 3 — Event Sourcing, Redis, GraphQL, WebSocket
+
+### Epic: US-3 Event Sourcing
+- [ ] US-3-1: Accounts Event Store (P1, 8SP) — accounting_events table; append-only events; replay utility
+- [ ] US-3-2: Account read-model replay (P1, 5SP) — rebuild balances from event stream
+
+### Epic: US-3 Infrastructure
+- [ ] US-3-3: Read models Redis cache (P2, 5SP) — Redis TTL caches 5-10s; Redis streams for events
+- [ ] US-3-5: Redis Queue (P3, 5SP) — Redis/Bull for background tasks; retry on failure
+
+### Epic: US-3 API Gateway
+- [ ] US-3-4: GraphQL Proxy (P2, 5SP) — /graphql returns data consistent with REST; no direct DB access
+- [ ] US-3-6: WebSocket real-time (P3, 5SP) — WebSocket broadcasts events when keys change
+- [ ] US-3-7: Proxy usage and client migration plan (P3, 3SP) — GraphQL client integration plan
+
+---
+
 ## High Priority
 
 - [x] Add proper parameterized queries instead of string interpolation (security)
@@ -79,14 +123,56 @@
 - [x] Add hlint to CI pipeline
 - [x] Add pgformatter for SQL formatting
 
-## Code Quality Tools
+---
 
-### Haskell (hlint) - Available: /usr/bin/hlint
+## Database Migrations (B1)
+
+- [x] B1-1: Schema columns aligned with procedures.sql
+- [x] B1-2: V009__rbac_store.sql — RBAC tables created
+- [x] B1-3: V010__production.sql — Production tables created
+- [x] B1-4: procedures.sql — Business procedures added
+- [x] B1-5: init_db.sh — Order fixed, no hardcoded references
+
+---
+
+## Documentation (B10)
+
+- [x] B10-1: CHANGELOG.md updated with [0.2.0.0] section
+- [x] B10-2: AGENTS.md updated with Service Layer, Database Migrations, Job Types
+- [x] B10-3: docs/engineering/api-conventions.md created
+- [x] B10-4: docs/engineering/testing-guide.md created
+
+---
+
+## New Development Tasks
+
+### Business Logic
+- [x] Add multi-currency support
+- [x] Add import/export functionality (CSV, Excel)
+- [x] Add barcode scanning support (see src/Surypus/RBAC.hs for barcode validation)
+- [x] Add email notifications (Core.Notification module)
+- [x] Multi-tenancy infrastructure (DAL.Repository.User, Surypus.Tenant)
+
+### API Development
+- [x] API versioning strategy implemented
+- [x] GraphQL API support (placeholder in Surypus.API.GraphQL)
+- [x] WebSocket real-time updates (Surypus.WebSocket)
+- [x] Rate limiting improvements (Surypus.API.RateLimit)
+
+### Infrastructure
+- [x] Add Prometheus metrics
+- [x] Add database migrations (flyway)
+- [x] Add integration tests (test/Integration/)
+- [x] Add performance/load tests (test/Integration/PerformanceSpec.hs)
+- [x] Event Store DB integration (DAL.EventStore)
+- [x] Multi-tenancy infrastructure (DAL.Repository.User, Surypus.Tenant)
+
+### Code Quality Tools
+#### Haskell (hlint)
 - [x] Fix hlint warnings (from ~2951 to 0)
 - [x] Add hlint to CI pipeline
 - [x] Configure hlint rules in .hlint.yaml
-
-### SQL (pgformatter) - Available: /usr/bin/pg_format
+#### SQL (pgformatter)
 - [x] Format SQL files in config/
 - [x] Add pre-commit hook for SQL formatting
 - [x] Add pgformatter to CI pipeline
@@ -113,40 +199,11 @@
 
 ---
 
-## New Development Tasks
+## Stats
 
-### Business Logic
-- [x] Add multi-currency support
-- [x] Add import/export functionality (CSV, Excel)
-- [x] Add barcode scanning support (attempted - see src/Surypus/RBAC.hs for barcode validation)
-- [x] Add email notifications (Core.Notification module)
-- [x] Multi-tenancy infrastructure (DAL.Repository.User, Surypus.Tenant)
-
-### API Development
-- [x] API versioning strategy implemented
-- [x] GraphQL API support (placeholder implementation in Surypus.API.GraphQL)
-- [x] WebSocket real-time updates (implemented in Surypus.WebSocket)
-- [x] Rate limiting improvements (implemented in Surypus.API.RateLimit)
-
-### Infrastructure
-- [x] Add Prometheus metrics
-- [x] Add database migrations (flyway)
-- [x] Add integration tests (test/Integration/)
-- [x] Add performance/load tests (test/Integration/PerformanceSpec.hs)
-- [x] Event Store DB integration (DAL.EventStore)
-- [x] Multi-tenancy infrastructure (DAL.Repository.User, Surypus.Tenant)
-
-## Database Migrations (B1)
-
-- [x] B1-1: Schema columns aligned with procedures.sql
-- [x] B1-2: V009__rbac_store.sql - RBAC tables created
-- [x] B1-3: V010__production.sql - Production tables created
-- [x] B1-4: procedures.sql - Business procedures added
-- [x] B1-5: init_db.sh - Order fixed, no hardcoded references
-
-## Documentation (B10)
-
-- [x] B10-1: CHANGELOG.md updated with [0.2.0.0] section
-- [x] B10-2: AGENTS.md updated with Service Layer, Database Migrations, Job Types
-- [x] B10-3: docs/engineering/api-conventions.md created
-- [x] B10-4: docs/engineering/testing-guide.md created
+| Status | Count |
+|--------|-------|
+| Done (Phase 2) | 12 |
+| Open (Phase 3) | 7 |
+| Done (General) | 42 |
+| **Total** | **61** |
