@@ -235,6 +235,11 @@ library
           DAL.File
           DAL.Attachment
           DAL.Types
+          Finance.AccSheet2
+          Finance.Accounting
+          Inventory.Types
+          System.CircuitBreakerBulkheadFullWithMetrics
+          System.Session
 
   build-depends:
       base >=4.12 && <5
@@ -260,4 +265,15 @@ library
     , random >=1.2
     , bytestring >=0.11
     , lens >=5.2
+    , hspec >=2.11
+
+test-suite surypus-test
+  type: exitcode-stdio-1.0
+  hs-source-dirs: Surypus/test
+  main-is: BridgeSpec.hs
+  build-depends:
+      base >=4.12 && <5
+    , Surypus
+    , hspec
+  default-language: Haskell2010
     

@@ -42,18 +42,7 @@ handleAPIError (Left err) = Left $ "HTTP error: " ++ show err
 handleAPIError (Right val) = Right val
 
 -- | Retry failed requests with exponential backoff
--- retryRequest :: Int -> IO a -> IO (Either String a)
--- retryRequest = undefined
-retryRequest :: Int -> IO a -> IO (Either String a)
-retryRequest 0 action = do
-  result <- try (action :: IO a)
-  return $ case result of
-    Right val -> Right val
-    Left err -> Left $ "HTTP error: " ++ show (err :: SomeException)
-retryRequest n action = do
-  result <- try (action :: IO a)
-  case result of
-    Right val -> pure $ Right val
-    Left err -> do
-      -- threadDelay (1000000 * (2 ^ (5 - n))) -- Wait with exponential backoff
-      retryRequest (n - 1) action
+retryRequest :: IO a -> IO (Either SomeException a)
+retryRequest action = do
+  result <- try action
+  return result

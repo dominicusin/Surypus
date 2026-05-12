@@ -3,7 +3,7 @@ module Integration.API.EventProcessor where
 import Control.Concurrent (forkIO, threadDelay)
 import Control.Concurrent.STM (TQueue, TVar, isEmptyTQueue, newTQueueIO, readTQueue, writeTQueue, readTVar, atomically, newTVarIO, readTVarIO, writeTVar)
 import Control.Monad (forever, when)
-import Data.Text (Text)
+import qualified Data.Text as T
 import Data.Time.Clock (UTCTime)
 import qualified Data.UUID as UUID
 -- import Data.UUID (nextRandom)
@@ -18,10 +18,10 @@ data EventType
 
 -- | Event payload
 data Event = Event
-  { eventId :: Text,
+  { eventId :: T.Text,
     eventType :: EventType,
-    eventSource :: Text,
-    eventData :: Text,
+    eventSource :: T.Text,
+    eventData :: T.Text,
     eventTimestamp :: UTCTime
   }
 
@@ -71,8 +71,8 @@ publishEvent processor event = atomically $ do
   writeTQueue queue event
 
 -- | Generate event ID
-generateEventId :: IO Text
+generateEventId :: IO T.Text
 generateEventId = do
   -- uuid <- UUID.nextRandom
-  -- return $ Text.pack $ UUID.toString uuid
-  return "event-id-placeholder"
+  -- return $ T.pack $ UUID.toString uuid
+  return (T.pack "event-id-placeholder")

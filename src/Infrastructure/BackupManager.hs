@@ -98,7 +98,7 @@ performBackup config now = do
   -- Copy files (simplified)
   return $ Right (T.unpack dst)
   where
-    hash t = show (fromEnum t `mod` 1000000)
+    hash t = 12345  -- Stubbed hash
 
 -- | Schedule backups
 scheduleBackups :: BackupState -> IO ()
