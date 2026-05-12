@@ -299,9 +299,17 @@ test-suite surypus-test
   build-depends:
       base >=4.12 && <5
     , Surypus
+    , surypus-api
+    , surypus-common
     , hspec
     , QuickCheck
     , text
     , time
+    , wai
+    , warp
+    , hasql
+    , hasql-pool
+    , stm
+    , containers
   default-language: Haskell2010
     
