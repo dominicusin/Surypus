@@ -8,7 +8,7 @@ module System.Metrics
     MetricsState
   ) where
 
-import Control.Concurrent.STM (TVar, atomically, modifyTVar, newTVarIO, readTVar, readTVarIO)
+import Control.Concurrent.STM (TVar, atomically, modifyTVar, newTVarIO, readTVarIO)
 import Data.Int (Int64)
 
 data Metrics = Metrics

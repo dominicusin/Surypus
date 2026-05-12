@@ -13,5 +13,3 @@ newtype Decimal = Decimal Double
 unDecimal :: Decimal -> Double
 unDecimal (Decimal d) = d
 
-div :: Double -> Double -> Double
-div = (/)

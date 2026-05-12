@@ -1,20 +1,18 @@
 -- | Authentication middleware for Servant
 module Surypus.API.AuthMiddleware
   ( withAuthzResolverAdvanced,
+    PermissionChecker(..),
+    AuditLogger(..),
   )
 where
 
 import Data.Text (Text)
-import Network.Wai (Application, Middleware)
+import Network.Wai (Application)
 
--- | Authorization resolver type
-type AuthResolver = Text -> IO (Maybe Text)
-
--- | Permission checker type
-type PermissionChecker = Text -> Text -> IO Bool
-
--- | Audit logger type
-type AuditLogger = Text -> IO ()
+-- | Permission checker type (stub)
+data PermissionChecker = PermissionChecker
+-- | Audit logger type (stub)
+data AuditLogger = AuditLogger
 
 -- | Apply authentication and authorization middleware
 withAuthzResolverAdvanced ::

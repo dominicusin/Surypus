@@ -50,7 +50,7 @@ initWorkflowEngine config = do
 
 -- | Create new workflow instance
 createWorkflowInstance :: WorkflowEngine -> Text -> Text -> IO Text
-createWorkflowInstance _ workflowId desc = do
+createWorkflowInstance _ _workflowId _desc = do
   return (T.pack "stub-instance-id")
 
 -- | Execute workflow step

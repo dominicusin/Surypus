@@ -3,8 +3,6 @@ module Shared.Export.Exporter
     pushMetrics
   ) where
 
-import Control.Concurrent.STM
-import Control.Concurrent.STM.TVar
 import Data.Text (Text)
 import qualified Data.Text as T
 

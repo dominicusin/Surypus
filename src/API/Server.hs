@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# OPTIONS_GHC -Wno-unused-top-binds #-}
 
 -- | API Server - STUBBED
 module API.Server
@@ -12,40 +13,7 @@ module API.Server
     -- API
   ) where
 
-import API.Types
-import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Trans.Except (ExceptT, throwE)
--- import DAL.Repository
--- import DAL.Repository.Person (HasPersonRepository (..), PersonRepository, mkPersonRepository)
--- import DAL.Types
--- import Data.Pagination (Pagination (..))
-import Data.Text (Text)
-import qualified Data.Text as T
-import qualified Data.Text.Encoding as TE
-import Data.Time (getCurrentTime, UTCTime)
-import GHC.Generics (Generic)
--- import Hasql.Pool (Pool)
-import Network.Wai (Request, requestMethod, rawPathInfo, requestHeaders, getRequestBodyChunk, Middleware, Application, responseLBS)
--- import Network.Wai.Middleware.RequestLogger (logStdout, logStdoutDev)
-import Network.HTTP.Types.Status (status503)
-import Servant
-import System.CircuitBreakerBulkheadFullWithMetrics (CircuitBreakerBulkheadFullWithMetrics, initCircuitBreakerBulkheadFullWithMetrics, executeWithFullMetrics)
--- import System.Metrics (Metrics, registerCounter, registerTimer, getCounter, getTimer)
-import System.Log.FastLogger (LoggerSet, newStdoutLoggerSet, defaultBufSize, pushLogStr)
--- import Surypus.Error (AppError (..))
--- import Surypus.JWT
--- import Surypus.Validation (ValidationError (..), validatePersonInput)
-
 -- All handlers stubbed
-type AppM = IO ()
-
--- Stub types
-type Pool = ()
-type PersonRepository = ()
-type Metrics = ()
-type JWTConfig = ()
-type ValidationError = String
-type AppError = String
 
 -- All handlers stubbed - commented out
 -- type AppM = ExceptT ServantErr IO

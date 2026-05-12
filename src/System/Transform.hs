@@ -24,8 +24,17 @@ data TransformPipeline a b = TransformPipeline
   }
 
 -- | Initialize transformation pipeline
-initTransformPipeline :: a -> TransformPipeline a b
-initTransformPipeline initialValue = undefined -- Placeholder
+initTransformPipeline :: a -> IO (TransformPipeline a b)
+initTransformPipeline _ = do
+   inputTVar <- newTVarIO []
+   outputTVar <- newTVarIO []
+   errorsTVar <- newTVarIO []
+   return $ TransformPipeline
+      { pipelineStages = []
+      , pipelineInput = inputTVar
+      , pipelineOutput = outputTVar
+      , pipelineErrors = errorsTVar
+      }
 
 -- | Add a transformation stage
 addStage :: TransformStage a b -> TransformPipeline a b -> TransformPipeline a b

@@ -15,7 +15,6 @@ module Reports.Service
 
 import Data.Int (Int64)
 import Data.Text (Text)
-import qualified Data.Text as T
 import Data.Time (Day)
 -- import Hasql.Pool (Pool, use)
 

@@ -6,7 +6,7 @@ import Control.Monad (forever, when)
 import Data.Sequence (Seq)
 import qualified Data.PriorityQueue.FingerTree as PQ
 import Data.Time.Calendar (Day, addDays)
-import Data.Time.Clock (UTCTime, addUTCTime, getCurrentTime)
+import Data.Time.Clock (UTCTime, utctDay, addUTCTime, getCurrentTime)
 
 -- | Scheduled job types
 data JobType
@@ -86,7 +86,10 @@ scheduleRecurring scheduler startDate condition action = do
 
 -- | Calculate next run time for recurring job
 calculateNextRun :: Day -> (Day -> Bool) -> UTCTime
-calculateNextRun startDate condition = undefined -- Simplified
+calculateNextRun startDate condition =
+    let go d = if condition d then d else go (addDays 1 d)
+        nextDay = go startDate
+    in  UTCTime nextDay 0
 
 -- | Update job priority queue
 updateJobQueue :: Scheduler -> ScheduledJob -> IO ()
@@ -112,9 +115,9 @@ executeJob scheduler job = do
   when (jobEnabled job) $ do
     jobAction job
     -- Reschedule if recurring
-    case jobType job of
-      Recurring condition -> do
-        let nextDay = undefined -- Simplified
-        newTime <- calculateNextRun nextDay condition
-        atomically $ modifyTVar (schedulerJobs scheduler) (PQ.insert newTime job)
-      _ -> return ()
+     case jobType job of
+       Recurring condition -> do
+         currentDay <- utctDay <$> getCurrentTime
+         newTime <- calculateNextRun currentDay condition
+         atomically $ modifyTVar (schedulerJobs scheduler) (PQ.insert newTime job)
+       _ -> return ()

@@ -1,7 +1,7 @@
 -- | Cache module - In-memory cache with STM support
 module System.Cache where
 
-import Control.Concurrent.STM (STM, TVar, atomically, newTVarIO, readTVar, writeTVar)
+import Control.Concurrent.STM (STM, TVar, newTVarIO, readTVar, writeTVar)
 import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Time (UTCTime)

@@ -116,30 +116,30 @@ monitoringThread monitorVar scalerVar configVar resourcesVar = do
         healthLog = (now, "health_check", null unhealthy) : healthLog monitorVar
       }
   
-  -- Auto-scaling logic
-  when (not (null unhealthy)) $ do
-    config <- readTVarIO configVar
-    currentResources <- readTVarIO resourcesVar
-    let load = fromIntegral (Map.size currentResources) / fromIntegral (fromIntegral (maxResources (config)))
-    scaler <- readTVarIO scalerVar
-    case scaler of
-      StableState -> when (load > loadThreshold config) $
-        adjustScale scalerVar (ScalingUp (max (minResources (config)) (Map.size currentResources + 1)))
-      ScalingUp target -> when (Map.size currentResources >= target) $
-        adjustScale scalerVar StableState
-      ScalingDown target -> when (Map.size currentResources <= target) $
-        adjustScale scalerVar StableState
+   -- Auto-scaling logic
+   when (not (null unhealthy)) $ do
+     config <- readTVarIO configVar
+     currentResources <- readTVarIO resourcesVar
+     let load = fromIntegral (Map.size currentResources) / fromIntegral (fromIntegral (maxResources (config)))
+     scaler <- readTVarIO scalerVar
+     case scaler of
+       StableState -> when (load > loadThreshold config) $
+         adjustScale scalerVar resourcesVar (ScalingUp (max (minResources (config)) (Map.size currentResources + 1)))
+       ScalingUp target -> when (Map.size currentResources >= target) $
+         adjustScale scalerVar resourcesVar StableState
+       ScalingDown target -> when (Map.size currentResources <= target) $
+         adjustScale scalerVar resourcesVar StableState
   
   -- Continue monitoring
   monitoringThread monitorVar scalerVar configVar resourcesVar
 
-adjustScale :: TVar AutoScaler -> AutoScaler -> IO ()
-adjustScale scalerVar newState = atomically $ do
-  writeTVar scalerVar newState
-  -- Record scaling event
-  now <- getCurrentTime
-  resources <- readTVar (undefined :: TVar (Map.Map Int ResourceState))
-  writeTVar scalerVar newState
+adjustScale :: TVar AutoScaler -> TVar (Map.Map Int ResourceState) -> AutoScaler -> IO ()
+adjustScale scalerVar resourcesVar newState = atomically $ do
+   writeTVar scalerVar newState
+   -- Record scaling event
+   now <- getCurrentTime
+   resources <- readTVar resourcesVar
+   writeTVar scalerVar newState
 
 -- | Acquire resource with full bulkhead isolation
 acquireFullResource :: CircuitBreakerBulkheadFull -> IO (Either Text Int)

@@ -5,10 +5,9 @@ import Control.Monad (when)
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
 import qualified Data.Text as T
-import qualified Data.UUID as UUID
 import qualified Data.ByteString.Lazy as BL
 import Data.Time.Clock (UTCTime, getCurrentTime, addUTCTime)
-import Data.Aeson (ToJSON(toJSON), encode, Value)
+import Data.Aeson (ToJSON(toJSON), encode)
 import Data.Aeson.Types (object, (.=))
 import Data.Aeson.Key (fromText)
 
@@ -125,18 +124,16 @@ exportAuditData audit format = do
     _ -> return $ Left (T.pack "Unsupported format")
 
 -- | Generate compliance report
-generatComplianceReport :: AuditStorage -> IO Text
 generatComplianceReport audit = do
-  events <- readTVarIO (auditBuffer audit)
-  let report = T.unlines $
-        [ T.pack "Compliance Report"
-        , T.pack "Total Events: " <> T.pack (show (length events))
-        , T.pack "Severity Breakdown: " <> T.pack (show $ countSeverities events)
-        ]
-  return report
-  where
-    countSeverities :: [AuditEventComplete] -> [(AuditSeverity, Int)]
-    countSeverities = undefined  -- Implementation placeholder
+   events <- readTVarIO (auditBuffer audit)
+   let report = T.unlines $
+         [ T.pack "Compliance Report"
+         , T.pack "Total Events: " <> T.pack (show (length events))
+         , T.pack "Severity Breakdown: " <> T.pack (show $ countSeverities events)
+         ]
+   return report
+   where
+     countSeverities = Map.toList . foldr (\e m -> Map.insertWith (+) (auditSeverity e) 1 m) Map.empty
 
 -- | Real-time audit streaming
 streamAuditEvents :: AuditStorage -> (AuditEventComplete -> IO ()) -> IO ()

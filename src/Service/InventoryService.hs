@@ -7,8 +7,6 @@ import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Time (Day, getCurrentTime)
 import Inventory.Stock
-import Inventory.Goods
-import Inventory.Location
 
 -- | Inventory document type
 data InventoryDocType

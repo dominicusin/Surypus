@@ -19,7 +19,7 @@ import Data.Time (Day, UTCTime, getCurrentTime)
 import Data.Map.Strict (Map)
 import Finance.Accounting
 import Infrastructure.EventStore.Accounting
-import Surypus.Types (Decimal, unDecimal)
+import Surypus.Types (unDecimal)
 
 -- | Process a transaction and emit events to the event store
 processTransactionWithEvents :: AccountingEventStore -> Transaction -> IO (Either Text ())
@@ -108,34 +108,34 @@ getFullState store = projectCurrentState store
 -- Internal helpers
 
 emitEntryEvent :: AccountingEventStore -> UTCTime -> Int64 -> LedgerEntry -> IO ()
-emitEntryEvent store now txId entry = do
-  let event = mkEvent entry
-  appendAccountingEvent store event
-  where
-    mkEvent e = JournalEntryPostedEvent JournalEntryPosted
-      { jepEntryId = maybe txId id (leId e)
-      , jepDebitAcc = fromIntegral (leAccount e)
-      , jepCreditAcc = fromIntegral (leAccount e)
-      , jepAmount = unDecimal (leDebit e)
-      , jepCurrency = "RUB"
-      , jepDescription = leDescription e
-      , jepDate = leDate e
-      , jepTimestamp = now
-      }
+emitEntryEvent store now newTxId entry = do
+   let event = mkEvent entry
+   appendAccountingEvent store event
+   where
+     mkEvent e = JournalEntryPostedEvent JournalEntryPosted
+       { jepEntryId = maybe newTxId id (leId e)
+       , jepDebitAcc = fromIntegral (leAccount e)
+       , jepCreditAcc = fromIntegral (leAccount e)
+       , jepAmount = unDecimal (leDebit e)
+       , jepCurrency = "RUB"
+       , jepDescription = leDescription e
+       , jepDate = leDate e
+       , jepTimestamp = now
+       }
 
 emitEntryEvent' :: AccountingEventStore -> UTCTime -> Int64 -> LedgerEntry -> IO AccountingEvent
-emitEntryEvent' store now txId entry = do
-  let event = mkEvent entry
-  appendAccountingEvent store event
-  pure event
-  where
-    mkEvent e = JournalEntryPostedEvent JournalEntryPosted
-      { jepEntryId = maybe txId id (leId e)
-      , jepDebitAcc = fromIntegral (leAccount e)
-      , jepCreditAcc = fromIntegral (leAccount e)
-      , jepAmount = unDecimal (leDebit e)
-      , jepCurrency = "RUB"
-      , jepDescription = leDescription e
-      , jepDate = leDate e
-      , jepTimestamp = now
-      }
+emitEntryEvent' store now newTxId' entry = do
+   let event = mkEvent entry
+   appendAccountingEvent store event
+   pure event
+   where
+     mkEvent e = JournalEntryPostedEvent JournalEntryPosted
+       { jepEntryId = maybe newTxId' id (leId e)
+       , jepDebitAcc = fromIntegral (leAccount e)
+       , jepCreditAcc = fromIntegral (leAccount e)
+       , jepAmount = unDecimal (leDebit e)
+       , jepCurrency = "RUB"
+       , jepDescription = leDescription e
+       , jepDate = leDate e
+       , jepTimestamp = now
+       }

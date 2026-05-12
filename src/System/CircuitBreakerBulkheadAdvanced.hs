@@ -204,14 +204,14 @@ executeWithPartition manager partitionId action = do
 -- | Partition health monitoring
 monitorPartitionHealth :: CircuitBreakerBulkheadAdvanced -> IO [(Text, Bool)]
 monitorPartitionHealth breaker = do
-  now <- getCurrentTime
-  activeMap <- readTVarIO (cbActiveMap breaker)
-  let health =
-        map
-          ( \(id, (timestamp, _)) ->
-              ( cbServiceName (undefined :: CircuitBreakerBulkheadAdvanced),
-                diffUTCTime now timestamp < 60 -- Active within 60s
-              )
-          )
-          (Map.toList activeMap)
-  return health
+   now <- getCurrentTime
+   activeMap <- readTVarIO (cbActiveMap breaker)
+   let health =
+         map
+           ( \(id, (timestamp, _)) ->
+               ( cbServiceName breaker,
+                 diffUTCTime now timestamp < 60 -- Active within 60s
+               )
+           )
+           (Map.toList activeMap)
+   return health

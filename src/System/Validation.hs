@@ -2,7 +2,7 @@
 module System.Validation where
 
 import Data.Either (partitionEithers)
-import Data.List (intercalate, nub, (\\))
+import Data.List (nub, (\\))
 import Data.Text (Text)
 import qualified Data.Text as T
 
@@ -57,7 +57,7 @@ validateAll validations =
 -- | Validation helper
 (<*>) :: Either [ValidationError] (a -> b) -> Either [ValidationError] a -> Either [ValidationError] b
 (Left errs1) <*> _ = Left errs1
-(Right f) <*> (Left errs2) = Left errs2
+(Right _) <*> (Left errs2) = Left errs2
 (Right f) <*> (Right x) = Right (f x)
 
 infixl 4 <*>

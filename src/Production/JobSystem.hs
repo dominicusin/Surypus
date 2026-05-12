@@ -18,7 +18,6 @@ import Control.Monad
 import DAL.Types
 import Data.Int (Int64)
 import Data.Text (Text)
-import qualified Data.Text as T
 -- import qualified Hasql.Decoders as D
 -- import qualified Hasql.Encoders as E
 -- import Hasql.Pool (Pool, use)

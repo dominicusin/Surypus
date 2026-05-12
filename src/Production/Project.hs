@@ -4,12 +4,10 @@ module Production.Project  where
 import Data.Int (Int64)
 import Data.Text (Text)
 import qualified Data.Text as T
-import Data.Time (Day, UTCTime, getCurrentTime)
-import Data.Maybe (isNothing, isJust, fromMaybe)
+import Data.Time (Day, UTCTime, utctDay, getCurrentTime)
 import qualified Data.Map.Strict as Map
-import Control.Monad (when, void)
 import Control.Concurrent.STM (TVar, newTVarIO, readTVar, readTVarIO, writeTVar, atomically)
-import System.Validation (ValidationError(..), ValidationResult, validateRequired, validateNonEmpty, formatErrors)
+import System.Validation (ValidationError(..))
 
 -- | Project - Project
 data Project = Project
@@ -173,20 +171,21 @@ isProjectOverdue prj today = case prjEndDate prj of
 -- | Get project statistics
 getProjectStats :: ProjectRepository -> IO ProjectStats
 getProjectStats repo = do
-  projectsMap <- readTVarIO (prProjects repo)
-  let projects = Map.elems projectsMap
-      totalProjects = length projects
-      completedProjects = length $ filter (\p -> prjStatus (epProject p) == PSCompleted) projects
-      inProgressProjects = length $ filter (\p -> prjStatus (epProject p) == PSInProgress) projects
-      overdueProjects = length $ filter (\p -> isProjectOverdue (epProject p) undefined) projects
-      totalBudget = sum $ map (prjBudget . epProject) projects
-  return $ ProjectStats {
-    psTotal = totalProjects,
-    psCompleted = completedProjects,
-    psInProgress = inProgressProjects,
-    psOverdue = overdueProjects,
-    psTotalBudget = totalBudget
-  }
+   projectsMap <- readTVarIO (prProjects repo)
+   currentDay <- utctDay <$> getCurrentTime
+   let projects = Map.elems projectsMap
+       totalProjects = length projects
+       completedProjects = length $ filter (\p -> prjStatus (epProject p) == PSCompleted) projects
+       inProgressProjects = length $ filter (\p -> prjStatus (epProject p) == PSInProgress) projects
+       overdueProjects = length $ filter (\p -> isProjectOverdue (epProject p) currentDay) projects
+       totalBudget = sum $ map (prjBudget . epProject) projects
+   return $ ProjectStats {
+     psTotal = totalProjects,
+     psCompleted = completedProjects,
+     psInProgress = inProgressProjects,
+     psOverdue = overdueProjects,
+     psTotalBudget = totalBudget
+   }
 
 -- | Project statistics
 data ProjectStats = ProjectStats

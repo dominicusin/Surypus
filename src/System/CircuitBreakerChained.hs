@@ -1,6 +1,7 @@
 module System.CircuitBreakerChained where
-
+ 
 import Control.Concurrent.STM (TVar, atomically, newTVarIO, readTVar, writeTVar)
+import Control.Exception (try, SomeException)
 import Data.List (intercalate)
 import Data.Text (Text)
 import Data.Time.Clock (UTCTime, getCurrentTime)
@@ -115,9 +116,13 @@ executeChain chain action = do
               chainLatencyMap = Map.insert (cbServiceName chain) [] (chainLatencyMap m)
             }
       return $ Right val
-  where
-    executeService :: CircuitBreakerFull -> IO a -> IO (Either Text a)
-    executeService = undefined -- Uses CircuitBreakerFull from previous module
+   where
+     executeService :: CircuitBreakerFull -> IO a -> IO (Either Text a)
+     executeService _breaker action = do
+        result <- try action
+        case result of
+          Left err -> return $ Left (T.pack (show err))
+          Right val -> return $ Right val
 
 -- | Get chain execution report
 generateChainReport :: CircuitBreakerChained -> IO String

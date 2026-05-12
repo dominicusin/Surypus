@@ -54,25 +54,38 @@ data CBMetrics = CBMetrics
 initCircuitBreakerSelfHealing :: CircuitConfig -> IO CircuitBreakerSelfHealing
 
 initBreaker config = do
-  stateVar <- newTVarIO CBSHealthy
-  failuresVar <- newTVarIO []
-  successesVar <- newTVarIO 0
-  historyVar <- newTVarIO []
-  intervalVar <- newTVarIO 30 -- Check every 30 seconds
-  recoveryVar <- newTVarIO True
-  metricsVar <-
-    newTVarIO
-      CBMetrics
-        { totalRequests = 0,
-          totalFailures = 0,
-          totalSuccesses = 0,
-          failureRate = 0,
-          lastStateTransition = undefined, -- TODO: Initialize properly
-          healingCycles = 0,
-          autoRecoveryEnabled = True,
-          lastHealthCheck = undefined, -- TODO: Initialize properly
-          healthCheckSuccessRate = 1.0
-        }
+   stateVar <- newTVarIO CBSHealthy
+   failuresVar <- newTVarIO []
+   successesVar <- newTVarIO 0
+   historyVar <- newTVarIO []
+   intervalVar <- newTVarIO 30 -- Check every 30 seconds
+   recoveryVar <- newTVarIO True
+   currentTime <- getCurrentTime
+   metricsVar <-
+     newTVarIO
+       CBMetrics
+         { totalRequests = 0,
+           totalFailures = 0,
+           totalSuccesses = 0,
+           failureRate = 0,
+           lastStateTransition = currentTime,
+           healingCycles = 0,
+           autoRecoveryEnabled = True,
+           lastHealthCheck = currentTime,
+           healthCheckSuccessRate = 1.0
+         }
+   return $
+     CircuitBreakerSelfHealing
+       { cbStateVar = stateVar,
+         cbFailures = failuresVar,
+         cbSuccesses = successesVar,
+         cbConfig = config,
+         cbMetrics = metricsVar,
+         cbHistory = historyVar,
+         cbHealthCheckInterval = intervalVar,
+         cbRecoveryEnabled = recoveryVar,
+         cbHealingCycleVar = newTVarIO 0
+       }
   return $
     CircuitBreakerSelfHealing
       { cbStateVar = stateVar,

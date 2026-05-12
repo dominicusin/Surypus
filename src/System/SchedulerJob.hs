@@ -1,8 +1,8 @@
 module System.SchedulerJob where
-
+ 
 import Control.Concurrent.STM (TVar, atomically, newTVarIO, readTVar, writeTVar)
 import Data.Time.Calendar (Day, addDays)
-import Data.Time.Clock (UTCTime, addUTCTime, getCurrentTime)
+import Data.Time.Clock (UTCTime, addUTCTime, getCurrentTime, utctDay)
 import System.HealthCheckCheck (HealthResult)
 import System.JobQueue (JobQueue)
 
@@ -130,12 +130,12 @@ executeJob job = do
       writeTVar (jobStatus job) (Failed err now)
       return $ JobFailure err now
   where
-    executeJobAction HealthCheckJob = return $ JobSuccess undefined
-    executeJobAction MetricsExportJob = return $ JobSuccess undefined
-    executeJobAction (WorkflowJob wid) = return $ JobSuccess undefined
-    executeJobAction NotificationJob = return $ JobSuccess undefined
-    executeJobAction CacheCleanupJob = return $ JobSuccess undefined
-    executeJobAction AuditFlushJob = return $ JobSuccess undefined
+     executeJobAction HealthCheckJob = return $ JobSuccess =<< getCurrentTime
+     executeJobAction MetricsExportJob = return $ JobSuccess =<< getCurrentTime
+     executeJobAction (WorkflowJob wid) = return $ JobSuccess =<< getCurrentTime
+     executeJobAction NotificationJob = return $ JobSuccess =<< getCurrentTime
+     executeJobAction CacheCleanupJob = return $ JobSuccess =<< getCurrentTime
+     executeJobAction AuditFlushJob = return $ JobSuccess =<< getCurrentTime
 
     calculateRetryTime retries = addUTCTime (fromIntegral (retries * 60)) =<< getCurrentTime
 
@@ -151,7 +151,7 @@ cancelJob job = atomically $ do
 
 -- | Generate job ID
 generateJobId :: IO Text
-generateJobId = undefined -- Simplified
+generateJobId = T.pack . show <$> randomIO
 
 -- | Enqueue job
 enqueueJob :: JobQueue -> ScheduledJob -> IO ()

@@ -1,5 +1,8 @@
 -- | Reports module - Report generation
-module Reports where
+module Reports
+  ( module Reports.Report
+  )
+where
 
 import Reports.Report
-import Reports.Jasper
+import qualified Reports.Jasper as Jasper

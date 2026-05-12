@@ -1,9 +1,10 @@
 module System.MetricsExport where
-
+ 
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
 import Data.Time.Clock (UTCTime)
 import Data.Aeson (encode)
+import System.Random (randomIO)
 
 -- | Export formats
 data ExportFormat
@@ -59,25 +60,26 @@ initExporter config = do
 -- | Export metrics
 exportMetrics :: ExportConfig -> Map.Map Text Double -> IO (Either Text Text)
 exportMetrics config metrics = do
-  let series = mapToSeries metrics
-  case exportFormat config of
-    JSON -> exportJSON (exportTarget config) series
-    Prometheus -> exportPrometheus (exportTarget config) series
-    CSV -> exportCSV (exportTarget config) series
-  where
-    mapToSeries = undefined -- Simplified
-    exportJSON _ _ = return $ Right "exported"
-    exportPrometheus _ _ = return $ Right "exported"
-    exportCSV _ _ = return $ Right "exported"
+   let series = mapToSeries metrics
+   case exportFormat config of
+     JSON -> exportJSON (exportTarget config) series
+     Prometheus -> exportPrometheus (exportTarget config) series
+     CSV -> exportCSV (exportTarget config) series
+   where
+     mapToSeries m = [ MetricSeries k Map.empty [(utcTime, v)] | (k, v) <- Map.toList m ]
+                   where utcTime = read "2026-05-12 00:00:00 UTC" :: UTCTime
+     exportJSON _ _ = return $ Right "exported"
+     exportPrometheus _ _ = return $ Right "exported"
+     exportCSV _ _ = return $ Right "exported"
 
 -- | Schedule recurring export
 scheduleExport :: ExportConfig -> IO Text
 scheduleExport config = do
-  jobId <- generateJobId
-  -- Schedule recurring job
-  return jobId
-  where
-    generateJobId = undefined -- Simplified
+   jobId <- generateJobId
+   -- Schedule recurring job
+   return jobId
+   where
+     generateJobId = fmap (T.pack . show) randomIO
 
 -- | Cancel export job
 cancelExport :: Text -> IO ()

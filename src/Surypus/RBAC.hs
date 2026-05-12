@@ -9,7 +9,6 @@ module Surypus.RBAC
 where
 
 import Data.Text (Text)
-import Network.Wai (Request)
 
 -- | Permission type
 data Permission

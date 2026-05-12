@@ -5,11 +5,11 @@ module System.CircuitBreakerBulkheadFullWithMetrics where
 import Control.Concurrent (forkIO, threadDelay)
 import Control.Concurrent.STM (TVar, newTVarIO, readTVar, writeTVar, atomically, readTVarIO)
 import Control.Exception (try, SomeException)
-import Control.Monad (when, void)
+import Control.Monad (void)
 import Data.Time.Clock (UTCTime, getCurrentTime, diffUTCTime, NominalDiffTime)
 import qualified Data.Map.Strict as Map
 import Data.Text (Text, pack)
-import Data.List (sortBy, sort)
+import Data.List (sort)
 
 -- | Full bulkhead with comprehensive metrics and monitoring
 data CircuitBreakerBulkheadFullWithMetrics = CircuitBreakerBulkheadFullWithMetrics
@@ -130,31 +130,31 @@ monitoringThread metricsVar scalerVar configVar resourcesVar monitorVar = do
 
   let (healthy, degraded, failed) = classifyResources resources
       healthScore = calculateHealthScore healthy degraded failed
-      currentCapacity = Map.size resources
-      loadFactor = fromIntegral currentCapacity / fromIntegral (maxResources config)
+      currentCapacity' = Map.size resources
+      loadFactor = fromIntegral currentCapacity' / fromIntegral (maxResources config)
 
   -- Predictive scaling decisions
   scaler <- readTVarIO scalerVar
   newScaler <- case scaler of
     StableState _ -> do
-      let newScaler' = if (loadFactor > loadThreshold config && currentCapacity < maxResources config)
-            then ScalingUp {targetResources = min (maxResources config) (currentCapacity + 5), scalingReason = pack "High load detected"}
-            else if (loadFactor < loadThreshold config * 0.3 && currentCapacity > minResources config)
-              then ScalingDown {targetResources = max (minResources config) (currentCapacity - 2)}
-              else StableState {currentCapacity = currentCapacity}
+      let newScaler' = if (loadFactor > loadThreshold config && currentCapacity' < maxResources config)
+            then ScalingUp {targetResources = min (maxResources config) (currentCapacity' + 5), scalingReason = pack "High load detected"}
+            else if (loadFactor < loadThreshold config * 0.3 && currentCapacity' > minResources config)
+              then ScalingDown {targetResources = max (minResources config) (currentCapacity' - 2)}
+              else StableState {currentCapacity = currentCapacity'}
       return newScaler'
     ScalingUp target _ -> do
-      if currentCapacity >= target
-        then return StableState {currentCapacity = currentCapacity}
+      if currentCapacity' >= target
+        then return StableState {currentCapacity = currentCapacity'}
         else return $ ScalingUp {targetResources = target, scalingReason = pack ""}
     ScalingDown target -> do
-      if currentCapacity <= target
-        then return StableState {currentCapacity = currentCapacity}
+      if currentCapacity' <= target
+        then return StableState {currentCapacity = currentCapacity'}
         else return $ ScalingDown {targetResources = target}
-    EmergencyScale target reason -> do
-      if currentCapacity >= target
-        then return StableState {currentCapacity = currentCapacity}
-        else return $ EmergencyScale {emergencyTarget = target, reason = reason}
+    EmergencyScale target reason' -> do
+      if currentCapacity' >= target
+        then return StableState {currentCapacity = currentCapacity'}
+        else return $ EmergencyScale {emergencyTarget = target, reason = reason'}
 
   -- Update monitor state
   atomically $ do
@@ -163,20 +163,21 @@ monitoringThread metricsVar scalerVar configVar resourcesVar monitorVar = do
     writeTVar monitorVar MonitorState
       { checkInterval = checkInterval oldMonitor,
         lastCheck = now,
-        healthLog = (now, pack "health_assessment", healthScore >= 0.8, healthScore) : healthLog oldMonitor
+        healthLog = (now, pack "health_assessment", healthScore >= 0.8, healthScore) : healthLog oldMonitor,
+        alertThreshold = alertThreshold oldMonitor
       }
 
     -- Record scaling event
     case newScaler of
-      ScalingUp target reason -> do
+      ScalingUp target _reason -> do
         m <- readTVar metricsVar
-        writeTVar metricsVar m { scalingEvents = (now, pack "scale_up", target, currentCapacity, healthScore) : scalingEvents m }
+        writeTVar metricsVar m { scalingEvents = (now, pack "scale_up", target, currentCapacity', healthScore) : scalingEvents m }
       ScalingDown target -> do
         m <- readTVar metricsVar
-        writeTVar metricsVar m { scalingEvents = (now, pack "scale_down", target, currentCapacity, healthScore) : scalingEvents m }
-      EmergencyScale target reason -> do
+        writeTVar metricsVar m { scalingEvents = (now, pack "scale_down", target, currentCapacity', healthScore) : scalingEvents m }
+      EmergencyScale target _reason -> do
         m <- readTVar metricsVar
-        writeTVar metricsVar m { scalingEvents = (now, pack "emergency_scale", target, currentCapacity, healthScore) : scalingEvents m }
+        writeTVar metricsVar m { scalingEvents = (now, pack "emergency_scale", target, currentCapacity', healthScore) : scalingEvents m }
       StableState _ -> return ()
 
   -- Continue monitoring (stubbed)
@@ -199,7 +200,7 @@ calculateHealthScore healthy degraded failed =
 
 -- | Latency monitoring thread
 latencyMonitoringThread :: TVar [Double] -> IO ()
-latencyMonitoringThread latencyVar = do
+latencyMonitoringThread _latencyVar = do
   threadDelay (10 * 1000000)  -- 10 seconds
   -- Collect and analyze latency samples
   return ()
@@ -220,7 +221,7 @@ acquireFullResourceWithMetrics breaker = do
       p99 = if null sortedLatencies then 0 else sortedLatencies !! min p99Idx (length sortedLatencies - 1)
 
   -- Check SLA compliance
-  let slaCompliance = if p95 < latencyP95Threshold config then 1.0 else max 0.0 (1.0 - (p95 / latencyP95Threshold config))
+  let slaCompliance' = if p95 < latencyP95Threshold config then 1.0 else max 0.0 (1.0 - (p95 / latencyP95Threshold config))
 
   -- Resource acquisition logic
   let currentCount = Map.size resources
@@ -241,7 +242,7 @@ acquireFullResourceWithMetrics breaker = do
     else do
       -- Create new resource with monitoring
       let newId = currentCount + 1
-      acquisitionTime <- getCurrentTime
+      _acquisitionTime <- getCurrentTime
       atomically $ do
         writeTVar (cbResources breaker)
           (Map.insert newId (ResourceActive now 0 0.0) resources)
@@ -252,19 +253,19 @@ acquireFullResourceWithMetrics breaker = do
             maxWaitTime = max (maxWaitTime m) 0,
             p95Latency = p95,
             p99Latency = p99,
-            slaCompliance = slaCompliance,
+            slaCompliance = slaCompliance',
             resourceHealth = Map.insert newId 0.0 (resourceHealth m)
           }
       return $ Right newId
 
 -- | Comprehensive release with health tracking
 releaseFullResourceWithMetrics :: CircuitBreakerBulkheadFullWithMetrics -> Int -> Double -> IO ()
-releaseFullResourceWithMetrics breaker resourceId latency = do
+releaseFullResourceWithMetrics breaker resourceId _latency = do
   now <- getCurrentTime
   atomically $ do
     resources <- readTVar (cbResources breaker)
     case Map.lookup resourceId resources of
-      Just (ResourceActive _ count _) -> do
+      Just (ResourceActive _ _count _) -> do
         let updated = Map.insert resourceId (ResourceIdle now) resources
         writeTVar (cbResources breaker) updated
         m <- readTVar (cbMetrics breaker)
@@ -318,7 +319,7 @@ data SLAReport = SLAReport
 generateSLAReport :: CircuitBreakerBulkheadFullWithMetrics -> IO SLAReport
 generateSLAReport breaker = do
   metrics <- readTVarIO (cbMetrics breaker)
-  config <- readTVarIO (cbConfig breaker)
+  _config <- readTVarIO (cbConfig breaker)
   let healthScoreValue = if Map.null (resourceHealth metrics) then 0 else (sum $ Map.elems (resourceHealth metrics)) / fromIntegral (max 1 (Map.size (resourceHealth metrics)))
   return $ SLAReport
     { reportComplianceRate = slaCompliance metrics,

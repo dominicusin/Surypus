@@ -90,7 +90,7 @@ enqueueJob (JobRunner ref) jtype = do
 
 -- | Find and process the next pending job
 processNextJob :: JobRunner -> IO ()
-processNextJob runner@(JobRunner ref) = do
+processNextJob (JobRunner ref) = do
   jobs <- readIORef ref
   mjob <- findPendingJob (map snd (rsJobs jobs))
   case mjob of

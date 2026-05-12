@@ -7,7 +7,6 @@ module Production.MRP
   ) where
 
 import Data.Int (Int64)
-import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as M
 
 data BOMLine = BOMLine

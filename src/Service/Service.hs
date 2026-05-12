@@ -43,7 +43,7 @@ module Service.Service
   ) where
 
 import Control.Monad.Except (ExceptT)
-import Control.Monad.Reader (ReaderT, ask, lift, runReaderT)
+import Control.Monad.Reader (ReaderT)
 import Data.Text (Text)
 
 -- | Service identifier type

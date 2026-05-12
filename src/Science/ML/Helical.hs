@@ -4,7 +4,6 @@ module Science.ML.Helical
   ) where
 
 import Data.Text (Text)
-import qualified Data.Text as T
 
 data HelicalConfig = HelicalConfig {endpoint :: String}
 

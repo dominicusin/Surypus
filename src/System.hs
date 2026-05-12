@@ -1,5 +1,20 @@
 -- | System module - System infrastructure
-module System where
+module System
+  ( module System.Settings,
+    module System.Config,
+    module System.Log,
+    module System.Validator,
+    module System.Version,
+    module System.Sequence,
+    module System.Counter,
+    module System.Event,
+    module System.AccessControl,
+    module System.Audit,
+    module System.Alert,
+    module System.Auth,
+    module System.Session,
+  )
+where
 
 import System.Settings
 import System.Config
@@ -12,5 +27,5 @@ import System.Event
 import System.AccessControl
 import System.Audit
 import System.Alert
-import System.Auth
+import System.Auth hiding (Session)
 import System.Session

@@ -4,11 +4,8 @@
 module Service.PayrollService where
 
 import Data.Int (Int64)
-import Data.Text (Text)
-import qualified Data.Text as T
 import Data.Time (Day, getCurrentTime, UTCTime)
 import Core.Payroll.Calculation
-import HR.Salary
 
 -- | Payroll calculation request
 data PayrollRequest = PayrollRequest

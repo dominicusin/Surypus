@@ -8,7 +8,6 @@ module Production.WorkOrder
   ) where
 
 import Data.Int (Int64)
-import Data.Text (Text)
 import Data.Time (Day)
 
 data WorkOrderStatus = WO_New | WO_InProgress | WO_Completed deriving (Eq, Show)
@@ -22,4 +21,4 @@ data WorkOrder = WorkOrder
   deriving (Show, Eq)
 
 createWorkOrder :: Int64 -> Int64 -> Day -> WorkOrder
-createWorkOrder woId cardId due = WorkOrder woId cardId WO_New due
+createWorkOrder newWoId cardId due = WorkOrder newWoId cardId WO_New due

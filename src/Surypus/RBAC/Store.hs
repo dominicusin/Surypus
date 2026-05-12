@@ -24,7 +24,7 @@ where
 import Data.Int (Int64)
 import Data.IORef (IORef, newIORef, readIORef, modifyIORef')
 import Data.Text (Text)
-import Data.Time (UTCTime, getCurrentTime, addUTCTime)
+import Data.Time (UTCTime)
 
 -- | Permission scope
 data PermissionScope
@@ -116,7 +116,7 @@ removeGrant (RBACStore ref) _from _to _grant =
 
 -- | Upsert a role
 upsertRole :: RBACStore -> DynamicRole -> IO ()
-upsertRole store@(RBACStore ref) role' = do
+upsertRole (RBACStore ref) role' = do
   modifyIORef' ref $ \s ->
     s
       { sdRoles =
@@ -153,10 +153,10 @@ cleanupExpiredGrants (RBACStore ref) now = do
   modifyIORef' ref $ \s' -> s' {sdGrants = active}
   pure $ length expired
   where
-    splitGrants g (act, exp) =
+    splitGrants g (act, expr) =
       if maybe True (>= now) (pgExpiresAt g)
-        then (g : act, exp)
-        else (act, g : exp)
+        then (g : act, expr)
+        else (act, g : expr)
 
 -- | Cleanup audit entries (keep latest N)
 cleanupAuditEntries :: RBACStore -> Maybe Int64 -> IO Int

@@ -10,7 +10,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Time (Day, fromGregorian, diffDays)
 import GHC.Generics (Generic)
-import Surypus.Types (Decimal)
+
 
 -- | Enhanced bank account with richer types
 data BankAccount = BankAccount
@@ -52,8 +52,8 @@ newtype BICCode = BICCode { unBICCode :: Text }
 
 -- | Smart constructor with validation
 createBankAccount :: BankAccountId -> BankId -> AccountNumber -> AccountName -> CurrencyCode -> Day -> BankAccount
-createBankAccount baId bankId accNum accName curr today = BankAccount
-  { baId = baId
+createBankAccount newBaId bankId accNum accName curr today = BankAccount
+  { baId = newBaId
   , baBankId = bankId
   , baAccountNumber = accNum
   , baAccountName = accName
