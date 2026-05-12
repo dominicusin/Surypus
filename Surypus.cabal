@@ -293,11 +293,14 @@ library
 
 test-suite surypus-test
   type: exitcode-stdio-1.0
-  hs-source-dirs: Surypus/test
-  main-is: BridgeSpec.hs
+  hs-source-dirs: test
+  main-is: Test.hs
   build-depends:
       base >=4.12 && <5
     , Surypus
     , hspec
+    , QuickCheck
+    , text
+    , time
   default-language: Haskell2010
     
