@@ -95,6 +95,20 @@ packages:
       size: 1287
   original:
     hackage: postgresql-connection-string-0.1.0.6
+- completed:
+    hackage: ekg-core-0.1.2.0@sha256:5d0a5ed6470aed6a5696dbcad334f869e1757750d8900d5355c847039a0bca6e,2208
+    pantry-tree:
+      sha256: 4586b4be97d2faa2fbd5d88480072ef6b08677af26626fcaa7725f0e2a4c3818
+      size: 964
+  original:
+    hackage: ekg-core-0.1.2.0
+- completed:
+    hackage: ekg-0.4.0.15@sha256:d6e48859a89fbbe23496f871581e44a41f97dac627c2b9db81f49b92fa066516,2031
+    pantry-tree:
+      sha256: e56e9c0eadc309a27400af106a2d3133d70ad0a3bbbb9be2c54e837ccdb4a77d
+      size: 1495
+  original:
+    hackage: ekg-0.4.0.15
 snapshots:
 - completed:
     sha256: f51b4cbfe8a6df42815e203f842085528698989ea81f7c82667451ad955b1819

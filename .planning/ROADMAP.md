@@ -2,31 +2,68 @@
 
 ## Phase 1 — API Production Readiness
 
-**Goal:** API возвращает реальные данные, аутентификация работает, тесты проходят
+**Goal:** API returns real DB data, authentication works, tests pass
+**Status:** planned
+**Plans:** 4
 
-- **Plan 1.1:** Подключить реальные DB запросы в API handlers
-- **Plan 1.2:** JWT authentication middleware для всех endpoints  
-- **Plan 1.3:** RBAC проверка прав (requirePermission)
-- **Plan 1.4:** Интеграционные тесты с PostgreSQL
+### Plan 1.1: Real DB Queries in API Handlers
 
-## Phase 2 — Bill Posting & Event Store
+**Objective:** Replace hardcoded stubs with DAL queries in surypus-api/Server.hs
+**Estimate:** 8h
+**Deliverable:** API endpoints return real PostgreSQL data
 
-**Goal:** Полный цикл создания документа с проводками и событиями
+### Plan 1.2: JWT Authentication Middleware
 
-- **Plan 2.1:** Bill posting flow (CalcBillLineAmount → StockMovements → AccTurn)
-- **Plan 2.2:** Hasql-based Event Store в DAL/EventStore.hs
-- **Plan 2.3:** Интеграция Event Store в сервисы
-- **Plan 2.4:** QuickCheck property tests для инвариантов
+**Objective:** Implement JWT authentication protecting all endpoints
+**Estimate:** 4h
+**Deliverable:** /api/v1/auth/login endpoint returns valid JWT
 
-## Phase 3 — WebSocket & Events
+### Plan 1.3: RBAC Authorization
 
-**Goal:** Реальное время и асинхронная обработка
+**Objective:** Add requirePermission checks to all write operations
+**Estimate:** 4h
+**Deliverable:** 403 Forbidden for unauthorized operations
 
-- **Plan 3.1:** WebSocket рассылает события о документах
-- **Plan 3.2:** Redis Queue для background задач
-- **Plan 3.3:** GraphQL proxy для REST API
+### Plan 1.4: Integration Tests
+
+**Objective:** Set up test database and integration test suite
+**Estimate:** 6h
+**Deliverable:** Tests pass against PostgreSQL database
 
 ---
 
-**Total Phases:** 3
-**Total Plans:** 11
+## Phase 2 — Bill Posting & Event Store
+
+**Goal:** Full bill posting flow with event sourcing
+**Status:** planned
+**Depends on:** Phase 1
+**Plans:** 4
+
+### Plan 2.1: Bill Posting Flow
+
+**Objective:** Implement CalcBillLineAmount → StockMovements → AccTurn atomically
+**Estimate:** 12h
+**Deliverable:** Bills can be created and posted with correct accounting
+
+### Plan 2.2: Hasql Event Store
+
+**Objective:** Create event store integration in DAL/EventStore.hs
+**Estimate:** 6h
+**Deliverable:** Events stored with type-safe Hasql queries
+
+### Plan 2.3: Event Store Integration
+
+**Objective:** Connect Event Store to Accounting and Inventory services
+**Estimate:** 6h
+**Deliverable:** Events emitted for all domain changes
+
+### Plan 2.4: QuickCheck Properties
+
+**Objective:** Property tests for invariants (VAT≥0, ΣDebit=ΣCredit)
+**Estimate:** 8h
+**Deliverable:** Automated verification of business rules
+
+---
+
+**Total Phases:** 2
+**Current Phase:** 1

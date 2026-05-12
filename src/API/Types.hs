@@ -7,6 +7,7 @@ module API.Types
   ) where
 
 import Data.Aeson (FromJSON, ToJSON)
+import Data.Int (Int64)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Time (Day, UTCTime)
@@ -148,3 +149,84 @@ type APIv1 =
 type API =
   APIv1
     Servant.:<|> "swagger.json" Servant.:> Servant.Get '[Servant.JSON] Text
+
+-- | Dashboard statistics from DB
+data DashboardStats = DashboardStats
+  { dsBills :: Int,
+    dsOrders :: Int,
+    dsGoods :: Int,
+    dsPersons :: Int
+  }
+  deriving (Show, Eq, Generic)
+
+instance ToJSON DashboardStats
+instance FromJSON DashboardStats
+
+-- | Dashboard response
+data DashboardResponse = DashboardResponse
+  { drStats :: Text
+  }
+  deriving (Show, Eq, Generic)
+
+instance ToJSON DashboardResponse
+
+-- | Order response for API
+data OrderResponse = OrderResponse
+  { orderId :: Int64,
+    orderName :: Text,
+    orderStatus :: Int16,
+    orderDate :: Day
+  }
+  deriving (Show, Eq, Generic)
+
+instance ToJSON OrderResponse
+instance FromJSON OrderResponse
+
+data OrdersResponse = OrdersResponse [OrderResponse]
+  deriving (Show, Eq, Generic)
+
+instance ToJSON OrdersResponse
+instance FromJSON OrdersResponse
+
+-- | Payroll types
+data SalaryResponse = SalaryResponse
+  { srId :: Int64,
+    srEmployeeId :: Int64,
+    srPeriod :: Text,
+    srBaseSalary :: Double,
+    srBonus :: Double,
+    srPenalty :: Double,
+    srTax :: Double,
+    srNetSalary :: Double
+  }
+  deriving (Show, Eq, Generic)
+
+instance ToJSON SalaryResponse
+instance FromJSON SalaryResponse
+
+data SalariesResponse = SalariesResponse [SalaryResponse]
+  deriving (Show, Eq, Generic)
+
+instance ToJSON SalariesResponse
+instance FromJSON SalariesResponse
+
+data PayrollResponse = PayrollResponse [SalaryResponse]
+  deriving (Show, Eq, Generic)
+
+instance ToJSON PayrollResponse
+instance FromJSON PayrollResponse
+
+data EmployeeResponse = EmployeeResponse
+  { erId :: Int64,
+    erName :: Text
+  }
+  deriving (Show, Eq, Generic)
+
+instance ToJSON EmployeeResponse
+instance FromJSON EmployeeResponse
+
+data EmployeesResponse = EmployeesResponse [EmployeeResponse]
+  deriving (Show, Eq, Generic)
+
+instance ToJSON EmployeesResponse
+instance FromJSON EmployeesResponse
