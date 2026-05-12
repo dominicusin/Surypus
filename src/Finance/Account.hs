@@ -59,8 +59,8 @@ validateAccountCode code
   | otherwise = Nothing
 
 -- | Smart constructor for Account
-createAccount :: AccountId -> AccountCode -> AccountName -> AccountClass -> Account
-createAccount aid code name cls = Account
+createAccount :: Day -> AccountId -> AccountCode -> AccountName -> AccountClass -> Account
+createAccount created aid code name cls = Account
   { accountId = aid
   , accountCode = code
   , accountName = name
@@ -75,7 +75,7 @@ createAccount aid code name cls = Account
   , isGroupAccount = False
   , currencyAccount = Nothing
   , isActive = True
-  , createdAt = error "createdAt: should be supplied"
+  , createdAt = created
   , updatedAt = Nothing
   }
 

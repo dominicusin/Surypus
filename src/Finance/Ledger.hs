@@ -20,7 +20,7 @@ data AccTurn = AccTurn
   { turnId        :: TurnId           -- Unique identifier
   , turnBillId    :: Maybe BillId       -- Related bill
   , turnDebitAcc  :: AccountCode       -- Debit account code
-  , turnCreditAcc :: AccountCode       -- Credit account code  
+  , turnCreditAcc :: AccountCode       -- Credit account code
   , turnAmount    :: Amount            -- Transaction amount
   , turnCurrency  :: CurrencyCode      -- Currency
   , turnDate      :: TransactionDate    -- Transaction date
@@ -96,7 +96,7 @@ validateAccountingEquation ledger =
 isDebitAccount :: AccountCode -> Bool
 isDebitAccount _ = False  -- Stub
 
--- | Check if account is credit nature  
+-- | Check if account is credit nature
 -- isCreditAccount :: AccountCode -> Bool
 -- isCreditAccount code = unAccountCode code `elem` ["2010", "3010", "7010"]  -- Simplified
 isCreditAccount :: AccountCode -> Bool

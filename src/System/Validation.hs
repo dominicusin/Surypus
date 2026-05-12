@@ -48,10 +48,10 @@ validateNonEmpty val =
 
 -- | Combine validations
 validateAll :: [Either ValidationError a] -> Either [ValidationError] [a]
-validateAll validations = 
+validateAll validations =
   let (errors, successes) = partitionEithers validations
-  in if null errors 
-       then Right successes 
+  in if null errors
+       then Right successes
        else Left errors
 
 -- | Validation helper

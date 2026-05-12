@@ -4,8 +4,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module DAL.DB where
+import qualified Data.List as L
 
-import Data.IORef (IORef, modifyIORef, newIORef, readIORef)
+import Data.IORef (IORef, newIORef, readIORef, modifyIORef')
 import Data.Int (Int64)
 import Data.List (find)
 import Data.Text (Text)
@@ -157,16 +158,16 @@ findLocationById db lid = do
 
 -- Insert operations
 insertPerson :: Database -> Person -> IO ()
-insertPerson db p = modifyIORef (dbPersons db) (p :)
+insertPerson db p = modifyIORef' (dbPersons db) (p :)
 
 insertGoods :: Database -> Goods -> IO ()
-insertGoods db g = modifyIORef (dbGoods db) (g :)
+insertGoods db g = modifyIORef' (dbGoods db) (g :)
 
 insertLocation :: Database -> Location -> IO ()
-insertLocation db l = modifyIORef (dbLocations db) (l :)
+insertLocation db l = modifyIORef' (dbLocations db) (l :)
 
 insertBill :: Database -> Bill -> IO ()
-insertBill db b = modifyIORef (dbBills db) (b :)
+insertBill db b = modifyIORef' (dbBills db) (b :)
 
 insertStock :: Database -> Stock -> IO ()
-insertStock db s = modifyIORef (dbStock db) (s :)
+insertStock db s = modifyIORef' (dbStock db) (s :)

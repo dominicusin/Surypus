@@ -149,17 +149,17 @@ listProjects repo = do
 
 -- | Validate project
 validateProject :: ExtendedProject -> Either [ValidationError] ExtendedProject
-validateProject project = 
+validateProject project =
   let baseProject = epProject project
       errors = concat [
         maybe [] (const [RequiredFieldMissing (T.pack "code")]) $ if T.null (prjCode baseProject) then Nothing else Just (),
         maybe [] (const [RequiredFieldMissing (T.pack "name")]) $ if T.null (prjName baseProject) then Nothing else Just (),
         if prjBudget baseProject < 0 then [CustomError (T.pack "Budget cannot be negative")] else [],
-        if epProgress project < 0 || epProgress project > 1 
-        then [CustomError (T.pack "Progress must be between 0 and 1")] 
+        if epProgress project < 0 || epProgress project > 1
+        then [CustomError (T.pack "Progress must be between 0 and 1")]
         else []]
-  in if null errors 
-     then Right project 
+  in if null errors
+     then Right project
      else Left errors
 
 -- | Check if project is overdue

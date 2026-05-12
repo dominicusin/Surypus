@@ -37,13 +37,13 @@ initWebSocketHandler = do
 handleWebSocket :: WebSocketHandler -> Connection -> IO ()
 handleWebSocket handler conn = do
   -- Get connection ID (simplified - in production use proper UUID)
-  let connId = "conn-" ++ show (hash conn)
-  
+  let connId = "conn-" <> show (hash conn)
+
   -- Join default room
   atomically $ do
-    modifyTVar (handlerConnections handler) (M.insertWith (++) connId [conn])
+    modifyTVar (handlerConnections handler) (M.insertWith (++) "default" [conn])
     modifyTVar (handlerRooms handler) (M.insert connId "default")
-  
+
   -- Listen for messages
   forever $ do
     msg <- WS.receiveMessage conn
@@ -73,14 +73,14 @@ broadcastToRoom handler room msg = do
 
 -- | Subscribe connection to room
 subscribeRoom :: WebSocketHandler -> Text -> Connection -> IO ()
-subscribeRoom handler room conn = 
+subscribeRoom handler room conn =
   atomically $ do
     modifyTVar (handlerConnections handler) (M.insertWith (++) room [conn])
     modifyTVar (handlerRooms handler) (M.insert (show conn) room)
 
 -- | Unsubscribe connection from room
 unsubscribeRoom :: WebSocketHandler -> Text -> Connection -> IO ()
-unsubscribeRoom handler room conn = 
+unsubscribeRoom handler room conn =
   atomically $ do
     modifyTVar (handlerConnections handler) $ \conns ->
       case M.lookup room conns of
@@ -89,10 +89,10 @@ unsubscribeRoom handler room conn =
 
 -- | Cleanup disconnected connection
 cleanupConnection :: WebSocketHandler -> Text -> IO ()
-cleanupConnection handler connId = 
+cleanupConnection handler connId =
   atomically $ do
     modifyTVar (handlerConnections handler) $ \conns ->
-      M.map (\cs -> filter (/= undefined)) conns
+      M.map (\cs -> filter (/= connId) cs) conns
     modifyTVar (handlerRooms handler) (M.delete connId)
 
 -- | Helper for hashing

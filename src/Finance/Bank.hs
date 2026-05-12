@@ -92,12 +92,12 @@ withdraw amount account
       { baBalance = baBalance account - amount }
 
 -- | Close bank account (must have zero balance)
-closeBankAccount :: BankAccount -> Maybe BankAccount
-closeBankAccount account
+closeBankAccount :: Day -> BankAccount -> Maybe BankAccount
+closeBankAccount today account
   | baBalance account /= 0 = Nothing  -- Cannot close with non-zero balance
   | otherwise = Just $ account
       { baIsActive = False
-      , baClosedAt = Just (error "ClosedAt: should be supplied")
+      , baClosedAt = Just today
       }
 
 -- | Check if bank account is active

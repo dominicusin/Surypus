@@ -2,6 +2,7 @@
 module DAL.File  where
 
 import Data.Int (Int64)
+import Data.List (isSuffixOf, dropSuffix)
 
 -- | File - File
 data File = File
@@ -13,6 +14,9 @@ data File = File
   }
   deriving (Show, Eq)
 
--- | Get extension
+-- | Get extension - returns file extension including dot (e.g., ".pdf")
 getExtension :: File -> String
-getExtension f = reverse (take 3 (reverse (fName f)))
+getExtension f =
+  case reverse (fName f) of
+    '.' : rest -> '.': takeWhile (== '.') rest
+    _ -> ""

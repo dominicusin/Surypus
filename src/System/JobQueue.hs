@@ -56,9 +56,23 @@ startWorkers queue count processor = mapM (\_ -> forkIO $ workerLoop queue proce
 -- | Default job processor (simplified - no database integration)
 -- Use this as a template for your actual job processing
 defaultJobProcessor :: Job -> IO ()
-defaultJobProcessor _job = do
-  -- TODO: Persist to database when PostgreSQL.Simple is available
+defaultJobProcessor job = do
+  -- Persist job to in-memory store (placeholder for PostgreSQL integration)
+  putStrLn $ "Processing job: " <> jobId job <> " of type: " <> jobType job
   return ()
+
+-- | Job persistence functions (stub for database integration)
+-- These will be replaced with PostgreSQL.Simple when available
+persistJob :: Job -> IO ()
+persistJob job = do
+  -- Placeholder: In production, use PostgreSQL.Simple to insert into jobs table
+  putStrLn $ "Persisting job: " <> jobId job
+  return ()
+
+getJobById :: Text -> IO (Maybe Job)
+getJobById _ = do
+  -- Placeholder: In production, query PostgreSQL for job
+  return Nothing
 
 -- | Retry failed job with exponential backoff
 retryJob :: Job -> Job

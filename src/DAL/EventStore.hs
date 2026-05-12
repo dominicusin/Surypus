@@ -1,272 +1,143 @@
--- ============================================================================
--- SURYPUS EVENT STORE - Accounting Events
--- US-3-1: Accounts Event Store Implementation
--- ============================================================================
-
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module DAL.EventStore
-  ( -- * Event Types
-    AccountingEvent(..)
-  , EventType(..)
-  , EventData(..)
-  , EventMetadata(..)
+  ( Event (..),
+    appendEvent,
+    getEvents,
+    getEventsFrom,
+    replayAccount,
+    getLatestSequence,
+  )
+where
 
-    -- * Event Store Operations
-  , appendEvent
-  , getEvents
-  , getEventsFrom
-  , replayAccount
-  , getLatestSequence
-  , initEventStore
-
-    -- * Event Creation Helpers
-  , createAccountCreatedEvent
-  , createJournalEntryEvent
-  , createBalanceAdjustedEvent
-  ) where
-
-import Data.Aeson (ToJSON, FromJSON, Value)
-import Data.Maybe (fromMaybe)
-import Data.Time (UTCTime, getCurrentTime)
-import Data.UUID (UUID, nil)
+import Data.Aeson (Value)
+import Data.Functor.Contravariant ((>$<))
 import Data.Int (Int64)
-import GHC.Generics (Generic)
 import Data.Text (Text)
-import Data.IORef (IORef, newIORef, readIORef, atomicModifyIORef')
-import GHC.IO (unsafePerformIO)
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
+import Data.Time (UTCTime)
+import Data.UUID (UUID)
+import GHC.Generics (Generic)
+import qualified Hasql.Decoders as D
+import qualified Hasql.Encoders as E
+import Hasql.Pool (Pool, use)
+import qualified Hasql.Session as Session
+import Hasql.Statement (Statement (..))
 
--- ============================================================================
--- EVENT TYPES
--- ============================================================================
+-- | Domain Event data structure matching the event_store table
+data Event = Event
+  { eventId :: UUID,
+    eventAggregateId :: Int64,
+    eventAggregateType :: Text,
+    eventEventType :: Text,
+    eventEventVersion :: Int,
+    eventEventData :: Value,
+    eventEventMetadata :: Maybe Value,
+    eventSequenceNumber :: Int64,
+    eventOccurredAt :: UTCTime,
+    eventCreatedAt :: UTCTime
+  }
+  deriving (Show, Generic)
 
--- | Accounting event types
-data EventType
-  = AccountCreated
-  | AccountUpdated
-  | BalanceAdjusted
-  | JournalEntryPosted
-  | AccountReclassified
-  | AccountClosed
-  | AccountReopened
-  deriving (Show, Eq, Generic, ToJSON, FromJSON)
+-- | Decoder for Event row
+eventRowDecoder :: D.Row Event
+eventRowDecoder =
+  Event
+    <$> D.column (D.nonNullable D.uuid)
+    <*> D.column (D.nonNullable D.int8)
+    <*> D.column (D.nonNullable D.text)
+    <*> D.column (D.nonNullable D.text)
+    <*> (fromIntegral <$> D.column (D.nonNullable D.int4))
+    <*> D.column (D.nonNullable D.jsonb)
+    <*> D.column (D.nullable D.jsonb)
+    <*> D.column (D.nonNullable D.int8)
+    <*> D.column (D.nonNullable D.timestamptz)
+    <*> D.column (D.nonNullable D.timestamptz)
 
--- | Event metadata
-data EventMetadata = EventMetadata
-  { emTrigger :: Maybe Text
-  , emUser :: Maybe Text
-  , emRequestId :: Maybe UUID
-  , emCorrelationId :: Maybe UUID
-  } deriving (Show, Eq, Generic, ToJSON, FromJSON)
-
--- | Event data payload
-data EventData = EventData
-  { edOldBalance :: Maybe Double
-  , edNewBalance :: Maybe Double
-  , edChangeAmount :: Maybe Double
-  , edAccountCode :: Maybe Text
-  , edAccountName :: Maybe Text
-  , edAccountType :: Maybe Int
-  , edCurrencyId :: Maybe Int64
-  , edJournalEntryId :: Maybe Int64
-  , edDebitAccountId :: Maybe Int64
-  , edCreditAccountId :: Maybe Int64
-  , edDescription :: Maybe Text
-  , edCustomData :: Maybe Value
-  } deriving (Show, Eq, Generic, ToJSON, FromJSON)
-
--- | Accounting event
-data AccountingEvent = AccountingEvent
-  { aeId :: UUID
-  , aeAggregateId :: Int64
-  , aeAggregateType :: Text
-  , aeEventType :: EventType
-  , aeEventVersion :: Int
-  , aeEventData :: EventData
-  , aeMetadata :: Maybe EventMetadata
-  , aeSequenceNumber :: Int64
-  , aeOccurredAt :: UTCTime
-  , aeCreatedAt :: UTCTime
-  } deriving (Show, Eq, Generic, ToJSON, FromJSON)
-
--- ============================================================================
--- GLOBAL EVENT STORE STATE
--- ============================================================================
-
--- | Global event store reference (top-level mutable state for in-memory store)
-{-# NOINLINE eventStoreRef #-}
-eventStoreRef :: IORef [AccountingEvent]
-eventStoreRef = unsafePerformIO (newIORef [])
-
--- | Initialize the event store (reset to empty)
-initEventStore :: IO ()
-initEventStore =
-  atomicModifyIORef' eventStoreRef (\_ -> ([], ()))
-
--- ============================================================================
--- EVENT STORE OPERATIONS
--- ============================================================================
-
--- | Append an event to the store
-appendEvent :: Int64 -> EventType -> EventData -> Maybe EventMetadata -> IO (Either Text AccountingEvent)
-appendEvent accountId eventType eventData metadata = do
-  currentTime <- getCurrentTime
-  events <- readIORef eventStoreRef
-  let seqNum = 1 + foldr (\e n -> max (aeSequenceNumber e) n) 0 events
-  let event = AccountingEvent
-        { aeId = nil
-        , aeAggregateId = accountId
-        , aeAggregateType = "account"
-        , aeEventType = eventType
-        , aeEventVersion = 1
-        , aeEventData = eventData
-        , aeMetadata = metadata
-        , aeSequenceNumber = seqNum
-        , aeOccurredAt = currentTime
-        , aeCreatedAt = currentTime
-        }
-  atomicModifyIORef' eventStoreRef (\es -> (event : es, ()))
-  pure (Right event)
-
--- | Get all events for an account
-getEvents :: Int64 -> IO [AccountingEvent]
-getEvents accountId = do
-  events <- readIORef eventStoreRef
-  pure $ filter (\e -> aeAggregateId e == accountId) (reverse events)
-
--- | Get events from a specific sequence number
-getEventsFrom :: Int64 -> Int64 -> IO [AccountingEvent]
-getEventsFrom accountId fromSeq = do
-  events <- getEvents accountId
-  pure $ filter (\e -> aeSequenceNumber e >= fromSeq) events
-
--- | Replay all events for an account to reconstruct state
-replayAccount :: Int64 -> IO (Either Text Double)
-replayAccount accountId = do
-  events <- getEvents accountId
-  case events of
-    [] -> pure (Left "No events found for account")
-    _ -> do
-      let balance = foldl applyEventToBalance 0.0 events
-      pure (Right balance)
-
--- | Get the latest sequence number for an account
-getLatestSequence :: Int64 -> IO Int64
-getLatestSequence accountId = do
-  events <- getEvents accountId
-  pure $ foldr (\e n -> max (aeSequenceNumber e) n) 0 events
-
--- | Apply a single event to compute running balance
-applyEventToBalance :: Double -> AccountingEvent -> Double
-applyEventToBalance balance event =
-  case aeEventType event of
-    AccountCreated -> fromMaybe balance (edNewBalance (aeEventData event))
-    JournalEntryPosted -> balance + fromMaybe 0.0 (edChangeAmount (aeEventData event))
-    BalanceAdjusted -> fromMaybe balance (edNewBalance (aeEventData event))
-    _ -> balance
-
--- ============================================================================
--- EVENT CREATION HELPERS
--- ============================================================================
-
--- | Create an AccountCreated event
-createAccountCreatedEvent :: Int64 -> Text -> Text -> Int -> Int64 -> Double -> Maybe EventMetadata -> IO AccountingEvent
-createAccountCreatedEvent accountId code name accountType currencyId balance metadata = do
-  currentTime <- getCurrentTime
-  _ <- appendEvent accountId AccountCreated eventData metadata
-  pure $ AccountingEvent
-    { aeId = nil
-    , aeAggregateId = accountId
-    , aeAggregateType = "account"
-    , aeEventType = AccountCreated
-    , aeEventVersion = 1
-    , aeEventData = eventData
-    , aeMetadata = metadata
-    , aeSequenceNumber = 1
-    , aeOccurredAt = currentTime
-    , aeCreatedAt = currentTime
-    }
+-- | Statement to append a new event
+appendEventStmt :: Statement (Int64, Text, Text, Int, Value, Maybe Value, Int64) ()
+appendEventStmt = Statement sql encoder decoder True
   where
-    eventData = EventData
-      { edOldBalance = Nothing
-      , edNewBalance = Just balance
-      , edChangeAmount = Nothing
-      , edAccountCode = Just code
-      , edAccountName = Just name
-      , edAccountType = Just accountType
-      , edCurrencyId = Just currencyId
-      , edJournalEntryId = Nothing
-      , edDebitAccountId = Nothing
-      , edCreditAccountId = Nothing
-      , edDescription = Nothing
-      , edCustomData = Nothing
-      }
+    sql =
+      "INSERT INTO event_store (aggregate_id, aggregate_type, event_type, event_version, event_data, event_metadata, sequence_number) \
+      \VALUES ($1, $2, $3, $4, $5, $6, $7)"
+    encoder =
+      ((\(a, _, _, _, _, _, _) -> a) >$< E.param (E.nonNullable E.int8))
+        <> ((\(_, b, _, _, _, _, _) -> b) >$< E.param (E.nonNullable E.text))
+        <> ((\(_, _, c, _, _, _, _) -> c) >$< E.param (E.nonNullable E.text))
+        <> ((\(_, _, _, d, _, _, _) -> d) >$< E.param (E.nonNullable E.int4 . fromIntegral))
+        <> ((\(_, _, _, _, e, _, _) -> e) >$< E.param (E.nonNullable E.jsonb))
+        <> ((\(_, _, _, _, _, f, _) -> f) >$< E.param (E.nullable E.jsonb))
+        <> ((\(_, _, _, _, _, _, g) -> g) >$< E.param (E.nonNullable E.int8))
+    decoder = D.noResult
 
--- | Create a JournalEntryPosted event
-createJournalEntryEvent :: Int64 -> Int64 -> Int64 -> Int64 -> Double -> Maybe Text -> Maybe EventMetadata -> IO AccountingEvent
-createJournalEntryEvent accountId journalEntryId debitAccountId creditAccountId amount description metadata = do
-  currentTime <- getCurrentTime
-  _ <- appendEvent accountId JournalEntryPosted eventData metadata
-  pure $ AccountingEvent
-    { aeId = nil
-    , aeAggregateId = accountId
-    , aeAggregateType = "account"
-    , aeEventType = JournalEntryPosted
-    , aeEventVersion = 1
-    , aeEventData = eventData
-    , aeMetadata = metadata
-    , aeSequenceNumber = 1
-    , aeOccurredAt = currentTime
-    , aeCreatedAt = currentTime
-    }
+-- | Statement to get events for an aggregate
+getEventsStmt :: Statement (Int64, Text) [Event]
+getEventsStmt = Statement sql encoder decoder True
   where
-    eventData = EventData
-      { edOldBalance = Nothing
-      , edNewBalance = Nothing
-      , edChangeAmount = Just amount
-      , edAccountCode = Nothing
-      , edAccountName = Nothing
-      , edAccountType = Nothing
-      , edCurrencyId = Nothing
-      , edJournalEntryId = Just journalEntryId
-      , edDebitAccountId = Just debitAccountId
-      , edCreditAccountId = Just creditAccountId
-      , edDescription = description
-      , edCustomData = Nothing
-      }
+    sql =
+      "SELECT id, aggregate_id, aggregate_type, event_type, event_version, event_data, event_metadata, sequence_number, occurred_at, created_at \
+      \FROM event_store WHERE aggregate_id = $1 AND aggregate_type = $2 ORDER BY sequence_number"
+    encoder = (fst >$< E.param (E.nonNullable E.int8)) <> (snd >$< E.param (E.nonNullable E.text))
+    decoder = D.rowList eventRowDecoder
 
--- | Create a BalanceAdjusted event
-createBalanceAdjustedEvent :: Int64 -> Double -> Double -> Double -> Maybe Text -> Maybe EventMetadata -> IO AccountingEvent
-createBalanceAdjustedEvent accountId oldBalance newBalance changeAmount description metadata = do
-  currentTime <- getCurrentTime
-  _ <- appendEvent accountId BalanceAdjusted eventData metadata
-  pure $ AccountingEvent
-    { aeId = nil
-    , aeAggregateId = accountId
-    , aeAggregateType = "account"
-    , aeEventType = BalanceAdjusted
-    , aeEventVersion = 1
-    , aeEventData = eventData
-    , aeMetadata = metadata
-    , aeSequenceNumber = 1
-    , aeOccurredAt = currentTime
-    , aeCreatedAt = currentTime
-    }
+-- | Statement to get events for an aggregate starting from a sequence number
+getEventsFromStmt :: Statement (Int64, Text, Int64) [Event]
+getEventsFromStmt = Statement sql encoder decoder True
   where
-    eventData = EventData
-      { edOldBalance = Just oldBalance
-      , edNewBalance = Just newBalance
-      , edChangeAmount = Just changeAmount
-      , edAccountCode = Nothing
-      , edAccountName = Nothing
-      , edAccountType = Nothing
-      , edCurrencyId = Nothing
-      , edJournalEntryId = Nothing
-      , edDebitAccountId = Nothing
-      , edCreditAccountId = Nothing
-      , edDescription = description
-      , edCustomData = Nothing
-      }
+    sql =
+      "SELECT id, aggregate_id, aggregate_type, event_type, event_version, event_data, event_metadata, sequence_number, occurred_at, created_at \
+      \FROM event_store WHERE aggregate_id = $1 AND aggregate_type = $2 AND sequence_number >= $3 ORDER BY sequence_number"
+    encoder =
+      ((\(a, _, _) -> a) >$< E.param (E.nonNullable E.int8))
+        <> ((\(_, b, _) -> b) >$< E.param (E.nonNullable E.text))
+        <> ((\(_, _, c) -> c) >$< E.param (E.nonNullable E.int8))
+    decoder = D.rowList eventRowDecoder
+
+-- | Statement to get the latest sequence number for an aggregate
+getLatestSequenceStmt :: Statement (Int64, Text) (Maybe Int64)
+getLatestSequenceStmt = Statement sql encoder decoder True
+  where
+    sql = "SELECT MAX(sequence_number) FROM event_store WHERE aggregate_id = $1 AND aggregate_type = $2"
+    encoder = (fst >$< E.param (E.nonNullable E.int8)) <> (snd >$< E.param (E.nonNullable E.text))
+    decoder = D.rowMaybe (D.column (D.nonNullable D.int8))
+
+-- | Append event to store
+appendEvent :: Pool -> Int64 -> Text -> Text -> Int -> Value -> Maybe Value -> Int64 -> IO (Either Text ())
+appendEvent pool aggId aggType evType evVer evData evMeta seqNum = do
+  res <- use pool $ Session.statement (aggId, aggType, evType, evVer, evData, evMeta, seqNum) appendEventStmt
+  case res of
+    Right () -> pure $ Right ()
+    Left err -> pure $ Left $ T.pack $ show err
+
+-- | Get all events for an aggregate
+getEvents :: Pool -> Int64 -> Text -> IO (Either Text [Event])
+getEvents pool aggId aggType = do
+  res <- use pool $ Session.statement (aggId, aggType) getEventsStmt
+  case res of
+    Right events -> pure $ Right events
+    Left err -> pure $ Left $ T.pack $ show err
+
+-- | Get events for an aggregate from a specific sequence number
+getEventsFrom :: Pool -> Int64 -> Text -> Int64 -> IO (Either Text [Event])
+getEventsFrom pool aggId aggType seqFrom = do
+  res <- use pool $ Session.statement (aggId, aggType, seqFrom) getEventsFromStmt
+  case res of
+    Right events -> pure $ Right events
+    Left err -> pure $ Left $ T.pack $ show err
+
+-- | Replay events for an account (specific aggregate type 'account')
+replayAccount :: Pool -> Int64 -> IO (Either Text [Event])
+replayAccount pool accId = getEvents pool accId "account"
+
+-- | Get the latest sequence number for an aggregate
+getLatestSequence :: Pool -> Int64 -> Text -> IO (Either Text Int64)
+getLatestSequence pool aggId aggType = do
+  res <- use pool $ Session.statement (aggId, aggType) getLatestSequenceStmt
+  case res of
+    Right (Just s) -> pure $ Right s
+    Right Nothing -> pure $ Right 0
+    Left err -> pure $ Left $ T.pack $ show err

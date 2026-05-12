@@ -5,4 +5,4 @@ import GHC.Generics (Generic)
 
 -- Lightweight concurrency primitives placeholders
 startCanonicalizeAll :: IO ()
-startCanonicalizeAll = putStrLn "Starting canonicalization workers (stub)" 
+startCanonicalizeAll = putStrLn "Starting canonicalization workers (stub)"

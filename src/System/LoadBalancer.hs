@@ -1,8 +1,6 @@
 module System.LoadBalancer where
+import qualified Data.List as L
 
-import Control.Concurrent.STM (TVar, atomically, newTVarIO, readTVar, writeTVar)
-import qualified Data.Set as Set
-import Data.Word (Word32)
 
 -- | Load balancer configuration
 data LoadBalancerConfig = LoadBalancerConfig
@@ -58,8 +56,8 @@ removeServer lb serverId = atomically $ do
   writeTVar (lbServers lb) filtered
 
 -- | Get next server based on algorithm
-getNextServer :: LoadBalancer -> IO (Maybe Server)
-getNextServer lb = do
+getNextServer :: LoadBalancer -> Text -> IO (Maybe Server)
+getNextServer lb clientIp = do
   servers <- readTVarIO (lbServers lb)
   let activeServers = filter serverActive servers
   if null activeServers
@@ -71,13 +69,21 @@ getNextServer lb = do
         atomically $ writeTVar (lbCurrentIndex lb) nextIdx
         return $ Just (activeServers !! nextIdx)
       LeastConnections -> return $ Just (minimumBy (compare `on` (fmap =<< readTVarIO . serverCurrentConnections)) activeServers)
-      IPHash -> error "IPHash not implemented"
-      WeightedRoundRobin -> error "WeightedRoundRobin not implemented"
+      IPHash -> do
+        -- Hash client IP and use modulo to select server
+        let hashVal = hashClientIP clientIp
+            idx = hashVal `mod` length activeServers
+        return $ Just (activeServers !! idx)
+      WeightedRoundRobin -> do
+        -- Select server based on weight
+        case selectByWeight activeServers of
+          Nothing -> return Nothing
+          Just server -> return (Just server)
 
 -- | Handle client request
 handleRequest :: LoadBalancer -> Text -> IO (Maybe Server)
 handleRequest lb clientIp = do
-  mServer <- getNextServer lb
+  mServer <- getNextServer lb clientIp
   case mServer of
     Just server -> do
       -- Increment connection count
@@ -117,3 +123,28 @@ getServerStats :: LoadBalancer -> IO [(Text, Int)]
 getServerStats lb = do
   servers <- readTVarIO (lbServers lb)
   return $ map (\s -> (serverId s, =<< readTVarIO (serverCurrentConnections s))) servers
+
+-- | Hash client IP for IPHash algorithm
+hashClientIP :: Text -> Int
+hashClientIP ip =
+  case T.uncons ip of
+    Nothing -> 0  -- Empty IP defaults to 0
+    Just (_, rest) -> fromEnum (T.last rest) `mod` 1000
+
+-- | Select server by weight (returns Nothing if no servers)
+selectByWeight :: [Server] -> Maybe Server
+selectByWeight servers =
+  case servers of
+    [] -> Nothing
+    (s:_) ->
+      case filter ((> 0) . serverWeight) (s:servers) of
+        [] -> Just s
+        weighted ->
+          let totalWeight = sum (map serverWeight weighted)
+              target = if totalWeight > 0 then totalWeight `div` 2 else 0
+              (acc, _) = L.foldl' (\ (srv, curr) s ->
+                if curr >= target || serverWeight s <= 0
+                  then (srv, curr)
+                  else (s, curr + serverWeight s))
+                (head weighted, 0) weighted
+          in Just acc

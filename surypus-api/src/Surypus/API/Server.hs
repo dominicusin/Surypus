@@ -112,14 +112,27 @@ taxesHandler =
   (taxesUpdate env `requirePermission_` "TaxesWrite") :<|>
   (taxesDelete env `requirePermission_` "TaxesWrite")
 currenciesHandler =
-         (currenciesList env `requirePermission_` "CurrenciesWrite") :<|>
-         (currenciesCreate env `requirePermission_` "CurrenciesWrite") :<|>
-         (currenciesGet env `requirePermission_` "CurrenciesWrite") :<|>
-         (currenciesUpdate env `requirePermission_` "CurrenciesWrite") :<|>
-         (currenciesDelete env `requirePermission_` "CurrenciesWrite")
+          (currenciesList env `requirePermission_` "CurrenciesWrite") :<|>
+          (currenciesCreate env `requirePermission_` "CurrenciesWrite") :<|>
+          (currenciesGet env `requirePermission_` "CurrenciesWrite") :<|>
+          (currenciesUpdate env `requirePermission_` "CurrenciesWrite") :<|>
+          (currenciesDelete env `requirePermission_` "CurrenciesWrite")
+       productionHandler =
+          (listTechCards env `requirePermission_` "ProductionRead") :<|>
+          (createTechCard env `requirePermission_` "ProductionWrite") :<|>
+          (getTechCard env `requirePermission_` "ProductionRead") :<|>
+          (updateTechCard env `requirePermission_` "ProductionWrite") :<|>
+          (deleteTechCard env `requirePermission_` "ProductionWrite") :<|>
+          (listWorkOrders env `requirePermission_` "ProductionRead") :<|>
+          (createWorkOrder env `requirePermission_` "ProductionWrite") :<|>
+          (getWorkOrder env `requirePermission_` "ProductionRead") :<|>
+          (updateWorkOrder env `requirePermission_` "ProductionWrite") :<|>
+          (deleteWorkOrder env `requirePermission_` "ProductionWrite") :<|>
+          (releaseWorkOrder env `requirePermission_` "ProductionWrite") :<|>
+          (completeWorkOrder env `requirePermission_` "ProductionWrite")
 vatHandler =
-         (vatCalculate `requirePermission_` "TaxesWrite") :<|>
-         (vatRates env `requirePermission_` "TaxesWrite")
+          (vatCalculate `requirePermission_` "TaxesWrite") :<|>
+          (vatRates env `requirePermission_` "TaxesWrite")
       stockHandler = 
   (stockList `requirePermission_` "StockRead") :<|>
   (stockSummary `requirePermission_` "StockRead") :<|>
@@ -698,6 +711,111 @@ currenciesUpdate _ _ _ = pure $ CurrencyResponse 1 "Updated" "XXX"
 
 currenciesDelete :: Env -> Int64 -> Handler ()
 currenciesDelete _ _ = pure ()
+
+-- Production handlers
+listTechCards :: Env -> Maybe Int64 -> Maybe Int -> Maybe Int -> Handler TechCardsResponse
+listTechCards env mGoodsId mLimit mOffset = do
+  let pool = envPool env
+      limit' = fromMaybe 50 mLimit
+      offset' = fromMaybe 0 mOffset
+  result <- liftIO $ DAL.Production.getTechCards pool mGoodsId limit' offset'
+  case result of
+    QuerySuccess cards -> pure $ TechCardsResponse (map toTechCardResponse cards)
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
+
+createTechCard :: Env -> TechCardRequest -> Handler TechCardResponse
+createTechCard env input = do
+  let pool = envPool env
+      utcTime = posixSecondsToUTCTime 0  -- TODO: Use current time
+  result <- liftIO $ DAL.Production.createTechCard pool input utcTime (T.pack "system")
+  case result of
+    QuerySuccess card -> pure $ TechCardResponse card
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
+
+getTechCard :: Env -> Int64 -> Handler TechCardResponse
+getTechCard env tcId = do
+  let pool = envPool env
+  result <- liftIO $ DAL.Production.getTechCard pool tcId
+  case result of
+    QuerySuccess card -> pure $ TechCardResponse card
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
+
+updateTechCard :: Env -> Int64 -> TechCardRequest -> Handler TechCardResponse
+updateTechCard env tcId input = do
+  let pool = envPool env
+      utcTime = posixSecondsToUTCTime 0  -- TODO: Use current time
+  result <- liftIO $ DAL.Production.updateTechCard pool tcId input utcTime (T.pack "system")
+  case result of
+    QuerySuccess card -> pure $ TechCardResponse card
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
+
+deleteTechCard :: Env -> Int64 -> Handler ()
+deleteTechCard env tcId = do
+  let pool = envPool env
+  result <- liftIO $ DAL.Production.deleteTechCard pool tcId
+  case result of
+    QuerySuccess () -> pure ()
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
+
+listWorkOrders :: Env -> Maybe Int64 -> Maybe Int -> Maybe Int -> Handler WorkOrdersResponse
+listWorkOrders env mGoodsId mLimit mOffset = do
+  let pool = envPool env
+      limit' = fromMaybe 50 mLimit
+      offset' = fromMaybe 0 mOffset
+  result <- liftIO $ DAL.Production.getWorkOrders pool mGoodsId limit' offset'
+  case result of
+    QuerySuccess orders -> pure $ WorkOrdersResponse (map toWorkOrderResponse orders)
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
+
+createWorkOrder :: Env -> WorkOrderRequest -> Handler WorkOrderResponse
+createWorkOrder env input = do
+  let pool = envPool env
+      utcTime = posixSecondsToUTCTime 0  -- TODO: Use current time
+  result <- liftIO $ DAL.Production.createWorkOrder pool input utcTime (T.pack "system")
+  case result of
+    QuerySuccess order -> pure $ WorkOrderResponse order
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
+
+getWorkOrder :: Env -> Int64 -> Handler WorkOrderResponse
+getWorkOrder env woId = do
+  let pool = envPool env
+  result <- liftIO $ DAL.Production.getWorkOrder pool woId
+  case result of
+    QuerySuccess order -> pure $ WorkOrderResponse order
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
+
+updateWorkOrder :: Env -> Int64 -> WorkOrderRequest -> Handler WorkOrderResponse
+updateWorkOrder env woId input = do
+  let pool = envPool env
+      utcTime = posixSecondsToUTCTime 0  -- TODO: Use current time
+  result <- liftIO $ DAL.Production.updateWorkOrder pool woId input utcTime (T.pack "system")
+  case result of
+    QuerySuccess order -> pure $ WorkOrderResponse order
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
+
+deleteWorkOrder :: Env -> Int64 -> Handler ()
+deleteWorkOrder env woId = do
+  let pool = envPool env
+  result <- liftIO $ DAL.Production.deleteWorkOrder pool woId
+  case result of
+    QuerySuccess () -> pure ()
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
+
+releaseWorkOrder :: Env -> Int64 -> UTCTime -> Text -> Handler WorkOrderResponse
+releaseWorkOrder env woId releaseTime userId = do
+  let pool = envPool env
+  result <- liftIO $ DAL.Production.releaseWorkOrder pool woId releaseTime userId
+  case result of
+    QuerySuccess order -> pure $ WorkOrderResponse order
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
+
+completeWorkOrder :: Env -> Int64 -> UTCTime -> Text -> Handler WorkOrderResponse
+completeWorkOrder env woId completionTime userId = do
+  let pool = envPool env
+  result <- liftIO $ DAL.Production.completeWorkOrder pool woId completionTime userId
+  case result of
+    QuerySuccess order -> pure $ WorkOrderResponse order
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
 
 toCurrencyResponse :: DAL.Types.Currency -> CurrencyResponse
 toCurrencyResponse (DAL.Types.Currency {currId = cid, currName = cname, currCode = ccode}) =

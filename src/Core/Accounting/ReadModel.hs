@@ -7,17 +7,17 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module Core.Accounting.ReadModel 
+module Core.Accounting.ReadModel
   ( -- * Read Model Types
     AccountReadModel(..)
   , BalanceState(..)
-    
+
     -- * Read Model Operations
   , replayAccountEvents
   , rebuildAccountBalance
   , getCurrentBalance
   , getAccountReadModel
-    
+
     -- * Event Application
   , applyEvent
   , applyAccountCreated
@@ -103,11 +103,11 @@ applyJournalEntryPosted model event = model
     oldState = armBalanceState model
     newBalanceState = oldState
       { bsCurrentBalance = bsCurrentBalance oldState + changeAmount
-      , bsDebitTotal = if changeAmount > 0 
-                      then bsDebitTotal oldState + changeAmount 
+      , bsDebitTotal = if changeAmount > 0
+                      then bsDebitTotal oldState + changeAmount
                       else bsDebitTotal oldState
-      , bsCreditTotal = if changeAmount < 0 
-                       then bsCreditTotal oldState + abs changeAmount 
+      , bsCreditTotal = if changeAmount < 0
+                       then bsCreditTotal oldState + abs changeAmount
                        else bsCreditTotal oldState
       , bsLastUpdated = ES.aeOccurredAt event
       , bsEventCount = bsEventCount oldState + 1
@@ -126,11 +126,11 @@ applyBalanceAdjusted model event = model
     oldState = armBalanceState model
     newBalanceState = oldState
       { bsCurrentBalance = newBalance
-      , bsDebitTotal = if changeAmount > 0 
-                      then bsDebitTotal oldState + changeAmount 
+      , bsDebitTotal = if changeAmount > 0
+                      then bsDebitTotal oldState + changeAmount
                       else bsDebitTotal oldState
-      , bsCreditTotal = if changeAmount < 0 
-                       then bsCreditTotal oldState + abs changeAmount 
+      , bsCreditTotal = if changeAmount < 0
+                       then bsCreditTotal oldState + abs changeAmount
                        else bsCreditTotal oldState
       , bsLastUpdated = ES.aeOccurredAt event
       , bsEventCount = bsEventCount oldState + 1

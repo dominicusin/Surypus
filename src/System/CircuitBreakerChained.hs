@@ -1,5 +1,5 @@
 module System.CircuitBreakerChained where
- 
+
 import Control.Concurrent.STM (TVar, atomically, newTVarIO, readTVar, writeTVar)
 import Control.Exception (try, SomeException)
 import Data.List (intercalate)

@@ -1,7 +1,7 @@
 module System.CircuitBreakerExtended where
 
 import Control.Concurrent.STM (TVar, atomically, newTVarIO, readTVar, writeTVar)
-import Data.List (partition)
+import qualified Data.List as L
 import Data.Time.Clock (UTCTime, diffUTCTime, getCurrentTime)
 
 -- | Extended circuit breaker with metrics
@@ -126,7 +126,7 @@ updateMetrics :: CircuitBreakerExtended -> UTCTime -> [(Lens' CircuitMetrics a, 
 updateMetrics _ _ [] = return ()
 updateMetrics breaker now updates = atomically $ do
   m <- readTVar (cbMetrics breaker)
-  let m' = foldl (\acc (lens, val) -> setLens lens val acc) m updates
+  let m' = L.foldl' (\acc (lens, val) -> setLens lens val acc) m updates
       m'' = m' {lastStateChange = now}
   writeTVar (cbMetrics breaker) m''
 

@@ -26,6 +26,7 @@ import qualified Data.Text as T
 import Data.Time (Day, UTCTime, getCurrentTime)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as M
+import qualified Data.List as L
 import Data.IORef (IORef, newIORef, readIORef, modifyIORef')
 import GHC.Generics (Generic)
 
@@ -133,7 +134,7 @@ readAccountEvents store = readIORef (aesEvents store)
 -- | Replay events to reconstruct account state
 replayAccountEvents :: [AccountingEvent] -> Map Int64 AccountSnapshot
 replayAccountEvents events =
-  foldl applyEvent M.empty events
+  L.foldl' applyEvent M.empty events
 
 -- | Apply a single event to current state
 applyEvent :: Map Int64 AccountSnapshot -> AccountingEvent -> Map Int64 AccountSnapshot

@@ -97,5 +97,5 @@ generateSecret length = BS.pack <$> sequence (replicate length (randomRIO (0, 25
 validateSecretMetadata :: SecretMetadata -> Bool
 validateSecretMetadata meta =
   secretVersion meta >= 0
-    && not (Text.null (Text.pack (show (secretCategory meta)))
+    && not (Text.null (Text.pack (show (secretCategory meta))))
     && secretRotationPeriod meta > 0

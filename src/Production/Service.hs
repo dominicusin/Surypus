@@ -1,136 +1,119 @@
-{-# LANGUAGE OverloadedStrings #-}
-
--- | Service command interpreter inspired by ppmain's SrvcCmd state machine.
+-- | Production service layer - Business logic for production module
 module Production.Service
-  ( ServiceCommand (..),
-    ServiceState,
-    ServicePhase (..),
-    initialServiceState,
-    parseServiceCommand,
-    serviceCommandHelp,
-    transition,
-    serviceStatePhase
+  ( releaseWorkOrder
+  , completeWorkOrder
+  , createTechCard
+  , createTechLine
   ) where
 
+import Data.Int (Int64)
 import Data.Text (Text)
+import Data.Time (UTCTime)
 import qualified Data.Text as T
+import Production.Types
+import qualified DAL.Production as DAL
 
--- | Service phases representing the state machine of ppmain.
-data ServicePhase
-  = PhaseStopped
-  | PhaseRunning
-  | PhaseDaemon
-  deriving (Eq, Show)
+-- | Release a work order for production
+-- Validates that the work order can be released and updates status
+releaseWorkOrder :: Int64 -> UTCTime -> Text -> IO (Either Text WorkOrder)
+releaseWorkOrder woId releaseTime userId = do
+  -- Fetch work order from DB
+  mWo <- DAL.getWorkOrder woId
+  case mWo of
+    Nothing -> return $ Left "Work order not found"
+    Just wo -> do
+      -- Validate work order can be released
+      case validateWorkOrderForRelease wo of
+        Left err -> return $ Left err
+        Right _ -> do
+          -- Update work order status and released time
+          let updatedWo = wo
+                { woStatus = 1 -- WOReleased
+                , woStartAt = Just releaseTime
+                , woUpdatedAt = releaseTime
+                , woUpdatedBy = Just userId
+                }
+          -- Save to DB
+          result <- DAL.updateWorkOrder updatedWo
+          case result of
+            Left dbErr -> return $ Left ("Database error: " <> dbErr)
+            Right savedWo -> return $ Right savedWo
 
--- | Service state including locking flag.
-data ServiceState = ServiceState
-  { ssPhase :: ServicePhase,
-    ssLocked :: Bool
-  }
-  deriving (Eq, Show)
+-- | Complete a work order
+completeWorkOrder :: Int64 -> UTCTime -> Text -> IO (Either Text WorkOrder)
+completeWorkOrder woId completionTime userId = do
+  mWo <- DAL.getWorkOrder woId
+  case mWo of
+    Nothing -> return $ Left "Work order not found"
+    Just wo -> do
+      case validateWorkOrderForCompletion wo of
+        Left err -> return $ Left err
+        Right _ -> do
+          let updatedWo = wo
+                { woStatus = 2 -- WOCompleted
+                , woEndAt = Just completionTime
+                , woUpdatedAt = completionTime
+                , woUpdatedBy = Just userId
+                }
+          result <- DAL.updateWorkOrder updatedWo
+          case result of
+            Left dbErr -> return $ Left ("Database error: " <> dbErr)
+            Right savedWo -> return $ Right savedWo
 
-{-@ measure serviceStatePhase @-}
-serviceStatePhase :: ServiceState -> ServicePhase
-serviceStatePhase (ServiceState ph _) = ph
+-- | Create a new tech card
+createTechCard :: TechCard -> UTCTime -> Text -> IO (Either Text TechCard)
+createTechCard techCard createTime userId = do
+  case validateTechCard techCard of
+    Left err -> return $ Left err
+    Right _ -> do
+      let cardToCreate = techCard
+            { tcCreatedAt = createTime
+            , tcUpdatedAt = createTime
+            , tcCreatedBy = Just userId
+            }
+      result <- DAL.createTechCard cardToCreate
+      case result of
+        Left dbErr -> return $ Left ("Database error: " <> dbErr)
+        Right savedCard -> return $ Right savedCard
 
-{-@ type ServiceStateStopped = {v:ServiceState | serviceStatePhase v == PhaseStopped} @-}
-{-@ type ServiceStateRunning = {v:ServiceState | serviceStatePhase v == PhaseRunning} @-}
+-- | Create a new tech line
+createTechLine :: TechLine -> UTCTime -> Text -> IO (Either Text TechLine)
+createTechLine techLine createTime userId = do
+  case validateTechLine techLine of
+    Left err -> return $ Left err
+    Right _ -> do
+      let lineToCreate = techLine
+            { tlCreatedAt = createTime
+            , tlUpdatedAt = createTime
+            , tlCreatedBy = Just userId
+            }
+      result <- DAL.createTechLine lineToCreate
+      case result of
+        Left dbErr -> return $ Left ("Database error: " <> dbErr)
+        Right savedLine -> return $ Right savedLine
 
--- | Initial state mirrors ppmain before a command executes.
-initialServiceState :: ServiceState
-initialServiceState =
-  ServiceState
-    { ssPhase = PhaseStopped,
-      ssLocked = False
-    }
+-- | Validate that a work order can be released
+validateWorkOrderForRelease :: WorkOrder -> Either Text ()
+validateWorkOrderForRelease wo =
+  case validateWorkOrderCore wo of
+    Left err -> Left err
+    Right _ ->
+      if woStatus wo /= 0 -- Not in draft status
+        then Left "Work order must be in draft status to release"
+        else if woQtyPlan wo <= 0
+          then Left "Work order must have positive planned quantity"
+          else if isNothing woTechCardId wo
+            then Left "Work order must have an associated tech card"
+            else Right ()
 
--- | Commands that ppmain understands.
-data ServiceCommand
-  = CmdInstall (Maybe Text) (Maybe Text)
-  | CmdUninstall
-  | CmdStart
-  | CmdStop
-  | CmdRun
-  | CmdClient
-  | CmdDaemon
-  | CmdRFID
-  | CmdHelp
-  deriving (Eq, Show)
-
-serviceCommandDescriptions :: [(Text, Text)]
-serviceCommandDescriptions =
-  [ ("install", "Register service [login] [password]"),
-    ("uninstall", "Unregister service"),
-    ("start", "Start service"),
-    ("stop", "Stop service"),
-    ("run", "Run service in foreground"),
-    ("client", "Run client utilities"),
-    ("daemon", "Run daemonized background job"),
-    ("rfidprcssr", "Execute RFID processor loop"),
-    ("help", "Show this help text")
-  ]
-
--- | Help text similar to ppmain OutHelp.
-serviceCommandHelp :: Text
-serviceCommandHelp =
-  T.unlines $ "ppws <command>" : fmap (\(cmd, desc) -> "  " <> cmd <> "\t" <> desc) serviceCommandDescriptions
-
--- | Parse the args that mimic ppmain's command line.
-parseServiceCommand :: [String] -> Maybe ServiceCommand
-parseServiceCommand args = case fmap (T.toLower . T.pack) args of
-  ("install" : login : pw : _) -> Just $ CmdInstall (Just login) (Just pw)
-  ("install" : login : _) -> Just $ CmdInstall (Just login) Nothing
-  ("install" : _) -> Just $ CmdInstall Nothing Nothing
-  ("uninstall" : _) -> Just CmdUninstall
-  ("start" : _) -> Just CmdStart
-  ("stop" : _) -> Just CmdStop
-  ("run" : _) -> Just CmdRun
-  ("client" : _) -> Just CmdClient
-  ("daemon" : _) -> Just CmdDaemon
-  ("rfidprcssr" : _) -> Just CmdRFID
-  ("help" : _) -> Just CmdHelp
-  _ -> Nothing
-
--- | Start service only if phase is stopped.
-
-{-@ startService :: ServiceStateStopped -> ServiceStateRunning @-}
-startService :: ServiceState -> ServiceState
-startService st = st {ssPhase = PhaseRunning}
-
--- | Stop service only if it was running or daemonized.
-
-{-@ stopService :: ServiceStateRunning -> ServiceStateStopped @-}
-stopService :: ServiceState -> ServiceState
-stopService st = st {ssPhase = PhaseStopped}
-
--- | Terminal transition evaluation.
-transition :: ServiceState -> ServiceCommand -> Either Text ServiceState
-transition st cmd = case cmd of
-  CmdInstall _ _ ->
-    Right st
-  CmdUninstall ->
-    Right st
-  CmdStart ->
-    if ssPhase st == PhaseStopped
-      then Right $ startService st
-      else Left "Service must be stopped before start"
-  CmdStop ->
-    if ssPhase st == PhaseRunning || ssPhase st == PhaseDaemon
-      then Right $ stopService st
-      else Left "Service must be running before stop"
-  CmdRun ->
-    if ssPhase st == PhaseStopped
-      then Right $ startService st
-      else Left "Service already running"
-  CmdDaemon ->
-    Right $ st {ssPhase = PhaseDaemon}
-  CmdClient ->
-    Right st
-  CmdRFID ->
-    Right st
-  CmdHelp ->
-    Right st
-
--- | Expose the current service phase.
--- serviceStatePhase :: ServiceState -> ServicePhase
--- serviceStatePhase = ssPhase
+-- | Validate that a work order can be completed
+validateWorkOrderForCompletion :: WorkOrder -> Either Text ()
+validateWorkOrderForCompletion wo =
+  case validateWorkOrderCore wo of
+    Left err -> Left err
+    Right _ ->
+      if woStatus wo /= 1 -- Not in released status
+        then Left "Work order must be in released status to complete"
+        else if woQtyReleased wo < woQtyPlan wo
+          then Left "Cannot complete work order: not all planned quantity has been released"
+          else Right ()

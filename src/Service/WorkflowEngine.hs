@@ -59,7 +59,7 @@ executeWorkflowStep engine instId = do
   mInstance <- atomically $ do
     insts <- readTVar (engineInstances engine)
     return $ Map.lookup instId insts
-  
+
   case mInstance of
     Nothing -> return $ Left (T.pack "Instance not found")
     Just inst -> do

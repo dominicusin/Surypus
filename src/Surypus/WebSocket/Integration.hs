@@ -26,7 +26,7 @@ broadcastEvent wsHandler msg = do
 
 -- | Determine room from message routing key
 getRoomForMessage :: BusMessage -> Text
-getRoomForMessage msg = 
+getRoomForMessage msg =
   case msgRoutingKey msg of
     key | "bill" `T.isPrefixOf` key -> "bills"
     key | "stock" `T.isPrefixOf` key -> "inventory"
@@ -35,12 +35,16 @@ getRoomForMessage msg =
 
 -- | Encode message to JSON text
 encodeMessage :: BusMessage -> Text
-encodeMessage msg = 
-  "{ \"id\": \"" <> msgId msg <> "\""
+encodeMessage msg =
+  "{ \"id\": \"" <> msgId msg <> "\", \"routingKey\": \"" <> msgRoutingKey msg <> "\""
+
+-- | Complete the JSON by closing it
+finalizeMessage :: Text -> Text
+finalizeMessage txt = txt <> "}"
 
 -- | Subscribe handler to event bus
 subscribeToEvents :: WebSocketHandler -> EventBusAdvanced -> Text -> IO ()
-subscribeToEvents wsHandler bus routingKey = 
+subscribeToEvents wsHandler bus routingKey =
   subscribeAdvanced bus routingKey $ \msg -> do
     broadcastEvent wsHandler msg
     return ()

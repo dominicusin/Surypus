@@ -102,12 +102,12 @@ monitoringThread monitorVar scalerVar configVar resourcesVar = do
   now <- getCurrentTime
   -- Health check all resources
   resources <- readTVarIO resourcesVar
-  let (healthy, unhealthy) = partition (\(_, state) -> 
+  let (healthy, unhealthy) = partition (\(_, state) ->
         case state of
           ResourceActive _ _ -> True
           ResourceIdle _ -> True
           ResourceFailed _ _ -> False) (Map.toList resources)
-  
+
   -- Update monitor state
   atomically $ do
     writeTVar monitorVar MonitorState
@@ -115,7 +115,7 @@ monitoringThread monitorVar scalerVar configVar resourcesVar = do
         lastCheck = now,
         healthLog = (now, "health_check", null unhealthy) : healthLog monitorVar
       }
-  
+
    -- Auto-scaling logic
    when (not (null unhealthy)) $ do
      config <- readTVarIO configVar
@@ -129,7 +129,7 @@ monitoringThread monitorVar scalerVar configVar resourcesVar = do
          adjustScale scalerVar resourcesVar StableState
        ScalingDown target -> when (Map.size currentResources <= target) $
          adjustScale scalerVar resourcesVar StableState
-  
+
   -- Continue monitoring
   monitoringThread monitorVar scalerVar configVar resourcesVar
 
@@ -147,15 +147,15 @@ acquireFullResource breaker = do
   now <- getCurrentTime
   resources <- readTVarIO (cbResources breaker)
   config <- readTVarIO (cbConfig breaker)
-  
+
   -- Check if we can create new resource
   let currentCount = Map.size resources
       maxAllowed = maxResources (config)
-  
+
   if currentCount >= maxAllowed
     then do
       -- Check for failed resources to clean up
-      let failed = filter (\(_, s) -> 
+      let failed = filter (\(_, s) ->
             case s of
               ResourceFailed _ _ -> True
               _ -> False) (Map.toList resources)
@@ -171,7 +171,7 @@ acquireFullResource breaker = do
       -- Create new resource
       let newId = currentCount + 1
       atomically $ do
-        writeTVar (cbResources breaker) 
+        writeTVar (cbResources breaker)
           (Map.insert newId (ResourceActive now 0) resources)
         m <- readTVar (cbMetrics breaker)
         writeTVar (cbMetrics breaker) m

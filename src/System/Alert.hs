@@ -3,12 +3,13 @@ module System.Alert where
 
 import Data.Int (Int64)
 import Data.Time (Day)
+import Data.Text (Text)
 
 -- | Alert - Alert
 data Alert = Alert
   { alrId :: Int64,
     alrType :: AlertType,
-    alrMessage :: String,
+    alrMessage :: Text,
     alrDate :: Day,
     alrRead :: Bool
   }

@@ -13,6 +13,7 @@ import qualified System.Directory as Dir
 import qualified System.FilePath as FP
 import System.FilePath (takeDirectory)
 import System.IO (IOMode (..), hGetContents, hPutStr, withFile)
+import Data.List (isSuffixOf)
 
 -- | File storage configuration
 data StorageConfig = StorageConfig
@@ -98,7 +99,6 @@ calculateHash :: BS.ByteString -> String
 calculateHash = show . BS.foldl' xor 0
 
 -- | Validate file type
-validateFileType :: String -> [String] -> Bool
-validateFileType filename allowed = any (filename `endswith`) allowed
-  where
-    endswith str suffix = suffix `elem` map (\s -> reverse s) (map reverse [str])
+validateFileType :: FilePath -> [FilePath] -> Bool
+validateFileType filename allowed =
+  any (isSuffixOf filename) allowed

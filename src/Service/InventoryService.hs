@@ -3,6 +3,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Service.InventoryService where
 
+import qualified Data.List as L
 import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Time (Day, getCurrentTime)
@@ -121,7 +122,7 @@ generateMovements doc =
 -- | Calculate stock balance after applying movements
 calculateStockBalance :: [Stock] -> [StockMovement] -> [Stock]
 calculateStockBalance initialStocks movements =
-  foldl applyMovement initialStocks movements
+  L.foldl' applyMovement initialStocks movements
 
 applyMovement :: [Stock] -> StockMovement -> [Stock]
 applyMovement stocks movement = case lookupStock stocks of

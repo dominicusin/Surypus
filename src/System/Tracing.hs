@@ -64,7 +64,7 @@ traceOperation operation action = do
     Left err -> do
       addSpanLog span ("Error: " <> T.pack (show err))
       endSpan span
-      either (\e -> error (show e)) (\_ -> return ()) (Left err)
+      return (error (show err), span)
 
 -- | Create trace context JSON
 instance ToJSON TraceContext where

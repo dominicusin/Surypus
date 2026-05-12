@@ -1,10 +1,6 @@
 module System.MetricsExport where
- 
-import qualified Data.Map.Strict as Map
-import Data.Text (Text)
-import Data.Time.Clock (UTCTime)
-import Data.Aeson (encode)
-import System.Random (randomIO)
+import qualified Data.List as L
+
 
 -- | Export formats
 data ExportFormat
@@ -66,8 +62,9 @@ exportMetrics config metrics = do
      Prometheus -> exportPrometheus (exportTarget config) series
      CSV -> exportCSV (exportTarget config) series
    where
-     mapToSeries m = [ MetricSeries k Map.empty [(utcTime, v)] | (k, v) <- Map.toList m ]
-                   where utcTime = read "2026-05-12 00:00:00 UTC" :: UTCTime
+     mapToSeries m = do
+       now <- getCurrentTime
+       return [ MetricSeries k Map.empty [(now, v)] | (k, v) <- Map.toList m ]
      exportJSON _ _ = return $ Right "exported"
      exportPrometheus _ _ = return $ Right "exported"
      exportCSV _ _ = return $ Right "exported"

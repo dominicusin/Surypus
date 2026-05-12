@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
 
--- | Finance.CreditNote - Enhanced credit note management  
+-- | Finance.CreditNote - Enhanced credit note management
 -- This module provides type-safe credit note operations with formal verification
 module Finance.CreditNote where
 
@@ -88,12 +88,12 @@ isFullyApplied cn = cnStatus cn == CNSApplied
 
 -- | Pretty print credit note
 prettyCreditNote :: CreditNote -> Text
-prettyCreditNote cn = unCreditNoteNumber (cnNumber cn) <> " - " 
-  <> T.pack (show (cnAmount cn)) <> " " 
-  <> unCurrencyCode (cnCurrency cn) <> " - " 
+prettyCreditNote cn = unCreditNoteNumber (cnNumber cn) <> " - "
+  <> T.pack (show (cnAmount cn)) <> " "
+  <> unCurrencyCode (cnCurrency cn) <> " - "
   <> T.pack (show (cnStatus cn))
 
 -- | Calculate total applied amount
 calculateAppliedAmount :: [CreditNote] -> Double
-calculateAppliedAmount notes = 
+calculateAppliedAmount notes =
   sum [cnAmount n | n <- notes, cnStatus n == CNSApplied]

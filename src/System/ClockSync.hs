@@ -7,7 +7,7 @@ import Data.Time.Clock (UTCTime, diffUTCTime, getCurrentTime, NominalDiffTime, a
 -- | Clock synchronization configuration
 data ClockSyncConfig = ClockSyncConfig
   { syncInterval :: Int,
-    syncTolerance :: NominalDiffTime,
+    syncToleranceU :: NominalDiffTime,
     maxClockDrift :: NominalDiffTime
   }
 
@@ -36,7 +36,7 @@ measureClockOffset sync = do
 synchronizeClocks :: ClockSync -> IO ()
 synchronizeClocks sync = do
   offsets <- sequence [measureClockOffset sync | _ <- [1 .. 5]]
-  let validOffsets = filter (\o -> abs o <= syncTolerance (clockConfig sync)) offsets
+  let validOffsets = filter (\o -> abs o <= syncToleranceU (clockConfig sync)) offsets
   case validOffsets of
     [] -> return ()
     os -> do
@@ -58,4 +58,4 @@ areClocksSynced :: ClockSync -> IO Bool
 areClocksSynced sync = do
   offsets <- readTVarIO (clockOffsets sync)
   let maxOffset = if null offsets then 0 else maximum (map abs offsets)
-  return $ maxOffset <= syncTolerance (clockConfig sync)
+  return $ maxOffset <= syncToleranceU (clockConfig sync)

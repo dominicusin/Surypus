@@ -10,17 +10,17 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module API.GraphQL.Proxy 
+module API.GraphQL.Proxy
   ( -- * GraphQL Proxy Types
     GraphQLConfig(..)
   , ProxyContext(..)
   , GraphQLResponse(..)
-    
+
     -- * Proxy Operations
   , initializeGraphQLProxy
   , handleGraphQLRequest
   , proxyToREST
-    
+
     -- * Schema and Resolvers
   , graphqlSchema
   , rootResolver

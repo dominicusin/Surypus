@@ -1,10 +1,6 @@
 module System.CircuitBreakerAdaptive where
+import qualified Data.List as L
 
-import Control.Concurrent.STM (TVar, atomically, newTVarIO, readTVar, writeTVar)
-import Data.List (sort)
-import qualified Data.Map.Strict as Map
-import Data.Text (Text)
-import Data.Time.Clock (UTCTime, diffUTCTime, getCurrentTime)
 
 -- | Adaptive circuit breaker that learns from traffic patterns
 data CircuitBreakerAdaptive = CircuitBreakerAdaptive
@@ -94,7 +90,7 @@ detectTrafficPattern timestamps =
   let intervals = zipWith diffUTCTime (tail timestamps) timestamps
       avgInterval = if null intervals then 0 else sum intervals / fromIntegral (length intervals)
       variance = sum (map (\t -> (t - avgInterval) ** 2) intervals) / fromIntegral (max 1 (length intervals - 1))
-      cv = sqrt variance / avgInterval -- Coefficient of variation
+      cv = if avgInterval > 0 then sqrt variance / avgInterval else 0
    in case () of
         _
           | length timestamps < 2 -> LowTraffic
@@ -114,7 +110,7 @@ adaptThreshold breaker = do
         MediumTraffic -> 30
         HighTraffic -> 10
         BurstTraffic -> 5
-  if diffUTCTime now (lastStateTransition =<< readTVarIO (cbStateVar breaker)) > fromIntegral interval
+  if diffUTCTime now (maybe (now - 60) id (lastStateTransition =<< readTVarIO (cbStateVar breaker))) > fromIntegral interval
     then do
       pattern' <- detectTrafficPattern <$> readTVarIO (cbFailures breaker)
       writeTVar (cbTrafficPattern breaker) pattern'

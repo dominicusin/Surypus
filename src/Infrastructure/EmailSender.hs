@@ -4,6 +4,7 @@ import Control.Monad.IO.Class (MonadIO (..))
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Map.Strict as Map
+import qualified Data.List as L
 import Data.Time.Clock (getCurrentTime)
 
 -- | Email address (simplified type alias)
@@ -34,13 +35,13 @@ data EmailMessage = EmailMessage
   }
 
 -- | Initialize email sender
-initEmailSender :: EmailConfig -> IO EmailConfig
+initEmailSender :: EmailConfig -> IO (Either String EmailConfig)
 initEmailSender config = do
   -- Validate configuration
   let valid = not (null (smtpHost config))
   if valid
-    then return config
-    else error "Invalid email configuration"
+    then return (Right config)
+    else return (Left "Invalid email configuration")
 
 -- | Send email synchronously (simplified)
 sendEmail :: EmailConfig -> EmailMessage -> IO (Either String String)
@@ -58,9 +59,9 @@ sendEmailTemplate config msg template vars = do
 
 -- | Render simple template
 renderTemplate :: Text -> Map.Map Text Text -> Text
-renderTemplate template vars = 
+renderTemplate template vars =
   let replacements = Map.toList vars
-  in foldl replace template replacements
+  in L.foldl' replace template replacements
   where
     replace :: Text -> (Text, Text) -> Text
     replace tmpl (k, v) = T.replace (T.pack "{{" <> k <> T.pack "}}") v tmpl

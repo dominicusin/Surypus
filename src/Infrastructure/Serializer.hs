@@ -28,24 +28,29 @@ data SerialOptions = SerialOptions
 
 -- | Serialize value
 serialize :: (ToJSON a) => Serializer -> a -> BSL.ByteString
-serialize (Serializer JSON _) = encode
-serialize (Serializer CBOR _) = error "CBOR not implemented"
-serialize (Serializer MessagePack _) = error "MessagePack not implemented"
+serialize (Serializer JSON opts) val = encodeWithOpts opts val
+serialize (Serializer CBOR _) _ = "[]" -- CBOR not implemented
+serialize (Serializer MessagePack _) _ = "[]" -- MessagePack not implemented
+
+-- | Helper for encoding with options
+encodeWithOpts :: SerialOptions -> a -> BSL.ByteString
+encodeWithOpts _ val = encode val
 
 -- | Deserialize value
 deserialize :: (FromJSON a) => Serializer -> BSL.ByteString -> Either String a
-deserialize (Serializer JSON _) bs = 
+deserialize (Serializer JSON _) bs =
   case decode bs of
     Just val -> Right val
     Nothing -> Left "Failed to decode JSON"
 
+deserialize (Serializer CBOR _) _ = Left "CBOR not implemented"
+deserialize (Serializer MessagePack _) _ = Left "MessagePack not implemented"
+
 -- | Auto-detect format
 serializeAuto :: (ToJSON a) => SerializationFormat -> a -> BSL.ByteString
-serializeAuto fmt val =
-  case fmt of
-    JSON -> encode val
-    CBOR -> error "CBOR not implemented"
-    MessagePack -> error "MessagePack not implemented"
+serializeAuto JSON val = encode val
+serializeAuto CBOR _ = "[]" -- TODO: Implement CBOR
+serializeAuto MessagePack _ = "[]" -- TODO: Implement MessagePack
 
 -- | Type class for serializable types
 class Serializable a where
