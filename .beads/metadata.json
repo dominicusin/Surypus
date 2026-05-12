@@ -1,7 +1,7 @@
 {
   "database": "dolt",
   "backend": "dolt",
-  "dolt_mode": "embedded",
+  "dolt_mode": "server",
   "dolt_database": "Surypus",
   "project_id": "8575a487-14d8-4782-aaf6-c0facc9fb07e"
 }
