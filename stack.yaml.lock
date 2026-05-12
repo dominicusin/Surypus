@@ -109,6 +109,20 @@ packages:
       size: 1495
   original:
     hackage: ekg-0.4.0.15
+- completed:
+    hackage: jose-0.11@sha256:bb915151f3a824538f346f8cf307a2c4c29909cbb3f35cdb628c490aa6b0d331,3980
+    pantry-tree:
+      sha256: 2f9a0a656abe7a04069c7074fee094a7d113f265b3d43f0e9609c17def1a5990
+      size: 2154
+  original:
+    hackage: jose-0.11
+- completed:
+    hackage: aeson-casing-0.2.0.0@sha256:0cd116308e91e2a1162b7e57125d2a9fc503a1a6bd6efc59378b518db0a33733,1466
+    pantry-tree:
+      sha256: b17d246240f7318e25d9ecf92e4d665fe0db00b3cba2cf6556674a863ee1feb3
+      size: 417
+  original:
+    hackage: aeson-casing-0.2.0.0
 snapshots:
 - completed:
     sha256: f51b4cbfe8a6df42815e203f842085528698989ea81f7c82667451ad955b1819

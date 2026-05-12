@@ -40,6 +40,8 @@ extra-deps:
   - postgresql-connection-string-0.1.0.6
   - ekg-core-0.1.2.0
   - ekg-0.4.0.15
+  - jose-0.11
+  - aeson-casing-0.2.0.0
   #   - reflex-dom-0.6.3.4
 #   - jsaddle-webkit2gtk-0.9.9.3
 #   - gi-webkit2-4.0.32

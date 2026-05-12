@@ -41,6 +41,7 @@ import Surypus.API.Types
   )
 import Surypus.Database.Pool (pingDatabasePool)
 import Surypus.JWT (JWTConfig (..), TokenPair (..), generateTokenPair, rtUserId, validateRefreshToken)
+import qualified Surypus.RefreshTokenRepo as RefreshTokenRepo
 import Surypus.Metrics (Metrics)
 import Surypus.RBAC.Store (RBACStore)
 import Surypus.RBAC
@@ -234,19 +235,26 @@ meHandler' = pure $ CurrentUserResponse 1 "admin" "admin"
 
 refreshHandler' :: Env -> JWTConfig -> Root.RefreshRequest -> Handler Root.RefreshResponse
 refreshHandler' env jwtCfg (Root.RefreshRequest {refreshToken = token}) = do
-  result <- liftIO $ validateRefreshToken jwtCfg token
+  -- Validate the refresh token (basic format check)
+  result <- liftIO $ validateRefreshToken token
   case result of
     Left _err -> throwError err401 {errBody = "Invalid refresh token"}
     Right payload -> do
       let jwtUserId = rtUserId payload
-      newTokens <- liftIO $ generateTokenPair jwtCfg jwtUserId "user" "user" Nothing
-      rotation <- liftIO $ rotateRefreshTokenBestEffort env token (Surypus.JWT.refreshToken newTokens)
-      case rotation of
-        Just (Left _err) -> throwError err401 {errBody = "Invalid refresh token"}
-        Just (Right storedUserId)
-          | storedUserId /= fromIntegral jwtUserId -> throwError err401 {errBody = "Invalid refresh token"}
-        _ -> pure ()
-      pure $ RefreshResponse (Surypus.JWT.accessToken newTokens) (Surypus.JWT.refreshToken newTokens) 3600
+      -- Verify the token exists in the database
+      storedResult <- liftIO $ RefreshTokenRepo.validateRefreshToken (envPool env) token
+      case storedResult of
+        Left _ -> throwError err401 {errBody = "Invalid refresh token"}
+        Right storedUserId
+          | storedUserId /= jwtUserId -> throwError err401 {errBody = "Invalid refresh token"}
+          | otherwise -> do
+              newTokens <- liftIO $ generateTokenPair jwtCfg jwtUserId "user" "user" Nothing
+              rotation <- liftIO $ rotateRefreshTokenBestEffort env token (Surypus.JWT.refreshToken newTokens)
+              case rotation of
+                Just (Left _err) -> throwError err401 {errBody = "Invalid refresh token"}
+                _ -> pure ()
+              persistRefreshTokenBestEffort env jwtUserId (Surypus.JWT.refreshToken newTokens)
+              pure $ RefreshResponse (Surypus.JWT.accessToken newTokens) (Surypus.JWT.refreshToken newTokens) 3600
 
 persistRefreshTokenBestEffort :: Env -> Int64 -> Text -> IO ()
 persistRefreshTokenBestEffort env usrId token = do
