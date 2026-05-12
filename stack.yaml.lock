@@ -125,7 +125,7 @@ packages:
     hackage: aeson-casing-0.2.0.0
 snapshots:
 - completed:
-    sha256: 8e7996960d864443a66eb4105338bbdd6830377b9f6f99cd5527ef73c10c01e7
-    size: 719128
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/22/26.yaml
-  original: lts-22.26
+    sha256: f51b4cbfe8a6df42815e203f842085528698989ea81f7c82667451ad955b1819
+    size: 680576
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/23/11.yaml
+  original: lts-23.11
