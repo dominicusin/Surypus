@@ -4,10 +4,13 @@ resolver: nightly-2026-04-05
 # Nix disabled to avoid build timeouts in CI/local development
 # Enable nix: true for production builds with proper caching
 nix:
-  enable: false
+  enable: true
 
 packages:
   - .
+  - surypus-common
+  - surypus-api
+  - surypus-frontend
 
 ghc-options:
   "$locals": -Wall -Wcompat
