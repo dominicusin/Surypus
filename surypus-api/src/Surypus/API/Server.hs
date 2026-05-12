@@ -800,8 +800,8 @@ entriesDelete :: Int64 -> Handler ()
 entriesDelete _ = pure ()
 
 payrollList :: Handler PayrollResponse
-
 -- | GET /v1/payroll - Requires PayrollRead permission
+-- TODO: Implement real DB query
 payrollList = pure $ PayrollResponse []
 
 empList :: Handler EmployeesResponse
