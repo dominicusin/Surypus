@@ -29,7 +29,7 @@
 module Service.Service
   ( -- * Service Types
     ServiceKey,
-    ServiceError,
+    ServiceError (..),
     ServiceM,
 
     -- * Service Class
@@ -45,7 +45,6 @@ module Service.Service
 import Control.Monad.Except (ExceptT)
 import Control.Monad.Reader (ReaderT, ask, lift, runReaderT)
 import Data.Text (Text)
--- import Hasql.Pool (Pool)
 
 -- | Service identifier type
 type ServiceKey = Text

@@ -217,6 +217,7 @@ library
           Service.Orchestrator
           Service.PayrollService
           Service.InventoryService
+          Service.BillService
           Service.UI.Editor
           Service.UI.Menu
           Service.UI.Desktop
