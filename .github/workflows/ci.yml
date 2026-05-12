@@ -16,6 +16,9 @@ jobs:
       - name: Install Haskell Stack
         run: |
           curl -sSL https://get.haskellstack.org/ | sh
+      - name: Install HLint
+        run: |
+          stack install hlint
       - name: Setup GHC
         uses: haskell/actions/setup@v2
         with:
@@ -27,6 +30,12 @@ jobs:
       - name: Run tests
         run: |
           stack test --test-arguments --color
+      - name: HLint
+        run: |
+          ~/.local/bin/hlint src/ test/ --color
+      - name: HLint Pedantic
+        run: |
+          ~/.local/bin/hlint src/ test/ --pedantic --color
       - name: Dry-run migrations
         run: |
           bash scripts/ci-dry-run-mig.sh
