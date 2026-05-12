@@ -3,7 +3,8 @@ module Infrastructure.BackupManager where
 import Control.Concurrent.STM (TVar, atomically, newTVarIO, readTVar, writeTVar)
 import Data.Text (Text)
 import qualified Data.Text as T
-import Data.Time.Clock (UTCTime, getCurrentTime)
+import Data.Time.Clock (UTCTime, getCurrentTime, addUTCTime)
+import Control.Concurrent.STM (readTVarIO)
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist, getDirectoryContents, removePathForcibly)
 import System.FilePath ((</>))
 
@@ -42,7 +43,7 @@ data TimeOfDay = TimeOfDay Int Int Int
 -- | Backup state
 data BackupState = BackupState
   { backupConfig :: BackupConfig,
-    backupHistory :: [(UTCTime, FilePath, BackupStatus)],
+    backupHistory :: TVar [(UTCTime, FilePath, BackupStatus)],
     backupLock :: TVar Bool
   }
 
@@ -57,7 +58,8 @@ data BackupStatus
 initBackupManager :: BackupConfig -> IO BackupState
 initBackupManager config = do
   lockVar <- newTVarIO False
-  return $ BackupState config [] lockVar
+  historyVar <- newTVarIO []
+  return $ BackupState config historyVar lockVar
 
 -- | Create backup
 createBackup :: BackupState -> IO (Either Text FilePath)

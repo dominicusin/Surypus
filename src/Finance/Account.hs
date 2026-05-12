@@ -5,6 +5,7 @@
 -- This module defines the core account types with enhanced expressiveness
 module Finance.Account where
 
+import GHC.Generics (Generic)
 import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Time (Day)
@@ -34,7 +35,7 @@ data Account = Account
   , accountNature   :: AccountNature
   , parentAccountId :: Maybe AccountId
   , isGroupAccount  :: Bool
-  , currencyAccount :: Maybe CurrencyCode
+  , currencyAccount :: Maybe Text  -- CurrencyCode (simplified)
   , isActive       :: Bool
   , createdAt      :: Day
   , updatedAt      :: Maybe Day

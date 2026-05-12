@@ -18,10 +18,14 @@ runHealthCheck = do
   timestamp <- liftIO getCurrentTime
   checksList <-
     sequence
-      [ ("database",) <$> HM.checkDatabase,
-        ("cache",) <$> HM.checkCache,
-        ("queue",) <$> HM.checkQueue,
-        ("external",) <$> HM.checkExternal
+      [ ("database"
+  ) <$> HM.checkDatabase,
+        ("cache"
+  ) <$> HM.checkCache,
+        ("queue"
+  ) <$> HM.checkQueue,
+        ("external"
+  ) <$> HM.checkExternal
       ]
   let isHealthy' = all snd checksList
   return

@@ -1,7 +1,7 @@
 -- | Cache module - In-memory cache with STM support
 module System.Cache where
 
-import Control.Concurrent.STM (TVar, atomically, newTVarIO, readTVar, writeTVar)
+import Control.Concurrent.STM (STM, TVar, atomically, newTVarIO, readTVar, writeTVar)
 import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Time (UTCTime)
@@ -56,7 +56,7 @@ stmCacheGet key (STMCache cache _) = do
 stmCachePut :: (Eq k) => k -> v -> STMCache k v -> STM ()
 stmCachePut key val (STMCache cache maxSize) = do
   entries <- readTVar cache
-  let filtered = filter (key /=) entries
+  let filtered = filter (\(k, _) -> k /= key) entries
       newEntries = take maxSize $ (key, val) : filtered
   writeTVar cache newEntries
 
@@ -64,7 +64,7 @@ stmCachePut key val (STMCache cache maxSize) = do
 stmCacheDelete :: (Eq k) => k -> STMCache k v -> STM ()
 stmCacheDelete key (STMCache cache _) = do
   entries <- readTVar cache
-  writeTVar cache $ filter (key /=) entries
+  writeTVar cache $ filter (\(k, _) -> k /= key) entries
 
 -- | Clear STM cache
 stmCacheClear :: STMCache k v -> STM ()

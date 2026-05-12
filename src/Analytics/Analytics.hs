@@ -1,5 +1,5 @@
 -- | Analytics module - Reporting and BI
-module Analytics.Analytics where
+module Analytics.Analytics
   ( TimeSeries (..),
     Period (..),
     BizScore (..),
@@ -7,9 +7,8 @@ module Analytics.Analytics where
     calcProfit,
     calcMargin,
     prop_profitBounded,
-    prop_marginBounded,
-  )
-where
+    prop_marginBounded
+  ) where
 
 import Data.Int (Int64)
 import Data.Text (Text)

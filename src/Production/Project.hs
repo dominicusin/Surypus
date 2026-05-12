@@ -3,12 +3,13 @@ module Production.Project  where
 
 import Data.Int (Int64)
 import Data.Text (Text)
+import qualified Data.Text as T
 import Data.Time (Day, UTCTime, getCurrentTime)
 import Data.Maybe (isNothing, isJust, fromMaybe)
 import qualified Data.Map.Strict as Map
 import Control.Monad (when, void)
-import Control.Concurrent.STM (TVar, newTVarIO, readTVar, writeTVar, atomically)
-import System.Validation (ValidationError, ValidationResult, validateRequired, validateNonEmpty, formatErrors)
+import Control.Concurrent.STM (TVar, newTVarIO, readTVar, readTVarIO, writeTVar, atomically)
+import System.Validation (ValidationError(..), ValidationResult, validateRequired, validateNonEmpty, formatErrors)
 
 -- | Project - Project
 data Project = Project
@@ -92,7 +93,7 @@ createProject repo project = do
   case validateProject validatedProject of
     Left errs -> return $ Left errs
     Right _ -> do
-      atomically $ do
+      newProject <- atomically $ do
         projects <- readTVar (prProjects repo)
         nextId <- readTVar (prNextId repo)
         let newId = nextId
@@ -100,6 +101,7 @@ createProject repo project = do
             updatedProjects = Map.insert newId newProject projects
         writeTVar (prProjects repo) updatedProjects
         writeTVar (prNextId repo) (nextId + 1)
+        return newProject
       return $ Right newProject
 
 -- | Get project by ID
@@ -152,12 +154,15 @@ validateProject :: ExtendedProject -> Either [ValidationError] ExtendedProject
 validateProject project = 
   let baseProject = epProject project
       errors = concat [
-        maybe [] (const [RequiredFieldMissing "code"]) $ if T.null (prjCode baseProject) then Nothing else Just (),
-        maybe [] (const [RequiredFieldMissing "name"]) $ if T.null (prjName baseProject) then Nothing else Just (),
-        if prjBudget baseProject < 0 then [CustomError "Budget cannot be negative"] else [],
-        if epProgress project < 0 || epProgress project > 1 then [CustomError "Progress must be between 0 and 1"] else []
-      ]
-  in if null errors then Right project else Left errors
+        maybe [] (const [RequiredFieldMissing (T.pack "code")]) $ if T.null (prjCode baseProject) then Nothing else Just (),
+        maybe [] (const [RequiredFieldMissing (T.pack "name")]) $ if T.null (prjName baseProject) then Nothing else Just (),
+        if prjBudget baseProject < 0 then [CustomError (T.pack "Budget cannot be negative")] else [],
+        if epProgress project < 0 || epProgress project > 1 
+        then [CustomError (T.pack "Progress must be between 0 and 1")] 
+        else []]
+  in if null errors 
+     then Right project 
+     else Left errors
 
 -- | Check if project is overdue
 isProjectOverdue :: Project -> Day -> Bool
@@ -168,8 +173,9 @@ isProjectOverdue prj today = case prjEndDate prj of
 -- | Get project statistics
 getProjectStats :: ProjectRepository -> IO ProjectStats
 getProjectStats repo = do
-  projects <- readTVarIO (prProjects repo)
-  let totalProjects = length projects
+  projectsMap <- readTVarIO (prProjects repo)
+  let projects = Map.elems projectsMap
+      totalProjects = length projects
       completedProjects = length $ filter (\p -> prjStatus (epProject p) == PSCompleted) projects
       inProgressProjects = length $ filter (\p -> prjStatus (epProject p) == PSInProgress) projects
       overdueProjects = length $ filter (\p -> isProjectOverdue (epProject p) undefined) projects

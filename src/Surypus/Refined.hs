@@ -1,13 +1,12 @@
 {-@ LIQUID "--reflection" @-}
 
-module Surypus.Refined  where
+module Surypus.Refined
   ( -- * Functions
     clampNonNeg,
     clampPercentage,
     isNonNeg,
-    combineNonNeg,
-  )
-where
+    combineNonNeg
+  ) where
 
 {-@ type NonNegDouble = {v:Double | v >= 0} @-}
 {-@ type PositiveDouble = {v:Double | v > 0} @-}

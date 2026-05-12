@@ -1,8 +1,7 @@
-module External.EGais.EGais where
+module External.EGais.EGais
   ( EGaisRecord (..),
-    fetchEGaisData,
-  )
-where
+    fetchEGaisData
+  ) where
 
 import Data.Text (Text)
 import Data.Time (UTCTime, getCurrentTime)

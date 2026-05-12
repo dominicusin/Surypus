@@ -1,12 +1,11 @@
 {-# LANGUAGE DeriveGeneric #-}
 
 -- | Production module - Manufacturing
-module Production.Production where
+module Production.Production
   ( TechLine (..),
     Processor (..),
-    TSession (..),
-  )
-where
+    TSession (..)
+  ) where
 
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Int (Int64)

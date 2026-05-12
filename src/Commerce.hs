@@ -20,7 +20,6 @@ import Commerce.Return
 import Commerce.ServiceBill
 import Commerce.Shipment
 import Commerce.Loyalty
-import Commerce.Loyalty.Loyalty
 import Commerce.Bonus
 import Commerce.BonusPoints
 import Commerce.Promo

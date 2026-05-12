@@ -8,8 +8,9 @@ module Finance.BankAccount where
 import Data.Int (Int64)
 import Data.Text (Text)
 import qualified Data.Text as T
-import Data.Time (Day, fromGregorian)
-import Surypus.Types (Decimal, NonNeg, mkNonNeg, unNonNeg)
+import Data.Time (Day, fromGregorian, diffDays)
+import GHC.Generics (Generic)
+import Surypus.Types (Decimal)
 
 -- | Enhanced bank account with richer types
 data BankAccount = BankAccount
@@ -18,7 +19,7 @@ data BankAccount = BankAccount
   , baAccountNumber :: AccountNumber
   , baAccountName   :: AccountName
   , baCurrency       :: CurrencyCode
-  , baBalance        :: NonNeg        -- Balance always >= 0
+  , baBalance        :: Double
   , baOpenedAt      :: Day
   , baClosedAt      :: Maybe Day
   , baIsActive      :: Bool
@@ -57,7 +58,7 @@ createBankAccount baId bankId accNum accName curr today = BankAccount
   , baAccountNumber = accNum
   , baAccountName = accName
   , baCurrency = curr
-  , baBalance = mkNonNeg 0
+  , baBalance = 0
   , baOpenedAt = today
   , baClosedAt = Nothing
   , baIsActive = True
@@ -67,28 +68,26 @@ createBankAccount baId bankId accNum accName curr today = BankAccount
   }
 
 -- | Deposit with invariant: balance >= 0 after deposit
-depositToAccount :: NonNeg -> BankAccount -> Maybe BankAccount
+depositToAccount :: Double -> BankAccount -> Maybe BankAccount
 depositToAccount amount account
   | amount <= 0 = Nothing
   | otherwise = Just $ account
-      { baBalance = mkNonNeg (unNonNeg (baBalance account) + unNonNeg amount)
-      , baUpdatedAt = Just (error "UpdatedAt: should be supplied")
+      { baBalance = baBalance account + amount
       }
 
 -- | Withdraw with invariant: balance >= amount (sufficient funds)
-withdrawFromAccount :: NonNeg -> BankAccount -> Maybe BankAccount
+withdrawFromAccount :: Double -> BankAccount -> Maybe BankAccount
 withdrawFromAccount amount account
   | amount <= 0 = Nothing
-  | unNonNeg amount > unNonNeg (baBalance account) = Nothing  -- Insufficient funds
+  | amount > baBalance account = Nothing  -- Insufficient funds
   | otherwise = Just $ account
-      { baBalance = mkNonNeg (unNonNeg (baBalance account) - unNonNeg amount)
-      , baUpdatedAt = Just (error "UpdatedAt: should be supplied")
+      { baBalance = baBalance account - amount
       }
 
 -- | Close account - must have zero balance
 closeBankAccount :: BankAccount -> Maybe BankAccount
 closeBankAccount account
-  | unNonNeg (baBalance account) /= 0 = Nothing  -- Cannot close with non-zero balance
+  | baBalance account /= 0 = Nothing  -- Cannot close with non-zero balance
   | otherwise = Just $ account
       { baIsActive = False
       , baClosedAt = Just (fromGregorian 2024 1 1)  -- Should be supplied
@@ -99,8 +98,8 @@ isActiveAccount :: BankAccount -> Bool
 isActiveAccount = baIsActive
 
 -- | Check if account has sufficient funds
-hasSufficientFunds :: NonNeg -> BankAccount -> Bool
-hasSufficientFunds amount account = unNonNeg (baBalance account) >= unNonNeg amount
+hasSufficientFunds :: Double -> BankAccount -> Bool
+hasSufficientFunds amount account = baBalance account >= amount
 
 -- | Calculate account age in days
 accountAge :: Day -> BankAccount -> Int
@@ -109,5 +108,5 @@ accountAge today account = truncate (fromIntegral (diffDays today (baOpenedAt ac
 -- | Pretty print bank account
 prettyBankAccount :: BankAccount -> Text
 prettyBankAccount acc = unAccountNumber (baAccountNumber acc) <> " - " <> unAccountName (baAccountName acc) <>
-  ", Balance: " <> T.pack (show (unNonNeg (baBalance acc)) <>
+  ", Balance: " <> T.pack (show (baBalance acc)) <>
   if baIsActive acc then " (Active)" else " (Closed)"

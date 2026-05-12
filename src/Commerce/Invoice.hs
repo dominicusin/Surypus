@@ -1,9 +1,8 @@
 -- | Invoice module - Invoices
-module Commerce.Invoice  where
+module Commerce.Invoice
   ( Invoice (..),
-    calcInvoiceBalance,
-  )
-where
+    calcInvoiceBalance
+  ) where
 
 import Data.Int (Int64)
 import Data.Text (Text)

@@ -4,7 +4,8 @@ import Control.Concurrent.STM (TVar, atomically, newTVarIO, readTVar, writeTVar)
 import qualified Data.ByteString as BS
 import qualified Data.Map.Strict as Map
 import qualified Data.Text as Text
-import Data.Time.Clock (NominalDiffTime, addUTCTime, getCurrentTime)
+import Data.Text (Text)
+import Data.Time.Clock (NominalDiffTime, addUTCTime, getCurrentTime, UTCTime)
 import System.Random (randomRIO)
 
 -- | Secret categories
@@ -67,7 +68,7 @@ rotateSecret store key newValue newMetadata = atomically $ do
   current <- readTVar (secretMap store)
   let updated = Map.insert key (newValue, newMetadata {secretVersion = secretVersion newMetadata + 1, secretLastRotated = getCurrentTime}) current
   writeTVar (secretMap store) updated
-  logAudit (auditLog store) ("ROTATE: " <> key) "secret_rotated"
+  logAudit (auditLog store) ("ROTATE: " <> key <> "secret_rotated")
 
 -- | Queue for rotation
 queueRotation :: SecretStore -> Text -> IO ()
@@ -96,5 +97,5 @@ generateSecret length = BS.pack <$> sequence (replicate length (randomRIO (0, 25
 validateSecretMetadata :: SecretMetadata -> Bool
 validateSecretMetadata meta =
   secretVersion meta >= 0
-    && not (Text.null (show (secretCategory meta)))
+    && not (Text.null (Text.pack (show (secretCategory meta)))
     && secretRotationPeriod meta > 0

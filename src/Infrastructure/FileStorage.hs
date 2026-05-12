@@ -7,9 +7,11 @@ import qualified Data.Map.Strict as Map
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
-import Data.Time.Clock (getCurrentTime)
+import Data.Time.Clock (UTCTime, getCurrentTime)
+import Data.Bits (xor)
 import qualified System.Directory as Dir
 import qualified System.FilePath as FP
+import System.FilePath (takeDirectory)
 import System.IO (IOMode (..), hGetContents, hPutStr, withFile)
 
 -- | File storage configuration

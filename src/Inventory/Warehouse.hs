@@ -1,15 +1,14 @@
 -- | Warehouse module - Stock management
 -- Re-exports inventory types
-module Inventory.Warehouse where
+module Inventory.Warehouse
   ( module Inventory.Types,
     validateLot,
     StockMovement (..),
     calcStockBalance,
     checkStockAvailable,
     fifoSelect,
-    prop_stockBalanceNonNeg,
-  )
-where
+    prop_stockBalanceNonNeg
+  ) where
 
 import Inventory.Types
 import Data.Int (Int64)

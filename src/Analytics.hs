@@ -2,5 +2,4 @@
 module Analytics where
 
 import Analytics.Analytics
-import Analytics.Charts
 import Analytics.Prediction

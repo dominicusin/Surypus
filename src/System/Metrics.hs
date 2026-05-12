@@ -1,13 +1,12 @@
-module System.Metrics where
+module System.Metrics
   ( Metrics (..),
     initMetrics,
     incrementRequests,
     incrementResponses4xx,
     incrementResponses5xx,
     getMetrics,
-    MetricsState,
-  )
-where
+    MetricsState
+  ) where
 
 import Control.Concurrent.STM (TVar, atomically, modifyTVar, newTVarIO, readTVar, readTVarIO)
 import Data.Int (Int64)

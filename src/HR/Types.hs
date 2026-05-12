@@ -5,7 +5,7 @@
 {-@ LIQUID "--reflection" @-}
 
 -- | HR / Payroll core types and invariants
-module HR.Types where
+module HR.Types
   ( SalaryCharge (..),
     SalaryRecord (..),
     SalarySummary (..),
@@ -15,9 +15,8 @@ module HR.Types where
     validateSalaryRecord,
     validateSalaryChargeInput,
     mkSalarySummary,
-    mkSalaryCharge,
-  )
-where
+    mkSalaryCharge
+  ) where
 
 import Surypus.Refined (clampNonNeg)
 import Data.Aeson (FromJSON, ToJSON)

@@ -1,10 +1,9 @@
 -- | RetBill module - Retail bills
-module Commerce.RetBill  where
+module Commerce.RetBill
   ( RetBill (..),
     calcFinalAmount,
-    prop_retBillFinalAmountNonNeg,
-  )
-where
+    prop_retBillFinalAmountNonNeg
+  ) where
 
 import Data.Int (Int64)
 import Data.Time (Day, fromGregorian)

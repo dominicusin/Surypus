@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "beads": {
+      "args": [
+        "mcp"
+      ],
+      "command": "bd"
+    }
+  }
+}

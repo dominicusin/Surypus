@@ -1,12 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 -- | GoodsTaxEx module - Extended goods tax
-module Inventory.GoodsTaxEx where
+module Inventory.GoodsTaxEx
   ( GoodsTaxEx (..),
     calcTaxAmount,
-    prop_goodsTaxAmountNonNeg,
-  )
-where
+    prop_goodsTaxAmountNonNeg
+  ) where
 
 import Data.Int (Int64)
 import Data.Text (Text)

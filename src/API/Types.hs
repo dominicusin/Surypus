@@ -2,19 +2,16 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE TypeOperators #-}
 
-module API.Types where
-  ( module API.Types,
-    module Servant.API,
-  )
-where
+module API.Types
+  ( module API.Types
+  ) where
 
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Time (Day, UTCTime)
 import GHC.Generics (Generic)
-import Servant.API
-import Surypus.Types (AppError)
+import qualified Servant.API as Servant
 
 data PersonAPI
 
@@ -89,6 +86,7 @@ err404 :: Text -> ErrorResponse
 err404 = mkErrorResponse 404
 
 err409 :: Text -> ErrorResponse
+err409 = mkErrorResponse 409
 
 mkErrorResponseWithDetails' = mkErrorResponseWithDetails
 
@@ -128,25 +126,25 @@ data RefreshResponse = RefreshResponse
 instance ToJSON RefreshResponse
 
 type PersonsAPI =
-  "persons" :> Get '[JSON] (PageResponse PersonResponse)
-    :<|> "persons" :> ReqBody '[JSON] PersonInput :> Post '[JSON] PersonResponse
-    :<|> "persons" :> Capture "id" Int :> Get '[JSON] PersonResponse
-    :<|> "persons" :> Capture "id" Int :> ReqBody '[JSON] PersonInput :> Put '[JSON] PersonResponse
-    :<|> "persons" :> Capture "id" Int :> Delete '[JSON] ()
-    :<|> "persons" :> "search" :> QueryParam "q" Text :> Get '[JSON] (PageResponse PersonResponse)
+  "persons" Servant.:> Servant.Get '[Servant.JSON] (PageResponse PersonResponse)
+    Servant.:<|> "persons" Servant.:> Servant.ReqBody '[Servant.JSON] PersonInput Servant.:> Servant.Post '[Servant.JSON] PersonResponse
+    Servant.:<|> "persons" Servant.:> Servant.Capture "id" Int Servant.:> Servant.Get '[Servant.JSON] PersonResponse
+    Servant.:<|> "persons" Servant.:> Servant.Capture "id" Int Servant.:> Servant.ReqBody '[Servant.JSON] PersonInput Servant.:> Servant.Put '[Servant.JSON] PersonResponse
+    Servant.:<|> "persons" Servant.:> Servant.Capture "id" Int Servant.:> Servant.Delete '[Servant.JSON] ()
+    Servant.:<|> "persons" Servant.:> "search" Servant.:> Servant.QueryParam "q" Text Servant.:> Servant.Get '[Servant.JSON] (PageResponse PersonResponse)
 
 type AuthAPI =
-  "auth" :> "login" :> ReqBody '[JSON] LoginRequest :> Post '[JSON] LoginResponse
-    :<|> "auth" :> "refresh" :> ReqBody '[JSON] RefreshRequest :> Post '[JSON] RefreshResponse
-    :<|> "auth" :> "logout" :> Header "Authorization" Text :> Post '[JSON] ()
+  "auth" Servant.:> "login" Servant.:> Servant.ReqBody '[Servant.JSON] LoginRequest Servant.:> Servant.Post '[Servant.JSON] LoginResponse
+    Servant.:<|> "auth" Servant.:> "refresh" Servant.:> Servant.ReqBody '[Servant.JSON] RefreshRequest Servant.:> Servant.Post '[Servant.JSON] RefreshResponse
+    Servant.:<|> "auth" Servant.:> "logout" Servant.:> Servant.Header "Authorization" Text Servant.:> Servant.Post '[Servant.JSON] ()
 
 type HealthAPI =
-  "health" :> Get '[JSON] (Either ErrorResponse Text)
-    :<|> "health" :> "db" :> Get '[JSON] (Either ErrorResponse Text)
+  "health" Servant.:> Servant.Get '[Servant.JSON] (Either ErrorResponse Text)
+    Servant.:<|> "health" Servant.:> "db" Servant.:> Servant.Get '[Servant.JSON] (Either ErrorResponse Text)
 
 type APIv1 =
-  "api" :> "v1" :> (AuthAPI :<|> PersonsAPI :<|> HealthAPI)
+  "api" Servant.:> "v1" Servant.:> (AuthAPI Servant.:<|> PersonsAPI Servant.:<|> HealthAPI)
 
 type API =
   APIv1
-    :<|> "swagger.json" :> Get '[JSON] Text
+    Servant.:<|> "swagger.json" Servant.:> Servant.Get '[Servant.JSON] Text

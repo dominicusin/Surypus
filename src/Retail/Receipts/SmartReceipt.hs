@@ -7,8 +7,7 @@ module Retail.Receipts.SmartReceipt where
     ReceiptStatus (..),
     SmartReceiptLine (..),
     calcReceiptTotal,
-    prop_receiptTotalNonNeg,
-  )
+    prop_receiptTotalNonNeg
 where
 
 import Data.Int (Int64)

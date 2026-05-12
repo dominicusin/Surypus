@@ -1,4 +1,4 @@
-module Reports.Service where
+module Reports.Service
   ( ReportService (..),
     createReportService,
     generateSalesReport,
@@ -10,9 +10,8 @@ module Reports.Service where
     InventoryReport (..),
     FinancialReport (..),
     PayrollSummary (..),
-    TaxReport (..),
-  )
-where
+    TaxReport (..)
+  ) where
 
 import Data.Int (Int64)
 import Data.Text (Text)

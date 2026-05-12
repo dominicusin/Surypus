@@ -3,14 +3,14 @@ module System.Transform where
 import Control.Concurrent.STM (TVar, atomically, newTVarIO, readTVar, writeTVar)
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
-import Data.Time.Clock (UTCTime)
+import Data.Time.Clock (UTCTime, getCurrentTime)
 import System.Validation (ValidationError, formatErrors)
 
 -- | Transformation pipeline stage
 data TransformStage a b = TransformStage
   { stageName :: Text,
     stageTransform :: a -> Either ValidationError b,
-    stageNext :: Maybe (TransformStage b c),
+    stageNext :: Maybe (TransformStage b b),
     stageInput :: TVar [Either ValidationError a],
     stageOutput :: TVar [Either ValidationError b]
   }
@@ -43,8 +43,8 @@ executeTransform pipeline input = do
     Left errors -> do
       now <- getCurrentTime
       atomically $ do
-        errs <- readTVar (pipelineErrors pipeline)
-        writeTVar (pipelineErrors pipeline) ((now, "transform_failed", errors) : errs)
+        currentErrs <- readTVar (pipelineErrors pipeline)
+        writeTVar (pipelineErrors pipeline) ((now, "transform_failed", errors) : currentErrs)
       return $ Left errors
     Right val -> return $ Right val
   where

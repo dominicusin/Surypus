@@ -1,10 +1,9 @@
 -- | Surypus core types
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-module Surypus.Types where
-  ( Decimal (..),
-    unDecimal,
-  )
-where
+module Surypus.Types
+  ( Decimal,
+    unDecimal
+  ) where
 
 import Prelude hiding (div)
 

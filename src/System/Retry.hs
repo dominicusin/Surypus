@@ -44,13 +44,13 @@ withRetries config action = go 0 []
               go (attempt + 1) (err : errs)
 
     calculateDelay attempt = do
-      let base = baseDelay config
+      let base = (baseDelay config)
       case strategy config of
         FixedDelay d -> return d
         ExponentialBackoff ->
-          return $ min maxDelay (base * (2 ^ attempt))
+          return $ min (maxDelay config) (base * (2 ^ attempt))
         LinearBackoff step ->
-          return $ min maxDelay (base + step * attempt)
+          return $ min (maxDelay config) (base + step * attempt)
         Jitter -> do
           let baseVal = min maxDelay (baseDelay config * (attempt + 1))
           randomRIO (baseVal, baseVal * 3 `div` 2)
@@ -81,6 +81,6 @@ untilSuccessWithTimeout attempts delayMicros action = go attempts
       result <- try action :: IO (Either SomeException a)
       case result of
         Right val -> return $ Right val
-        Left _ -> do
+        Left (SomeException _) -> do
           threadDelay delayMicros
           go (n - 1)

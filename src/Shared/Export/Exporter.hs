@@ -1,8 +1,7 @@
-module Shared.Export.Exporter where
+module Shared.Export.Exporter
   ( startPrometheusExport,
-    pushMetrics,
-  )
-where
+    pushMetrics
+  ) where
 
 import Control.Concurrent.STM
 import Control.Concurrent.STM.TVar

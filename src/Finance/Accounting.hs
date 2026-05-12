@@ -2,7 +2,7 @@
 {-@ LIQUID "--ple"        @-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Finance.Accounting where
+module Finance.Accounting
   ( debit,
     credit,
     balance,
@@ -10,9 +10,8 @@ module Finance.Accounting where
     Account (..),
     Transaction (..),
     validateTransaction,
-    processTransaction,
-  )
-where
+    processTransaction
+  ) where
 
 import Data.Int (Int64)
 import Data.Text (Text, pack)

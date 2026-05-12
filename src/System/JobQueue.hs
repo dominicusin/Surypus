@@ -1,13 +1,13 @@
 module System.JobQueue where
 
-import Control.Concurrent (forkIO, threadDelay)
-import Control.Concurrent.STM (TQueue, isEmptyTQueue, newTQueueIO, readTQueue, writeTQueue)
-import Control.Monad (forever, when)
-import Data.Aeson (Value, encode)
-import qualified Data.ByteString.Lazy as BL
+import Control.Concurrent (forkIO, ThreadId, threadDelay)
+import Control.Concurrent.STM (TQueue, isEmptyTQueue, newTQueueIO, readTQueue, writeTQueue, atomically)
+import Control.Monad (forever)
+import Data.Aeson (Value)
+import qualified Data.ByteString.Lazy ()
 import Data.Text (Text)
-import Data.Time.Clock (UTCTime, getCurrentTime)
-import qualified Database.PostgreSQL.Simple as PG
+import Data.Time.Clock (UTCTime)
+-- import qualified Database.PostgreSQL.Simple as PG
 
 -- | Job queue system for background processing
 data JobQueue = JobQueue
@@ -31,15 +31,15 @@ initJobQueue workers = do
 
 -- | Enqueue a job
 enqueueJob :: JobQueue -> Job -> IO ()
-enqueueJob (JobQueue chan _) job = writeTQueue chan job
+enqueueJob (JobQueue chan _) job = atomically $ writeTQueue chan job
 
 -- | Dequeue a job
 dequeueJob :: JobQueue -> IO (Maybe Job)
 dequeueJob (JobQueue chan _) = do
-  isEmpty <- isEmptyTQueue chan
+  isEmpty <- atomically $ isEmptyTQueue chan
   if isEmpty
     then return Nothing
-    else Just <$> readTQueue chan
+    else Just <$> atomically (readTQueue chan)
 
 -- | Worker loop for processing jobs
 workerLoop :: JobQueue -> (Job -> IO ()) -> IO ()
@@ -50,17 +50,15 @@ workerLoop queue processor = forever $ do
     Just job -> processor job
 
 -- | Start worker pool
-startWorkers :: JobQueue -> Int -> (Job -> IO ()) -> IO [IO ()]
+startWorkers :: JobQueue -> Int -> (Job -> IO ()) -> IO [ThreadId]
 startWorkers queue count processor = mapM (\_ -> forkIO $ workerLoop queue processor) [1 .. count]
 
--- | Default job processor that persists to database
-defaultJobProcessor :: PG.Connection -> Job -> IO ()
-defaultJobProcessor conn job = do
-  now <- getCurrentTime
-  PG.execute
-    conn
-    "INSERT INTO background_jobs (job_id, type, payload, created_at, attempts) VALUES ($1, $2, $3, $4, $5)"
-    (jobId job, jobType job, jobPayload job, jobCreatedAt job, jobAttempts job :: Int)
+-- | Default job processor (simplified - no database integration)
+-- Use this as a template for your actual job processing
+defaultJobProcessor :: Job -> IO ()
+defaultJobProcessor _job = do
+  -- TODO: Persist to database when PostgreSQL.Simple is available
+  return ()
 
 -- | Retry failed job with exponential backoff
 retryJob :: Job -> Job

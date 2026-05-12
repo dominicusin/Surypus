@@ -1,9 +1,12 @@
 module Integration.Hub.Integration where
 
-import Control.Concurrent.STM (TVar, atomically, newTVarIO, readTVar, writeTVar)
+import Control.Concurrent.STM (TVar, atomically, newTVarIO, readTVar, writeTVar, readTVarIO)
+import Control.Exception (SomeException, try)
 import qualified Data.Map.Strict as Map
-import Data.Text (Text)
-import Data.Time.Clock (UTCTime)
+import qualified Data.Text as T
+import Data.Time.Clock (UTCTime, getCurrentTime)
+
+type Text = T.Text
 
 -- | Integration context for connecting all systems
 data IntegrationContext = IntegrationContext
@@ -34,7 +37,8 @@ logIntegrationEvent context event metadata = do
   now <- getCurrentTime
   atomically $ do
     logs <- readTVar (contextLogger context)
-    writeTVar (contextLogger context) ((now, event <> ": " <> metadata) : logs)
+    let newLog = (now, T.append event (T.append (T.pack ": ") metadata))
+    writeTVar (contextLogger context) (newLog : logs)
 
 -- | Shared cache for integrations
 shareCache :: IntegrationContext -> Text -> Text -> IO ()
@@ -80,11 +84,11 @@ data TransactionStatus
 -- | Execute transaction
 executeTransaction :: Transaction -> IO (Either Text ())
 executeTransaction txn = do
-  results <- mapM (\op -> try op) (operations txn)
+  results <- mapM (\op -> try op :: IO (Either SomeException ())) (operations txn)
   if all (either (const False) (const True)) results
     then do
-      writeTVar (status txn) Committed
+      atomically $ writeTVar (status txn) Committed
       return $ Right ()
     else do
-      writeTVar (status txn) RolledBack
-      return $ Left "Transaction failed"
+      atomically $ writeTVar (status txn) RolledBack
+      return $ Left (T.pack "Transaction failed")

@@ -26,22 +26,21 @@
 --   type ServiceKey GoodsService = "goods"
 --   getPool = id
 -- @
-module Service.Service where
+module Service.Service
   ( -- * Service Types
     ServiceKey,
-    ServiceError (..),
+    ServiceError,
     ServiceM,
 
     -- * Service Class
-    Service (..),
+    Service,
 
     -- * Service Builder
     mkService,
 
     -- * Common Service Types
-    PoolService (..),
-  )
-where
+    PoolService
+  ) where
 
 import Control.Monad.Except (ExceptT)
 import Control.Monad.Reader (ReaderT, ask, lift, runReaderT)

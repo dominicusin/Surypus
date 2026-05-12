@@ -1,10 +1,9 @@
 -- | Lot types - Stock lots/batches
-module Inventory.Lot where
+module Inventory.Lot
   ( Lot (..),
     LotStatus (..),
-    LotFlags (..),
-  )
-where
+    LotFlags (..)
+  ) where
 
 import Data.Int (Int64)
 import Data.Text (Text)

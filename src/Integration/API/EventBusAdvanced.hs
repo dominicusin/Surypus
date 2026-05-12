@@ -1,7 +1,7 @@
 module Integration.API.EventBusAdvanced where
 
 import Control.Concurrent (forkIO, threadDelay)
-import Control.Concurrent.STM (TQueue, isEmptyTQueue, newTQueueIO, readTQueue, writeTQueue)
+import Control.Concurrent.STM (TQueue, TVar, isEmptyTQueue, newTQueueIO, readTQueue, writeTQueue, newTVarIO, readTVar, writeTVar, atomically, readTVarIO)
 import Control.Monad (forever, when)
 import Data.Text (Text)
 import Data.Time.Clock (UTCTime, getCurrentTime)
@@ -10,7 +10,7 @@ import qualified Data.UUID as UUID
 -- | Advanced event bus with routing
 data EventBusAdvanced = EventBusAdvanced
   { busQueue :: TQueue BusMessage,
-    busHandlers :: TVar [(Text, Event -> IO ())],
+    busHandlers :: TVar [(Text, BusMessage -> IO ())],
     busDeadLetters :: TVar [BusMessage],
     busMetrics :: TVar BusMetrics
   }
@@ -59,7 +59,7 @@ publishAdvanced bus msg = do
     writeTVar (busMetrics bus) m {msgsPublished = msgsPublished m + 1}
 
 -- | Subscribe with routing key
-subscribeAdvanced :: EventBusAdvanced -> Text -> (Event -> IO ()) -> IO ()
+subscribeAdvanced :: EventBusAdvanced -> Text -> (BusMessage -> IO ()) -> IO ()
 subscribeAdvanced bus routingKey handler = atomically $ do
   handlers <- readTVar (busHandlers bus)
   writeTVar (busHandlers bus) ((routingKey, handler) : handlers)

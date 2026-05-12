@@ -1,5 +1,5 @@
 -- | Order module - Sales orders
-module Commerce.Orders.Order where
+module Commerce.Orders.Order
   ( Order (..),
     OrderStatus (..),
     OrderLine (..),
@@ -7,9 +7,8 @@ module Commerce.Orders.Order where
     calcOrderTotal,
     calcLineTotal,
     prop_orderLineTotalNonNeg,
-    prop_orderTotalNonNeg,
-  )
-where
+    prop_orderTotalNonNeg
+  ) where
 
 import Data.Int (Int64)
 import Data.Text (Text)

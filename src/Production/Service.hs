@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 -- | Service command interpreter inspired by ppmain's SrvcCmd state machine.
-module Production.Service  where
+module Production.Service
   ( ServiceCommand (..),
     ServiceState,
     ServicePhase (..),
@@ -9,9 +9,8 @@ module Production.Service  where
     parseServiceCommand,
     serviceCommandHelp,
     transition,
-    serviceStatePhase,
-  )
-where
+    serviceStatePhase
+  ) where
 
 import Data.Text (Text)
 import qualified Data.Text as T

@@ -1,13 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 -- | Discount module - Discounts
-module Commerce.Discount where
+module Commerce.Discount
   ( Discount (..),
     DiscountType (..),
     calcDiscount,
-    prop_discountAmountNonNeg,
-  )
-where
+    prop_discountAmountNonNeg
+  ) where
 
 import Data.Int (Int64)
 import Data.Text (Text)

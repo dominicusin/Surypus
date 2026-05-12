@@ -1,10 +1,9 @@
 -- | AdvanceInvoice module - Advance invoices
-module Commerce.AdvanceInvoice  where
+module Commerce.AdvanceInvoice
   ( AdvanceInvoice (..),
     calcRemaining,
-    prop_advanceInvoiceRemainingNonNeg,
-  )
-where
+    prop_advanceInvoiceRemainingNonNeg
+  ) where
 
 import Data.Int (Int64)
 import Data.Time (Day, fromGregorian)

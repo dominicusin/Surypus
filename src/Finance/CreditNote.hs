@@ -9,14 +9,15 @@ import Data.Int (Int64)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Time (Day, fromGregorian)
-import Surypus.Types (Decimal, NonNeg, mkNonNeg, unNonNeg)
+import GHC.Generics (Generic)
+-- import Surypus.Types (Decimal, NonNeg, mkNonNeg, unNonNeg)
 
 -- | Credit note with enhanced semantics
 data CreditNote = CreditNote
   { cnId           :: CreditNoteId
     , cnNumber       :: CreditNoteNumber
     , cnDate         :: Day
-    , cnAmount       :: NonNeg        -- Amount always >= 0
+    , cnAmount       :: Double -- Amount always >= 0
     , cnCurrency     :: CurrencyCode
     , cnReason       :: Text
     , cnRelatedBill  :: Maybe BillId
@@ -46,7 +47,7 @@ data CreditNoteStatus
   deriving (Show, Eq, Enum, Bounded, Ord)
 
 -- | Smart constructor with validation
-createCreditNote :: CreditNoteId -> CreditNoteNumber -> Day -> NonNeg -> CurrencyCode -> Text -> CreditNote
+createCreditNote :: CreditNoteId -> CreditNoteNumber -> Day -> Double -> CurrencyCode -> Text -> CreditNote
 createCreditNote cnid num date amt curr reason = CreditNote
   { cnId = cnid
   , cnNumber = num
@@ -67,13 +68,13 @@ cancelCreditNote cn
   | otherwise = Just $ cn { cnStatus = CNSCancelled, cnUpdatedAt = Just (fromGregorian 2024 1 1) }
 
 -- | Apply credit note with invariant: amount > 0 and status is issued
-applyCreditNote :: NonNeg -> CreditNote -> Maybe CreditNote
+applyCreditNote :: Double -> CreditNote -> Maybe CreditNote
 applyCreditNote amount cn
-  | unNonNeg amount <= 0 = Nothing
+  | amount <= 0 = Nothing
   | cnStatus cn /= CNSIssued = Nothing
   | otherwise = Just $ cn
-      { cnAmount = mkNonNeg (unNonNeg (cnAmount cn) - unNonNeg amount)
-      , cnStatus = if unNonNeg (cnAmount cn) - unNonNeg amount <= 0 then CNSApplied else cnStatus cn
+      { cnAmount = cnAmount cn - amount
+      , cnStatus = if cnAmount cn - amount <= 0 then CNSApplied else cnStatus cn
       , cnUpdatedAt = Just (fromGregorian 2024 1 1)
       }
 
@@ -88,11 +89,11 @@ isFullyApplied cn = cnStatus cn == CNSApplied
 -- | Pretty print credit note
 prettyCreditNote :: CreditNote -> Text
 prettyCreditNote cn = unCreditNoteNumber (cnNumber cn) <> " - " 
-  <> T.pack (show (unNonNeg (cnAmount cn)) <> " " 
+  <> T.pack (show (cnAmount cn)) <> " " 
   <> unCurrencyCode (cnCurrency cn) <> " - " 
   <> T.pack (show (cnStatus cn))
 
 -- | Calculate total applied amount
-calculateAppliedAmount :: [CreditNote] -> NonNeg
+calculateAppliedAmount :: [CreditNote] -> Double
 calculateAppliedAmount notes = 
-  mkNonNeg $ sum [unNonNeg (cnAmount n) | n <- notes, cnStatus n == CNSApplied]
+  sum [cnAmount n | n <- notes, cnStatus n == CNSApplied]

@@ -1,12 +1,11 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 
-module Production.WorkOrder where
+module Production.WorkOrder
   ( WorkOrder (..),
     WorkOrderStatus (..),
-    createWorkOrder,
-  )
-where
+    createWorkOrder
+  ) where
 
 import Data.Int (Int64)
 import Data.Text (Text)

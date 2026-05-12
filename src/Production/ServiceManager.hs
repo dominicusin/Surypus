@@ -2,13 +2,12 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 -- | ServiceManager coordinates daemonized jobs and Cron tasks.
-module Production.ServiceManager  where
+module Production.ServiceManager
   ( runDaemon,
     runJobQueueOnce,
     runCronOnce,
-    daemonTickDelay,
-  )
-where
+    daemonTickDelay
+  ) where
 
 import Control.Concurrent (forkIO, threadDelay)
 import Control.Exception (SomeException, try)

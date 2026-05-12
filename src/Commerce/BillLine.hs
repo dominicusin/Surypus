@@ -1,11 +1,10 @@
 -- | BillLine module - Bill lines
-module Commerce.BillLine  where
+module Commerce.BillLine
   ( BillLine (..),
     calcLineTotal,
     prop_lineTotalNonNeg,
-    prop_lineTotalDiscountBound,
-  )
-where
+    prop_lineTotalDiscountBound
+  ) where
 
 import Data.Int (Int64)
 import Test.QuickCheck

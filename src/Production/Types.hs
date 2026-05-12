@@ -4,7 +4,7 @@
 
 {-@ LIQUID "--reflection" @-}
 
-module Production.Types where
+module Production.Types
   ( TechCard (..),
     TechLine (..),
     WorkOrder (..),
@@ -13,9 +13,8 @@ module Production.Types where
     validateTechCard,
     validateTechLine,
     validateWorkOrderCore,
-    toWorkOrderStatus,
-  )
-where
+    toWorkOrderStatus
+  ) where
 
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Int (Int64)

@@ -1,11 +1,10 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 
-module Production.MRP where
+module Production.MRP
   ( BOMLine (..),
     MRPDemand,
-    calculateMRP,
-  )
-where
+    calculateMRP
+  ) where
 
 import Data.Int (Int64)
 import Data.Map.Strict (Map)

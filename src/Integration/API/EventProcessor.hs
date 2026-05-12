@@ -1,10 +1,12 @@
 module Integration.API.EventProcessor where
 
 import Control.Concurrent (forkIO, threadDelay)
-import Control.Concurrent.STM (TQueue, isEmptyTQueue, newTQueueIO, readTQueue, writeTQueue)
+import Control.Concurrent.STM (TQueue, TVar, isEmptyTQueue, newTQueueIO, readTQueue, writeTQueue, readTVar, atomically, newTVarIO, readTVarIO)
 import Control.Monad (forever, when)
 import Data.Text (Text)
+import Data.Time.Clock (UTCTime)
 import qualified Data.UUID as UUID
+-- import Data.UUID (nextRandom)
 
 -- | Event types
 data EventType
@@ -26,7 +28,7 @@ data Event = Event
 -- | Event processor
 data EventProcessor = EventProcessor
   { processorQueue :: TQueue Event,
-    processorHandlers :: [(EventType, Event -> IO ())],
+    processorHandlers :: TVar [(EventType, Event -> IO ())],
     processorRunning :: TVar Bool
   }
 
@@ -34,23 +36,23 @@ data EventProcessor = EventProcessor
 initEventProcessor :: IO EventProcessor
 initEventProcessor = do
   queue <- newTQueueIO
+  handlers <- newTVarIO []
   running <- newTVarIO True
-  return $ EventProcessor queue [] running
+  return $ EventProcessor queue handlers running
 
 -- | Register event handler
 registerHandler :: EventProcessor -> EventType -> (Event -> IO ()) -> IO ()
 registerHandler processor eventType handler = atomically $ do
   handlers <- readTVar (processorHandlers processor)
   let updated = (eventType, handler) : handlers
-  -- Write back using TVar mutation
-  return ()
+  writeTVar (processorHandlers processor) updated
 
 -- | Process events
 processEvents :: EventProcessor -> IO ()
 processEvents processor = forever $ do
-  empty <- isEmptyTQueue (processorQueue processor)
+  empty <- atomically $ isEmptyTQueue (processorQueue processor)
   when (not empty) $ do
-    event <- readTQueue (processorQueue processor)
+    event <- atomically $ readTQueue (processorQueue processor)
     dispatchEvent processor event
 
 -- | Dispatch to appropriate handler
@@ -65,11 +67,12 @@ dispatchEvent processor event = do
 -- | Publish event
 publishEvent :: EventProcessor -> Event -> IO ()
 publishEvent processor event = atomically $ do
-  queue <- processorQueue processor
+  let queue = processorQueue processor
   writeTQueue queue event
 
 -- | Generate event ID
 generateEventId :: IO Text
 generateEventId = do
-  uuid <- UUID.nextRandom
-  return $ Text.pack $ UUID.toString uuid
+  -- uuid <- UUID.nextRandom
+  -- return $ Text.pack $ UUID.toString uuid
+  return "event-id-placeholder"

@@ -53,7 +53,7 @@ createWorkflowInstance engine workflowId desc = do
   now <- getCurrentTime
   let instanceId = "instance-" <> desc <> "-" <> show (hash now)
   stepVar <- newTVarIO 0
-  instance <- newTVarIO $ WorkflowInstance
+  inst <- newTVarIO $ WorkflowInstance
     { instanceId = instanceId,
       instanceWorkflow = workflowId,
       instanceState = newTVarIO InstanceDraft,
@@ -63,7 +63,7 @@ createWorkflowInstance engine workflowId desc = do
     }
   atomically $ do
     insts <- readTVar (engineInstances engine)
-    writeTVar (engineInstances engine) (Map.insert instanceId instance insts)
+    writeTVar (engineInstances engine) (Map.insert instanceId inst insts)
   return instanceId
   where
     hash = show . fromEnum

@@ -1,12 +1,11 @@
 -- | Quotation module - Commercial offers
-module Commerce.Orders.Quotation where
+module Commerce.Orders.Quotation
   ( Quotation (..),
     QuotationStatus (..),
     QuotationLine (..),
     calcQuotationTotal,
-    prop_quotationTotalNonNeg,
-  )
-where
+    prop_quotationTotalNonNeg
+  ) where
 
 import Data.Int (Int64)
 import Data.Text (Text)

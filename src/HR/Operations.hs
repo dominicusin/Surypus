@@ -1,5 +1,5 @@
 -- | Person Operations with Formal Verification
-module HR.Operations where
+module HR.Operations
   ( PersonOpResult (..),
     validatePerson,
     validatePhone,
@@ -7,9 +7,8 @@ module HR.Operations where
     checkDuplicateINN,
     isValidPersonKind,
     isActiveStatus,
-    getPersonDisplayName,
-  )
-where
+    getPersonDisplayName
+  ) where
 
 import Data.Char (isDigit)
 import Data.Text (Text)

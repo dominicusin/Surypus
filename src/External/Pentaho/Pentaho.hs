@@ -1,8 +1,7 @@
-module External.Pentaho.Pentaho where
+module External.Pentaho.Pentaho
   ( PentahoConfig (..),
-    generateReport,
-  )
-where
+    generateReport
+  ) where
 
 import Data.Text (Text)
 import qualified Data.Text as T

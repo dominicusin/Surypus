@@ -1,8 +1,7 @@
-module External.Jasper.Jasper where
+module External.Jasper.Jasper
   ( JasperConfig (..),
-    generateReport,
-  )
-where
+    generateReport
+  ) where
 
 import Data.Text (Text)
 import qualified Data.Text as T

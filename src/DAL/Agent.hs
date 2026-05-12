@@ -1,12 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 -- | Agent module - Agents
-module DAL.Agent  where
+module DAL.Agent
   ( Agent (..),
     calcCommission,
-    prop_commissionNonNeg,
-  )
-where
+    prop_commissionNonNeg
+  ) where
 
 import Data.Int (Int64)
 import Data.Text (Text)

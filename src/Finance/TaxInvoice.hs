@@ -1,10 +1,9 @@
 -- | TaxInvoice module - Tax invoices
-module Finance.TaxInvoice where
+module Finance.TaxInvoice
   ( TaxInvoice (..),
     calcTaxAmount,
-    prop_taxAmountNonNeg,
-  )
-where
+    prop_taxAmountNonNeg
+  ) where
 
 import Data.Int (Int64)
 import Data.Time (Day)

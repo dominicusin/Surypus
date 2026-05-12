@@ -1,9 +1,12 @@
 module AI.DecisionEngine where
 
-import Control.Concurrent.STM (TVar, atomically, newTVarIO, readTVar, writeTVar)
+import Control.Concurrent.STM (TVar, atomically, newTVarIO, readTVar, writeTVar, readTVarIO)
 import qualified Data.Map.Strict as Map
-import Data.Text (Text)
-import Service.Orchestrator (Orchestrator)
+import qualified Data.Text as T
+import Data.Time.Clock (UTCTime)
+-- import Service.Orchestrator (Orchestrator)
+
+type Text = T.Text
 
 -- | Decision context
 data DecisionContext = DecisionContext
@@ -23,11 +26,13 @@ data DecisionRule = DecisionRule
 -- | Decision engine
 data DecisionEngine = DecisionEngine
   { engineRules :: TVar [DecisionRule],
-    engineOrchestrator :: Orchestrator
+    engineOrchestrator :: () -- Orchestrator placeholder
   }
 
 -- | Initialize decision engine
-initDecisionEngine :: Orchestrator -> IO DecisionEngine
+-- initDecisionEngine :: Orchestrator -> IO DecisionEngine
+-- initDecisionEngine = undefined
+initDecisionEngine :: () -> IO DecisionEngine
 initDecisionEngine orch = do
   rulesVar <- newTVarIO []
   return $ DecisionEngine rulesVar orch
@@ -48,8 +53,8 @@ addDecisionRule engine rule = atomically $ do
 evaluateDecision :: DecisionEngine -> DecisionContext -> IO [Text]
 evaluateDecision engine context = do
   rules <- readTVarIO (engineRules engine)
-  let applicable = filter (ruleCondition) rules
-  mapM_ (ruleAction) applicable
+  let applicable = filter (\r -> ruleCondition r context) rules
+  mapM_ (\r -> ruleAction r context) applicable
   return $ map ruleId applicable
 
 -- | Decision outcome
@@ -64,7 +69,7 @@ makeDecision :: DecisionEngine -> DecisionContext -> IO DecisionOutcome
 makeDecision engine context = do
   result <- evaluateDecision engine context
   if null result
-    then return Reject "No applicable rules"
+    then return $ Reject (T.pack "No applicable rules")
     else return Approve
 
 -- | Decision audit

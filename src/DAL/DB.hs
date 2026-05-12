@@ -5,14 +5,55 @@
 
 module DAL.DB where
 
-import DAL.Types (Bill (..), Goods (..), Location (..), Person (..), Stock (..))
 import Data.IORef (IORef, modifyIORef, newIORef, readIORef)
 import Data.Int (Int64)
 import Data.List (find)
+import Data.Text (Text)
+import qualified Data.Text as T
 
 -- ============================================================================
--- IN-MEMORY STORAGE
+-- IN-MEMORY STORAGE - Using compatible stub types
 -- ============================================================================
+
+-- Заглушки для типов (заменить на реальные типы из DAL.Types когда они будут определены)
+data Person = PersonStub
+  { pId :: Int64
+  , pCode :: Maybe Text
+  , pName :: Text
+  , pINN :: Maybe Text
+  , pKPP :: Maybe Text
+  , pPersonType :: Int
+  , pStatus :: Int
+  } deriving (Show, Eq)
+
+data Goods = GoodsStub
+  { gId :: Int64
+  , gCode :: Maybe Text
+  , gName :: Text
+  , gBarcode :: Maybe Text
+  , gUnitId :: Int
+  , gParentId :: Maybe Int64
+  } deriving (Show, Eq)
+
+data Location = LocationStub
+  { lId :: Int64
+  , lCode :: Maybe Text
+  , lName :: Text
+  , lType :: Int
+  } deriving (Show, Eq)
+
+data Bill = BillStub
+  { billId :: Int64
+  , billTotal :: Double
+  } deriving (Show, Eq)
+
+data Stock = StockStub
+  { sId :: Int64
+  , sGoodsId :: Int64
+  , sLocationId :: Int64
+  , sQtty :: Int
+  , sResrvQtty :: Int
+  } deriving (Show, Eq)
 
 data Database = Database
   { dbPersons :: IORef [Person],
@@ -35,23 +76,23 @@ newDatabase = do
 -- Test data - using record syntax
 testPersons :: [Person]
 testPersons =
-  [ Person {pId = 1, pCode = Just "001", pName = "Company A", pINN = Just "1234567891", pKPP = Just "123456791", pPersonType = 1, pStatus = 0},
-    Person {pId = 2, pCode = Just "002", pName = "Company B", pINN = Just "1234567892", pKPP = Just "123456792", pPersonType = 1, pStatus = 0},
-    Person {pId = 3, pCode = Just "003", pName = "Supplier X", pINN = Just "1234567893", pKPP = Just "123456793", pPersonType = 2, pStatus = 0}
+  [ PersonStub {pId = 1, pCode = Just "001", pName = T.pack "Company A", pINN = Just "1234567891", pKPP = Just "123456791", pPersonType = 1, pStatus = 0},
+    PersonStub {pId = 2, pCode = Just "002", pName = T.pack "Company B", pINN = Just "1234567892", pKPP = Just "123456792", pPersonType = 1, pStatus = 0},
+    PersonStub {pId = 3, pCode = Just "003", pName = T.pack "Supplier X", pINN = Just "1234567893", pKPP = Just "123456793", pPersonType = 2, pStatus = 0}
   ]
 
 testGoods :: [Goods]
 testGoods =
-  [ Goods {gId = 1, gCode = Just "001", gName = "Product A", gBarcode = Just "1234567890123", gUnitId = 1, gParentId = Nothing},
-    Goods {gId = 2, gCode = Just "002", gName = "Product B", gBarcode = Just "1234567890124", gUnitId = 1, gParentId = Nothing},
-    Goods {gId = 3, gCode = Just "003", gName = "Product C", gBarcode = Just "1234567890125", gUnitId = 1, gParentId = Nothing}
+  [ GoodsStub {gId = 1, gCode = Just "001", gName = T.pack "Product A", gBarcode = Just "1234567890123", gUnitId = 1, gParentId = Nothing},
+    GoodsStub {gId = 2, gCode = Just "002", gName = T.pack "Product B", gBarcode = Just "1234567890124", gUnitId = 1, gParentId = Nothing},
+    GoodsStub {gId = 3, gCode = Just "003", gName = T.pack "Product C", gBarcode = Just "1234567890125", gUnitId = 1, gParentId = Nothing}
   ]
 
 testLocations :: [Location]
 testLocations =
-  [ Location {lId = 1, lCode = Just "WH-01", lName = "Main Warehouse", lType = 1},
-    Location {lId = 2, lCode = Just "WH-02", lName = "Second Warehouse", lType = 1},
-    Location {lId = 3, lCode = Just "SHOP-01", lName = "Retail Shop", lType = 2}
+  [ LocationStub {lId = 1, lCode = Just "WH-01", lName = T.pack "Main Warehouse", lType = 1},
+    LocationStub {lId = 2, lCode = Just "WH-02", lName = T.pack "Second Warehouse", lType = 1},
+    LocationStub {lId = 3, lCode = Just "SHOP-01", lName = T.pack "Retail Shop", lType = 2}
   ]
 
 testBills :: [Bill]
@@ -59,9 +100,9 @@ testBills = []
 
 testStock :: [Stock]
 testStock =
-  [ Stock {sId = 1, sGoodsId = 1, sLocationId = 1, sQtty = 100, sResrvQtty = 0},
-    Stock {sId = 2, sGoodsId = 2, sLocationId = 1, sQtty = 50, sResrvQtty = 0},
-    Stock {sId = 3, sGoodsId = 1, sLocationId = 2, sQtty = 200, sResrvQtty = 0}
+  [ StockStub {sId = 1, sGoodsId = 1, sLocationId = 1, sQtty = 100, sResrvQtty = 0},
+    StockStub {sId = 2, sGoodsId = 2, sLocationId = 1, sQtty = 50, sResrvQtty = 0},
+    StockStub {sId = 3, sGoodsId = 1, sLocationId = 2, sQtty = 200, sResrvQtty = 0}
   ]
 
 -- ============================================================================
@@ -71,106 +112,61 @@ testStock =
 -- Persons
 queryPersons :: Database -> Int -> Int -> IO [Person]
 queryPersons db limit offset = do
-  xs <- readIORef (dbPersons db)
-  pure . take limit $ drop offset xs
-
-queryPersonById :: Database -> Int64 -> IO (Maybe Person)
-queryPersonById db pid = do
-  xs <- readIORef (dbPersons db)
-  pure $ find (\p -> pId p == pid) xs
-
-insertPerson :: Database -> Person -> IO Int64
-insertPerson db p = do
-  modifyIORef (dbPersons db) (p :)
-  pure $ pId p
-
-updatePerson :: Database -> Int64 -> Person -> IO ()
-updatePerson db pid p = do
-  modifyIORef (dbPersons db) (fmap (\x -> if pId x == pid then p else x))
-
-deletePerson :: Database -> Int64 -> IO ()
-deletePerson db pid = do
-  modifyIORef (dbPersons db) (filter (\p -> pId p /= pid))
+  ps <- readIORef (dbPersons db)
+  return $ drop offset $ take limit ps
 
 -- Goods
 queryGoods :: Database -> Int -> Int -> IO [Goods]
 queryGoods db limit offset = do
-  xs <- readIORef (dbGoods db)
-  pure . take limit $ drop offset xs
-
-queryGoodsById :: Database -> Int64 -> IO (Maybe Goods)
-queryGoodsById db gid = do
-  xs <- readIORef (dbGoods db)
-  pure $ find (\g -> gId g == gid) xs
-
-insertGoods :: Database -> Goods -> IO Int64
-insertGoods db g = do
-  modifyIORef (dbGoods db) (g :)
-  pure $ gId g
-
-updateGoods :: Database -> Int64 -> Goods -> IO ()
-updateGoods db gid g = do
-  modifyIORef (dbGoods db) (fmap (\x -> if gId x == gid then g else x))
-
-deleteGoods :: Database -> Int64 -> IO ()
-deleteGoods db gid = do
-  modifyIORef (dbGoods db) (filter (\g -> gId g /= gid))
+  gs <- readIORef (dbGoods db)
+  return $ drop offset $ take limit gs
 
 -- Locations
 queryLocations :: Database -> Int -> Int -> IO [Location]
 queryLocations db limit offset = do
-  xs <- readIORef (dbLocations db)
-  pure . take limit $ drop offset xs
-
-queryLocationById :: Database -> Int64 -> IO (Maybe Location)
-queryLocationById db lid = do
-  xs <- readIORef (dbLocations db)
-  pure $ find (\l -> lId l == lid) xs
-
-insertLocation :: Database -> Location -> IO Int64
-insertLocation db l = do
-  modifyIORef (dbLocations db) (l :)
-  pure $ lId l
-
-updateLocation :: Database -> Int64 -> Location -> IO ()
-updateLocation db lid l = do
-  modifyIORef (dbLocations db) (fmap (\x -> if lId x == lid then l else x))
-
-deleteLocation :: Database -> Int64 -> IO ()
-deleteLocation db lid = do
-  modifyIORef (dbLocations db) (filter (\l -> lId l /= lid))
+  ls <- readIORef (dbLocations db)
+  return $ drop offset $ take limit ls
 
 -- Bills
-queryBills :: Database -> Int -> Int -> Maybe Int -> Maybe Int -> IO [Bill]
-queryBills db limit offset _mtype _mperson = do
-  xs <- readIORef (dbBills db)
-  pure . take limit $ drop offset xs
-
-queryBillById :: Database -> Int64 -> IO (Maybe Bill)
-queryBillById db bid = do
-  xs <- readIORef (dbBills db)
-  pure $ find (\b -> bId b == bid) xs
-
-queryBillLines :: Database -> Int64 -> IO [(Int64, Double)]
-queryBillLines _db _bid = pure []
-
-insertBill :: Database -> Bill -> IO Int64
-insertBill db b = do
-  modifyIORef (dbBills db) (b :)
-  pure $ bId b
-
-postBill :: Database -> Int64 -> IO Bool
-postBill _db _bid = pure True
+queryBills :: Database -> Int -> Int -> IO [Bill]
+queryBills db limit offset = do
+  bs <- readIORef (dbBills db)
+  return $ drop offset $ take limit bs
 
 -- Stock
-queryStock :: Database -> Maybe Int64 -> Maybe Int64 -> IO [Stock]
-queryStock db mgid mlid = do
-  xs <- readIORef (dbStock db)
-  pure $ case (mgid, mlid) of
-    (Just gid, Just lid) -> filter (\s -> sGoodsId s == gid && sLocationId s == lid) xs
-    (Just gid, Nothing) -> filter (\s -> sGoodsId s == gid) xs
-    (Nothing, Just lid) -> filter (\s -> sLocationId s == lid) xs
-    (Nothing, Nothing) -> xs
+queryStock :: Database -> Int -> Int -> IO [Stock]
+queryStock db limit offset = do
+  st <- readIORef (dbStock db)
+  return $ drop offset $ take limit st
 
-reserveStock :: Database -> Int64 -> Int64 -> Double -> IO Bool
-reserveStock _db _gid _lid _qty = pure True
+-- Find operations
+findPersonById :: Database -> Int64 -> IO (Maybe Person)
+findPersonById db pid = do
+  ps <- readIORef (dbPersons db)
+  return $ find (\p -> pId p == pid) ps
+
+findGoodsById :: Database -> Int64 -> IO (Maybe Goods)
+findGoodsById db gid = do
+  gs <- readIORef (dbGoods db)
+  return $ find (\g -> gId g == gid) gs
+
+findLocationById :: Database -> Int64 -> IO (Maybe Location)
+findLocationById db lid = do
+  ls <- readIORef (dbLocations db)
+  return $ find (\l -> lId l == lid) ls
+
+-- Insert operations
+insertPerson :: Database -> Person -> IO ()
+insertPerson db p = modifyIORef (dbPersons db) (p :)
+
+insertGoods :: Database -> Goods -> IO ()
+insertGoods db g = modifyIORef (dbGoods db) (g :)
+
+insertLocation :: Database -> Location -> IO ()
+insertLocation db l = modifyIORef (dbLocations db) (l :)
+
+insertBill :: Database -> Bill -> IO ()
+insertBill db b = modifyIORef (dbBills db) (b :)
+
+insertStock :: Database -> Stock -> IO ()
+insertStock db s = modifyIORef (dbStock db) (s :)

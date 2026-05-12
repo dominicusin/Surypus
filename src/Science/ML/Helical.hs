@@ -1,8 +1,7 @@
-module Science.ML.Helical where
+module Science.ML.Helical
   ( HelicalConfig (..),
-    generateReport,
-  )
-where
+    generateReport
+  ) where
 
 import Data.Text (Text)
 import qualified Data.Text as T

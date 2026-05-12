@@ -1,7 +1,7 @@
 {-@ LIQUID "--no-termination" @-}
 
 -- | Temporary cash check accumulator inspired by AddTempCheckAmounts.
-module Commerce.CashSessionTemp  where
+module Commerce.CashSessionTemp
   ( TempCashCheck,
     TempCheckLine,
     emptyTempCashCheck,
@@ -10,9 +10,8 @@ module Commerce.CashSessionTemp  where
     totalAmount,
     totalDiscount,
     netAmount,
-    verifyCheck,
-  )
-where
+    verifyCheck
+  ) where
 
 import Data.Int (Int64)
 

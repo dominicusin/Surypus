@@ -1,8 +1,9 @@
 module Shared.Mesh.ServiceMesh where
 
-import Control.Concurrent.STM (TVar, atomically, newTVarIO, readTVar, writeTVar)
+import Control.Concurrent.STM (TVar, atomically, newTVarIO, readTVar, writeTVar, readTVarIO)
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
+import Data.Time.Clock (UTCTime, NominalDiffTime)
 -- import Network.HTTP.Types (status200, status503)
 -- import qualified Network.Wai as Wai
 
@@ -43,7 +44,7 @@ data Trace = Trace
   { traceId :: Text,
     spanId :: Text,
     parentSpanId :: Maybe Text,
-    serviceName :: Text,
+    spanServiceName :: Text,
     operationName :: Text,
     startTime :: UTCTime,
     duration :: NominalDiffTime,
@@ -61,33 +62,32 @@ data LogEntry = LogEntry
 
 -- | Initialize service mesh
 initServiceMesh :: ServiceMeshConfig -> IO ServiceMesh
-
-initMesh config = do
+initServiceMesh config = do
   servicesVar <- newTVarIO Map.empty
   routingVar <- newTVarIO Map.empty
-  obs <-
-    newTVarIO
-      ObservabilityData
-        { traces = newTVarIO [],
-          metrics = newTVarIO [],
-          logs = newTVarIO []
-        }
-  return $ ServiceMesh config servicesVar routingVar obs
+  tracesVar <- newTVarIO []
+  metricsVar <- newTVarIO []
+  logsVar <- newTVarIO []
+  obsVar <- newTVarIO $ ObservabilityData
+    { traces = tracesVar,
+      metrics = metricsVar,
+      logs = logsVar
+    }
+  return $ ServiceMesh config servicesVar routingVar obsVar
 
 -- | Register service in mesh
 registerService :: ServiceMesh -> MeshService -> IO ()
-
-registerMesh mesh service = atomically $ do
+registerService mesh service = atomically $ do
   servs <- readTVar (meshServices mesh)
   writeTVar (meshServices mesh) (Map.insert (serviceName service) service servs)
 
 -- | Route request through mesh
-routeRequest :: ServiceMesh -> Wai.Request -> IO (Wai.Response, IO ())
-routeRequest mesh req = do
-  routing <- readTVarIO (meshRoutingTable mesh)
-  -- Implement routing logic
-  let response = responseLBS status200 [("Content-Type", "application/json")] "{\"status\":\"ok\"}"
-  return (response, return ())
+-- routeRequest :: ServiceMesh -> Wai.Request -> IO (Wai.Response, IO ())
+-- routeRequest mesh req = do
+--   routing <- readTVarIO (meshRoutingTable mesh)
+--   -- Implement routing logic
+--   let response = responseLBS status200 [("Content-Type", "application/json")] "{\"status\":\"ok\"}"
+--   return (response, return ())
 
 -- | Service discovery via mesh
 meshDiscover :: ServiceMesh -> Text -> IO (Maybe MeshService)
@@ -97,11 +97,13 @@ meshDiscover mesh name = do
 
 -- | Collect metrics from all services
 collectMeshMetrics :: ServiceMesh -> IO [(Text, Double)]
-collectMeshMetrics mesh = readTVarIO (meshMetrics mesh)
+collectMeshMetrics mesh = do
+  obs <- readTVarIO (meshObservability mesh)
+  readTVarIO (metrics obs)
 
 -- | Enable distributed tracing
-traceRequest :: ServiceMesh -> Wai.Request -> IO ()
-traceRequest mesh req = atomically $ do
-  obs <- readTVar (meshObservability mesh)
-  -- Add trace logic
-  return ()
+-- traceRequest :: ServiceMesh -> Wai.Request -> IO ()
+-- traceRequest mesh req = atomically $ do
+--   obs <- readTVar (meshObservability mesh)
+--   -- Add trace logic
+--   return ()

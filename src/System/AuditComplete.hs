@@ -1,19 +1,23 @@
 module System.AuditComplete where
 
-import Control.Concurrent.STM (TVar, newTVarIO, readTVar, writeTVar, atomically)
+import Control.Concurrent.STM (TVar, STM, newTVarIO, readTVar, writeTVar, atomically, readTVarIO)
+import Control.Monad (when)
+import qualified Data.Map.Strict as Map
 import Data.Text (Text)
+import qualified Data.Text as T
 import qualified Data.UUID as UUID
 import qualified Data.ByteString.Lazy as BL
-import Data.Time.Clock (UTCTime)
-import Data.Aeson (ToJSON, encode)
+import Data.Time.Clock (UTCTime, getCurrentTime, addUTCTime)
+import Data.Aeson (ToJSON, encode, Value)
+import Data.Aeson.Types (object, (.=))
 
 -- | Audit severity levels with numeric values for filtering
 data AuditSeverity
-  = DebugS = 100
-  | InfoS = 200
-  | WarningS = 300
-  | ErrorS = 400
-  | CriticalS = 500
+  = DebugS
+  | InfoS
+  | WarningS
+  | ErrorS
+  | CriticalS
   deriving (Show, Eq, Ord, Enum, Bounded)
 
 -- | Complete audit event with full context
@@ -33,7 +37,11 @@ data AuditEventComplete = AuditEventComplete
     auditUserAgent :: Maybe Text,
     auditRequestPath :: Maybe Text,
     auditStatusCode :: Maybe Int
-  }
+  } deriving (Show)
+
+-- Stub ToJSON instance
+instance ToJSON AuditEventComplete where
+  toJSON _ = object ["stub" .= ("audit-event" :: Text)]
 
 -- | Audit storage with compliance guarantees
 data AuditStorage = AuditStorage
@@ -57,22 +65,23 @@ initAuditComplete retentionDays compliance = do
 
 -- | Write audit event with full compliance
 writeAuditComplete :: AuditStorage -> AuditEventComplete -> IO ()
-writeAuditComplete audit event = atomically $ do
+writeAuditComplete audit event = do
   -- Add to buffer
-  buffer <- readTVar (auditBuffer audit)
-  let newBuffer = event : take 10000 buffer  -- Keep last 10k events
-  writeTVar (auditBuffer audit) newBuffer
-  
-  -- Update indices
-  updateIndices audit event
-  
-  -- Enforce retention if in compliance mode
+  atomically $ do
+    buffer <- readTVar (auditBuffer audit)
+    let newBuffer = event : take 10000 buffer  -- Keep last 10k events
+    writeTVar (auditBuffer audit) newBuffer
+    -- Update indices
+    updateIndices audit event
+
+  -- Enforce retention if in compliance mode (outside STM)
   when (auditComplianceMode audit) $ do
     now <- getCurrentTime
     let cutoff = addUTCTime (negate $ fromIntegral (auditRetentionDays audit * 24 * 3600)) now
-    buffer' <- readTVar (auditBuffer audit)
-    let valid = filter (\e -> auditTimestamp e > cutoff) buffer'
-    writeTVar (auditBuffer audit) valid
+    atomically $ do
+      buffer' <- readTVar (auditBuffer audit)
+      let valid = filter (\e -> auditTimestamp e > cutoff) buffer'
+      writeTVar (auditBuffer audit) valid
 
 -- | Update all indices
 updateIndices :: AuditStorage -> AuditEventComplete -> STM ()
@@ -94,30 +103,38 @@ queryAuditComplete audit mSource mSeverity minTime maxTime = do
 -- | Apply filter predicates
 applyFilters :: Maybe AuditSeverity -> Maybe UTCTime -> Maybe UTCTime -> AuditEventComplete -> Bool
 applyFilters mSeverity minTime maxTime event =
-  maybe True (>=) mSeverity (Just $ auditSeverity event) &&
-  maybe True (auditTimestamp event >=) minTime &&
-  maybe True (auditTimestamp event <=) maxTime
+  let severityOk = case mSeverity of
+        Nothing -> True
+        Just s -> auditSeverity event >= s
+      timeMinOk = case minTime of
+        Nothing -> True
+        Just t -> auditTimestamp event >= t
+      timeMaxOk = case maxTime of
+        Nothing -> True
+        Just t -> auditTimestamp event <= t
+  in severityOk && timeMinOk && timeMaxOk
 
 -- | Export audit data in various formats
-exportAuditData :: AuditStorage -> BL.ByteString -> IO (Either Text BL.ByteString)
+exportAuditData :: AuditStorage -> Text -> IO (Either Text BL.ByteString)
 exportAuditData audit format = do
   events <- readTVarIO (auditBuffer audit)
   case format of
-    "json" -> return $ Right $ encode events
-    "compact" -> return $ Right $ BL.pack $ show events
-    _ -> return $ Left "Unsupported format"
+    f | f == T.pack "json" -> return $ Right $ encode events
+    f | f == T.pack "compact" -> return $ Right $ BL.pack $ map (fromIntegral . fromEnum) $ show events
+    _ -> return $ Left (T.pack "Unsupported format")
 
 -- | Generate compliance report
-generateComplianceReport :: AuditStorage -> IO BL.ByteString
-generateComplianceReport audit = do
+generatComplianceReport :: AuditStorage -> IO Text
+generatComplianceReport audit = do
   events <- readTVarIO (auditBuffer audit)
-  let report = mconcat $
-        [ "Compliance Report\n"
-        , "Total Events: " <> BL.pack (show (length events)) <> "\n"
-        , "Severity Breakdown: " <> BL.pack (show $ countSeverities events) <> "\n"
+  let report = T.unlines $
+        [ T.pack "Compliance Report"
+        , T.pack "Total Events: " <> T.pack (show (length events))
+        , T.pack "Severity Breakdown: " <> T.pack (show $ countSeverities events)
         ]
   return report
   where
+    countSeverities :: [AuditEventComplete] -> [(AuditSeverity, Int)]
     countSeverities = undefined  -- Implementation placeholder
 
 -- | Real-time audit streaming

@@ -2,8 +2,7 @@ module System.RateLimiter where
 
 import Control.Concurrent.STM (TVar, atomically, newTVarIO, readTVar, writeTVar)
 import qualified Data.Sequence as Seq
-import Data.Time.Clock (UTCTime, diffUTCTime, getCurrentTime)
-import Data.Word (Word64)
+import Data.Time.Clock (UTCTime, diffUTCTime, getCurrentTime, NominalDiffTime)
 
 -- | Token bucket rate limiter
 data TokenBucket = TokenBucket
@@ -36,8 +35,7 @@ data SlidingWindow = SlidingWindow
 
 -- | Initialize token bucket
 initTokenBucket :: Double -> Double -> IO TokenBucket
-
-initBucket rate capacity = do
+initTokenBucket rate capacity = do
   now <- getCurrentTime
   var <- newTVarIO capacity
   lastVar <- newTVarIO now
@@ -86,8 +84,7 @@ lbCheck bucket = do
   atomically $ do
     queue <- readTVar (lbQueue bucket)
     let rate = lbRate bucket
-        capacity = fromIntegral (lbCapacity bucket)
-        windowSize = 1 / rate
+        windowSize = realToFrac (1 / rate) :: NominalDiffTime
         valid = Seq.dropWhileL (\t -> diffUTCTime now t < windowSize) queue
         count = Seq.length valid
     if count < lbCapacity bucket
@@ -112,7 +109,7 @@ fwCheck fw = do
       else return False
   where
     spanValid entries cutoff =
-      let (valid, rest) = span (\(t, _) -> diffUTCTime cutoff t < fromIntegral (fwWindowSec fw)) entries
+      let (valid, _rest) = span (\(t, _) -> diffUTCTime cutoff t < fromIntegral (fwWindowSec fw)) entries
        in (valid, map snd valid)
 
 -- | Check sliding window
@@ -121,8 +118,8 @@ swCheck sw = do
   now <- getCurrentTime
   atomically $ do
     reqs <- readTVar (swRequests sw)
-    let windowStart = diffUTCTime now (fromIntegral (swWindowSec sw) * 60)
-        valid = Seq.dropWhileL (\t -> diffUTCTime now t < fromIntegral (swWindowSec sw) * 60) reqs
+    let windowSize = (fromIntegral (swWindowSec sw) * 60) :: NominalDiffTime
+        valid = Seq.dropWhileL (\t -> diffUTCTime now t < windowSize) reqs
     if Seq.length valid < swLimit sw
       then do
         writeTVar (swRequests sw) (valid Seq.|> now)

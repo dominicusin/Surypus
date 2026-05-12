@@ -148,41 +148,10 @@ library
           System.AuditComplete
           System.Alert
           System.Auth
-          System.Session
+          System.Metrics
           System.Cache
           System.Cron
           System.Jobs
-          System.Metrics
-          System.MetricsCollector
-          System.MetricsExport
-          System.HealthCheck
-          System.RateLimiter
-          System.RateLimiterAdvanced
-          System.Retry
-          System.CircuitBreakerAdaptive
-          System.CircuitBreakerBulkhead
-          System.CircuitBreakerBulkheadAdvanced
-          System.CircuitBreakerBulkheadFull
-          System.CircuitBreakerBulkheadFullWithMetrics
-          System.CircuitBreakerChained
-          System.CircuitBreakerCircuit
-          System.CircuitBreakerExtended
-          System.CircuitBreakerFull
-          System.CircuitBreakerFullAdvanced
-          System.CircuitBreakerFullTopology
-          System.CircuitBreakerFullWithMetrics
-          System.CircuitBreakerSelfHealing
-          System.CircuitBreakerWrapper
-          System.ClockSync
-          System.Discovery
-          System.LoadBalancer
-          System.Secrets
-          System.Transform
-          System.Monitoring
-          System.Scheduler
-          System.SchedulerJob
-          System.Hardware
-          System.Codes.ExtCode
           Infrastructure
           Infrastructure.Backup
           Infrastructure.BackupManager
@@ -282,11 +251,13 @@ library
     , stm >=2.5
     , directory >=1.3
     , filepath >=1.4
-        , wai >=3.2
+    , wai >=3.2
     , warp >=3.3
+    , servant >=0.20
     , servant-server >=0.20
     , http-types >=0.12
     , fast-logger >=3.2
     , random >=1.2
     , bytestring >=0.11
+    , lens >=5.2
     

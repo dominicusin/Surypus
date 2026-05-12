@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module HR.Person where
+module HR.Person
   ( Person (..),
     PersonFlags (..),
     PersonKind (..),
@@ -7,9 +7,8 @@ module HR.Person where
     validateINN,
     validateKPP,
     validatePhone,
-    validateEmail,
-  )
-where
+    validateEmail
+  ) where
 
 import Data.Int (Int64)
 import Data.Text (Text)

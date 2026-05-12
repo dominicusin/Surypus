@@ -1,9 +1,8 @@
 module System.ClockSync where
 
-import Control.Concurrent.STM (TVar, atomically, newTVarIO, readTVar, writeTVar)
+import Control.Concurrent.STM (TVar, atomically, newTVarIO, readTVar, readTVarIO, writeTVar)
 import Data.List (sort)
-import Data.Time.Clock (UTCTime, diffUTCTime, getCurrentTime, NominalDiffTime)
-import System.Clock (Clock(Monotonic), getTime, TimeSpec(..))
+import Data.Time.Clock (UTCTime, diffUTCTime, getCurrentTime, NominalDiffTime, addUTCTime)
 
 -- | Clock synchronization configuration
 data ClockSyncConfig = ClockSyncConfig
@@ -30,12 +29,8 @@ initClockSync config = do
 -- | Measure clock offset
 measureClockOffset :: ClockSync -> IO NominalDiffTime
 measureClockOffset sync = do
-  -- Get system monotonic time
-  t1 <- fmap toNominalDiffTime $ getTime Monotonic
-  -- Get system UTC time
-  t2 <- getCurrentTime
-  -- Calculate offset (simplified)
-  return $ 0 -- Placeholder
+  -- Simplified: return 0 offset
+  return 0
 
 -- | Synchronize clocks
 synchronizeClocks :: ClockSync -> IO ()
@@ -44,10 +39,11 @@ synchronizeClocks sync = do
   let validOffsets = filter (\o -> abs o <= syncTolerance (clockConfig sync)) offsets
   case validOffsets of
     [] -> return ()
-    os -> atomically $ do
-      writeTVar (clockOffsets sync) os
+    os -> do
       now <- getCurrentTime
-      writeTVar (lastSyncTime sync) now
+      atomically $ do
+        writeTVar (clockOffsets sync) os
+        writeTVar (lastSyncTime sync) now
 
 -- | Get synchronized time
 getSyncTime :: ClockSync -> IO UTCTime
@@ -56,10 +52,6 @@ getSyncTime sync = do
   now <- getCurrentTime
   let avgOffset = if null offsets then 0 else sum offsets / fromIntegral (length offsets)
   return $ addUTCTime avgOffset now
-
--- | Convert system clock to nominal diff time
-toNominalDiffTime :: TimeSpec -> NominalDiffTime
-toNominalDiffTime (TimeSpec s ns) = fromIntegral s + fromIntegral ns * 1e-9
 
 -- | Check if clocks are synchronized
 areClocksSynced :: ClockSync -> IO Bool

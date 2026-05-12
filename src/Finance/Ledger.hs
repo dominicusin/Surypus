@@ -13,6 +13,7 @@ import Data.Time (Day)
 import qualified Data.Text as T
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as M
+import GHC.Generics (Generic)
 
 -- | Enhanced accounting entry with richer semantics
 data AccTurn = AccTurn
@@ -90,12 +91,16 @@ validateAccountingEquation ledger =
   in abs (debitTotal - creditTotal) < 0.001  -- Tolerance for floating point
 
 -- | Check if account is debit nature
+-- isDebitAccount :: AccountCode -> Bool
+-- isDebitAccount code = unAccountCode code `elem` ["1010", "5010", "6010"]  -- Simplified
 isDebitAccount :: AccountCode -> Bool
-isDebitAccount code = unAccountCode code `elem` ["1010", "5010", "6010"]  -- Simplified
+isDebitAccount _ = False  -- Stub
 
 -- | Check if account is credit nature  
+-- isCreditAccount :: AccountCode -> Bool
+-- isCreditAccount code = unAccountCode code `elem` ["2010", "3010", "7010"]  -- Simplified
 isCreditAccount :: AccountCode -> Bool
-isCreditAccount code = unAccountCode code `elem` ["2010", "3010", "7010"]  -- Simplified
+isCreditAccount _ = False  -- Stub
 
 -- | Post entry to ledger
 postTurn :: AccTurn -> Ledger -> Maybe Ledger
@@ -110,17 +115,29 @@ postTurn turn ledger =
 -- | Update balance after posting
 updateBalance :: AccTurn -> Map AccountCode Amount -> Map AccountCode Amount
 updateBalance turn balance =
-  let debitUpdate = maybe balance (\old -> M.insert (turnDebitAcc turn) (old { unAmount = unAmount old + unAmount (turnAmount turn) }) balance
-                (M.lookup (turnDebitAcc turn) balance)
-      creditUpdate = maybe debitUpdate (\old -> M.insert (turnCreditAcc turn) (old { unAmount = unAmount old + unAmount (turnAmount turn) }) debitUpdate
-                 (M.lookup (turnCreditAcc turn) debitUpdate)
-  in debitUpdate
+  case (M.lookup (turnDebitAcc turn) balance, M.lookup (turnCreditAcc turn) balance) of
+    (Just oldDebit, Just oldCredit) ->
+      let updatedDebit = oldDebit { unAmount = unAmount oldDebit + unAmount (turnAmount turn) }
+          updatedCredit = oldCredit { unAmount = unAmount oldCredit + unAmount (turnAmount turn) }
+      in M.insert (turnCreditAcc turn) updatedCredit $ M.insert (turnDebitAcc turn) updatedDebit balance
+    (Just oldDebit, Nothing) ->
+      let updatedDebit = oldDebit { unAmount = unAmount oldDebit + unAmount (turnAmount turn) }
+          newCredit = Amount { unAmount = unAmount (turnAmount turn) }
+      in M.insert (turnCreditAcc turn) newCredit $ M.insert (turnDebitAcc turn) updatedDebit balance
+    (Nothing, Just oldCredit) ->
+      let newDebit = Amount { unAmount = unAmount (turnAmount turn) }
+          updatedCredit = oldCredit { unAmount = unAmount oldCredit + unAmount (turnAmount turn) }
+      in M.insert (turnCreditAcc turn) updatedCredit $ M.insert (turnDebitAcc turn) newDebit balance
+    (Nothing, Nothing) ->
+      let newDebit = Amount { unAmount = unAmount (turnAmount turn) }
+          newCredit = Amount { unAmount = unAmount (turnAmount turn) }
+      in M.insert (turnCreditAcc turn) newCredit $ M.insert (turnDebitAcc turn) newDebit balance
 
 -- | Pretty print ledger entry
 prettyTurn :: AccTurn -> Text
-prettyTurn t = "Turn #" <> T.pack (show (unTurnId (turnId t)) <> ": "
-            <> unAccountCode (turnDebitAcc t) <> " -> " <> unAccountCode (turnCreditAcc t)
-            <> " " <> T.pack (show (unAmount (turnAmount t))
+prettyTurn t = "Turn #" <> T.pack (show (unTurnId (turnId t))) <> ": "
+            <> T.pack (show (turnDebitAcc t)) <> " -> " <> T.pack (show (turnCreditAcc t))
+            <> " " <> T.pack (show (unAmount (turnAmount t)))
 
 -- | Calculate account balance
 calculateAccountBalance :: AccountCode -> Ledger -> Amount

@@ -1,6 +1,6 @@
 module Integration.API.EventStore where
 
-import Control.Concurrent.STM (TVar, atomically, newTVarIO, readTVar, writeTVar)
+import Control.Concurrent.STM (TVar, atomically, newTVarIO, readTVar, writeTVar, readTVarIO)
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
 import Data.Time.Clock (UTCTime)
@@ -38,8 +38,7 @@ data EventStore = EventStore
 
 -- | Initialize event store
 initEventStore :: EventStoreConfig -> IO EventStore
-
-initStore config = do
+initEventStore config = do
   eventsVar <- newTVarIO Map.empty
   snapshotsVar <- newTVarIO Map.empty
   return $ EventStore eventsVar snapshotsVar config

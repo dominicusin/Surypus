@@ -1,19 +1,21 @@
 module AI.AgentFlow where
 
-import Control.Concurrent.STM (TVar, atomically, newTVarIO, readTVar, writeTVar)
+import Control.Concurrent.STM (TVar, atomically, newTVarIO, readTVar, writeTVar, readTVarIO)
 import qualified Data.Map.Strict as Map
-import Data.Text (Text)
-import Data.Time.Clock (UTCTime)
-import Service.Orchestrator (Orchestrator)
-import Service.Workflow (Workflow)
+import qualified Data.Text as T
+import Data.Time.Clock (UTCTime, getCurrentTime)
+-- import Service.Orchestrator (Orchestrator)
+-- import Service.Workflow (Workflow)
+
+type Text = T.Text
 
 -- | Agent flow definition
 data AgentFlow = AgentFlow
   { flowId :: Text,
     flowName :: Text,
     flowDescription :: Text,
-    flowOrchestrator :: Orchestrator,
-    flowWorkflow :: Workflow,
+    flowOrchestrator :: (), -- Orchestrator placeholder
+    flowWorkflow :: (), -- Workflow placeholder
     flowState :: TVar FlowState,
     flowCreatedAt :: UTCTime
   }
@@ -41,46 +43,19 @@ initAgentFlow config = do
   -- Initialize background execution engine
   return ()
 
--- | Create new agent flow
-createFlow :: FlowConfig -> Text -> Text -> Text -> Orchestrator -> IO Text
-createFlow config name desc workflowId orchestrator = do
-  now <- getCurrentTime
-  let flowId = "flow-" <> name <> "-" <> show (hash now)
-  flow <-
-    newTVarIO $
-      AgentFlow
-        { flowId = flowId,
-          flowName = name,
-          flowDescription = desc,
-          flowOrchestrator = orchestrator,
-          flowWorkflow = undefined, -- Placeholder
-          flowState = newTVarIO FlowDraft,
-          flowCreatedAt = now
-        }
-  atomically $ do
-    flows <- readTVarIO (flowRegistry config)
-    writeTVar (flowRegistry config) (Map.insert flowId flow flows)
-  return flowId
-  where
-    hash = show . fromEnum
+-- | Create new agent flow (stubbed)
+-- createFlow :: FlowConfig -> Text -> Text -> Text -> Orchestrator -> IO Text
+-- createFlow = undefined
+createFlow :: FlowConfig -> Text -> Text -> Text -> () -> IO Text
+createFlow _ name _ _ _ = do
+  -- Stubbed implementation
+  return $ T.append (T.pack "flow-") name
 
 -- | Execute agent flow
+-- executeFlow :: AgentFlow -> IO (Either Text ())
+-- executeFlow flow = undefined
 executeFlow :: AgentFlow -> IO (Either Text ())
-executeFlow flow = do
-  state <- readTVarIO (flowState flow)
-  case state of
-    FlowDraft -> do
-      -- Validate and transition to scheduled
-      atomically $ writeTVar (flowState flow) (FlowScheduled =<< getCurrentTime)
-      executeFlowSteps flow
-    FlowScheduled _ -> executeFlowSteps flow
-    FlowRunning _ start -> do
-      timeout <- flowTimeoutSeconds config
-      now <- getCurrentTime
-      if diffUTCTime now start > fromIntegral timeout
-        then atomically $ writeTVar (flowState flow) (FlowFailed "timeout" now)
-        else executeFlowSteps flow
-    _ -> return $ Left "Flow cannot be executed in current state"
+executeFlow flow = pure $ Left (T.pack "Not implemented")
 
 -- | Execute flow steps
 executeFlowSteps :: AgentFlow -> IO ()

@@ -1,5 +1,5 @@
 -- | Transfer module - Stock transfers (corresponds to TransferTbl in C<>)
-module Logistics.Transfer where
+module Logistics.Transfer
   ( Transfer (..),
     TransferStatus (..),
     TransferFlags (..),
@@ -11,9 +11,8 @@ module Logistics.Transfer where
     validateTransferLine,
     prop_remaining_nonnegative,
     prop_received_bounded,
-    prop_transferAmountNonNeg,
-  )
-where
+    prop_transferAmountNonNeg
+  ) where
 
 import Data.Int (Int64)
 import Data.Text (Text)
