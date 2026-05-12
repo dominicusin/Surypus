@@ -175,7 +175,7 @@ server env =
           :<|> empGet
           :<|> salariesList
           :<|> salaryGet
-      reportsHandler = reportsList :<|> reportsMeta :<|> reportsTemplates :<|> reportGet :<|> reportJrxml
+      reportsHandler = reportsList :<|> reportsMeta :<|> reportsTemplates env :<|> reportGet env :<|> reportJrxml
       dashboardHandler = dashboardGet
       -- Balance REST endpoint (Phase 3)
       balanceRESTServer = balanceHandler
@@ -236,7 +236,7 @@ meHandler' = pure $ CurrentUserResponse 1 "admin" "admin"
 refreshHandler' :: Env -> JWTConfig -> Root.RefreshRequest -> Handler Root.RefreshResponse
 refreshHandler' env jwtCfg (Root.RefreshRequest {refreshToken = token}) = do
   -- Validate the refresh token (basic format check)
-  result <- liftIO $ validateRefreshToken token
+  result <- liftIO $ validateRefreshToken jwtCfg token
   case result of
     Left _err -> throwError err401 {errBody = "Invalid refresh token"}
     Right payload -> do
@@ -1057,8 +1057,16 @@ reportsList _ = do
     toReportResponse (ReportTemplate {rtId = rid, rtName = rname}) =
       ReportResponse rid rname
 
-reportsMeta :: Handler ReportsMetadataResponse
-reportsMeta = pure $ ReportsMetadataResponse []
+reportsMeta :: Env -> Handler ReportsMetadataResponse
+reportsMeta env = do
+  let pool = envPool env
+  result <- liftIO $ DAL.Queries.getReports pool
+  case result of
+    QuerySuccess reports -> pure $ ReportsMetadataResponse (map toMetaResponse reports)
+    QueryError _ -> pure $ ReportsMetadataResponse []
+  where
+    toMetaResponse :: ReportTemplate -> Text
+    toMetaResponse (ReportTemplate {rtId = rid, rtName = rname}) = T.concat [rtName, " (", T.pack (show rid), ")"]
 
 reportsTemplates :: Env -> Handler ReportsResponse
 reportsTemplates _ = do
@@ -1073,7 +1081,13 @@ reportsTemplates _ = do
       ReportResponse rid rname
 
 reportGet :: Int64 -> Handler ReportResponse
-reportGet _ = pure $ ReportResponse 1 "Demo"
+reportGet :: Env -> Int64 -> Handler ReportResponse
+reportGet env rid = do
+  let pool = envPool env
+  result <- liftIO $ DAL.Queries.getReportById pool rid
+  case result of
+    QuerySuccess report -> pure $ ReportResponse (rtId report) (rtName report)
+    QueryError _ -> throwError $ err404 {errBody = "Report not found"}
 
 reportJrxml :: Text -> Handler ReportJRXMLResponse
 reportJrxml _ = pure $ ReportJRXMLResponse "" ""

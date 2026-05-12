@@ -9,23 +9,20 @@ module Surypus.RefreshTokenRepo
   )
 where
 
-import Control.Exception (try)
 import Data.Functor.Contravariant ((>$<))
 import Data.Int (Int64)
 import Data.Text (Text)
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
 import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
-import Hasql.Statement (Statement (..))
-import qualified Data.Text.Encoding as TE
+import qualified Hasql.Statement as S
 
-import DAL.Types (QueryResult (..))
-
--- | Helper to create non-prepared statements (old hasql API compatibility)
-unpreparable :: T.Text -> E.Params params -> D.Result result -> Statement params result
-unpreparable sql encoder decoder = Statement (TE.encodeUtf8 sql) encoder decoder False
+-- | Helper to create statements using the surypus-api pattern
+unpreparable :: T.Text -> E.Params params -> D.Result result -> S.Statement params result
+unpreparable sql encoder decoder = S.Statement (TE.encodeUtf8 sql) encoder decoder True
 
 -- | Store a new refresh token
 storeRefreshToken :: Pool -> Int64 -> Text -> Text -> IO (Either Text ())
@@ -74,6 +71,13 @@ rotateStoredRefreshToken pool oldToken newToken expiresAtText = do
         Left err -> pure $ Left $ T.pack $ show err
         Right () -> pure $ Right userId
     Right Nothing -> pure $ Left "Refresh token not found"
+  where
+    fst3 :: (a, b, c) -> a
+    fst3 (x, _, _) = x
+    snd3 :: (a, b, c) -> b
+    snd3 (_, x, _) = x
+    trd3 :: (a, b, c) -> c
+    trd3 (_, _, x) = x
 
 -- | Validate a refresh token and return user_id
 validateRefreshToken :: Pool -> Text -> IO (Either Text Int64)

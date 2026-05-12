@@ -255,6 +255,7 @@ library
           Surypus.RBAC
           Surypus.RBAC.Store
           Surypus.JWT
+          Surypus.RefreshTokenRepo
           Surypus.API.Authorization
           Surypus.API.AuthMiddleware
           Surypus.Database.Pool
