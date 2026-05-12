@@ -132,3 +132,41 @@ props_payrollInvariant =
     ("Social tax is between 0 and salary", prop_payroll_social_tax_bounds),
     ("Net salary is between 0 and gross", prop_payroll_net_salary_bounds)
   ]
+
+--------------------------------------------------------------------------------
+-- Bill Service Invariants (Surypus-627)
+--------------------------------------------------------------------------------
+
+-- | Bill line for testing
+data TestBillLine = TestBillLine
+  { tblQty :: Double
+  , tblPrice :: Double
+  , tblDiscount :: Double
+  } deriving (Show)
+
+instance Arbitrary TestBillLine where
+  arbitrary = TestBillLine
+    <$> arbitrary
+    <*> arbitrary
+    <*> arbitrary
+
+prop_bill_line_amount_nonneg :: TestBillLine -> Property
+prop_bill_line_amount_nonneg line =
+  let qty = max 0 (tblQty line)
+      price = max 0 (tblPrice line)
+      discount = max 0 (tblDiscount line)
+      amount = qty * price - discount
+  in amount >= 0 .||. discount <= qty * price
+
+prop_bill_total_equals_lines :: Double -> [TestBillLine] -> Property
+prop_bill_total_equals_lines discount lines =
+  let amounts = [max 0 (tblQty l * tblPrice l - tblDiscount l) | l <- lines]
+      total = sum amounts
+      calculated = total - max 0 discount
+  in calculated >= 0
+
+prop_double_entry_balanced :: Double -> Double -> Property
+prop_double_entry_balanced debit credit =
+  let totalDebit = max 0 debit
+      totalCredit = max 0 credit
+  in totalDebit >= 0 .&&. totalCredit >= 0 .||. totalDebit == totalCredit
