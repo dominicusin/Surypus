@@ -185,6 +185,7 @@ library
           API.Server
           API.Types
           API.V1
+          API.GraphQL.Proxy
           Reports
           Reports.Report
           Reports.Jasper
@@ -235,11 +236,30 @@ library
           DAL.File
           DAL.Attachment
           DAL.Types
+          DAL.EventStore
           Finance.AccSheet2
           Finance.Accounting
           Inventory.Types
           System.CircuitBreakerBulkheadFullWithMetrics
           System.Session
+          Infrastructure.EventStore.Accounting
+          Core.Accounting.ReadModel
+          Core.Accounting.Cache
+          Core.Services.Accounting
+          Domain.Accounting.Events
+          Surypus.RBAC
+          Surypus.RBAC.Store
+          Surypus.JWT
+          Surypus.API.Authorization
+          Surypus.API.AuthMiddleware
+          Surypus.Database.Pool
+          Surypus.Error
+          Surypus.Validation
+          Surypus.Metrics
+          Surypus.Foreign.QML
+          Surypus.Reports.Templates
+          Surypus.Reports.Conversion.CrystalTypes
+          Surypus.Reports.Conversion.CrystalToPdfSlave
 
   build-depends:
       base >=4.12 && <5
@@ -264,6 +284,7 @@ library
     , fast-logger >=3.2
     , random >=1.2
     , bytestring >=0.11
+    , http-client >=0.7
     , lens >=5.2
     , hspec >=2.11
 

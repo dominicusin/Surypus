@@ -73,11 +73,11 @@
 ## Phase 3 — Event Sourcing, Redis, GraphQL, WebSocket
 
 ### Epic: US-3 Event Sourcing
-- [ ] US-3-1: Accounts Event Store (P1, 8SP) — accounting_events table; append-only events; replay utility
-- [ ] US-3-2: Account read-model replay (P1, 5SP) — rebuild balances from event stream
+- [x] US-3-1: Accounts Event Store (P1, 8SP) — accounting_events table; append-only events; replay utility
+- [x] US-3-2: Account read-model replay (P1, 5SP) — rebuild balances from event stream
 
 ### Epic: US-3 Infrastructure
-- [ ] US-3-3: Read models Redis cache (P2, 5SP) — Redis TTL caches 5-10s; Redis streams for events
+- [x] US-3-3: Read models Redis cache (P2, 5SP) — Redis TTL caches 5-10s; Redis streams for events
 - [ ] US-3-5: Redis Queue (P3, 5SP) — Redis/Bull for background tasks; retry on failure
 
 ### Epic: US-3 API Gateway
@@ -204,6 +204,6 @@
 | Status | Count |
 |--------|-------|
 | Done (Phase 2) | 12 |
-| Open (Phase 3) | 7 |
-| Done (General) | 42 |
+| Open (Phase 3) | 4 |
+| Done (General) | 48 |
 | **Total** | **61** |
