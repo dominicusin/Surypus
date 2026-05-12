@@ -293,6 +293,8 @@ library
      , lens >=5.2
      , hspec >=2.11
      , hasql >=1.10
+     , ekg-core >=0.1.2
+     , ekg >=0.4.0
 
 test-suite surypus-test
   type: exitcode-stdio-1.0

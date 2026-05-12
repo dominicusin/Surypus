@@ -237,11 +237,39 @@ currencyRowDecoder :: D.Row Currency
 currencyRowDecoder =
   Currency
     <$> D.column (D.nonNullable D.int8)
-    <*> D.column (D.nonNullable D.text)
-    <*> D.column (D.nonNullable D.text)
-    <*> D.column (D.nonNullable D.text)
-    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+    <*> D.column (D.nullable D.text)
+    <*> D.column (D.nullable D.text)
+    <*> D.column (D.nullable D.text)
+    <*> D.column (D.nonNullable D.numeric)
     <*> D.column (D.nonNullable D.bool)
+
+techCardRowDecoder =
+  TechCard
+    <$> D.column (D.nullable D.int8)
+    <*> D.column (D.nonNullable D.int8)
+    <*> D.column (D.nonNullable D.text)
+    <*> D.column (D.nonNullable D.text)
+    <*> (fromIntegral <$> D.column (D.nonNullable D.int2))
+    <*> D.column (D.nonNullable D.utcTime)
+    <*> D.column (D.nonNullable D.utcTime)
+    <*> D.column (D.nullable D.text)
+
+workOrderRowDecoder =
+  WorkOrder
+    <$> D.column (D.nullable D.int8)
+    <*> D.column (D.nonNullable D.text)
+    <*> D.column (D.nonNullable D.int8)
+    <*> D.column (D.nullable D.int8)
+    <*> D.column (D.nonNullable D.numeric)
+    <*> D.column (D.nonNullable D.numeric)
+    <*> (fromIntegral <$> D.column (D.nonNullable D.int2))
+    <*> D.column (D.nullable D.day)
+    <*> D.column (D.nullable D.day)
+    <*> D.column (D.nullable D.int8)
+    <*> D.column (D.nullable D.text)
+    <*> D.column (D.nonNullable D.utcTime)
+    <*> D.column (D.nonNullable D.utcTime)
+    <*> D.column (D.nullable D.text)
 
 dashboardStatsRowDecoder :: D.Row DashboardStats
 dashboardStatsRowDecoder =
@@ -1250,6 +1278,219 @@ getCurrencyById pool currencyId = do
   case res of
     Right (Just currency) -> pure $ QuerySuccess currency
     Right Nothing -> pure $ QueryError "Not Found"
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- | Get tech cards with optional filtering by goods_id and pagination
+getTechCards :: Pool -> Maybe Int64 -> Int -> Int -> IO (QueryResult [TechCard])
+getTechCards pool mGoodsId limit offset = do
+  let stmt =
+        preparable
+          "SELECT id, goods_id, name, version, status, created_at, updated_at, created_by FROM tech_card WHERE (? IS NULL OR goods_id = ?) ORDER BY id LIMIT ? OFFSET ?"
+          (((\(gid, _, _, _, _) -> gid) >$< E.param (E.nullable E.int8)) <>
+           ((\(_, gid', _, _, _) -> gid') >$< E.param (E.nullable E.int8)) <>
+           ((\(_, _, limit', _) -> limit') >$< E.param (E.nonNullable E.int4)) <>
+           ((\(_, _, _, offset') -> offset') >$< E.param (E.nonNullable E.int4)))
+          (D.rowList techCardRowDecoder)
+  res <- use pool $ Session.statement (mGoodsId, mGoodsId, limit, offset) stmt
+  case res of
+    Right cards -> pure $ QuerySuccess cards
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- | Get a tech card by id
+getTechCard :: Pool -> Int64 -> IO (QueryResult TechCard)
+getTechCard pool tcId = do
+  let stmt =
+        preparable
+          "SELECT id, goods_id, name, version, status, created_at, updated_at, created_by FROM tech_card WHERE id = $1"
+          (E.param (E.nonNullable E.int8))
+          (D.singleRow techCardRowDecoder)
+  res <- use pool $ Session.statement tcId stmt
+  case res of
+    Right (Just card) -> pure $ QuerySuccess card
+    Right Nothing -> pure $ QueryError "Not Found"
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- | Create a new tech card
+createTechCard :: Pool -> TechCard -> UTCTime -> Text -> IO (QueryResult TechCard)
+createTechCard pool input createTime userId = do
+  let stmt =
+        preparable
+          "INSERT INTO tech_card (goods_id, name, version, status, created_at, updated_at, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, goods_id, name, version, status, created_at, updated_at, created_by"
+          (((\(gid, _, _, _, _, _, _) -> gid) >$< E.param (E.nonNullable E.int8)) <>
+           ((\(_, name, _, _, _, _, _) -> name) >$< E.param (E.nonNullable E.text)) <>
+           ((\(_, _, version, _, _, _, _) -> version) >$< E.param (E.nonNullable E.text)) <>
+           ((\(_, _, _, status, _, _, _) -> (fromIntegral status :: Int16)) >$< E.param (E.nonNullable E.int2)) <>
+           ((\(_, _, _, _, createdAt, _, _) -> createdAt) >$< E.param (E.nonNullable E.utcTime)) <>
+           ((\(_, _, _, _, _, updatedAt, _) -> updatedAt) >$< E.param (E.nonNullable E.utcTime)) <>
+           ((\(_, _, _, _, _, _, createdBy) -> createdBy) >$< E.param (E.nullable E.text)))
+          (D.singleRow techCardRowDecoder)
+  res <- use pool $ Session.statement (tgGoodsId input, tgName input, tgVersion input, fromIntegral (tgStatus input), createTime, createTime, Just userId) stmt
+  case res of
+    Right (Just card) -> pure $ QuerySuccess card
+    Right Nothing -> pure $ QueryError "Failed to create tech card"
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- | Update an existing tech card
+updateTechCard :: Pool -> Int64 -> TechCard -> UTCTime -> Text -> IO (QueryResult TechCard)
+updateTechCard pool tcId input updateTime userId = do
+  let stmt =
+        preparable
+          "UPDATE tech_card SET name = $1, version = $2, status = $3, updated_at = $4, created_by = $5 WHERE id = $6 RETURNING id, goods_id, name, version, status, created_at, updated_at, created_by"
+          (((\(name, _, _, _, _, _, _) -> name) >$< E.param (E.nonNullable E.text)) <>
+           ((\(_, version, _, _, _, _, _) -> version) >$< E.param (E.nonNullable E.text)) <>
+           ((\(_, _, status, _, _, _, _) -> (fromIntegral status :: Int16)) >$< E.param (E.nonNullable E.int2)) <>
+           ((\(_, _, _, updatedAt, _, _, _) -> updatedAt) >$< E.param (E.nonNullable E.utcTime)) <>
+           ((\(_, _, _, _, createdBy, _, _) -> createdBy) >$< E.param (E.nullable E.text)) <>
+           ((\(_, _, _, _, _, tcId, _) -> tcId) >$< E.param (E.nonNullable E.int8)))
+          (D.singleRow techCardRowDecoder)
+  res <- use pool $ Session.statement (tgName input, tgVersion input, fromIntegral (tgStatus input), updateTime, Just userId, tcId) stmt
+  case res of
+    Right (Just card) -> pure $ QuerySuccess card
+    Right Nothing -> pure $ QueryError "Failed to update tech card"
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- | Delete a tech card
+deleteTechCard :: Pool -> Int64 -> IO (QueryResult ())
+deleteTechCard pool tcId = do
+  let stmt =
+        preparable
+          "DELETE FROM tech_card WHERE id = $1"
+          (E.param (E.nonNullable E.int8))
+          (D.noResult)
+  res <- use pool $ Session.statement tcId stmt
+  case res of
+    Right () -> pure $ QuerySuccess ()
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- | Get work orders with optional filtering by goods_id and pagination
+getWorkOrders :: Pool -> Maybe Int64 -> Int -> Int -> IO (QueryResult [WorkOrder])
+getWorkOrders pool mGoodsId limit offset = do
+  let stmt =
+        preparable
+          "SELECT id, code, goods_id, tech_card_id, qty_plan, qty_released, status, start_date, end_date, processor_id, notes, created_at, updated_at, created_by FROM work_order WHERE (? IS NULL OR goods_id = ?) ORDER BY id LIMIT ? OFFSET ?"
+          (((\(gid, _, _, _, _, _, _, _, _, _, _, _, _, _, _) -> gid) >$< E.param (E.nullable E.int8)) <>
+           ((\(_, gid', _, _, _, _, _, _, _, _, _, _, _, _, _) -> gid') >$< E.param (E.nullable E.int8)) <>
+           ((\(_, _, limit', _, _, _, _, _, _, _, _, _, _, _, _, _) -> limit') >$< E.param (E.nonNullable E.int4)) <>
+           ((\(_, _, _, offset', _, _, _, _, _, _, _, _, _, _, _, _) -> offset') >$< E.param (E.nonNullable E.int4)))
+          (D.rowList workOrderRowDecoder)
+  res <- use pool $ Session.statement (mGoodsId, mGoodsId, limit, offset) stmt
+  case res of
+    Right orders -> pure $ QuerySuccess orders
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- | Get a work order by id
+getWorkOrder :: Pool -> Int64 -> IO (QueryResult WorkOrder)
+getWorkOrder pool woId = do
+  let stmt =
+        preparable
+          "SELECT id, code, goods_id, tech_card_id, qty_plan, qty_released, status, start_date, end_date, processor_id, notes, created_at, updated_at, created_by FROM work_order WHERE id = $1"
+          (E.param (E.nonNullable E.int8))
+          (D.singleRow workOrderRowDecoder)
+  res <- use pool $ Session.statement woId stmt
+  case res of
+    Right (Just order) -> pure $ QuerySuccess order
+    Right Nothing -> pure $ QueryError "Not Found"
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- | Create a new work order
+createWorkOrder :: Pool -> WorkOrder -> UTCTime -> Text -> IO (QueryResult WorkOrder)
+createWorkOrder pool input createTime userId = do
+  let stmt =
+        preparable
+          "INSERT INTO work_order (code, goods_id, tech_card_id, qty_plan, qty_released, status, start_date, end_date, processor_id, notes, created_at, updated_at, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id, code, goods_id, tech_card_id, qty_plan, qty_released, status, start_date, end_date, processor_id, notes, created_at, updated_at, created_by"
+          (((\(code, _, _, _, _, _, _, _, _, _, _, _, _, _) -> code) >$< E.param (E.nonNullable E.text)) <>
+           ((\(_, goodsId, _, _, _, _, _, _, _, _, _, _, _, _, _) -> goodsId) >$< E.param (E.nonNullable E.int8)) <>
+           ((\(_, _, techCardId, _, _, _, _, _, _, _, _, _, _, _, _, _) -> techCardId) >$< E.param (E.nullable E.int8)) <>
+           ((\(_, _, _, qtyPlan, _, _, _, _, _, _, _, _, _, _, _, _) -> qtyPlan) >$< E.param (E.nonNullable E.numeric)) <>
+           ((\(_, _, _, _, qtyReleased, _, _, _, _, _, _, _, _, _, _, _) -> qtyReleased) >$< E.param (E.nonNullable E.numeric)) <>
+           ((\(_, _, _, _, _, status, _, _, _, _, _, _, _, _) -> (fromIntegral status :: Int16)) >$< E.param (E.nonNullable E.int2)) <>
+           ((\(_, _, _, _, _, _, startDate, _, _, _, _, _, _, _) -> startDate) >$< E.param (E.nullable E.date)) <>
+           ((\(_, _, _, _, _, _, _, endDate, _, _, _, _, _, _, _) -> endDate) >$< E.param (E.nullable E.date)) <>
+           ((\(_, _, _, _, _, _, _, processorId, _, _, _, _, _, _, _) -> processorId) >$< E.param (E.nullable E.int8)) <>
+           ((\(_, _, _, _, _, _, _, _, notes, _, _, _, _, _, _, _) -> notes) >$< E.param (E.nullable E.text)) <>
+           ((\(_, _, _, _, _, _, _, _, _, _, createdAt, _, _, _) -> createdAt) >$< E.param (E.nonNullable E.utcTime)) <>
+           ((\(_, _, _, _, _, _, _, _, _, _, _, updatedAt, _, _) -> updatedAt) >$< E.param (E.nonNullable E.utcTime)) <>
+           ((\(_, _, _, _, _, _, _, _, _, _, _, _, createdBy, _) -> createdBy) >$< E.param (E.nullable E.text)))
+          (D.singleRow workOrderRowDecoder)
+  res <- use pool $ Session.statement (woCode input, woGoodsId input, woTechCardId input, woQtyPlan input, woQtyReleased input, fromIntegral (woStatus input), woStartDate input, woEndDate input, woProcessorId input, woNotes input, createTime, createTime, Just userId) stmt
+  case res of
+    Right (Just order) -> pure $ QuerySuccess order
+    Right Nothing -> pure $ QueryError "Failed to create work order"
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- | Update an existing work order
+updateWorkOrder :: Pool -> Int64 -> WorkOrder -> UTCTime -> Text -> IO (QueryResult WorkOrder)
+updateWorkOrder pool woId input updateTime userId = do
+  let stmt =
+        preparable
+          "UPDATE work_order SET code = $1, goods_id = $2, tech_card_id = $3, qty_plan = $4, qty_released = $5, status = $6, start_date = $7, end_date = $8, processor_id = $9, notes = $10, updated_at = $11, created_by = $12 WHERE id = $13 RETURNING id, code, goods_id, tech_card_id, qty_plan, qty_released, status, start_date, end_date, processor_id, notes, created_at, updated_at, created_by"
+          (((\(code, _, _, _, _, _, _, _, _, _, _, _, _, _) -> code) >$< E.param (E.nonNullable E.text)) <>
+           ((\(_, goodsId, _, _, _, _, _, _, _, _, _, _, _, _, _) -> goodsId) >$< E.param (E.nonNullable E.int8)) <>
+           ((\(_, _, techCardId, _, _, _, _, _, _, _, _, _, _, _, _, _) -> techCardId) >$< E.param (E.nullable E.int8)) <>
+           ((\(_, _, _, qtyPlan, _, _, _, _, _, _, _, _, _, _, _, _) -> qtyPlan) >$< E.param (E.nonNullable E.numeric)) <>
+           ((\(_, _, _, _, qtyReleased, _, _, _, _, _, _, _, _, _, _, _) -> qtyReleased) >$< E.param (E.nonNullable E.numeric)) <>
+           ((\(_, _, _, _, _, status, _, _, _, _, _, _, _, _) -> (fromIntegral status :: Int16)) >$< E.param (E.nonNullable E.int2)) <>
+           ((\(_, _, _, _, _, _, startDate, _, _, _, _, _, _, _) -> startDate) >$< E.param (E.nullable E.date)) <>
+           ((\(_, _, _, _, _, _, _, endDate, _, _, _, _, _, _, _) -> endDate) >$< E.param (E.nullable E.date)) <>
+           ((\(_, _, _, _, _, _, _, processorId, _, _, _, _, _, _, _) -> processorId) >$< E.param (E.nullable E.int8)) <>
+           ((\(_, _, _, _, _, _, _, _, notes, _, _, _, _, _, _, _) -> notes) >$< E.param (E.nullable E.text)) <>
+           ((\(_, _, _, _, _, _, _, _, _, _, updatedAt, _, _, _) -> updatedAt) >$< E.param (E.nonNullable E.utcTime)) <>
+           ((\(_, _, _, _, _, _, _, _, _, _, _, createdBy, _, _) -> createdBy) >$< E.param (E.nullable E.text)) <>
+           ((\(_, _, _, _, _, _, _, _, _, _, _, _, woId, _) -> woId) >$< E.param (E.nonNullable E.int8)))
+          (D.singleRow workOrderRowDecoder)
+  res <- use pool $ Session.statement (woCode input, woGoodsId input, woTechCardId input, woQtyPlan input, woQtyReleased input, fromIntegral (woStatus input), woStartDate input, woEndDate input, woProcessorId input, woNotes input, updateTime, Just userId, woId) stmt
+  case res of
+    Right (Just order) -> pure $ QuerySuccess order
+    Right Nothing -> pure $ QueryError "Failed to update work order"
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- | Delete a work order
+deleteWorkOrder :: Pool -> Int64 -> IO (QueryResult ())
+deleteWorkOrder pool woId = do
+  let stmt =
+        preparable
+          "DELETE FROM work_order WHERE id = $1"
+          (E.param (E.nonNullable E.int8))
+          (D.noResult)
+  res <- use pool $ Session.statement woId stmt
+  case res of
+    Right () -> pure $ QuerySuccess ()
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- | Release a work order
+releaseWorkOrder :: Pool -> Int64 -> UTCTime -> Text -> IO (QueryResult WorkOrder)
+releaseWorkOrder pool woId releaseTime userId = do
+  let stmt =
+        preparable
+          "UPDATE work_order SET status = $1, start_at = $2, updated_at = $3, updated_by = $4 WHERE id = $5 RETURNING id, code, goods_id, tech_card_id, qty_plan, qty_released, status, start_date, end_date, processor_id, notes, created_at, updated_at, created_by"
+          (((\(status, _, _, _, _) -> status) >$< E.param (E.nonNullable E.int2)) <>
+           ((\(_, startTime, _, _, _) -> startTime) >$< E.param (E.nullable E.utcTime)) <>
+           ((\(_, _, updatedAt, _, _, _) -> updatedAt) >$< E.param (E.nonNullable E.utcTime)) <>
+           ((\(_, _, _, updatedBy, _, _) -> updatedBy) >$< E.param (E.nullable E.text)) <>
+           ((\(_, _, _, _, woId, _) -> woId) >$< E.param (E.nonNullable E.int8)))
+          (D.singleRow workOrderRowDecoder)
+  res <- use pool $ Session.statement (fromIntegral (1 :: Int16), Just releaseTime, Just releaseTime, Just userId, woId) stmt
+  case res of
+    Right (Just order) -> pure $ QuerySuccess order
+    Right Nothing -> pure $ QueryError "Failed to release work order"
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- | Complete a work order
+completeWorkOrder :: Pool -> Int64 -> UTCTime -> Text -> IO (QueryResult WorkOrder)
+completeWorkOrder pool woId completionTime userId = do
+  let stmt =
+        preparable
+          "UPDATE work_order SET status = $1, end_at = $2, updated_at = $3, updated_by = $4 WHERE id = $5 RETURNING id, code, goods_id, tech_card_id, qty_plan, qty_released, status, start_date, end_date, processor_id, notes, created_at, updated_at, created_by"
+          (((\(status, _, _, _, _) -> status) >$< E.param (E.nonNullable E.int2)) <>
+           ((\(_, _, endTime, _, _, _) -> endTime) >$< E.param (E.nullable E.utcTime)) <>
+           ((\(_, _, _, updatedAt, _, _, _) -> updatedAt) >$< E.param (E.nonNullable E.utcTime)) <>
+           ((\(_, _, _, updatedBy, _, _) -> updatedBy) >$< E.param (E.nullable E.text)) <>
+           ((\(_, _, _, _, woId, _) -> woId) >$< E.param (E.nonNullable E.int8)))
+          (D.singleRow workOrderRowDecoder)
+  res <- use pool $ Session.statement (fromIntegral (2 :: Int16), Just completionTime, Just completionTime, Just userId, woId) stmt
+  case res of
+    Right (Just order) -> pure $ QuerySuccess order
+    Right Nothing -> pure $ QueryError "Failed to complete work order"
     Left err -> pure $ QueryError (T.pack $ show err)
 
 -- | Get accounting turn by id

@@ -38,7 +38,9 @@ extra-deps:
   - http-client-tls-0.3.6.1
   - yaml-0.11.11.0
   - postgresql-connection-string-0.1.0.6
-#   - reflex-dom-0.6.3.4
+  - ekg-core-0.1.2.0
+  - ekg-0.4.0.15
+  #   - reflex-dom-0.6.3.4
 #   - jsaddle-webkit2gtk-0.9.9.3
 #   - gi-webkit2-4.0.32
 #   - webkit2gtk3-javascriptcore-0.14.4.6
