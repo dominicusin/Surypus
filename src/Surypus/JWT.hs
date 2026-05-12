@@ -18,8 +18,7 @@ module Surypus.JWT
   )
 where
 
-import Crypto.Hash.SHA256 (hashWith)
-import Crypto.Hash.Algorithms (SHA256)
+import Crypto.Hash (SHA256, hashWith)
 import Data.ByteArray (convert)
 import Data.Int (Int64)
 import Data.Text (Text)
