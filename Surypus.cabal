@@ -215,6 +215,8 @@ library
           Service.Workflow
           Service.WorkflowEngine
           Service.Orchestrator
+          Service.PayrollService
+          Service.InventoryService
           Service.UI.Editor
           Service.UI.Menu
           Service.UI.Desktop
@@ -246,6 +248,7 @@ library
           Core.Accounting.ReadModel
           Core.Accounting.Cache
           Core.Services.Accounting
+          Core.Payroll.Calculation
           Domain.Accounting.Events
           Surypus.RBAC
           Surypus.RBAC.Store
