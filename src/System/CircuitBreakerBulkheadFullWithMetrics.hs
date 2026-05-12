@@ -1,11 +1,16 @@
 module System.CircuitBreakerBulkheadFullWithMetrics where
 
-import Control.Concurrent.STM (TVar, newTVarIO, readTVar, writeTVar, atomically)
-import Data.Time.Clock (UTCTime, getCurrentTime, diffUTCTime)
+import Control.Concurrent (forkIO, threadDelay)
+import Control.Concurrent.STM (TVar, newTVarIO, readTVar, writeTVar, atomically, readTVarIO)
+import Control.Exception (try, SomeException)
+import Control.Monad (when)
+import Data.Time.Clock (UTCTime, getCurrentTime, diffUTCTime, NominalDiffTime)
 import qualified Data.Map.Strict as Map
-import Data.Text (Text)
-import Data.List (sortBy)
+import Data.Text (Text, pack)
+import Data.List (sortBy, sort)
 import System.ClockSync (getTime, Clock(Monotonic))
+import System.Clock (TimeSpec(..))
+import Control.Monad (void)
 
 -- | Full bulkhead with comprehensive metrics and monitoring
 data CircuitBreakerBulkheadFullWithMetrics = CircuitBreakerBulkheadFullWithMetrics
@@ -68,7 +73,7 @@ data BulkheadMetrics = BulkheadMetrics
 
 -- | Initialize full bulkhead with comprehensive monitoring
 initCircuitBreakerBulkheadFullWithMetrics :: IO CircuitBreakerBulkheadFullWithMetrics
-initBreaker = do
+initCircuitBreakerBulkheadFullWithMetrics = do
   configVar <- newTVarIO $ BulkheadConfig
     { minResources = 5,
       maxResources = 200,
@@ -92,17 +97,18 @@ initBreaker = do
       slaCompliance = 1.0,
       resourceHealth = Map.empty
     }
+  now <- getCurrentTime
   monitorVar <- newTVarIO MonitorState
     { checkInterval = 30,
-      lastCheck = =<< getCurrentTime,
+      lastCheck = now,
       healthLog = [],
       alertThreshold = 0.95
     }
   scalerVar <- newTVarIO StableState
   latencyVar <- newTVarIO []
   -- Start monitoring and scaling threads
-  _ <- forkIO $ monitoringThread metricsVar scalerVar configVar resourcesVar monitorVar
-  _ <- forkIO $ latencyMonitoringThread latencyVar
+  void $ forkIO $ monitoringThread metricsVar scalerVar configVar resourcesVar monitorVar
+  void $ forkIO $ latencyMonitoringThread latencyVar
   return $ CircuitBreakerBulkheadFullWithMetrics
     { cbConfig = configVar,
       cbResources = resourcesVar,
@@ -288,9 +294,9 @@ executeWithFullMetrics breaker action = do
             latVar <- readTVar (cbLatencySamples breaker)
             writeTVar (cbLatencySamples breaker) (take 10000 (latencyMs : latVar))
           return $ Right val
-        Left err -> do
+        Left (err :: SomeException) -> do
           releaseFullResourceWithMetrics breaker resourceId latencyMs
-          return $ Left err
+          return $ Left (pack $ show err)
   where
     toDouble (System.Clock.TimeSpec s ns) = fromIntegral s + fromIntegral ns * 1e-9
 

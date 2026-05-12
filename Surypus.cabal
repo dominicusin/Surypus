@@ -47,8 +47,8 @@ library
           Commerce.Loyalty
           Commerce.Combo
           Commerce.Package
-          Commerce.Procurement
-          Commerce.MarketPlace
+          Commerce.Procurement.Procurement
+          Commerce.MarketPlace.MarketPlace
           Commerce.Notes.Comment
           Commerce.Visits.Visit
           Commerce.Orders.Order
@@ -125,7 +125,6 @@ library
           Production.Queue
           Production.JobQueue
           Production.JobSystem
-          Production.Scheduling
           Production.Scheduling.Cron
           Production.WorkOrder
           Production.Types
@@ -213,7 +212,6 @@ library
           Integration.EDI.EDI
           Integration.Hub.Integration
           Integration.Webhook
-          API
           API.API
           API.Server
           API.Types
@@ -226,31 +224,23 @@ library
           Analytics.Analytics
           Analytics.Chart
           Analytics.Prediction
-          Messaging
           Messaging.Message
           Messaging.Communication
           Logistics
-          Logistics.Logistics
           Logistics.Transfer
           Logistics.Receipt
           Logistics.Route
           Logistics.Warehouse
-          Logistics.Transport
           Logistics.Transport.Transport
           Retail
-          Retail.Retail
           Retail.Terminal
           Retail.CashRegister
           Retail.CashSessionTemp
           Retail.Device.Scale
           Retail.Receipts.SmartReceipt
-          AI
           AI.AgentFlow
           AI.DecisionEngine
-          Science
-          Science.Science
           Science.ML.Helical
-          Service
           Service.Service
           Service.Workflow
           Service.WorkflowEngine
@@ -262,15 +252,12 @@ library
           Service.UI.Widget
           Service.UI.Dialog
           Service.Templates.Template
-          Shared
-          Shared.Shared
           Shared.Common.Conflict
           Shared.Export.Exporter
           Shared.Mesh.ServiceMesh
           Shared.Filter
           Shared.Grid
           Shared.World
-          DAL
           DAL.DAL
           DAL.DB
           DAL.Agent
@@ -293,3 +280,13 @@ library
     , QuickCheck >=2.14
     , Decimal >=0.5
     , stm >=2.5
+    , directory >=1.3
+    , filepath >=1.4
+        , wai >=3.2
+    , warp >=3.3
+    , servant-server >=0.20
+    , http-types >=0.12
+    , fast-logger >=3.2
+    , random >=1.2
+    , bytestring >=0.11
+    

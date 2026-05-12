@@ -4,11 +4,6 @@
 {-@ LIQUID "--reflection" @-}
 
 module System.Hardware where
-  ( HardwareLoad (..),
-    HardwareStatus (..),
-    validateHardwareLoad,
-  )
-where
 
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Int (Int64)

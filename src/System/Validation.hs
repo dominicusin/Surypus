@@ -2,7 +2,7 @@
 module System.Validation where
 
 import Data.Either (partitionEithers)
-import Data.List (intercalate)
+import Data.List (intercalate, nub, (\\))
 import Data.Text (Text)
 import qualified Data.Text as T
 
@@ -34,10 +34,10 @@ validateEmail email =
     else Left $ InvalidFormat "email" "must contain @ and ."
 
 -- | Validate range
-validateRange :: (Ord a, Show a) => Text -> a -> (a, a) -> Either ValidationError a
+validateRange :: (Ord a, Show a, Read a) => Text -> a -> (a, a) -> Either ValidationError a
 validateRange fieldName val (minVal, maxVal)
   | val >= minVal && val <= maxVal = Right val
-  | otherwise = Left $ OutOfRange fieldName (read $ show val) (minVal, maxVal)
+  | otherwise = Left $ OutOfRange fieldName (read (show val) :: Double) (read (show minVal) :: Double, read (show maxVal) :: Double)
 
 -- | Validate non-empty
 validateNonEmpty :: Text -> Either ValidationError Text
@@ -48,7 +48,11 @@ validateNonEmpty val =
 
 -- | Combine validations
 validateAll :: [Either ValidationError a] -> Either [ValidationError] [a]
-validateAll = partitionEithers
+validateAll validations = 
+  let (errors, successes) = partitionEithers validations
+  in if null errors 
+       then Right successes 
+       else Left errors
 
 -- | Validation helper
 (<*>) :: Either [ValidationError] (a -> b) -> Either [ValidationError] a -> Either [ValidationError] b
@@ -65,7 +69,7 @@ formatErrors = T.unlines . map formatError
     formatError (RequiredFieldMissing field) = "Missing required field: " <> field
     formatError (InvalidFormat field reason) = "Invalid " <> field <> ": " <> reason
     formatError (OutOfRange field val (minVal, maxVal)) =
-      field <> " out of range: " <> show val <> " (expected " <> show minVal <> "-" <> show maxVal <> ")"
+      field <> " out of range: " <> T.pack (show val) <> " (expected " <> T.pack (show minVal) <> "-" <> T.pack (show maxVal) <> ")"
     formatError (DuplicateKey key) = "Duplicate key: " <> key
     formatError (CustomError msg) = msg
 
@@ -77,4 +81,4 @@ validateUnique fieldName list =
         then Right list
         else Left $ DuplicateKey fieldName
   where
-    findDuplicates xs = xs ++ filter (\x -> x `elem` tail (x : xs)) (tail xs)
+    findDuplicates xs = xs \\ nub xs

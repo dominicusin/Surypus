@@ -2,8 +2,8 @@ module System.ClockSync where
 
 import Control.Concurrent.STM (TVar, atomically, newTVarIO, readTVar, writeTVar)
 import Data.List (sort)
-import Data.Time.Clock (UTCTime, diffUTCTime, getCurrentTime)
--- import System.ClockSync (Clock (Monotonic), getTime) -- Removed cyclic import
+import Data.Time.Clock (UTCTime, diffUTCTime, getCurrentTime, NominalDiffTime)
+import System.Clock (Clock(Monotonic), getTime, TimeSpec(..))
 
 -- | Clock synchronization configuration
 data ClockSyncConfig = ClockSyncConfig
@@ -58,8 +58,8 @@ getSyncTime sync = do
   return $ addUTCTime avgOffset now
 
 -- | Convert system clock to nominal diff time
-toNominalDiffTime :: System.Clock.Time -> NominalDiffTime
-toNominalDiffTime _ = 0 -- Simplified
+toNominalDiffTime :: TimeSpec -> NominalDiffTime
+toNominalDiffTime (TimeSpec s ns) = fromIntegral s + fromIntegral ns * 1e-9
 
 -- | Check if clocks are synchronized
 areClocksSynced :: ClockSync -> IO Bool

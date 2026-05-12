@@ -1,8 +1,4 @@
 module System.CircuitBreakerWrapper where
-  ( withBreaker,
-    BreakerError (..),
-  )
-where
 
 import qualified Data.Text as T
 import Hasql.Pool (Pool)

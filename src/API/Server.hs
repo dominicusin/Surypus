@@ -21,10 +21,17 @@ import DAL.Types
 import Data.Pagination (Pagination (..))
 import Data.Text (Text)
 import qualified Data.Text as T
-import Data.Time (getCurrentTime)
+import qualified Data.Text.Encoding as TE
+import Data.Time (getCurrentTime, UTCTime)
 import GHC.Generics (Generic)
 import Hasql.Pool (Pool)
+import Network.Wai (Request, requestMethod, rawPathInfo, requestHeaders, getRequestBodyChunk, Middleware, Application, responseLBS)
+import Network.Wai.Middleware.RequestLogger (logStdout, logStdoutDev)
+import Network.HTTP.Types.Status (status503)
 import Servant
+import System.CircuitBreakerBulkheadFullWithMetrics (CircuitBreakerBulkheadFullWithMetrics, initCircuitBreakerBulkheadFullWithMetrics, executeWithFullMetrics)
+import System.Metrics (Metrics, registerCounter, registerTimer, getCounter, getTimer)
+import System.Log.FastLogger (LoggerSet, newStdoutLoggerSet, defaultBufSize, pushLogStr)
 import Surypus.Error (AppError (..))
 import Surypus.JWT
 import Surypus.Validation (ValidationError (..), validatePersonInput)
@@ -34,11 +41,50 @@ type AppM = ExceptT ServantErr IO
 data Env = Env
   { envPool :: Pool,
     envJWTConfig :: JWTConfig,
-    envPersonRepo :: PersonRepository
+    envPersonRepo :: PersonRepository,
+    envCircuitBreaker :: CircuitBreakerBulkheadFullWithMetrics,
+    envMetrics :: Metrics,
+    envLogger :: LoggerSet
   }
 
 personRepoFromPool :: Pool -> PersonRepository
 personRepoFromPool = mkPersonRepository
+
+-- | Middleware for request logging
+loggingMiddleware :: LoggerSet -> Middleware
+loggingMiddleware logger app req respond = do
+  now <- getCurrentTime
+  let method = TE.decodeUtf8 $ requestMethod req
+      path = TE.decodeUtf8 $ rawPathInfo req
+      logMsg = T.concat [method, " ", path, " - ", T.pack (show now)]
+  liftIO $ pushLogStr logger (TE.encodeUtf8 logMsg <> "\n")
+  app req respond
+
+-- | Middleware for metrics collection
+metricsMiddleware :: Metrics -> Middleware
+metricsMiddleware metrics app req respond = do
+  let requestCounter = getCounter "http_requests_total" metrics
+      timer = getTimer "http_request_duration_seconds" metrics
+  liftIO $ requestCounter + 1
+  app req respond
+
+-- | Middleware for circuit breaker protection
+circuitBreakerMiddleware :: CircuitBreakerBulkheadFullWithMetrics -> Middleware
+circuitBreakerMiddleware breaker app req respond = do
+  result <- executeWithFullMetrics breaker (app req respond)
+  case result of
+    Right response -> respond response
+    Left err -> do
+      let errorResponse = responseLBS status503 [("Content-Type", "text/plain")] "Service temporarily unavailable"
+      respond errorResponse
+
+-- | Initialize environment with middleware components
+initEnv :: Pool -> JWTConfig -> IO Env
+initEnv pool jwtConfig = do
+  circuitBreaker <- initCircuitBreakerBulkheadFullWithMetrics
+  metrics <- return undefined  -- TODO: Initialize actual metrics
+  logger <- newStdoutLoggerSet defaultBufSize
+  return $ Env pool jwtConfig (personRepoFromPool pool) circuitBreaker metrics logger
 
 listPersonsHandler :: Env -> AppM (PageResponse PersonResponse)
 listPersonsHandler env = do
@@ -205,7 +251,11 @@ server env =
       swaggerHandler = pure "Swagger JSON placeholder"
    in apiServer :<|> swaggerHandler
 
-app :: Pool -> JWTConfig -> Application
-app pool jwtConfig =
-  let env = Env pool jwtConfig (personRepoFromPool pool)
-   in serve (Proxy @API) (server env)
+app :: Pool -> JWTConfig -> IO Application
+app pool jwtConfig = do
+  env <- initEnv pool jwtConfig
+  let baseApp = serve (Proxy @API) (server env)
+      loggedApp = loggingMiddleware (envLogger env) baseApp
+      metricsApp = metricsMiddleware (envMetrics env) loggedApp
+      protectedApp = circuitBreakerMiddleware (envCircuitBreaker env) metricsApp
+  return protectedApp

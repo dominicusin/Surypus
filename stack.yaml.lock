@@ -60,6 +60,34 @@ packages:
       size: 373
   original:
     hackage: Decimal-0.5.2
+- completed:
+    hackage: smtp-mail-0.1.0.0@sha256:659654c706f845749aae4ee8702feb6c727d2791b2f1de7a7cb5a8d893860b69,862
+    pantry-tree:
+      sha256: 82bf1d8ce19714f250b7529b90a38e18bcae15f754955b01f7ab577b3ffbe2cb
+      size: 279
+  original:
+    hackage: smtp-mail-0.1.0.0
+- completed:
+    hackage: http-client-0.7.13.1@sha256:6480749144f27919547733262f06a6ae3c759b57b692af53f9beb309d05a1699,5777
+    pantry-tree:
+      sha256: 4bb660f3c5aa9eb76026b3e4ac7029946e37bc970be604614a4badefaffb2e03
+      size: 2547
+  original:
+    hackage: http-client-0.7.13.1
+- completed:
+    hackage: http-client-tls-0.3.6.1@sha256:c986b98a06ddde487fcfe139f024717d9263c61037ff45a4c63dae93b290c27f,2042
+    pantry-tree:
+      sha256: ac30cb48175d969b839bbcef4b8b1dc3d970751fdf030fcd4df34e0fb62e228a
+      size: 435
+  original:
+    hackage: http-client-tls-0.3.6.1
+- completed:
+    hackage: yaml-0.11.11.0@sha256:d50741e4db50642fd8b59249bd87b156b4632d9de5b65f0be3abb8fa697e7ac9,5003
+    pantry-tree:
+      sha256: 73f1b46215485d04adee568d5ee5a3fc80645aa377ed9833d0786c1535651529
+      size: 2044
+  original:
+    hackage: yaml-0.11.11.0
 snapshots:
 - completed:
     sha256: f4c745366a9b72a2b998c86106cabe6e0955e6af062e228b4fb42aa4712d4da6
