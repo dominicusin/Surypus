@@ -14,8 +14,7 @@ module Production.JobSystem
     JobPriority (..)
   ) where
 
-import Control.Monad
-import DAL.Types
+
 import Data.Int (Int64)
 import Data.Text (Text)
 -- import qualified Hasql.Decoders as D
