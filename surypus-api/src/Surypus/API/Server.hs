@@ -712,110 +712,59 @@ currenciesUpdate _ _ _ = pure $ CurrencyResponse 1 "Updated" "XXX"
 currenciesDelete :: Env -> Int64 -> Handler ()
 currenciesDelete _ _ = pure ()
 
--- Production handlers
-listTechCards :: Env -> Maybe Int64 -> Maybe Int -> Maybe Int -> Handler TechCardsResponse
-listTechCards env mGoodsId mLimit mOffset = do
-  let pool = envPool env
-      limit' = fromMaybe 50 mLimit
-      offset' = fromMaybe 0 mOffset
-  result <- liftIO $ DAL.Production.getTechCards pool mGoodsId limit' offset'
-  case result of
-    QuerySuccess cards -> pure $ TechCardsResponse (map toTechCardResponse cards)
-    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
+-- | Production API types
+data TechCardRequest = TechCardRequest
+  { tcrGoodsId :: Int64
+  , tcrName :: Text
+  , tcrVersion :: Text
+  , tcrStatus :: Int16
+  , tcrCreatedBy :: Maybe Text
+  } deriving (Show, Eq)
 
-createTechCard :: Env -> TechCardRequest -> Handler TechCardResponse
-createTechCard env input = do
-  let pool = envPool env
-      utcTime = posixSecondsToUTCTime 0  -- TODO: Use current time
-  result <- liftIO $ DAL.Production.createTechCard pool input utcTime (T.pack "system")
-  case result of
-    QuerySuccess card -> pure $ TechCardResponse card
-    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
+data TechCardResponse = TechCardResponse
+  { tcrId :: Maybe Int64
+  , tcrGoodsId :: Int64
+  , tcrName :: Text
+  , tcrVersion :: Text
+  , tcrStatus :: Int16
+  , tcrCreatedAt :: UTCTime
+  , tcrUpdatedAt :: UTCTime
+  , tcrCreatedBy :: Maybe Text
+  } deriving (Show, Eq)
 
-getTechCard :: Env -> Int64 -> Handler TechCardResponse
-getTechCard env tcId = do
-  let pool = envPool env
-  result <- liftIO $ DAL.Production.getTechCard pool tcId
-  case result of
-    QuerySuccess card -> pure $ TechCardResponse card
-    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
+data TechCardsResponse = TechCardsResponse [TechCardResponse] deriving (Show, Eq)
 
-updateTechCard :: Env -> Int64 -> TechCardRequest -> Handler TechCardResponse
-updateTechCard env tcId input = do
-  let pool = envPool env
-      utcTime = posixSecondsToUTCTime 0  -- TODO: Use current time
-  result <- liftIO $ DAL.Production.updateTechCard pool tcId input utcTime (T.pack "system")
-  case result of
-    QuerySuccess card -> pure $ TechCardResponse card
-    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
+data WorkOrderRequest = WorkOrderRequest
+  { worCode :: Text
+  , worGoodsId :: Int64
+  , worTechCardId :: Maybe Int64
+  , worQtyPlan :: Double
+  , worQtyReleased :: Double
+  , worStatus :: Int16
+  , worStartDate :: Maybe Day
+  , worEndDate :: Maybe Day
+  , worProcessorId :: Maybe Int64
+  , worNotes :: Maybe Text
+  } deriving (Show, Eq)
 
-deleteTechCard :: Env -> Int64 -> Handler ()
-deleteTechCard env tcId = do
-  let pool = envPool env
-  result <- liftIO $ DAL.Production.deleteTechCard pool tcId
-  case result of
-    QuerySuccess () -> pure ()
-    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
+data WorkOrderResponse = WorkOrderResponse
+  { worId :: Maybe Int64
+  , worCode :: Text
+  , worGoodsId :: Int64
+  , worTechCardId :: Maybe Int64
+  , worQtyPlan :: Double
+  , worQtyReleased :: Double
+  , worStatus :: Int16
+  , worStartDate :: Maybe Day
+  , worEndDate :: Maybe Day
+  , worProcessorId :: Maybe Int64
+  , worNotes :: Maybe Text
+  , worCreatedAt :: UTCTime
+  , worUpdatedAt :: UTCTime
+  , worCreatedBy :: Maybe Text
+  } deriving (Show, Eq)
 
-listWorkOrders :: Env -> Maybe Int64 -> Maybe Int -> Maybe Int -> Handler WorkOrdersResponse
-listWorkOrders env mGoodsId mLimit mOffset = do
-  let pool = envPool env
-      limit' = fromMaybe 50 mLimit
-      offset' = fromMaybe 0 mOffset
-  result <- liftIO $ DAL.Production.getWorkOrders pool mGoodsId limit' offset'
-  case result of
-    QuerySuccess orders -> pure $ WorkOrdersResponse (map toWorkOrderResponse orders)
-    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
-
-createWorkOrder :: Env -> WorkOrderRequest -> Handler WorkOrderResponse
-createWorkOrder env input = do
-  let pool = envPool env
-      utcTime = posixSecondsToUTCTime 0  -- TODO: Use current time
-  result <- liftIO $ DAL.Production.createWorkOrder pool input utcTime (T.pack "system")
-  case result of
-    QuerySuccess order -> pure $ WorkOrderResponse order
-    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
-
-getWorkOrder :: Env -> Int64 -> Handler WorkOrderResponse
-getWorkOrder env woId = do
-  let pool = envPool env
-  result <- liftIO $ DAL.Production.getWorkOrder pool woId
-  case result of
-    QuerySuccess order -> pure $ WorkOrderResponse order
-    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
-
-updateWorkOrder :: Env -> Int64 -> WorkOrderRequest -> Handler WorkOrderResponse
-updateWorkOrder env woId input = do
-  let pool = envPool env
-      utcTime = posixSecondsToUTCTime 0  -- TODO: Use current time
-  result <- liftIO $ DAL.Production.updateWorkOrder pool woId input utcTime (T.pack "system")
-  case result of
-    QuerySuccess order -> pure $ WorkOrderResponse order
-    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
-
-deleteWorkOrder :: Env -> Int64 -> Handler ()
-deleteWorkOrder env woId = do
-  let pool = envPool env
-  result <- liftIO $ DAL.Production.deleteWorkOrder pool woId
-  case result of
-    QuerySuccess () -> pure ()
-    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
-
-releaseWorkOrder :: Env -> Int64 -> UTCTime -> Text -> Handler WorkOrderResponse
-releaseWorkOrder env woId releaseTime userId = do
-  let pool = envPool env
-  result <- liftIO $ DAL.Production.releaseWorkOrder pool woId releaseTime userId
-  case result of
-    QuerySuccess order -> pure $ WorkOrderResponse order
-    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
-
-completeWorkOrder :: Env -> Int64 -> UTCTime -> Text -> Handler WorkOrderResponse
-completeWorkOrder env woId completionTime userId = do
-  let pool = envPool env
-  result <- liftIO $ DAL.Production.completeWorkOrder pool woId completionTime userId
-  case result of
-    QuerySuccess order -> pure $ WorkOrderResponse order
-    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
+data WorkOrdersResponse = WorkOrdersResponse [WorkOrderResponse] deriving (Show, Eq)
 
 toCurrencyResponse :: DAL.Types.Currency -> CurrencyResponse
 toCurrencyResponse (DAL.Types.Currency {currId = cid, currName = cname, currCode = ccode}) =
@@ -823,6 +772,38 @@ toCurrencyResponse (DAL.Types.Currency {currId = cid, currName = cname, currCode
     { currencyId = cid,
       currencyName = cname,
       currencyCode = ccode
+    }
+
+toTechCardResponse :: TechCard -> TechCardResponse
+toTechCardResponse (TechCard {..}) =
+  TechCardResponse
+    { tcrId = tcId
+    , tcrGoodsId = tcGoodsId
+    , tcrName = tcName
+    , tcrVersion = tcVersion
+    , tcrStatus = fromIntegral tcStatus
+    , tcrCreatedAt = tcCreatedAt
+    , tcrUpdatedAt = tcUpdatedAt
+    , tcrCreatedBy = tcCreatedBy
+    }
+
+toWorkOrderResponse :: WorkOrder -> WorkOrderResponse
+toWorkOrderResponse (WorkOrder {..}) =
+  WorkOrderResponse
+    { worId = woId
+    , worCode = woCode
+    , worGoodsId = woGoodsId
+    , worTechCardId = woTechCardId
+    , worQtyPlan = woQtyPlan
+    , worQtyReleased = woQtyReleased
+    , worStatus = fromIntegral woStatus
+    , worStartDate = woStartDate
+    , worEndDate = woEndDate
+    , worProcessorId = woProcessorId
+    , worNotes = woNotes
+    , worCreatedAt = woCreatedAt
+    , worUpdatedAt = woUpdatedAt
+    , worCreatedBy = woCreatedBy
     }
 
 toStockResponse :: Stock -> StockItemResponse

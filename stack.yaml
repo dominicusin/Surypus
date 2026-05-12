@@ -1,5 +1,5 @@
 # stack.yaml for Surypus
-resolver: nightly-2026-04-05
+resolver: lts-23.11
 
 nix:
   enable: false
@@ -15,7 +15,7 @@ packages:
   - .
   - surypus-common
   - surypus-api
-  - surypus-frontend
+#   - surypus-frontend  # Disabled: requires reflex-dom
 
 ghc-options:
   "$locals": -Wall -Wcompat
@@ -37,12 +37,7 @@ extra-deps:
   - http-client-0.7.13.1
   - http-client-tls-0.3.6.1
   - yaml-0.11.11.0
-  - hasql-1.6.4.2
-  - hasql-pool-0.10.1
-  - postgresql-binary-0.14
-  - hasql-postgres-1.6.4.2
-  - hasql-transaction-1.1.1.2
-  - hasql-notifications-0.2.1.1
+  - postgresql-connection-string-0.1.0.6
 #   - reflex-dom-0.6.3.4
 #   - jsaddle-webkit2gtk-0.9.9.3
 #   - gi-webkit2-4.0.32

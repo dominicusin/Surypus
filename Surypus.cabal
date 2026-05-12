@@ -292,8 +292,7 @@ library
      , http-client >=0.7
      , lens >=5.2
      , hspec >=2.11
-     , hasql >=1.6
-     , hasql-postgres >=1.6
+     , hasql >=1.10
 
 test-suite surypus-test
   type: exitcode-stdio-1.0
