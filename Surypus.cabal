@@ -240,6 +240,7 @@ library
           DAL.Attachment
           DAL.Types
           DAL.EventStore
+          DAL.Procedures
           DAL.Repository.RBAC
           Finance.AccSheet2
           Finance.Accounting
