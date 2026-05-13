@@ -21,6 +21,7 @@
 module DAL.Queries where
 
 import Core.Document.Types (DocumentRegisterType (..))
+import Control.Monad.IO.Class (liftIO)
 import DAL.Types
 import Data.Functor.Contravariant ((>$<))
 import Data.Int (Int16, Int64)
@@ -34,10 +35,28 @@ import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
 import Hasql.Statement (Statement (..))
 import Surypus.Types (Decimal (..))
+import Data.Time.Clock (getCurrentTime, diffUTCTime, NominalDiffTime)
 
 -- | Helper to create prepared statements (old hasql API compatibility)
 preparable :: T.Text -> E.Params params -> D.Result result -> Statement params result
 preparable sql encoder decoder = Statement (TE.encodeUtf8 sql) encoder decoder True
+
+-- | Execute a query with timing for logging
+-- Returns (result, duration in seconds)
+timedQuery :: Pool -> Text -> Statement params result -> params -> IO (Either Text result, Double)
+timedQuery pool sql stmt params = do
+  start <- getCurrentTime
+  res <- use pool $ Session.statement params stmt
+  end <- getCurrentTime
+  let duration = realToFrac (end `diffUTCTime` start) :: Double
+  return (case res of Right v -> Right v; Left e -> Left (T.pack (show e)), duration)
+
+-- | Execute a query by name (for logging purposes)
+runQueryTimed :: Pool -> Text -> Statement params result -> params -> IO (Either Text result)
+runQueryTimed pool queryName stmt params = do
+  (result, duration) <- timedQuery pool queryName stmt params
+  -- Could log here if logger was passed through
+  return result
 
 personSortKeyText :: Maybe PersonSortBy -> Text
 personSortKeyText (Just PersonSortByName) = "name"
