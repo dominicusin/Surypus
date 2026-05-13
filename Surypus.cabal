@@ -294,10 +294,14 @@ library
      , lens >=5.2
      , hspec >=2.11
      , hasql >=1.10
+     , hasql-pool >=1.0
      , ekg-core >=0.1.2
      , ekg >=0.4.0
      , jose >=0.11
      , cryptonite >=0.30
+     , memory >=0.18
+     , cborg >=0.2
+     , messagepack >=1.0
 
 test-suite surypus-test
   type: exitcode-stdio-1.0

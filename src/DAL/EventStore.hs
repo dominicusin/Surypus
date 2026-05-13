@@ -68,7 +68,7 @@ appendEventStmt = Statement sql encoder decoder True
       ((\(a, _, _, _, _, _, _) -> a) >$< E.param (E.nonNullable E.int8))
         <> ((\(_, b, _, _, _, _, _) -> b) >$< E.param (E.nonNullable E.text))
         <> ((\(_, _, c, _, _, _, _) -> c) >$< E.param (E.nonNullable E.text))
-        <> ((\(_, _, _, d, _, _, _) -> d) >$< E.param (E.nonNullable E.int4 . fromIntegral))
+          <> ((\(_, _, _, d, _, _, _) -> fromIntegral d) >$< E.param (E.nonNullable E.int4))
         <> ((\(_, _, _, _, e, _, _) -> e) >$< E.param (E.nonNullable E.jsonb))
         <> ((\(_, _, _, _, _, f, _) -> f) >$< E.param (E.nullable E.jsonb))
         <> ((\(_, _, _, _, _, _, g) -> g) >$< E.param (E.nonNullable E.int8))

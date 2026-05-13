@@ -31,6 +31,8 @@ import Data.Text (Text)
 import Data.Foldable (foldl')
 import Data.Maybe (fromMaybe)
 import GHC.Generics (Generic)
+import qualified Data.Aeson as A
+import qualified Data.Map as M
 import qualified DAL.EventStore as ES
 
 -- ============================================================================
@@ -64,75 +66,81 @@ data AccountReadModel = AccountReadModel
 -- ============================================================================
 
 -- | Apply a single event to the read model
-applyEvent :: AccountReadModel -> ES.AccountingEvent -> AccountReadModel
+applyEvent :: AccountReadModel -> ES.Event -> AccountReadModel
 applyEvent model event
-  | ES.aeEventType event == ES.AccountCreated = applyAccountCreated model event
-  | ES.aeEventType event == ES.JournalEntryPosted = applyJournalEntryPosted model event
-  | ES.aeEventType event == ES.BalanceAdjusted = applyBalanceAdjusted model event
+  | ES.eventEventType event == "AccountCreated" = applyAccountCreated model event
+  | ES.eventEventType event == "JournalEntryPosted" = applyJournalEntryPosted model event
+  | ES.eventEventType event == "BalanceAdjusted" = applyBalanceAdjusted model event
   | otherwise = model
 
 -- | Apply AccountCreated event
-applyAccountCreated :: AccountReadModel -> ES.AccountingEvent -> AccountReadModel
+applyAccountCreated :: AccountReadModel -> ES.Event -> AccountReadModel
 applyAccountCreated model event = model
-  { armAccountId = ES.aeAggregateId event
-  , armCode = ES.edAccountCode (ES.aeEventData event)
-  , armName = ES.edAccountName (ES.aeEventData event)
-  , armAccountType = ES.edAccountType (ES.aeEventData event)
-  , armCurrencyId = ES.edCurrencyId (ES.aeEventData event)
+  { armAccountId = ES.eventAggregateId event
+  , armCode = Nothing
+  , armName = Nothing
+  , armAccountType = Nothing
+  , armCurrencyId = Nothing
   , armBalanceState = BalanceState
-      { bsAccountId = ES.aeAggregateId event
-      , bsCurrentBalance = fromMaybe 0.0 (ES.edNewBalance (ES.aeEventData event))
+      { bsAccountId = ES.eventAggregateId event
+      , bsCurrentBalance = 0.0
       , bsDebitTotal = 0.0
       , bsCreditTotal = 0.0
-      , bsLastUpdated = ES.aeOccurredAt event
+      , bsLastUpdated = ES.eventOccurredAt event
       , bsEventCount = 1
       }
-  , armCreatedAt = ES.aeOccurredAt event
-  , armUpdatedAt = ES.aeOccurredAt event
+  , armCreatedAt = ES.eventOccurredAt event
+  , armUpdatedAt = ES.eventOccurredAt event
   }
 
 -- | Apply JournalEntryPosted event
-applyJournalEntryPosted :: AccountReadModel -> ES.AccountingEvent -> AccountReadModel
+applyJournalEntryPosted :: AccountReadModel -> ES.Event -> AccountReadModel
 applyJournalEntryPosted model event = model
   { armBalanceState = newBalanceState
-  , armUpdatedAt = ES.aeOccurredAt event
+  , armUpdatedAt = ES.eventOccurredAt event
   }
   where
-    eventData = ES.aeEventData event
-    changeAmount = fromMaybe 0.0 (ES.edChangeAmount eventData)
+    eventData = ES.eventEventData event
+    changeAmount = case A.fromJSON eventData of
+                     A.Success (A.Object obj) ->
+                       case M.lookup "changeAmount" obj >>= A.fromJSON of
+                         A.Success amt -> Just amt
+                         _ -> Nothing
+                     _ -> Nothing
     oldState = armBalanceState model
+    changeAmount' = fromMaybe 0.0 changeAmount
     newBalanceState = oldState
-      { bsCurrentBalance = bsCurrentBalance oldState + changeAmount
-      , bsDebitTotal = if changeAmount > 0
-                      then bsDebitTotal oldState + changeAmount
-                      else bsDebitTotal oldState
-      , bsCreditTotal = if changeAmount < 0
-                       then bsCreditTotal oldState + abs changeAmount
-                       else bsCreditTotal oldState
-      , bsLastUpdated = ES.aeOccurredAt event
+      { bsCurrentBalance = bsCurrentBalance oldState + changeAmount'
+      , bsDebitTotal = if changeAmount' > 0
+                       then bsDebitTotal oldState + changeAmount'
+                       else bsDebitTotal oldState
+      , bsCreditTotal = if changeAmount' < 0
+                        then bsCreditTotal oldState + abs changeAmount'
+                        else bsCreditTotal oldState
+      , bsLastUpdated = ES.eventOccurredAt event
       , bsEventCount = bsEventCount oldState + 1
       }
 
 -- | Apply BalanceAdjusted event
-applyBalanceAdjusted :: AccountReadModel -> ES.AccountingEvent -> AccountReadModel
+applyBalanceAdjusted :: AccountReadModel -> ES.Event -> AccountReadModel
 applyBalanceAdjusted model event = model
   { armBalanceState = newBalanceState
-  , armUpdatedAt = ES.aeOccurredAt event
+  , armUpdatedAt = ES.eventOccurredAt event
   }
   where
-    eventData = ES.aeEventData event
-    newBalance = fromMaybe 0.0 (ES.edNewBalance eventData)
-    changeAmount = fromMaybe 0.0 (ES.edChangeAmount eventData)
+    eventData = ES.eventEventData event
+    newBalance = fromMaybe 0.0 (getNewBalance eventData)
+    changeAmount = fromMaybe 0.0 (getChangeAmount eventData)
     oldState = armBalanceState model
     newBalanceState = oldState
       { bsCurrentBalance = newBalance
       , bsDebitTotal = if changeAmount > 0
-                      then bsDebitTotal oldState + changeAmount
-                      else bsDebitTotal oldState
+                       then bsDebitTotal oldState + changeAmount
+                       else bsDebitTotal oldState
       , bsCreditTotal = if changeAmount < 0
-                       then bsCreditTotal oldState + abs changeAmount
-                       else bsCreditTotal oldState
-      , bsLastUpdated = ES.aeOccurredAt event
+                        then bsCreditTotal oldState + abs changeAmount
+                        else bsCreditTotal oldState
+      , bsLastUpdated = ES.eventOccurredAt event
       , bsEventCount = bsEventCount oldState + 1
       }
 
@@ -141,11 +149,11 @@ applyBalanceAdjusted model event = model
 -- ============================================================================
 
 -- | Create initial model from the first event in a list
-mkInitialModel :: Int64 -> [ES.AccountingEvent] -> AccountReadModel
+mkInitialModel :: Int64 -> [ES.Event] -> AccountReadModel
 mkInitialModel accountId events =
-  let firstEvent = head events
-      ts = ES.aeOccurredAt firstEvent
-  in AccountReadModel
+   let firstEvent = head events
+       ts = ES.eventOccurredAt firstEvent
+   in AccountReadModel
     { armAccountId = accountId
     , armCode = Nothing
     , armName = Nothing

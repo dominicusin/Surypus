@@ -123,6 +123,34 @@ packages:
       size: 417
   original:
     hackage: aeson-casing-0.2.0.0
+- completed:
+    hackage: hashtables-1.4.2@sha256:4940cab94a15d469845ccf5225f9cb3d354c15e8127ebb58425c8b681f7721d9,10386
+    pantry-tree:
+      sha256: 65107f0c970351b971ea1f676a5e00b61e37c298a4c83c867d937f2a774501eb
+      size: 2895
+  original:
+    hackage: hashtables-1.4.2
+- completed:
+    hackage: cborg-0.2.10.0@sha256:47c044ade185e59433ec301fd3d85c7a1b9709cc752daf8b6388c9190aa618aa,5397
+    pantry-tree:
+      sha256: cfa8493ce4514f7f7c83ce2d49ab292cc2039929243fcbf4c5c44d8e2a424330
+      size: 2559
+  original:
+    hackage: cborg-0.2.10.0
+- completed:
+    hackage: messagepack-0.5.5@sha256:17066269f1889212a1751f48f430ba2ecc63727a6a36b6df70d46e6bfa394779,1661
+    pantry-tree:
+      sha256: 32ffbe8876dd687d2e4d564d700be6af9460e4f05764e178bbee78c4ca596d5f
+      size: 431
+  original:
+    hackage: messagepack-0.5.5
+- completed:
+    hackage: memory-0.18.0@sha256:9f4de967352f80b6f174c9a166f315393dde80b77d7b67e41268ae7dec0319f9,4581
+    pantry-tree:
+      sha256: 50865fe287a16933cc7c6b12e00320ea656796ae5205a336e1bf3f3c8fdaa8b7
+      size: 2436
+  original:
+    hackage: memory-0.18.0
 snapshots:
 - completed:
     sha256: f51b4cbfe8a6df42815e203f842085528698989ea81f7c82667451ad955b1819

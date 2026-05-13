@@ -7,7 +7,7 @@ module API.Types
   ) where
 
 import Data.Aeson (FromJSON, ToJSON)
-import Data.Int (Int64)
+import Data.Int (Int16, Int64)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Time (Day, UTCTime)

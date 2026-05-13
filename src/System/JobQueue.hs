@@ -1,20 +1,23 @@
 module System.JobQueue where
-
+ 
 import Control.Concurrent (forkIO, ThreadId, threadDelay)
-import Control.Concurrent.STM (TQueue, isEmptyTQueue, newTQueueIO, readTQueue, writeTQueue, atomically)
-import Control.Monad (forever)
-import Data.Aeson (Value)
-import qualified Data.ByteString.Lazy ()
+import Control.Monad (forever, void)
+import Control.Monad.IO.Class (MonadIO, liftIO)
+import Data.Aeson (Value, encode, decode)
+import Data.ByteString.Char8 (pack, unpack)
 import Data.Text (Text)
-import Data.Time.Clock (UTCTime)
--- import qualified Database.PostgreSQL.Simple as PG
-
--- | Job queue system for background processing
+import Data.Time.Clock (UTCTime, getCurrentTime)
+import Database.Redis
+import qualified Database.Redis as R
+import Control.Exception (try, SomeException)
+ 
+-- | Job queue system using Redis for background processing
 data JobQueue = JobQueue
-  { queueChannel :: TQueue Job,
+  { redisConfig :: ConnectInfo,
+    queuePrefix :: Text,
     queueWorkerCount :: Int
   }
-
+ 
 data Job = Job
   { jobId :: Text,
     jobType :: Text,
@@ -22,64 +25,77 @@ data Job = Job
     jobCreatedAt :: UTCTime,
     jobAttempts :: Int
   }
-
--- | Create a new job queue
-initJobQueue :: Int -> IO JobQueue
-initJobQueue workers = do
-  chan <- newTQueueIO
-  return $ JobQueue chan workers
-
--- | Enqueue a job
+ 
+-- | Create a new job queue with Redis configuration
+initJobQueue :: ConnectInfo -> Text -> Int -> IO JobQueue
+initJobQueue config prefix workers = do
+  -- Test connection
+  conn <- checkedConnect config
+  void $ runRedis conn $ ping
+  return $ JobQueue config prefix workers
+ 
+-- | Enqueue a job to Redis queue
 enqueueJob :: JobQueue -> Job -> IO ()
-enqueueJob (JobQueue chan _) job = atomically $ writeTQueue chan job
-
--- | Dequeue a job
+enqueueJob (JobQueue config prefix _) job = do
+  conn <- checkedConnect config
+  let queueName = prefix <> ":jobs"
+      jobValue = encode job
+  runRedis conn $ lpush queueName (toStrict $ encode job)
+  return ()
+ 
+-- | Dequeue a job from Redis queue (blocking with timeout)
 dequeueJob :: JobQueue -> IO (Maybe Job)
-dequeueJob (JobQueue chan _) = do
-  isEmpty <- atomically $ isEmptyTQueue chan
-  if isEmpty
-    then return Nothing
-    else Just <$> atomically (readTQueue chan)
-
--- | Worker loop for processing jobs
+dequeueJob (JobQueue config prefix _) = do
+  conn <- checkedConnect config
+  let queueName = prefix <> ":jobs"
+      timeout = 0  -- 0 means block indefinitely
+  result <- runRedis conn $ brpop [queueName] timeout
+  case result of
+    Nothing -> return Nothing
+    Just (_, value) -> 
+      case decode (fromStrict value) of
+        Just job -> return (Just job)
+        Nothing -> do
+          -- Log error but continue
+          putStrLn $ "Failed to decode job from Redis: " <> unpack value
+          return Nothing
+ 
+-- | Worker loop for processing jobs from Redis
 workerLoop :: JobQueue -> (Job -> IO ()) -> IO ()
 workerLoop queue processor = forever $ do
   mbJob <- dequeueJob queue
   case mbJob of
-    Nothing -> threadDelay 1000000 -- Wait 1 second if empty
-    Just job -> processor job
-
+    Nothing -> threadDelay 1000000 -- Wait 1 second if error
+    Just job -> do
+      result <- try (processor job) :: IO (Either SomeException ())
+      case result of
+        Left exc -> do
+          -- Job failed, retry with exponential backoff (max 3 attempts)
+          if jobAttempts job < 3
+            then do
+              putStrLn $ "Job failed, retrying: " <> jobId job <> " error: " <> show exc
+              let retryJob' = retryJob job
+              threadDelay (2 ^ (jobAttempts job) * 1000000) -- Exponential backoff
+              enqueueJob queue retryJob'
+            else do
+              putStrLn $ "Job failed permanently after 3 attempts: " <> jobId job
+          Right _ -> return ()
+ 
 -- | Start worker pool
 startWorkers :: JobQueue -> Int -> (Job -> IO ()) -> IO [ThreadId]
 startWorkers queue count processor = mapM (\_ -> forkIO $ workerLoop queue processor) [1 .. count]
-
--- | Default job processor (simplified - no database integration)
--- Use this as a template for your actual job processing
+ 
+-- | Default job processor (can be overridden)
 defaultJobProcessor :: Job -> IO ()
 defaultJobProcessor job = do
-  -- Persist job to in-memory store (placeholder for PostgreSQL integration)
   putStrLn $ "Processing job: " <> jobId job <> " of type: " <> jobType job
+  -- In a real implementation, this would process the job payload
   return ()
-
--- | Job persistence functions (stub for database integration)
--- These will be replaced with PostgreSQL.Simple when available
-persistJob :: Job -> IO ()
-persistJob job = do
-  -- Placeholder: In production, use PostgreSQL.Simple to insert into jobs table
-  putStrLn $ "Persisting job: " <> jobId job
-  return ()
-
-getJobById :: Text -> IO (Maybe Job)
-getJobById _ = do
-  -- Placeholder: In production, query PostgreSQL for job
-  return Nothing
-
--- | Retry failed job with exponential backoff
-retryJob :: Job -> Job
-retryJob job = job {jobAttempts = jobAttempts job + 1}
-
--- | Schedule a delayed job
-scheduleDelayedJob :: JobQueue -> Int -> Job -> IO ()
-scheduleDelayedJob queue delaySecs job = do
-  threadDelay (delaySecs * 1000000)
-  enqueueJob queue job
+ 
+-- | Helper to get strict ByteString from Lazy ByteString
+toStrict :: Data.ByteString.Lazy.ByteString -> Data.ByteString.ByteString
+toStrict = Data.ByteString.Lazy.toStrict
+ 
+-- | Helper to get Lazy ByteString from Strict ByteString
+fromStrict :: Data.ByteString.ByteString -> Data.ByteString.Lazy.ByteString
+fromStrict = Data.ByteString.Lazy.fromStrict

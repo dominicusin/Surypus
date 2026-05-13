@@ -6,7 +6,7 @@
 # Stage 1: Build environment
 FROM haskell:9.12.4 AS builder
 
-# Install build dependencies and PostgreSQL 14 dev libraries
+# Install build dependencies and PostgreSQL dev libraries
 RUN apt-get update && apt-get install -y \
     wget \
     build-essential \
@@ -18,19 +18,20 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /build
 
-# Copy lock file first - enables better caching
+# Copy lock file and cabal files first - enables better caching of dependencies
 COPY stack.yaml stack.yaml.lock* ./
+COPY Surypus.cabal ./
+COPY surypus-common/surypus-common.cabal surypus-common/
+COPY surypus-api/surypus-api.cabal surypus-api/
+COPY surypus-api-shim/surypus-api-shim.cabal surypus-api-shim/
 
 # Pre-install dependencies (cached)
-RUN stack setup
+RUN stack setup && stack build --only-dependencies
 
-# Copy project files
-COPY Surypus.cabal ./
+# Copy project source files
 COPY surypus-common surypus-common/
 COPY surypus-api-shim surypus-api-shim/
 COPY Surypus surypus-api-core/
-
-# Create dummy source files to force rebuild if deps change
 COPY src ./src
 COPY app ./app
 

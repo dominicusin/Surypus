@@ -143,7 +143,7 @@ validateTechLine line@TechLine {..}
   | tlLineNum <= 0 = Left "line number must be positive"
   | tlGoodsId <= 0 = Left "goods id must be positive"
   | tlQtyPlan < 0 = Left "quantity must be non-negative"
-  | tlUnitId < Just 0 && isJust tlUnitId = Left "unit id must be positive when present"
+   | maybe False (< 0) tlUnitId = Left "unit id must be positive when present"
   | tlScrapPercent < 0 || tlScrapPercent > 100 = Left "scrap percent must be between 0 and 100"
   | otherwise = Right line
 

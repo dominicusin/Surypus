@@ -2,7 +2,7 @@
 module DAL.File  where
 
 import Data.Int (Int64)
-import Data.List (isSuffixOf, dropSuffix)
+import Data.List (isSuffixOf)
 
 -- | File - File
 data File = File
