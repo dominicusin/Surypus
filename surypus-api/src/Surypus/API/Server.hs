@@ -272,7 +272,7 @@ server env =
       payrollHandler =
         payrollList
           :<|> empList
-          :<|> empGet
+          :<|> empGet env
           :<|> salariesList
           :<|> salaryGet
       reportsHandler = reportsList :<|> reportsMeta :<|> reportsTemplates env :<|> reportGet env :<|> reportJrxml
@@ -1120,10 +1120,15 @@ empList _ = do
     toEmployeeResponse (Employee {eId = id, eName = name}) =
       EmployeeResponse id name
 
-empGet :: Int64 -> Handler EmployeeResponse
+empGet :: Env -> Int64 -> Handler EmployeeResponse
 
 -- | GET /v1/payroll/employees/:id - Requires PayrollRead permission
-empGet _ = pure $ EmployeeResponse 1 "Demo"
+empGet env empId = do
+  let pool = envPool env
+  result <- liftIO $ DAL.Queries.getEmployeeById pool empId
+  case result of
+    QuerySuccess emp -> pure $ EmployeeResponse (eId emp) (eName emp)
+    QueryError _ -> throwError err404 {errBody = "Employee not found"}
 
 salariesList :: Handler SalariesResponse
 

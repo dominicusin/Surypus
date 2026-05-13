@@ -174,3 +174,28 @@ clean: ## Clean build artifacts
 distclean: clean docker-clean ## Clean everything
 	@echo "$(RED)Deep cleaning...$(NC)"
 	rm -rf docker/volumes
+
+# ============================================================================
+# DEMO/DEVELOPMENT ENVIRONMENT
+# ============================================================================
+
+demo: docker-up demo-seed demo-open ## Start demo environment (DB + API)
+	@echo "$(GREEN)Demo environment ready!$(NC)"
+	@echo "API: http://localhost:3000"
+	@echo "Users: admin/admin123, accountant/accountant123, viewer/viewer123"
+
+demo-seed: ## Seed database with demo data
+	@echo "$(BLUE)Waiting for database...$(NC)"
+	@sleep 5
+	@for i in $$(seq 1 10); do \
+		psql $(DB_URL) -c "SELECT 1" >/dev/null 2>&1 && break || sleep 2; \
+	done
+	@echo "$(BLUE)Seeding demo data...$(NC)"
+	psql $(DB_URL) -f sql/seeds/basic_seed.sql
+	psql $(DB_URL) -f sql/seeds/demo_seed.sql
+	@echo "$(GREEN)Demo data seeded!$(NC)"
+
+demo-open: ## Open API documentation
+	@command -v xdg-open >/dev/null && xdg-open http://localhost:3000/graphiql || \
+	 command -v open >/dev/null && open http://localhost:3000/graphiql || \
+	 echo "Open http://localhost:3000/graphiql in your browser"

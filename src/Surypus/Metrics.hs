@@ -22,7 +22,7 @@ import Control.Exception (bracket)
 import Data.Text (Text)
 import Data.Int (Int64)
 import qualified Data.Text as T
-import System.Ekg.Core (Store, newStore, Counter, Gauge, Distribution, add, forkServer)
+import System.Ekg (Store, newStore, Counter, Gauge, Distribution, add, forkServer)
 
 -- | Metrics handle containing STM counters that EKG can read
 data Metrics = Metrics
