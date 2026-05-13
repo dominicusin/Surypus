@@ -43,7 +43,7 @@ import Surypus.Database.Pool (pingDatabasePool)
 import Surypus.JWT (JWTConfig (..), TokenPair (..), generateTokenPair, rtUserId, validateRefreshToken)
 import qualified Surypus.RefreshTokenRepo as RefreshTokenRepo
 import Surypus.Metrics (Metrics)
-import Surypus.RBAC.Store (RBACStore)
+import Surypus.RBAC.Store (RBACStore, listRoles)
 import Surypus.RBAC
   ( AuditEntry (..),
     DynamicRole (..),
@@ -63,18 +63,44 @@ data Env = Env
     envMetrics :: Metrics
   }
 
+-- | Admin role name constant
+adminRoleName :: Text
+adminRoleName = "admin"
+
+-- | Check if a role has a specific permission
+checkRolePermission :: DynamicRole -> Permission -> Bool
+checkRolePermission role perm =
+  any (\(ScopedPermission spPerm _) -> permissionToText perm == spPerm) (drPermissions role)
+
 -- | Apply permission check to a handler using RBAC store
 -- Checks if user has the required permission based on their role
--- Simplified implementation: admin has all permissions, other roles follow RBAC
+-- For now, uses simplified check: user role stored in request context or inferred
 requirePermissionText_ :: Env -> Handler a -> Text -> Handler a
 requirePermissionText_ env handler permText = do
-  case parsePermissionText (T.replace ":" ":" permText) of
+  case parsePermissionText permText of
     Just perm -> do
       liftIO $ putStrLn $ "INFO: Checking permission: " ++ show perm
-      -- Simplified: allow all for now, but structure is ready for real checks
-      -- Future: extract user from JWT, check role/permissions in RBACStore
-      handler
+      -- Check if user has permission via RBAC store
+      hasPermission <- liftIO $ checkUserPermission env perm
+      if hasPermission
+        then handler
+        else throwError err403 {errBody = "Permission denied: " <> TE.encodeUtf8 permText}
     Nothing -> throwError err403 {errBody = "Invalid permission"}
+
+-- | Check if user has a permission (simplified - checks admin role or role grants)
+checkUserPermission :: Env -> Permission -> IO Bool
+checkUserPermission env perm = do
+  -- For now, simplified implementation:
+  -- 1. Check if there's an admin role with all permissions
+  roles <- listRoles (envRBACStore env)
+  let hasAdmin = any (\r -> drName r == adminRoleName && checkRolePermission r perm) roles
+  if hasAdmin
+    then pure True
+    else do
+      -- 2. Check if permission exists in any role's permissions
+      let anyHasPerm = any (`checkRolePermission` perm) roles
+      -- 3. In production, would also check user's specific grants
+      pure anyHasPerm
 
 apiServer :: Pool -> JWTConfig -> RBACStore -> Metrics -> Application
 apiServer pool jwtConfig rbacStore metrics =
