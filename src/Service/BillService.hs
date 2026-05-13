@@ -82,14 +82,14 @@ Laws:
 - sum lineAmounts = billTotal
 - sum Debit = sum Credit (double-entry invariant)
 -}
-postBill :: Database -> BillId -> Day -> Double -> Double -> [BillLine] -> IO (ServiceResult PostResult)
-postBill db bid bdate total discount billLines = do
-  case validateBill total billLines of
-    Left err -> pure (Left err)
-    Right calculatedLines -> do
-      -- Step 1: Insert bill to database
-      let billStub = BillStub { DAL.DB.billId = bid, DAL.DB.billTotal = total }
-      liftIO $ insertBill db billStub
+postBill :: Database -> BillId -> Day -> Text -> Double -> Double -> Double -> [BillLine] -> IO (ServiceResult PostResult)
+postBill db bid bdate currencyId exchangeRate total discount billLines = do
+   case validateBill total billLines of
+     Left err -> pure (Left err)
+     Right calculatedLines -> do
+       -- Step 1: Insert bill to database
+       let billStub = BillStub { DAL.DB.billId = bid, DAL.DB.billTotal = total, DAL.DB.billCurrencyId = currencyId, DAL.DB.billExchangeRate = exchangeRate }
+       liftIO $ insertBill db billStub
       -- Step 2: Create accounting turn entries
       let accTurns = createAccountingEntries bid bdate total discount calculatedLines
       -- Step 3: Update stock levels

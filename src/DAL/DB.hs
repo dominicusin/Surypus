@@ -99,7 +99,9 @@ testLocations =
   ]
 
 testBills :: [Bill]
-testBills = []
+testBills =
+  [ BillStub { billId = 1, billTotal = 100.0, billCurrencyId = "RUB", billExchangeRate = 1.0 }
+  ]
 
 testStock :: [Stock]
 testStock =

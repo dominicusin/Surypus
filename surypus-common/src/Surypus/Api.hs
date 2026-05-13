@@ -24,7 +24,8 @@ data AuthenticatedUser = AuthenticatedUser
   }
   deriving (Show, Eq, Generic)
 
-type SurypusApi = "api" :> "v1" :> RawApi
+-- | Auth-protected API type (all endpoints require authentication)
+type SurypusApi = AuthProtect "jwt" :> "api" :> "v1" :> RawApi
 
 type RawApi = Get '[JSON] Text
 

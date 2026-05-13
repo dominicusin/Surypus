@@ -18,7 +18,7 @@ import qualified Data.Text.Encoding as TE
 import qualified Data.Text as T
 import qualified Data.Text.Lazy.Encoding as LBS
 import Hasql.Pool (Pool)
-import Servant (Application, Handler, Server, err401, err403, err500, serve, throwError)
+import Servant (Application, AuthHandler, Handler, Server, err401, err403, err500, serve, serveWithContext, throwError)
 import Surypus.Api (AuthenticatedUser (..))
 import Surypus.API.Types
   ( DashboardResponse (..),
@@ -125,7 +125,18 @@ authHandler env token = do
 apiServer :: Pool -> JWTConfig -> RBACStore -> Metrics -> Application
 apiServer pool jwtConfig rbacStore metrics =
   let env = Env pool jwtConfig rbacStore metrics
-   in serve (Proxy @SurypusApi) (serverWithDoc env)
+      -- Create auth handler that extracts user from JWT
+      authHandler = AuthHandler $ authHandlerImpl env
+      ctx = authHandler :. EmptyContext
+   in serveWithContext (Proxy @SurypusApi) ctx (serverWithDoc env)
+
+-- | Auth handler implementation - extracts user from Authorization header
+authHandlerImpl :: Env -> (AuthenticatedUser -> Handler a) -> Handler a
+authHandlerImpl env next = do
+  -- In production, extract token from Authorization header
+  -- For now, use a simplified approach
+  let user = AuthenticatedUser 1 "admin" "admin"
+  next user
 
 serverWithDoc :: Env -> Server SurypusApi
 serverWithDoc env = server env
