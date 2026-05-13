@@ -20,6 +20,7 @@ import qualified Data.Text.Lazy.Encoding as LBS
 import qualified Data.UUID as UUID
 import qualified Data.UUID.V4 as UUID
 import Hasql.Pool (Pool)
+import Network.Wai as W
 import Servant (Application, AuthHandler, Handler, Server, err401, err403, err500, serve, serveWithContext, throwError)
 import Surypus.Api (AuthenticatedUser (..))
 import Surypus.API.Types
@@ -129,10 +130,28 @@ extractUserFromJWT token =
 -- This is called by Servant to extract the authenticated user from requests
 authHandler :: Env -> Text -> Handler AuthenticatedUser
 authHandler env token = do
-  liftIO $ putStrLn $ "DEBUG: Auth handler called with token: " ++ show (T.take 20 token ++ "...")
+  liftIO $ Log.logDebug (envLogger env) "AUTH" "Auth handler called" 
+    [("token_prefix", T.take 20 token)]
   -- In production, properly validate JWT signature and extract claims
   let user = extractUserFromJWT token
   pure user
+
+-- | Correlation ID middleware - extracts or generates correlation ID
+-- Looks for 'x-correlation-id' header, generates UUID if not present
+correlationMiddleware :: Logger -> Application -> Application
+correlationMiddleware logger app req respond = do
+  let corrIdHeader = lookup "x-correlation-id" (W.requestHeaders req)
+  corrId <- case corrIdHeader of
+    Just cid -> return (TE.decodeUtf8 cid)
+    Nothing -> UUID.toText <$> UUID.nextRandom
+  -- Log request start
+  Log.logInfo logger "HTTP" "Request started" 
+    [("method", T.pack (show (W.requestMethod req))), 
+     ("path", T.pack (show (W.pathInfo req))),
+     ("correlation_id", corrId)]
+  -- Continue with correlation ID in context
+  Log.withCorrelationId logger corrId $
+    app req respond
 
 apiServer :: Pool -> JWTConfig -> RBACStore -> Metrics -> Logger -> Application
 apiServer pool jwtConfig rbacStore metrics logger =
@@ -140,19 +159,17 @@ apiServer pool jwtConfig rbacStore metrics logger =
       -- Create auth handler that extracts user from JWT
       authHandler = AuthHandler $ authHandlerImpl env
       ctx = authHandler :. EmptyContext
-   in serveWithContext (Proxy @SurypusApi) ctx (serverWithDoc env)
+      baseApp = serveWithContext (Proxy @SurypusApi) ctx (serverWithDoc env)
+   in correlationMiddleware logger baseApp
 
 -- | Auth handler implementation - extracts user from Authorization header
--- Generates correlation ID for request tracing
 authHandlerImpl :: Env -> (AuthenticatedUser -> Handler a) -> Handler a
 authHandlerImpl env next = do
-  -- Generate correlation ID for this request
-  corrId <- liftIO $ UUID.toText <$> UUID.nextRandom
+  -- In production, extract token from Authorization header
+  -- For now, use a simplified approach
   let user = AuthenticatedUser 1 "admin" "admin"
-  -- Log the request with correlation ID
-  liftIO $ Log.withCorrelationId (envLogger env) corrId $ do
-    Log.logInfo (envLogger env) "AUTH" "Request authenticated" 
-      [("user", auUsername user), ("correlation_id", corrId)]
+  liftIO $ Log.logDebug (envLogger env) "AUTH" "User authenticated" 
+    [("user", auUsername user)]
   next user
 
 serverWithDoc :: Env -> Server SurypusApi
