@@ -7,8 +7,8 @@ Current focus: Phase 1 — API Production Readiness
 ## Current Status
 
 - **Phase:** 1 (Active)
-- **Active Plan:** Plan 1.2 — JWT Authentication Middleware (in_progress)
-- **Last Milestone:** RBAC middleware refactored, reports handlers fixed
+- **Active Plan:** Phase 1.2 — JWT Authentication Middleware (nearly complete)
+- **Last Milestone:** AuthProtect added to API
 
 ## Phase 1 Plans
 
@@ -22,23 +22,19 @@ Current focus: Phase 1 — API Production Readiness
 ## Completed Today
 
 ### Phase 1.1 - API Handlers (COMPLETE)
-- `dashboardGet` - calls `getDashboardStats`
-- `payrollList` - calls `getSalaries`  
-- `ordersStatus` - calls `updateOrderStatus`
+- `dashboardGet`, `payrollList`, `ordersStatus` - используют реальные DAL функции
+- `reportsMeta`, `reportGet` - используют реальные DAL функции
 
-### Reports Handlers (FIXED)
-- `reportsMeta` - calls `getReports`
-- `reportGet` - calls `getReportById`
-
-### Phase 1.2 - RBAC Middleware (REFACTORED)
-- `requirePermissionText_` now accepts `Env` parameter
-- Updated 58 handler calls to use new signature
-- Ready for actual permission checking implementation
+### Phase 1.2 - JWT Authentication (REFACTORED)
+- `requirePermissionText_` принимает `Env` параметр
+- `checkUserPermission` реализован с проверкой ролей
+- `AuthProtect "jwt"` добавлен в SurypusApi
+- `AuthHandler` создан для извлечения пользователя
 
 ## Known Issues
 - `hashtables-1.3.1` build fails due to C compilation error (system dependency)
-- `empGet`, `jobsList`, `jobsPending`, `jobsCreate` remain as stubs (need DAL functions)
-- Build requires `stack build` due to inter-module dependencies
+- `empGet`, `jobsList`, `jobsPending`, `jobsCreate` remain as stubs
+- AuthHandler нужно доработать для извлечения токена из заголовка
 
 ---
 *Last updated: 2026-05-13*

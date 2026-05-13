@@ -42,9 +42,10 @@ extra-deps:
   - ekg-0.4.0.15
   - jose-0.11
   - aeson-casing-0.2.0.0
+  - hashtables-1.3.0
   #   - reflex-dom-0.6.3.4
-#   - jsaddle-webkit2gtk-0.9.9.3
-#   - gi-webkit2-4.0.32
-#   - webkit2gtk3-javascriptcore-0.14.4.6
-#   - gi-javascriptcore4-4.0.29@sha256:3ea53cdb3d7bb2b36916ca47a66ede923a5579e6d2c62bfc15585fc5f529d0b2,4031
-#   - gi-soup2-2.4.30@sha256:1ea031d55cf3bc848023f154f40aca9a07a01b4f1a7218cda57a743d5f78ac1c,8964
+  #   - jsaddle-webkit2gtk-0.9.9.3
+  #   - gi-webkit2-4.0.32
+  #   - webkit2gtk3-javascriptcore-0.14.4.6
+  #   - gi-javascriptcore4-4.0.29@sha256:3ea53cdb3d7bb2b36916ca47a66ede923a5579e6d2c62bfc15585fc5f529d0b2,4031
+  #   - gi-soup2-2.4.30@sha256:1ea031d55cf3bc848023f154f40aca9a07a01b4f1a7218cda57a743d5f78ac1c,8964
