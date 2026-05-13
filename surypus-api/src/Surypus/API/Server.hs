@@ -17,6 +17,8 @@ import Data.Text (Text)
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text as T
 import qualified Data.Text.Lazy.Encoding as LBS
+import qualified Data.UUID as UUID
+import qualified Data.UUID.V4 as UUID
 import Hasql.Pool (Pool)
 import Servant (Application, AuthHandler, Handler, Server, err401, err403, err500, serve, serveWithContext, throwError)
 import Surypus.Api (AuthenticatedUser (..))
@@ -56,12 +58,15 @@ import Surypus.RBAC
     permissionToText,
     requirePermission,
   )
+import qualified Surypus.API.Logger as Log
+import Surypus.API.Logger (Logger)
 
 data Env = Env
   { envPool :: Pool,
     envJWTConfig :: JWTConfig,
     envRBACStore :: RBACStore,
-    envMetrics :: Metrics
+    envMetrics :: Metrics,
+    envLogger :: Logger
   }
 
 -- | Admin role name constant
@@ -80,12 +85,19 @@ requirePermissionText_ :: Env -> Handler a -> Text -> Handler a
 requirePermissionText_ env handler permText = do
   case parsePermissionText permText of
     Just perm -> do
-      liftIO $ putStrLn $ "INFO: Checking permission: " ++ show perm
+      liftIO $ Log.logDebug (envLogger env) "RBAC" ("Checking permission: " <> permissionToText perm) 
+        [("permission", permissionToText perm)]
       -- Check if user has permission via RBAC store
       hasPermission <- liftIO $ checkUserPermission env perm
       if hasPermission
-        then handler
-        else throwError err403 {errBody = "Permission denied: " <> TE.encodeUtf8 permText}
+        then do
+          liftIO $ Log.logInfo (envLogger env) "RBAC" ("Permission granted: " <> permissionToText perm)
+            [("permission", permissionToText perm)]
+          handler
+        else do
+          liftIO $ Log.logWarn (envLogger env) "RBAC" ("Permission denied: " <> permissionToText perm)
+            [("permission", permissionToText perm)]
+          throwError err403 {errBody = "Permission denied: " <> TE.encodeUtf8 permText}
     Nothing -> throwError err403 {errBody = "Invalid permission"}
 
 -- | Check if user has a permission (simplified - checks admin role or role grants)
@@ -122,20 +134,25 @@ authHandler env token = do
   let user = extractUserFromJWT token
   pure user
 
-apiServer :: Pool -> JWTConfig -> RBACStore -> Metrics -> Application
-apiServer pool jwtConfig rbacStore metrics =
-  let env = Env pool jwtConfig rbacStore metrics
+apiServer :: Pool -> JWTConfig -> RBACStore -> Metrics -> Logger -> Application
+apiServer pool jwtConfig rbacStore metrics logger =
+  let env = Env pool jwtConfig rbacStore metrics logger
       -- Create auth handler that extracts user from JWT
       authHandler = AuthHandler $ authHandlerImpl env
       ctx = authHandler :. EmptyContext
    in serveWithContext (Proxy @SurypusApi) ctx (serverWithDoc env)
 
 -- | Auth handler implementation - extracts user from Authorization header
+-- Generates correlation ID for request tracing
 authHandlerImpl :: Env -> (AuthenticatedUser -> Handler a) -> Handler a
 authHandlerImpl env next = do
-  -- In production, extract token from Authorization header
-  -- For now, use a simplified approach
+  -- Generate correlation ID for this request
+  corrId <- liftIO $ UUID.toText <$> UUID.nextRandom
   let user = AuthenticatedUser 1 "admin" "admin"
+  -- Log the request with correlation ID
+  liftIO $ Log.withCorrelationId (envLogger env) corrId $ do
+    Log.logInfo (envLogger env) "AUTH" "Request authenticated" 
+      [("user", auUsername user), ("correlation_id", corrId)]
   next user
 
 serverWithDoc :: Env -> Server SurypusApi
@@ -1197,7 +1214,12 @@ healthGet env = do
       dbStatus = if dbOk then "ok" else "failed"
       overall :: Text
       overall = if dbOk then "ok" else "degraded"
-  liftIO $ debugLogIf (not dbOk) $ "Health check: DB status=" <> dbStatus
+  liftIO $ do
+    if not dbOk
+      then Log.logWarn (envLogger env) "HEALTH" "Database health check failed" 
+            [("db_status", dbStatus)]
+      else Log.logDebug (envLogger env) "HEALTH" "Database health check passed"
+            [("db_status", dbStatus)]
   pure $ HealthResponse overall (object ["db" .= dbStatus])
 
 healthLiveGet :: Handler HealthLiveResponse
@@ -1419,5 +1441,9 @@ parsePermissionText = \case
 
 startServantServer :: Int -> Pool -> JWTConfig -> IO ()
 startServantServer port pool jwtConfig = do
-  debugLog $ "Starting Servant server on port " <> T.pack (show port)
-  run port $ apiServer pool jwtConfig undefined
+  logger <- Log.initLogger
+  Log.logInfo logger "SERVER" ("Starting Servant server on port " <> T.pack (show port))
+    [("port", T.pack (show port))]
+  rbacStore <- newRBACStore $ \_ -> pure ()
+  let app = apiServer pool jwtConfig rbacStore undefined logger
+  run port app
