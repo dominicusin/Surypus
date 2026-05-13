@@ -7,6 +7,7 @@
 module Surypus.Api
   ( SurypusApi,
     apiProxy,
+    AuthenticatedUser (..),
   )
 where
 
@@ -14,7 +15,14 @@ import Data.Int (Int64)
 import Data.Text (Text)
 import GHC.Generics (Generic)
 import Servant
-import Surypus.Types.Common (QueryParams (..))
+
+-- | Authenticated user context passed to handlers
+data AuthenticatedUser = AuthenticatedUser
+  { auUserId :: Int64,
+    auUsername :: Text,
+    auRole :: Text
+  }
+  deriving (Show, Eq, Generic)
 
 type SurypusApi = "api" :> "v1" :> RawApi
 

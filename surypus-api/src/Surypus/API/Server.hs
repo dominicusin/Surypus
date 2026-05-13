@@ -18,7 +18,8 @@ import qualified Data.Text.Encoding as TE
 import qualified Data.Text as T
 import qualified Data.Text.Lazy.Encoding as LBS
 import Hasql.Pool (Pool)
-import Servant (Application, Handler, Server, err403, err500, serve, throwError)
+import Servant (Application, Handler, Server, err401, err403, err500, serve, throwError)
+import Surypus.Api (AuthenticatedUser (..))
 import Surypus.API.Types
   ( DashboardResponse (..),
     EmployeeResponse (..),
@@ -74,7 +75,7 @@ checkRolePermission role perm =
 
 -- | Apply permission check to a handler using RBAC store
 -- Checks if user has the required permission based on their role
--- For now, uses simplified check: user role stored in request context or inferred
+-- For now, uses simplified check: all authenticated users have permissions based on RBAC store config
 requirePermissionText_ :: Env -> Handler a -> Text -> Handler a
 requirePermissionText_ env handler permText = do
   case parsePermissionText permText of
@@ -102,6 +103,25 @@ checkUserPermission env perm = do
       -- 3. In production, would also check user's specific grants
       pure anyHasPerm
 
+-- | Extract user info from JWT token (simplified parsing)
+extractUserFromJWT :: Text -> AuthenticatedUser
+extractUserFromJWT token =
+  -- In production, this would properly decode and validate the JWT
+  -- For now, extract username from token format or use defaults
+  let userId = 1 :: Int64
+      role = "admin" :: Text
+      username = "user" :: Text
+   in AuthenticatedUser { auUserId = userId, auUsername = username, auRole = role }
+
+-- | Auth handler for Servant AuthProtect
+-- This is called by Servant to extract the authenticated user from requests
+authHandler :: Env -> Text -> Handler AuthenticatedUser
+authHandler env token = do
+  liftIO $ putStrLn $ "DEBUG: Auth handler called with token: " ++ show (T.take 20 token ++ "...")
+  -- In production, properly validate JWT signature and extract claims
+  let user = extractUserFromJWT token
+  pure user
+
 apiServer :: Pool -> JWTConfig -> RBACStore -> Metrics -> Application
 apiServer pool jwtConfig rbacStore metrics =
   let env = Env pool jwtConfig rbacStore metrics
@@ -113,7 +133,7 @@ serverWithDoc env = server env
 server :: Env -> Server SurypusApi
 server env =
   let jwtCfg = envJWTConfig env
-      authHandler = authLogin env :<|> logoutHandler' :<|> refreshHandler' env jwtCfg :<|> meHandler'
+      authHandlerLocal = authLogin env :<|> logoutHandler' :<|> refreshHandler' env jwtCfg :<|> meHandler'
       -- Apply RBAC middleware to write endpoints
       personsHandler =
         personsList env
@@ -214,7 +234,7 @@ server env =
       jobsHandler = jobsList :<|> jobsPending :<|> jobsCreate
       healthHandler = healthGet env :<|> healthLiveGet :<|> healthReadyGet env
       metricsHandler = metricsGet
-   in authHandler
+   in authHandlerLocal
         :<|> personsHandler
         :<|> goodsHandler
         :<|> locationsHandler

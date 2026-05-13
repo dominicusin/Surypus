@@ -46,6 +46,8 @@ data Location = LocationStub
 data Bill = BillStub
   { billId :: Int64
   , billTotal :: Double
+  , billCurrencyId :: Text
+  , billExchangeRate :: Double
   } deriving (Show, Eq)
 
 data Stock = StockStub
