@@ -1,6 +1,6 @@
 -- Demo/Seed data for Surypus ERP
 -- Realistic test data for development environment
--- Schema: V256 (UUID-based)
+-- Compatible with core schema (V001 + basic migrations)
 
 -- ============================================================
 -- 1. USERS & ROLES
@@ -15,118 +15,28 @@ VALUES
   ('manager', crypt('manager123', gen_salt('bf')), 'manager@surypus.local', true, NOW(), NOW())
 ON CONFLICT (username) DO NOTHING;
 
--- ============================================================
--- 2. PERSONS (Контрагенты) - 20+ entities
--- ============================================================
+-- Assign roles
+INSERT INTO user_roles (user_id, role_id)
+SELECT u.id, r.id FROM users u, roles r WHERE u.username = 'admin' AND r.name = 'admin'
+ON CONFLICT DO NOTHING;
 
--- Customers
-INSERT INTO persons (id, tenant_id, person_type, first_name, last_name, full_name, email, is_active, created_at)
-VALUES
-  ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'CUSTOMER', 'ООО', '"Ромашка"', 'ООО "Ромашка"', 'info@romashka.ru', true, NOW()),
-  ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a02', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'CUSTOMER', 'ЗАО', '"Технопark"', 'ЗАО "Технопark"', 'info@technopark.ru', true, NOW()),
-  ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a03', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'CUSTOMER', 'ИП', 'Иванов', 'ИП Иванов И.И.', 'ivanov@example.com', true, NOW()),
-  ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a04', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'CUSTOMER', 'ООО', '"СветоТорг"', 'ООО "СветоТорг"', 'info@svetotrg.ru', true, NOW()),
-  ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a05', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'CUSTOMER', 'АО', '"ГлобалСнаб"', 'АО "ГлобалСнаб"', 'info@global-snab.ru', true, NOW())
-ON CONFLICT (id) DO NOTHING;
+INSERT INTO user_roles (user_id, role_id)
+SELECT u.id, r.id FROM users u, roles r WHERE u.username = 'accountant' AND r.name = 'accountant'
+ON CONFLICT DO NOTHING;
 
--- Suppliers
-INSERT INTO persons (id, tenant_id, person_type, first_name, last_name, full_name, email, is_active, created_at)
-VALUES
-  ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'SUPPLIER', 'ООО', '"ПоставщикПлюс"', 'ООО "ПоставщикПлюс"', 'info@postavshikplus.ru', true, NOW()),
-  ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'SUPPLIER', 'ЗАО', '"ГудЗакуп"', 'ЗАО "ГудЗакуп"', 'info@goodzakup.ru', true, NOW()),
-  ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'SUPPLIER', 'ИП', 'Петров', 'ИП Петров П.П.', 'petrov@example.com', true, NOW()),
-  ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'SUPPLIER', 'ООО', '"СкладТранс"', 'ООО "СкладТранс"', 'info@skladtrans.ru', true, NOW()),
-  ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'SUPPLIER', 'АО', '"ЛогистикСервис"', 'АО "ЛогистикСервис"', 'info@logservice.ru', true, NOW())
-ON CONFLICT (id) DO NOTHING;
-
--- Employees
-INSERT INTO persons (id, tenant_id, person_type, first_name, last_name, full_name, email, is_active, created_at)
-VALUES
-  ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a21', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'EMPLOYEE', 'Сидоров', 'Алексей', 'Сидоров Алексей', 'sidorov@surypus.local', true, NOW()),
-  ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'EMPLOYEE', 'Козлова', 'Мария', 'Козлова Мария', 'kozlova@surypus.local', true, NOW())
-ON CONFLICT (id) DO NOTHING;
+INSERT INTO user_roles (user_id, role_id)
+SELECT u.id, r.id FROM users u, roles r WHERE u.username = 'viewer' AND r.name = 'viewer'
+ON CONFLICT DO NOTHING;
 
 -- ============================================================
--- 3. GOODS (Товары) - 75 entities
+-- 2. ROLES (if not exist from basic_seed.sql)
 -- ============================================================
 
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM goods LIMIT 1) THEN
-    FOR i IN 1..75 LOOP
-      INSERT INTO goods (id, tenant_id, goods_code, goods_name, unit_of_measure, is_active, created_at)
-      VALUES (
-        ('c' || LPAD(i::text, 5, '0') || '-4d9e-11eb-8dcd-0242ac130003')::uuid,
-        'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid,
-        'GOOD-' || LPAD(i::text, 4, '0'),
-        CASE 
-          WHEN i <= 25 THEN 'Товар ' || i || ' (электроника)'
-          WHEN i <= 50 THEN 'Товар ' || i || ' (одежда)'
-          ELSE 'Товар ' || i || ' (обувь)'
-        END,
-        'шт',
-        true,
-        NOW()
-      );
-    END LOOP;
-  END IF;
-END$$;
+INSERT INTO roles (name) VALUES ('admin'), ('accountant'), ('viewer')
+ON CONFLICT (name) DO NOTHING;
 
 -- ============================================================
--- 4. LOCATIONS (Склады)
--- ============================================================
-
-INSERT INTO warehouses (id, tenant_id, warehouse_name, location_code, is_active, created_at)
-VALUES 
-  ('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Главный склад', 'WH-01', true, NOW()),
-  ('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a02', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Склад МСК', 'WH-02', true, NOW()),
-  ('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a03', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Склад СПБ', 'WH-03', true, NOW())
-ON CONFLICT (id) DO NOTHING;
-
--- ============================================================
--- 5. BILLS (Документы) - 30 entities
--- ============================================================
-
-DO $$
-DECLARE
-  btype TEXT;
-  status TEXT;
-  i INT;
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM bills LIMIT 1) THEN
-    FOR i IN 1..30 LOOP
-      btype := CASE (i % 3)
-        WHEN 0 THEN 'PURCHASE'
-        WHEN 1 THEN 'SALES'
-        ELSE 'TRANSFER'
-      END;
-      
-      status := CASE (i % 4)
-        WHEN 0 THEN 'POSTED'
-        WHEN 1 THEN 'PAID'
-        ELSE 'DRAFT'
-      END;
-      
-      INSERT INTO bills (
-        id, tenant_id, bill_number, bill_type, bill_date, 
-        counterparty_id, total_amount, status, created_at
-      ) VALUES (
-        ('e' || LPAD(i::text, 5, '0') || '-4d9e-11eb-8dcd-0242ac130003')::uuid,
-        'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid,
-        'BILL-' || LPAD(i::text, 5, '0'),
-        btype,
-        CURRENT_DATE - (i * 3),
-        ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a' || LPAD((i % 15 + 1)::text, 2, '0'))::uuid,
-        (1000 + (i * 50))::NUMERIC,
-        status,
-        NOW()
-      );
-    END LOOP;
-  END IF;
-END$$;
-
--- ============================================================
--- 6. ACCOUNTS (План счетов)
+-- 3. ACCOUNTS (План счетов)
 -- ============================================================
 
 INSERT INTO accounts (code, name, type, currency, description, is_active)
@@ -141,21 +51,89 @@ VALUES
 ON CONFLICT (code) DO NOTHING;
 
 -- ============================================================
--- 7. STOCK (Остатки)
+-- 4. GOODS (Товары) - 75 entities
 -- ============================================================
 
-INSERT INTO stock_balances (tenant_id, goods_id, warehouse_id, quantity)
-SELECT 
-  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid,
-  g.id,
-  ('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a0' || ((g.id::text::int % 3) + 1)::text)::uuid,
-  ((g.id::text::int * 10) + 5)::NUMERIC
-FROM goods g
-WHERE g.id::text::int % 30 = 0 OR g.id::text::int <= 30
-ON CONFLICT (tenant_id, goods_id, warehouse_id) DO NOTHING;
+DO $$
+DECLARE
+  i INT;
+BEGIN
+  FOR i IN 1..75 LOOP
+    INSERT INTO goods (id, name, price, company_id, goods_type, created_at)
+    VALUES (
+      1000 + i,
+      'Товар ' || i || CASE 
+        WHEN i <= 25 THEN ' (электроника)'
+        WHEN i <= 50 THEN ' (одежда)'
+        ELSE ' (обувь)'
+      END,
+      (100 + i * 5)::NUMERIC,
+      1,
+      'standard',
+      NOW()
+    ) ON CONFLICT (id) DO NOTHING;
+  END LOOP;
+END$$;
 
 -- ============================================================
--- 8. JOBS (Задачи) - using scheduled_jobs
+-- 5. BILLS (Документы) - 30 entities
+-- ============================================================
+
+DO $$
+DECLARE
+  i INT;
+  btype INT;
+  status TEXT;
+BEGIN
+  FOR i IN 1..30 LOOP
+    btype := CASE (i % 3)
+      WHEN 0 THEN 1  -- Purchase
+      WHEN 1 THEN 2  -- Sales
+      ELSE 3         -- Transfer
+    END;
+    
+    status := CASE (i % 4)
+      WHEN 0 THEN 'posted'
+      WHEN 1 THEN 'paid'
+      ELSE 'draft'
+    END;
+    
+    INSERT INTO bills (
+      id, company_id, bill_number, bill_date, 
+      total_amount, status, created_at
+    ) VALUES (
+      2000 + i,
+      1,
+      'BILL-' || LPAD(i::text, 5, '0'),
+      CURRENT_DATE - (i * 3),
+      (1000 + (i * 50))::NUMERIC,
+      status,
+      NOW()
+    ) ON CONFLICT (id) DO NOTHING;
+  END LOOP;
+END$$;
+
+-- ============================================================
+-- 6. STOCK BALANCES
+-- ============================================================
+
+DO $$
+DECLARE
+  i INT;
+BEGIN
+  FOR i IN 1..30 LOOP
+    INSERT INTO stock (goods_id, location_id, quantity, reserved_quantity)
+    VALUES (
+      1000 + i,
+      (i % 3) + 1,
+      ((i * 10) + 5)::NUMERIC,
+      (i % 5)::NUMERIC
+    ) ON CONFLICT (goods_id, location_id) DO NOTHING;
+  END LOOP;
+END$$;
+
+-- ============================================================
+-- 7. JOBS TABLE (if exists in schema, populate)
 -- ============================================================
 
 INSERT INTO scheduled_jobs (job_name, function_name, schedule_interval, is_active)
@@ -172,8 +150,7 @@ BEGIN
   RAISE NOTICE '========================================';
   RAISE NOTICE 'Demo seed complete!';
   RAISE NOTICE '- Users: admin/admin123, accountant/accountant123, viewer/viewer123';
-  RAISE NOTICE '- Persons: 12 suppliers/customers + 2 employees';
-  RAISE NOTICE '- Goods: 75 products';
-  RAISE NOTICE '- Bills: 30 documents';
+  RAISE NOTICE '- Goods: 75 products (id 1001-1075)';
+  RAISE NOTICE '- Bills: 30 documents (id 2001-2030)';
   RAISE NOTICE '========================================';
 END$$;
