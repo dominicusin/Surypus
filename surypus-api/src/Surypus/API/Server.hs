@@ -27,6 +27,12 @@ import Surypus.API.Types
   ( DashboardResponse (..),
     EmployeeResponse (..),
     EmployeesResponse (..),
+    JobRecord (..),
+    JobRequest (..),
+    JobResponse (..),
+    JobsResponse (..),
+    JobsPendingResponse (..),
+    JobStatus (..),
     LoginRequest (..),
     LoginResponse (..),
     OrderResponse (..),
@@ -1213,14 +1219,44 @@ auditLogList env mEntityType mLimit mOffset = do
   auditEntries <- liftIO $ fetchAuditLogsBestEffort env mEntityType (fromMaybe 100 mLimit) (sum mOffset)
   pure $ AuditLogListResponse auditEntries
 
-jobsList :: Handler JobsResponse
-jobsList = pure $ JobsResponse []
+jobsList :: Env -> Handler JobsResponse
+jobsList env = do
+  let pool = envPool env
+  result <- liftIO $ DAL.Queries.getJobs pool
+  case result of
+    QuerySuccess jobs -> do
+      let records = map toJobRecord jobs
+      pure $ JobsResponse records
+    QueryError err -> throwError $ err500 {errBody = LBS.fromStrict $ encodeUtf8 $ T.pack ("Database error: " ++ show err)}
+  where
+    toJobRecord jr = JobRecord 
+      { jobId = jrId jr
+      , jobType = jrType jr
+      , jobStatus = case jrStatus jr of
+          1 -> JobPending
+          2 -> JobRunning
+          3 -> JobCompleted
+          4 -> JobFailed
+          _ -> JobCancelled
+      , jobCreatedAt = jrCreatedAt jr
+      , jobPayload = jrPayload jr
+      }
 
-jobsPending :: Handler JobsPendingResponse
-jobsPending = pure $ JobsPendingResponse 0
+jobsPending :: Env -> Handler JobsPendingResponse
+jobsPending env = do
+  let pool = envPool env
+  result <- liftIO $ DAL.Queries.getJobs pool
+  case result of
+    QuerySuccess jobs -> pure $ JobsPendingResponse (length $ filter (\j -> jrStatus j == 1) jobs)
+    QueryError _ -> pure $ JobsPendingResponse 0
 
-jobsCreate :: JobRequest -> Handler JobResponse
-jobsCreate _ = pure $ JobResponse 1
+jobsCreate :: Env -> JobRequest -> Handler JobResponse
+jobsCreate env req = do
+  let pool = envPool env
+  liftIO $ Log.logInfo (envLogger env) "JOBS" "Creating job"
+    [("type", jrType req), ("priority", T.pack (show (jrPriority req)))]
+  -- TODO: Implement actual job creation in DAL.Mutations
+  pure $ JobResponse 1
 
 healthGet :: Env -> Handler HealthResponse
 healthGet env = do

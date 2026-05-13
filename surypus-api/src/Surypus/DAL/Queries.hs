@@ -1525,3 +1525,36 @@ getAccTurnById pool turnId = do
     Right (Just turn) -> pure $ QuerySuccess turn
     Right Nothing -> pure $ QueryError "Not Found"
     Left err -> pure $ QueryError (T.pack $ show err)
+
+-- | Job types for DAL
+data JobRecord = JobRecord
+  { jrId :: Int64,
+    jrType :: Text,
+    jrStatus :: Int,
+    jrPayload :: Maybe Text,
+    jrCreatedAt :: UTCTime
+  }
+  deriving (Show, Eq)
+
+-- | Job row decoder
+jobRowDecoder :: D.Row JobRecord
+jobRowDecoder =
+  JobRecord
+    <$> D.column (D.nonNullable D.int8)
+    <*> D.column (D.nonNullable D.text)
+    <*> D.column (D.nonNullable D.int2)
+    <*> D.column (D.nullable D.text)
+    <*> D.column (D.nonNullable D.utcTime)
+
+-- | Get jobs from database
+getJobs :: Pool -> IO (QueryResult [JobRecord])
+getJobs pool = do
+  let stmt =
+        preparable
+          "SELECT id, job_type, status, payload, created_at FROM jobs ORDER BY created_at DESC LIMIT 100"
+          E.noParams
+          (D.rowList jobRowDecoder)
+  res <- use pool $ Session.statement () stmt
+  case res of
+    Right jobs -> pure $ QuerySuccess jobs
+    Left err -> pure $ QueryError (T.pack $ show err)

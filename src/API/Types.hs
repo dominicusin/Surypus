@@ -230,3 +230,53 @@ data EmployeesResponse = EmployeesResponse [EmployeeResponse]
 
 instance ToJSON EmployeesResponse
 instance FromJSON EmployeesResponse
+
+-- | Job types
+data JobStatus = JobPending | JobRunning | JobCompleted | JobFailed | JobCancelled
+  deriving (Show, Eq, Generic)
+
+instance ToJSON JobStatus
+instance FromJSON JobStatus
+
+data JobRecord = JobRecord
+  { jobId :: Int64,
+    jobType :: Text,
+    jobStatus :: JobStatus,
+    jobCreatedAt :: UTCTime,
+    jobPayload :: Maybe Text
+  }
+  deriving (Show, Eq, Generic)
+
+instance ToJSON JobRecord
+instance FromJSON JobRecord
+
+data JobRequest = JobRequest
+  { jrCode :: Text,
+    jrName :: Text,
+    jrType :: Text,
+    jrPriority :: Int,
+    jrPayload :: Maybe Text,
+    jrScheduled :: Maybe UTCTime
+  }
+  deriving (Show, Eq, Generic)
+
+instance ToJSON JobRequest
+instance FromJSON JobRequest
+
+data JobsResponse = JobsResponse [JobRecord]
+  deriving (Show, Eq, Generic)
+
+instance ToJSON JobsResponse
+instance FromJSON JobsResponse
+
+data JobResponse = JobResponse Int64
+  deriving (Show, Eq, Generic)
+
+instance ToJSON JobResponse
+instance FromJSON JobResponse
+
+data JobsPendingResponse = JobsPendingResponse Int
+  deriving (Show, Eq, Generic)
+
+instance ToJSON JobsPendingResponse
+instance FromJSON JobsPendingResponse
