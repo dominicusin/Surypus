@@ -23,6 +23,7 @@ import Data.Int (Int64)
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
+import Data.Functor.Contravariant ((>$<))
 import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
@@ -44,8 +45,8 @@ calcStockBalance :: Pool -> Int64 -> Int64 -> IO (Either Text Decimal)
 calcStockBalance pool goodsId locationId = do
   let stmt = preparable
         "SELECT calc_stock_balance($1, $2)"
-        (E.param (E.nonNullable E.int8) <> E.param (E.nonNullable E.int8))
-        (D.singleRow (D.column (D.nonNullable D.numeric) <&> \n -> Decimal (realToFrac n)))
+        ((fst >$< E.param (E.nonNullable E.int8)) <> (snd >$< E.param (E.nonNullable E.int8)))
+        (D.singleRow (fmap (\n -> Decimal (realToFrac n)) (D.column (D.nonNullable D.numeric))))
   res <- use pool $ Session.statement (goodsId, locationId) stmt
   case res of
     Right v -> pure $ Right v
@@ -56,11 +57,11 @@ getLotBounds :: Pool -> Int64 -> Int64 -> IO (Either Text (Maybe (Text, Text, De
 getLotBounds pool goodsId locationId = do
   let stmt = preparable
         "SELECT min_date::text, max_date::text, total_qty FROM get_lot_bounds($1, $2)"
-        (E.param (E.nonNullable E.int8) <> E.param (E.nonNullable E.int8))
+        ((fst >$< E.param (E.nonNullable E.int8)) <> (snd >$< E.param (E.nonNullable E.int8)))
         (D.rowMaybe $ (,,) 
           <$> (D.column (D.nonNullable D.text))
           <*> (D.column (D.nonNullable D.text))
-          <*> (D.column (D.nonNullable D.numeric) <&> \n -> Decimal (realToFrac n)))
+          <*> (fmap (\n -> Decimal (realToFrac n)) (D.column (D.nonNullable D.numeric))))
   res <- use pool $ Session.statement (goodsId, locationId) stmt
   case res of
     Right mb -> pure $ Right mb
@@ -75,7 +76,7 @@ calcVAT :: Pool -> Double -> Double -> IO (Either Text Double)
 calcVAT pool amount rate = do
   let stmt = preparable
         "SELECT calc_vat($1, $2)"
-        (E.param (E.nonNullable E.float8) <> E.param (E.nonNullable E.float8))
+        ((fst >$< E.param (E.nonNullable E.float8)) <> (snd >$< E.param (E.nonNullable E.float8)))
         (D.singleRow (D.column (D.nonNullable D.float8)))
   res <- use pool $ Session.statement (amount, rate) stmt
   case res of
@@ -87,7 +88,7 @@ calcVATInclusive :: Pool -> Double -> Double -> IO (Either Text Double)
 calcVATInclusive pool amount rate = do
   let stmt = preparable
         "SELECT calc_vat_inclusive($1, $2)"
-        (E.param (E.nonNullable E.float8) <> E.param (E.nonNullable E.float8))
+        ((fst >$< E.param (E.nonNullable E.float8)) <> (snd >$< E.param (E.nonNullable E.float8)))
         (D.singleRow (D.column (D.nonNullable D.float8)))
   res <- use pool $ Session.statement (amount, rate) stmt
   case res of
@@ -99,7 +100,7 @@ calcPriceWithoutVAT :: Pool -> Double -> Double -> IO (Either Text Double)
 calcPriceWithoutVAT pool amount rate = do
   let stmt = preparable
         "SELECT calc_price_without_vat($1, $2)"
-        (E.param (E.nonNullable E.float8) <> E.param (E.nonNullable E.float8))
+        ((fst >$< E.param (E.nonNullable E.float8)) <> (snd >$< E.param (E.nonNullable E.float8)))
         (D.singleRow (D.column (D.nonNullable D.float8)))
   res <- use pool $ Session.statement (amount, rate) stmt
   case res of
@@ -120,7 +121,7 @@ postBill pool billId = do
   res <- use pool $ Session.statement billId stmt
   case res of
     Right v -> pure $ Right v
-    Left err -> pure $ Left (show err)
+    Left err -> pure $ Left (T.pack $ show err)
 
 -- | Cancel a bill
 cancelBill :: Pool -> Int64 -> IO (Either Text Bool)
@@ -132,7 +133,7 @@ cancelBill pool billId = do
   res <- use pool $ Session.statement billId stmt
   case res of
     Right v -> pure $ Right v
-    Left err -> pure $ Left (show err)
+    Left err -> pure $ Left (T.pack $ show err)
 
 -- ============================================================================
 -- ACCOUNTING PROCEDURES
@@ -148,7 +149,7 @@ validateDoubleEntry pool entryId = do
   res <- use pool $ Session.statement entryId stmt
   case res of
     Right v -> pure $ Right v
-    Left err -> pure $ Left (show err)
+    Left err -> pure $ Left (T.pack $ show err)
 
 -- | Calculate account balance
 calcAccountBalance :: Pool -> Int64 -> IO (Either Text Decimal)
@@ -156,11 +157,11 @@ calcAccountBalance pool accountId = do
   let stmt = preparable
         "SELECT calc_account_balance($1)"
         (E.param (E.nonNullable E.int8))
-        (D.singleRow (D.column (D.nonNullable D.numeric) <&> Decimal . round))
-   res <- use pool $ Session.statement accountId stmt
-   case res of
-     Right v -> pure $ Right v
-     Left err -> pure $ Left (T.pack $ show err)
+        (D.singleRow (fmap (\n -> Decimal (realToFrac n)) (D.column (D.nonNullable D.numeric))))
+  res <- use pool $ Session.statement accountId stmt
+  case res of
+    Right v -> pure $ Right v
+    Left err -> pure $ Left (T.pack $ show err)
 
 -- ============================================================================
 -- REPORT PROCEDURES
@@ -171,9 +172,9 @@ getSalesReport :: Pool -> Text -> Text -> IO (Either Text [(Text, Double)])
 getSalesReport pool dateFrom dateTo = do
   let stmt = preparable
         "SELECT report_date::text, total_amount FROM get_sales_report($1, $2)"
-        (E.param (E.nonNullable E.text) <> E.param (E.nonNullable E.text))
+        ((fst >$< E.param (E.nonNullable E.text)) <> (snd >$< E.param (E.nonNullable E.text)))
         (D.rowList $ (,) <$> D.column (D.nonNullable D.text) <*> D.column (D.nonNullable D.float8))
   res <- use pool $ Session.statement (dateFrom, dateTo) stmt
   case res of
     Right rows -> pure $ Right rows
-    Left err -> pure $ Left (show err)
+    Left err -> pure $ Left (T.pack $ show err)
