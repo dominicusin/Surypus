@@ -1,15 +1,6 @@
 -- Demo/Seed data for Surypus ERP
 -- Realistic test data for development environment
--- Schema: V256 (UUID-based with tenant_id)
-
--- ============================================================
--- 0. TENANT & COMPANY SETUP (Required for all UUID tables)
--- ============================================================
-
--- Create default tenant
-INSERT INTO tenants (id, tenant_name, created_at)
-VALUES ('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Demo Company', NOW())
-ON CONFLICT (id) DO NOTHING;
+-- Schema: V256 (UUID-based)
 
 -- ============================================================
 -- 1. USERS & ROLES
