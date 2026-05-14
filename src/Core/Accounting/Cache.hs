@@ -45,30 +45,28 @@ mkReadModelCache = do
 -- | Get cached account read model (or compute and cache)
 getCachedAccountReadModel :: ReadModelCache -> Int64 -> IO RM.AccountReadModel
 getCachedAccountReadModel (ReadModelCache ref) accountId = do
-  now <- getCurrentTime
-  state <- readIORef ref
-  case lookup accountId (csModels state) of
-    Just (expiresAt, model) | expiresAt > now -> do
-      atomicModifyIORef' ref $ \s ->
-        (s { chHits = chHits s + 1 }, ())
-      pure model
-    _ -> do
-      result <- RM.replayAccountEvents accountId
-      case result of
-        Left _ -> do
-          atomicModifyIORef' ref $ \s ->
-            (s { chMisses = chMisses s + 1 }, ())
-          pure $ emptyModel accountId now
-        Right model -> do
-          let expiresAt = addUTCTime (realToFrac cacheTTL) now
-          atomicModifyIORef' ref $ \s ->
-            ( s
-                { csModels = (accountId, (expiresAt, model)) : filter (\(k, _) -> k /= accountId) (csModels s)
-                , chMisses = chMisses s + 1
-                }
-            , ()
-            )
-          pure model
+    now <- getCurrentTime
+    state <- readIORef ref
+    case lookup accountId (csModels state) of
+        Just (expiresAt, model) | expiresAt > now -> do
+            atomicModifyIORef' ref $ \s ->
+                (s { chHits = chHits s + 1 }, ())
+            pure model
+        _ -> do
+            now <- getCurrentTime
+            result <- RM.replayAccountEvents undefined accountId ""
+            case result of
+                Left _ -> do
+                    atomicModifyIORef' ref $ \s ->
+                        (s { chMisses = chMisses s + 1 }, ())
+                    pure $ emptyModel accountId now
+                Right model -> do
+                    let expiresAt = addUTCTime (realToFrac cacheTTL) now
+                    atomicModifyIORef' ref $ \s ->
+                        let updatedModels = (accountId, (expiresAt, model)) : filter (\(k, _) -> k /= accountId) (csModels s)
+                            updatedState = s { csModels = updatedModels, chMisses = chMisses s + 1 }
+                        in (updatedState, ())
+                    pure model
 
 -- | Get cached balance
 getCachedBalance :: ReadModelCache -> Int64 -> IO Double

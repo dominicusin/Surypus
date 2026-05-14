@@ -1,5 +1,7 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Production.MRP
   ( BOMLine (..),
@@ -12,6 +14,7 @@ module Production.MRP
 import Data.Int (Int64)
 import Data.Text (Text)
 import qualified Data.Map.Strict as M
+import Data.Foldable (foldl')
 import Production.Types (TechLine(..))
 
 data BOMLine = BOMLine
@@ -24,7 +27,8 @@ data BOMLine = BOMLine
 -- | Material Requirements Planning demand
 newtype MRPDemand = MRPDemand
   { unMRPDemand :: [(Int64, Double)]  -- (goodsId, quantity)
-  } deriving (Show, Eq, Semigroup, Monoid)
+  } deriving stock (Show, Eq)
+    deriving newtype (Semigroup, Monoid)
 
 -- | Calculate gross requirements from BOM and product demand
 calculateMRP :: [BOMLine] -> MRPDemand -> MRPDemand
@@ -40,10 +44,10 @@ calculateMRP bomLines (MRPDemand demand) =
 -- | Calculate net requirements considering current inventory and scheduled receipts
 calculateMRPWithInventory :: [BOMLine] -> MRPDemand -> MRPDemand -> [(Int64, Double)] -> MRPDemand
 calculateMRPWithInventory bomLines grossDemand inventory scheduledReceipts =
-  let netRequirements = subtractLists 
-                        (unMRPDemand $ calculateMRP bomLines grossDemand) 
-                        (inventory ++ scheduledReceipts)
-  in MRPDemand $ filter ((> 0) . snd) netRequirements
+   let netRequirements = subtractLists 
+                         (unMRPDemand $ calculateMRP bomLines grossDemand) 
+                         ((unMRPDemand inventory) ++ scheduledReceipts)
+   in MRPDemand $ filter ((> 0) . snd) netRequirements
 
 -- | Explode a BOM to get all components required for a given quantity
 explodeBOM :: [BOMLine] -> Int64 -> Double -> [(Int64, Double)]

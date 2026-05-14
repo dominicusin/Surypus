@@ -61,6 +61,9 @@ instance FromJSON TechCard
   , tlUnitId :: Maybe Int64
   , tlScrapPercent :: {v:Double | v >= 0.0 && v <= 100.0}
   , tlNotes :: Maybe Text
+  , tlCreatedAt :: UTCTime
+  , tlUpdatedAt :: UTCTime
+  , tlCreatedBy :: Maybe Text
   } @-}
 data TechLine = TechLine
   { tlId :: Maybe Int64,
@@ -70,7 +73,10 @@ data TechLine = TechLine
     tlQtyPlan :: Double,
     tlUnitId :: Maybe Int64,
     tlScrapPercent :: Double,
-    tlNotes :: Maybe Text
+    tlNotes :: Maybe Text,
+    tlCreatedAt :: UTCTime,
+    tlUpdatedAt :: UTCTime,
+    tlCreatedBy :: Maybe Text
   }
   deriving (Show, Eq, Generic)
 
@@ -157,9 +163,10 @@ validateWorkOrderCore wo@WorkOrder {..}
   | woStatus < 0 || woStatus > 4 = Left "status must be between 0 and 4"
   | otherwise = Right wo
 
-mkWorkOrder :: Text -> Int64 -> Int64 -> Double -> UTCTime -> WorkOrder
+mkWorkOrder :: Text -> Int64 -> Double -> UTCTime -> WorkOrder
 mkWorkOrder code goodsId qtyPlan scheduled =
-  WorkOrder Nothing code goodsId Nothing qtyPlan 0 0 scheduled Nothing Nothing Nothing scheduled Nothing Nothing
+  let now = scheduled
+  in WorkOrder Nothing code goodsId Nothing qtyPlan 0 0 (Just scheduled) Nothing Nothing Nothing now now Nothing
 
 toWorkOrderStatus :: Int -> Maybe WorkOrderStatusCode
 toWorkOrderStatus n

@@ -10,9 +10,9 @@ module Surypus.API.Payment
   )
 where
 
-import DAL.Types (Decimal (..), Payment (..), PaymentInput (..), QueryResult (..))
+import DAL.Types (Payment (..), PaymentInput (..), QueryResult (..))
 import Data.Functor.Contravariant ((>$<))
-import Data.Int (Int16, Int32, Int64)
+import Data.Int (Int64)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Time (Day)
@@ -31,7 +31,7 @@ listPayments pool = do
 
 createPayment :: Pool -> PaymentInput -> IO (QueryResult Payment)
 createPayment pool input = do
-  result <- use pool $ Session.statement (piBillId input, piPayDate input, piAmount input, piPayMethod input, piPayStatus input) insertPaymentStmt
+  result <- use pool $ Session.statement (payInputPersonId input, payInputAmount input, payInputDate input) insertPaymentStmt
   return $ case result of
     Left err -> QueryError (T.pack $ show err)
     Right p -> QuerySuccess p
@@ -60,39 +60,35 @@ deletePayment pool pid = do
 selectPaymentsStmt :: S.Statement () [Payment]
 selectPaymentsStmt = S.Statement sql encoder decoder True
   where
-    sql = "SELECT id, bill_id, pay_date, amount, pay_method, pay_status FROM payments ORDER BY id LIMIT 50"
+    sql = "SELECT id, person_id, amount, date FROM payments ORDER BY id LIMIT 50"
     encoder = E.noParams
     decoder = D.rowList paymentDecoder
 
 selectPaymentStmt :: S.Statement Int64 Payment
 selectPaymentStmt = S.Statement sql encoder decoder True
   where
-    sql = "SELECT id, bill_id, pay_date, amount, pay_method, pay_status FROM payments WHERE id = $1"
+    sql = "SELECT id, person_id, amount, date FROM payments WHERE id = $1"
     encoder = ((\(pid) -> pid) >$< E.param (E.nonNullable E.int8))
     decoder = D.singleRow paymentDecoder
 
-insertPaymentStmt :: S.Statement (Int64, Day, Double, Int, Int) Payment
+insertPaymentStmt :: S.Statement (Int64, Double, Day) Payment
 insertPaymentStmt = S.Statement sql encoder decoder True
   where
-    sql = "INSERT INTO payments (bill_id, pay_date, amount, pay_method, pay_status) VALUES ($1, $2, $3, $4, $5) RETURNING id, bill_id, pay_date, amount, pay_method, pay_status"
+    sql = "INSERT INTO payments (person_id, amount, date) VALUES ($1, $2, $3) RETURNING id, person_id, amount, date"
     encoder =
-      ((\(bid, _, _, _, _) -> bid) >$< E.param (E.nonNullable E.int8))
-        <> ((\(_, date, _, _, _) -> date) >$< E.param (E.nonNullable E.date))
-        <> ((\(_, _, amount, _, _) -> amount) >$< E.param (E.nonNullable E.float8))
-        <> ((\(_, _, _, method, _) -> fromIntegral method) >$< E.param (E.nonNullable E.int4))
-        <> ((\(_, _, _, _, status) -> fromIntegral status) >$< E.param (E.nonNullable E.int4))
+      ((\(personId, _, _) -> personId) >$< E.param (E.nonNullable E.int8))
+        <> ((\(_, amount, _) -> amount) >$< E.param (E.nonNullable E.float8))
+        <> ((\(_, _, date) -> date) >$< E.param (E.nonNullable E.date))
     decoder = D.singleRow paymentDecoder
 
 updatePaymentStmt :: S.Statement (PaymentInput, Int64) Payment
 updatePaymentStmt = S.Statement sql encoder decoder True
   where
-    sql = "UPDATE payments SET bill_id = $1, pay_date = $2, amount = $3, pay_method = $4, pay_status = $5 WHERE id = $6 RETURNING id, bill_id, pay_date, amount, pay_method, pay_status"
+    sql = "UPDATE payments SET person_id = $1, amount = $2, date = $3 WHERE id = $4 RETURNING id, person_id, amount, date"
     encoder =
-      ((\(pi, _) -> piBillId pi) >$< E.param (E.nonNullable E.int8))
-        <> ((\(pi, _) -> piPayDate pi) >$< E.param (E.nonNullable E.date))
-        <> ((\(pi, _) -> piAmount pi) >$< E.param (E.nonNullable E.float8))
-        <> ((\(pi, _) -> fromIntegral (piPayMethod pi)) >$< E.param (E.nonNullable E.int4))
-        <> ((\(pi, _) -> fromIntegral (piPayStatus pi)) >$< E.param (E.nonNullable E.int4))
+      ((\(pi, _) -> payInputPersonId pi) >$< E.param (E.nonNullable E.int8))
+        <> ((\(pi, _) -> payInputAmount pi) >$< E.param (E.nonNullable E.float8))
+        <> ((\(pi, _) -> payInputDate pi) >$< E.param (E.nonNullable E.date))
         <> ((\(_, pid) -> pid) >$< E.param (E.nonNullable E.int8))
     decoder = D.singleRow paymentDecoder
 
@@ -104,4 +100,8 @@ deletePaymentStmt = S.Statement sql encoder decoder True
     decoder = D.noResult
 
 paymentDecoder :: D.Row Payment
-paymentDecoder = Payment <$> D.column (D.nonNullable D.int8) <*> D.column (D.nonNullable D.int8) <*> D.column (D.nonNullable D.date) <*> (Decimal . round <$> D.column (D.nonNullable D.numeric)) <*> (fromIntegral <$> D.column (D.nonNullable D.int4)) <*> (fromIntegral <$> D.column (D.nonNullable D.int4))
+paymentDecoder = Payment
+  <$> D.column (D.nonNullable D.int8)
+  <*> D.column (D.nonNullable D.int8)
+  <*> D.column (D.nonNullable D.float8)
+  <*> D.column (D.nonNullable D.date)

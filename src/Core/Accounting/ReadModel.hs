@@ -32,8 +32,9 @@ import Data.Foldable (foldl')
 import Data.Maybe (fromMaybe)
 import GHC.Generics (Generic)
 import qualified Data.Aeson as A
-import qualified Data.Map as M
+import qualified Data.Aeson.KeyMap as KM
 import qualified DAL.EventStore as ES
+import Hasql.Pool (Pool)
 
 -- ============================================================================
 -- READ MODEL TYPES
@@ -103,9 +104,11 @@ applyJournalEntryPosted model event = model
     eventData = ES.eventEventData event
     changeAmount = case A.fromJSON eventData of
                      A.Success (A.Object obj) ->
-                       case M.lookup "changeAmount" obj >>= A.fromJSON of
-                         A.Success amt -> Just amt
-                         _ -> Nothing
+                       case KM.lookup "changeAmount" obj of
+                         Just val -> case A.fromJSON val of
+                           A.Success amt -> Just amt
+                           _ -> Nothing
+                         Nothing -> Nothing
                      _ -> Nothing
     oldState = armBalanceState model
     changeAmount' = fromMaybe 0.0 changeAmount
@@ -129,16 +132,32 @@ applyBalanceAdjusted model event = model
   }
   where
     eventData = ES.eventEventData event
-    newBalance = fromMaybe 0.0 (getNewBalance eventData)
-    changeAmount = fromMaybe 0.0 (getChangeAmount eventData)
+    changeAmount = case A.fromJSON eventData of
+                     A.Success (A.Object obj) ->
+                       case KM.lookup "changeAmount" obj of
+                         Just val -> case A.fromJSON val of
+                           A.Success amt -> Just amt
+                           _ -> Nothing
+                         Nothing -> Nothing
+                     _ -> Nothing
+    newBalance = case A.fromJSON eventData of
+                   A.Success (A.Object obj) ->
+                     case KM.lookup "newBalance" obj of
+                       Just val -> case A.fromJSON val of
+                         A.Success amt -> Just amt
+                         _ -> Nothing
+                       Nothing -> Nothing
+                   _ -> Nothing
     oldState = armBalanceState model
+    changeAmount' = fromMaybe 0.0 changeAmount
+    newBalance' = fromMaybe 0.0 newBalance
     newBalanceState = oldState
-      { bsCurrentBalance = newBalance
-      , bsDebitTotal = if changeAmount > 0
-                       then bsDebitTotal oldState + changeAmount
+      { bsCurrentBalance = newBalance'
+      , bsDebitTotal = if changeAmount' > 0
+                       then bsDebitTotal oldState + changeAmount'
                        else bsDebitTotal oldState
-      , bsCreditTotal = if changeAmount < 0
-                        then bsCreditTotal oldState + abs changeAmount
+      , bsCreditTotal = if changeAmount' < 0
+                        then bsCreditTotal oldState + abs changeAmount'
                         else bsCreditTotal oldState
       , bsLastUpdated = ES.eventOccurredAt event
       , bsEventCount = bsEventCount oldState + 1
@@ -172,31 +191,32 @@ mkInitialModel accountId events =
     }
 
 -- | Replay events from the event store to build read model
-replayAccountEvents :: Int64 -> IO (Either Text AccountReadModel)
-replayAccountEvents accountId = do
-  events <- ES.getEvents accountId
-  case events of
-    [] -> pure (Left "No events found for account")
-    es -> do
+replayAccountEvents :: Pool -> Int64 -> Text -> IO (Either Text AccountReadModel)
+replayAccountEvents pool accountId aggType = do
+  result <- ES.getEvents pool accountId aggType
+  case result of
+    Left err -> pure (Left err)
+    Right [] -> pure (Left "No events found for account")
+    Right es -> do
       let initialModel = mkInitialModel accountId es
           finalModel = foldl' applyEvent initialModel es
       pure (Right finalModel)
 
 -- | Rebuild account balance from event stream
-rebuildAccountBalance :: Int64 -> IO (Either Text Double)
-rebuildAccountBalance accountId = do
-  result <- replayAccountEvents accountId
+rebuildAccountBalance :: Pool -> Int64 -> Text -> IO (Either Text Double)
+rebuildAccountBalance pool accountId aggType = do
+  result <- replayAccountEvents pool accountId aggType
   case result of
     Left err -> pure (Left err)
     Right model -> pure (Right (bsCurrentBalance (armBalanceState model)))
 
 -- | Get current balance for an account
-getCurrentBalance :: Int64 -> IO (Either Text Double)
-getCurrentBalance = rebuildAccountBalance
+getCurrentBalance :: Pool -> Int64 -> Text -> IO (Either Text Double)
+getCurrentBalance pool = rebuildAccountBalance pool
 
 -- | Get full account read model
-getAccountReadModel :: Int64 -> IO (Either Text AccountReadModel)
-getAccountReadModel = replayAccountEvents
+getAccountReadModel :: Pool -> Int64 -> Text -> IO (Either Text AccountReadModel)
+getAccountReadModel pool = replayAccountEvents pool
 
 -- ============================================================================
 -- VALIDATION

@@ -99,6 +99,21 @@ services:
       retries: 5
 
   # ============================================================================
+  # Redis (for caching and sessions)
+  # ============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: surypus_redis
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redis_data:/var/lib/redis
+    ports:
+      - "6379:6379"
+    networks:
+      - surypus_network
+    restart: unless-stopped
+
+  # ============================================================================
   # Redpanda Console (Kafka UI)
   # ============================================================================
   redpanda-console:
@@ -122,12 +137,14 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: surypus_api
+    env_file:
+      - .env.production
     environment:
-      - DATABASE_URL=postgresql://surypus:surypus_secret@postgres:5432/surypus
+      - DATABASE_URL=postgresql://surypus:${POSTGRES_PASSWORD:-surypus_secret}@postgres:5432/surypus
       - OPA_URL=http://opa:8181
       - KAFKA_BROKERS=redpanda:9092
+      - REDIS_URL=redis://redis:6379
       - APP_ENV=production
-      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production}
     ports:
       - "3000:3000"
     depends_on:
@@ -137,9 +154,16 @@ services:
         condition: service_started
       redpanda:
         condition: service_healthy
+      redis:
+        condition: service_started
     networks:
       - surypus_network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   # ============================================================================
   # Event Publisher (publishes events from Postgres outbox to Kafka)
@@ -218,6 +242,7 @@ volumes:
   redpanda_data:
   prometheus_data:
   grafana_data:
+  redis_data:
 
 networks:
   surypus_network:

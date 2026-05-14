@@ -1,0 +1,11 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "permission": {
+    "read": {
+      "/home/domini/src/My/Surypus/.opencode/get-shit-done/*": "allow"
+    },
+    "external_directory": {
+      "/home/domini/src/My/Surypus/.opencode/get-shit-done/*": "allow"
+    }
+  }
+}

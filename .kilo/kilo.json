@@ -1,0 +1,10 @@
+{
+  "permission": {
+    "read": {
+      "/home/domini/src/My/Surypus/.kilo/get-shit-done/*": "allow"
+    },
+    "external_directory": {
+      "/home/domini/src/My/Surypus/.kilo/get-shit-done/*": "allow"
+    }
+  }
+}

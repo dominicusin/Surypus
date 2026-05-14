@@ -6,13 +6,13 @@ module Surypus.API.Bills
     createBill,
     getBill,
     updateBill,
-    deleteBill,
+    deleteBill
   )
 where
 
-import DAL.Types (Bill (..), BillInput (..), Decimal (..), QueryResult (..))
+import DAL.Types (Bill (..), BillInput (..), QueryResult (..))
 import Data.Functor.Contravariant ((>$<))
-import Data.Int (Int32, Int64)
+import Data.Int (Int64)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Time (Day)
@@ -32,25 +32,25 @@ listBills pool _ _ _ _ _ _ = do
 selectBillsStmt :: Statement () [Bill]
 selectBillsStmt = Statement sql encoder decoder True
   where
-    sql = "SELECT id, code, type, status, date FROM bills ORDER BY id LIMIT 50"
+    sql = "SELECT id, number, status, amount, created_at FROM bills ORDER BY id LIMIT 50"
     encoder = E.noParams
     decoder = D.rowList billDecoder
 
 createBill :: Pool -> BillInput -> IO (QueryResult Bill)
 createBill pool input = do
-  result <- use pool $ Session.statement (biCode input, fromIntegral (biType input), fromIntegral (biStatus input), biDate input) insertBillStmt
+  result <- use pool $ Session.statement (biCode input, biType input, biStatus input, biDate input) insertBillStmt
   return $ case result of
     Left err -> QueryError (T.pack $ show err)
     Right bill -> QuerySuccess bill
 
-insertBillStmt :: Statement (Maybe Text, Int32, Int32, Day) Bill
+insertBillStmt :: Statement (Maybe Text, Int, Int, Day) Bill
 insertBillStmt = Statement sql encoder decoder True
   where
-    sql = "INSERT INTO bills (code, type, status, date) VALUES ($1, $2, $3, $4) RETURNING id, code, type, status, date"
+    sql = "INSERT INTO bills (number, status, amount, created_at) VALUES ($1, $2, $3, $4) RETURNING id, number, status, amount, created_at"
     encoder =
-      ((\(code, _, _, _) -> code) >$< E.param (E.nullable E.text))
-        <> ((\(_, type', _, _) -> type') >$< E.param (E.nonNullable E.int4))
-        <> ((\(_, _, status, _) -> status) >$< E.param (E.nonNullable E.int4))
+      ((\(number, _, _, _) -> number) >$< E.param (E.nullable E.text))
+        <> ((\(_, status, _, _) -> status) >$< E.param (E.nonNullable E.int4))
+        <> ((\(_, _, amount, _) -> amount) >$< E.param (E.nonNullable E.float8))
         <> ((\(_, _, _, date) -> date) >$< E.param (E.nonNullable E.date))
     decoder = D.singleRow billDecoder
 
@@ -64,13 +64,13 @@ getBill pool bid = do
 selectBillStmt :: Statement Int64 Bill
 selectBillStmt = Statement sql encoder decoder True
   where
-    sql = "SELECT id, code, type, status, date FROM bills WHERE id = $1"
+    sql = "SELECT id, number, status, amount, created_at FROM bills WHERE id = $1"
     encoder = ((\(bid) -> bid) >$< E.param (E.nonNullable E.int8))
     decoder = D.singleRow billDecoder
 
 updateBill :: Pool -> Int64 -> BillInput -> IO (QueryResult Bill)
 updateBill pool bid input = do
-  result <- use pool $ Session.statement (biCode input, fromIntegral (biType input), fromIntegral (biStatus input), biDate input, bid) updateBillStmt
+  result <- use pool $ Session.statement (biCode input, biType input, biStatus input, biDate input, bid) updateBillStmt
   return $ case result of
     Left err -> QueryError (T.pack $ show err)
     Right bill -> QuerySuccess bill
@@ -78,11 +78,11 @@ updateBill pool bid input = do
 updateBillStmt :: Statement (Maybe Text, Int, Int, Day, Int64) Bill
 updateBillStmt = Statement sql encoder decoder True
   where
-    sql = "UPDATE bills SET code = $1, type = $2, status = $3, date = $4 WHERE id = $5 RETURNING id, code, type, status, date"
+    sql = "UPDATE bills SET number = $1, status = $2, amount = $3, created_at = $4 WHERE id = $5 RETURNING id, number, status, amount, created_at"
     encoder =
-      ((\(code, _, _, _, _) -> code) >$< E.param (E.nullable E.text))
-        <> ((\(_, type', _, _, _) -> fromIntegral type') >$< E.param (E.nonNullable E.int4))
-        <> ((\(_, _, status, _, _) -> fromIntegral status) >$< E.param (E.nonNullable E.int4))
+      ((\(number, _, _, _, _) -> number) >$< E.param (E.nullable E.text))
+        <> ((\(_, status, _, _, _) -> status) >$< E.param (E.nonNullable E.int4))
+        <> ((\(_, _, amount, _, _) -> amount) >$< E.param (E.nonNullable E.float8))
         <> ((\(_, _, _, date, _) -> date) >$< E.param (E.nonNullable E.date))
         <> ((\(_, _, _, _, bid) -> bid) >$< E.param (E.nonNullable E.int8))
     decoder = D.singleRow billDecoder
@@ -105,12 +105,11 @@ billDecoder :: D.Row Bill
 billDecoder =
   Bill
     <$> D.column (D.nonNullable D.int8)
-    <*> D.column (D.nullable D.text)
-    <*> (fromIntegral <$> D.column (D.nonNullable D.int2))
-    <*> (fromIntegral <$> D.column (D.nonNullable D.int2))
-    <*> D.column (D.nonNullable D.date)
-    <*> D.column (D.nullable D.int8)
-    <*> D.column (D.nullable D.int8)
-    <*> (DAL.Types.Decimal . round <$> D.column (D.nonNullable D.numeric))
-    <*> (DAL.Types.Decimal . round <$> D.column (D.nonNullable D.numeric))
-    <*> (DAL.Types.Decimal . round <$> D.column (D.nonNullable D.numeric))
+    <*> D.column (D.nullable D.text)  -- billNumber (already Maybe Text)
+    <*> fromIntegral <$> D.column (D.nonNullable D.int4)  -- billStatus
+    <*> D.column (D.nonNullable D.float8)  -- billAmount
+    <*> pure []  -- billLines
+    <*> D.column (D.nonNullable D.timestamptz)  -- billCreatedAt
+    <*> D.column (D.nullable D.timestamptz)  -- billUpdatedAt
+    <*> D.column (D.nullable D.int8)  -- billPersonId
+    <*> D.column (D.nullable D.int8)  -- billLocationId

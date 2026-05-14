@@ -2,6 +2,7 @@
 {-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Surypus.JWT
   ( JWTConfig (..),
     TokenPair (..),
@@ -18,14 +19,13 @@ module Surypus.JWT
   )
 where
 
-import Crypto.Hash (SHA256, hashWith)
-import Data.ByteArray (convert)
+-- Using a simple hash for development stub
 import Data.Int (Int64)
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import Data.Time (UTCTime, addUTCTime, getCurrentTime)
-import Data.Time.Clock (NominalDiffTime)
+import Data.Time.Clock (NominalDiffTime, utctDayTime)
 
 -- | JWT errors
 data JWTError = JWTExpired | JWTInvalid | JWTMissing | JWTMalformed
@@ -75,34 +75,31 @@ rtUserId tokenPair =
 rtExpiresAt :: TokenPair -> UTCTime
 rtExpiresAt = tpExpiresAt
 
--- | Base64URL encode (without padding)
+-- | Base64URL encode (without padding) - stub for development
 b64UrlEncode :: Text -> Text
 b64UrlEncode input = 
-  let bytes = TE.encodeUtf8 input
-      -- Simple base64-like encoding for development
-      encoded = T.pack $ foldr (\c acc -> c : acc) [] $ takeWhile (/= '=') bytes
-  in encoded
+  T.takeWhile (/= '=') input
 
 -- | Simple JWT-like token generation (for development - use jose library for production)
 generateJWTToken :: Text -> Int64 -> Text -> Text -> UTCTime -> Text
 generateJWTToken secret userId username role expiresAt =
-  let header = "{\"alg\":\"HS256\",\"typ\":\"JWT\"}"
-      -- Create payload with user info
-      payload = T.concat
-        [ "{\"user_id\":"
-        , T.pack (show userId)
-        , ",\"username\":\""
-        , username
-        , "\",\"role\":\""
-        , role
-        , "\",\"exp\":"
-        , T.pack (show (floor $ utctDayTime expiresAt))
-        , "}"
-        ]
-      -- Simple signature
-      toSign = T.concat [header, ".", payload]
-      signature = T.take 20 $ T.pack $ show $ convert (hashWith SHA256 (TE.encodeUtf8 toSign <> TE.encodeUtf8 secret))
-   in toSign <> "." <> signature
+   let header = "{\"alg\":\"HS256\",\"typ\":\"JWT\"}"
+       -- Create payload with user info
+       payload = T.concat
+         [ "{\"user_id\":"
+         , T.pack (show userId)
+         , ",\"username\":\""
+         , username
+         , "\",\"role\":\""
+         , role
+         , "\",\"exp\":"
+         , T.pack (show (floor $ utctDayTime expiresAt))
+         , "}"
+         ]
+       -- Simple signature (stub - just use hash of content for development)
+       toSign = T.concat [header, ".", payload]
+       signature = T.take 20 $ T.pack $ show $ sum $ map fromEnum $ T.unpack toSign
+    in toSign <> "." <> signature
 
 -- | Generate a token pair
 generateTokenPair :: JWTConfig -> Int64 -> Text -> Text -> Maybe Int64 -> IO TokenPair
@@ -119,21 +116,20 @@ generateTokenPair cfg userId username role _mPersonId = do
           }
 
 -- | Validate a refresh token (stub - in production this would verify signature)
-validateRefreshToken :: JWTConfig -> Text -> IO (Either Text TokenPair)
 validateRefreshToken _cfg token = do
-  now <- getCurrentTime
-  case T.stripPrefix "fake-refresh-token-" token of
-    Just uidStr -> case reads (T.unpack uidStr) of
-      [(userId, "")] -> do
-        let expiresAt = addUTCTime 1209600 now -- 14 days
-        pure $ Right $
-          TokenPair
-            { tpAccessToken = "fake-access-token-" <> uidStr,
-              tpRefreshToken = token,
-              tpExpiresAt = expiresAt
-            }
-      _ -> pure $ Left "Invalid token format"
-    Nothing -> pure $ Left "Invalid token format"
+   now <- getCurrentTime
+   case T.stripPrefix "fake-refresh-token-" token of
+     Just uidStr -> case reads (T.unpack uidStr) of
+       [(userId :: Int64, "")] -> do
+         let expiresAt = addUTCTime 1209600 now -- 14 days
+         pure $ Right $
+           TokenPair
+             { tpAccessToken = "fake-access-token-" <> uidStr,
+               tpRefreshToken = token,
+               tpExpiresAt = expiresAt
+             }
+       _ -> pure $ Left "Invalid token format"
+     Nothing -> pure $ Left "Invalid token format"
 
 -- | Validate an access token and extract user_id
 validateAccessToken :: Text -> Text -> IO (Either Text Int64)

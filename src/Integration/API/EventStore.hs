@@ -61,11 +61,12 @@ createSnapshot :: EventStore -> Text -> IO ()
 createSnapshot store stream = do
   events <- readTVarIO (storeEvents store)
   case Map.lookup stream events of
+    Just [] -> return ()
     Just [e] -> atomically $ do
       snaps <- readTVar (storeSnapshots store)
       let snapshot = (e, [])
       writeTVar (storeSnapshots store) (Map.insert stream snapshot snaps)
-    Just (_:rest) -> atomically $ do
+    Just (e:rest) -> atomically $ do
       snaps <- readTVar (storeSnapshots store)
       let snapshot = (last (e:rest), e:rest)
       writeTVar (storeSnapshots store) (Map.insert stream snapshot snaps)

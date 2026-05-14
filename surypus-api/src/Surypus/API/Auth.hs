@@ -15,7 +15,7 @@ import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool)
 import qualified Hasql.Session as Session
 import qualified Hasql.Statement as S
-import Surypus.JWT (JWTConfig (..), TokenPair (..), generateTokenPair, validateRefreshToken)
+import Surypus.JWT (JWTConfig (..), TokenPair (..), accessToken, refreshToken, generateTokenPair, validateRefreshToken)
 import Surypus.Types.Auth (JwtClaims (..), LoginRequest (..), LoginResponse (..), RefreshRequest (..), RefreshResponse (..))
 
 login :: Pool -> JWTConfig -> LoginRequest -> IO (Either Text LoginResponse)

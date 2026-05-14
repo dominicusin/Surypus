@@ -7,9 +7,8 @@ module Surypus.API.Goods
     getGoods,
     updateGoods,
     deleteGoods,
-    searchGoods,
-  )
-where
+    searchGoods
+  ) where
 
 import DAL.Types (Goods (..), GoodsInput (..), QueryResult (..))
 import Data.Functor.Contravariant ((>$<))
@@ -31,7 +30,7 @@ listGoods pool _ _ _ _ = do
 
 createGoods :: Pool -> GoodsInput -> IO (QueryResult Goods)
 createGoods pool input = do
-  result <- use pool $ Session.statement (giName input, giCode input, giBarcode input, giUnitId input, giParentId input) insertGoodsStmt
+  result <- use pool $ Session.statement (gInputCode input, gInputName input, gInputBarcode input, gInputUnitId input, gInputCategoryId input) insertGoodsStmt
   return $ case result of
     Left err -> QueryError (T.pack $ show err)
     Right g -> QuerySuccess g
@@ -59,7 +58,7 @@ deleteGoods pool gid = do
 
 searchGoods :: Pool -> Text -> IO (QueryResult [Goods])
 searchGoods pool query = do
-  result <- use pool $ Session.statement (T.append "%" (T.append query "%")) searchGoodsStmt
+  result <- use pool $ Session.statement (T.concat ["%", query, "%"]) searchGoodsStmt
   return $ case result of
     Left err -> QueryError (T.pack $ show err)
     Right goods -> QuerySuccess goods
@@ -67,39 +66,39 @@ searchGoods pool query = do
 selectGoodsStmt :: Statement Int64 Goods
 selectGoodsStmt = Statement sql encoder decoder True
   where
-    sql = "SELECT id, name, code, barcode, unit_id, parent_id FROM goods WHERE id = $1"
+    sql = "SELECT id, code, name, full_name, barcode, unit_id, category_id FROM goods WHERE id = $1"
     encoder = ((\(gid) -> gid) >$< E.param (E.nonNullable E.int8))
     decoder = D.singleRow goodsDecoder
 
 selectGoodsListStmt :: Statement () [Goods]
 selectGoodsListStmt = Statement sql encoder decoder True
   where
-    sql = "SELECT id, name, code, barcode, unit_id, parent_id FROM goods ORDER BY id LIMIT 50"
+    sql = "SELECT id, code, name, full_name, barcode, unit_id, category_id FROM goods ORDER BY id LIMIT 50"
     encoder = E.noParams
     decoder = D.rowList goodsDecoder
 
-insertGoodsStmt :: Statement (Text, Maybe Text, Maybe Text, Int64, Maybe Int64) Goods
+insertGoodsStmt :: Statement (Maybe Text, Text, Maybe Text, Maybe Int64, Maybe Int64) Goods
 insertGoodsStmt = Statement sql encoder decoder True
   where
-    sql = "INSERT INTO goods (name, code, barcode, unit_id, parent_id) VALUES ($1, $2, $3, $4, $5) RETURNING id, name, code, barcode, unit_id, parent_id"
+    sql = "INSERT INTO goods (code, name, barcode, unit_id, category_id) VALUES ($1, $2, $3, $4, $5) RETURNING id, code, name, full_name, barcode, unit_id, category_id"
     encoder =
-      ((\(name, _, _, _, _) -> name) >$< E.param (E.nonNullable E.text))
-        <> ((\(_, code, _, _, _) -> code) >$< E.param (E.nullable E.text))
+      ((\(code, _, _, _, _) -> code) >$< E.param (E.nullable E.text))
+        <> ((\(_, name, _, _, _) -> name) >$< E.param (E.nonNullable E.text))
         <> ((\(_, _, barcode, _, _) -> barcode) >$< E.param (E.nullable E.text))
-        <> ((\(_, _, _, unit_id, _) -> unit_id) >$< E.param (E.nonNullable E.int8))
-        <> ((\(_, _, _, _, parent_id) -> parent_id) >$< E.param (E.nullable E.int8))
+        <> ((\(_, _, _, unit_id, _) -> unit_id) >$< E.param (E.nullable E.int8))
+        <> ((\(_, _, _, _, category_id) -> category_id) >$< E.param (E.nullable E.int8))
     decoder = D.singleRow goodsDecoder
 
 updateGoodsStmt :: Statement (GoodsInput, Int64) Goods
 updateGoodsStmt = Statement sql encoder decoder True
   where
-    sql = "UPDATE goods SET name = $1, code = $2, barcode = $3, unit_id = $4, parent_id = $5 WHERE id = $6 RETURNING id, name, code, barcode, unit_id, parent_id"
+    sql = "UPDATE goods SET code = $1, name = $2, barcode = $3, unit_id = $4, category_id = $5 WHERE id = $6 RETURNING id, code, name, full_name, barcode, unit_id, category_id"
     encoder =
-      ((\(gi, _) -> giName gi) >$< E.param (E.nonNullable E.text))
-        <> ((\(gi, _) -> giCode gi) >$< E.param (E.nullable E.text))
-        <> ((\(gi, _) -> giBarcode gi) >$< E.param (E.nullable E.text))
-        <> ((\(gi, _) -> giUnitId gi) >$< E.param (E.nonNullable E.int8))
-        <> ((\(gi, _) -> giParentId gi) >$< E.param (E.nullable E.int8))
+      ((\(gi, _) -> gInputCode gi) >$< E.param (E.nullable E.text))
+        <> ((\(gi, _) -> gInputName gi) >$< E.param (E.nonNullable E.text))
+        <> ((\(gi, _) -> gInputBarcode gi) >$< E.param (E.nullable E.text))
+        <> ((\(gi, _) -> gInputUnitId gi) >$< E.param (E.nullable E.int8))
+        <> ((\(gi, _) -> gInputCategoryId gi) >$< E.param (E.nullable E.int8))
         <> ((\(_, gid) -> gid) >$< E.param (E.nonNullable E.int8))
     decoder = D.singleRow goodsDecoder
 
@@ -113,7 +112,7 @@ deleteGoodsStmt = Statement sql encoder decoder True
 searchGoodsStmt :: Statement Text [Goods]
 searchGoodsStmt = Statement sql encoder decoder True
   where
-    sql = "SELECT id, name, code, barcode, unit_id, parent_id FROM goods WHERE name ILIKE $1 OR code ILIKE $1 LIMIT 50"
+    sql = "SELECT id, code, name, full_name, barcode, unit_id, category_id FROM goods WHERE name ILIKE $1 OR code ILIKE $1 LIMIT 50"
     encoder = ((\(query) -> query) >$< E.param (E.nonNullable E.text))
     decoder = D.rowList goodsDecoder
 
@@ -124,5 +123,14 @@ goodsDecoder =
     <*> D.column (D.nullable D.text)
     <*> D.column (D.nonNullable D.text)
     <*> D.column (D.nullable D.text)
-    <*> D.column (D.nonNullable D.int8)
+    <*> D.column (D.nullable D.text)
     <*> D.column (D.nullable D.int8)
+    <*> D.column (D.nullable D.int8)
+    <*> pure Nothing
+    <*> pure Nothing
+    <*> pure Nothing
+    <*> pure Nothing
+    <*> pure Nothing
+    <*> pure Nothing
+    <*> pure Nothing
+    <*> pure Nothing
