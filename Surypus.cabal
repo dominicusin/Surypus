@@ -25,7 +25,11 @@ library
       DAL.Types
       DAL.EventStore
       Infrastructure.EventStore.Accounting
+      Infrastructure.EventStore.Inventory
       Core.Services.Accounting
+      Service.InventoryService
+      Finance.Accounting
+      Inventory.Stock
 
   build-depends:
        base >=4.12 && <5
