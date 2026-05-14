@@ -57,7 +57,7 @@ instance FromJSON Decimal
 -- | Bill type (simplified for API)
 data Bill = Bill
   { billId :: !Int64,
-    billNumber :: !Text,
+    billNumber :: !(Maybe Text),
     billStatus :: !Int,
     billAmount :: !Double,
     billLines :: ![BillLine],
@@ -76,6 +76,7 @@ data BillInput = BillInput
   { biCode :: !(Maybe Text),
     biType :: !Int,
     biStatus :: !Int,
+    biAmount :: !Double,
     biDate :: !Day
   }
   deriving stock (Show, Eq, Generic)

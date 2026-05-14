@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -10,17 +11,16 @@ module Surypus.API.Server (apiServer, startServantServer) where
 import Control.Monad.IO.Class (liftIO)
 import Data.Int (Int64)
 import Data.Proxy (Proxy (..))
-import Data.Text (Text)
 import qualified Data.Text.Encoding as TE
-import qualified Data.Text as T
+import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as LBS
 import Hasql.Pool (Pool)
 import Network.Wai as W
-import Servant (Application, Handler, Server, err401, err403, err500, serve, serveWithContext, throwError)
+import Servant (Application, Handler, Server, ServerError(..), err404, err500, serve, throwError, (:>), Get, Post, ReqBody, JSON, (:<|>) (..), Capture)
 import qualified Data.UUID as UUID
 import qualified Data.UUID.V4 as UUID
 import qualified Surypus.API.Logger as Log
-import DAL.Types (QueryResult (..), BillInput (..), GoodsInput (..))
+import DAL.Types (QueryResult (..), Bill (..), BillInput (..), Goods (..), Person (..), Payment (..))
 import qualified Surypus.API.Bills as Bills
 import qualified Surypus.API.Goods as Goods
 import qualified Surypus.API.Persons as Persons
@@ -31,14 +31,13 @@ data Env = Env
     envLogger :: Log.Logger
   }
 
--- | Correlation ID middleware - extracts or generates correlation ID
+-- | Correlation ID middleware
 correlationMiddleware :: Log.Logger -> Application -> Application
 correlationMiddleware logger app req respond = do
   let corrIdHeader = lookup "x-correlation-id" (W.requestHeaders req)
   corrId <- case corrIdHeader of
     Just cid -> return (TE.decodeUtf8 cid)
     Nothing -> UUID.toText <$> UUID.nextRandom
-  -- Continue with correlation ID in context
   Log.withCorrelationId logger corrId $
     app req respond
 
@@ -48,57 +47,70 @@ apiServer pool logger =
    in correlationMiddleware logger (serve (Proxy @SurypusApi) (server env))
 
 startServantServer :: Pool -> Log.Logger -> IO ()
-startServantServer pool logger = do
+startServantServer _ logger = do
   Log.logInfo logger "SERVER" "Starting Servant server" []
   pure ()
 
--- | Simplified API type
+-- | Full Surypus API type
 type SurypusApi =
-  "bills" :> "list" :> Get '[JSON] [Text]
-    :<|> "bills" :> "create" :> ReqBody '[JSON] BillInput :> Post '[JSON] Text
-    :<|> "goods" :> "list" :> Get '[JSON] [Text]
-    :<|> "persons" :> "list" :> Get '[JSON] [Text]
-    :<|> "payments" :> "list" :> Get '[JSON] [Text]
+  "api" :> "v1" :> 
+    ( "bills" :> Get '[JSON] [Bill]
+      :<|> "bills" :> ReqBody '[JSON] BillInput :> Post '[JSON] Bill
+      :<|> "bills" :> Capture "id" Int64 :> Get '[JSON] Bill
+      :<|> "goods" :> Get '[JSON] [Goods]
+      :<|> "persons" :> Get '[JSON] [Person]
+      :<|> "payments" :> Get '[JSON] [Payment]
+    )
 
 server :: Env -> Server SurypusApi
 server env =
-  billsList env
+  ( billsList env
     :<|> billsCreate env
+    :<|> billGet env
     :<|> goodsList env
     :<|> personsList env
     :<|> paymentsList env
+  )
 
-billsList :: Env -> Handler [Text]
+billsList :: Env -> Handler [Bill]
 billsList env = do
   result <- liftIO $ Bills.listBills (envPool env) Nothing Nothing Nothing Nothing Nothing Nothing
   case result of
-    QuerySuccess bills -> pure [T.pack $ show (Prelude.length bills)]
-    QueryError err -> throwError $ err500 {errBody = "Database error: " <> TE.encodeUtf8 (T.pack (show err))}
+    QuerySuccess bills -> pure bills
+    QueryError err -> throwError $ err500 {errBody = LBS.encodeUtf8 $ "Database error: " <> TL.fromStrict err}
 
-billsCreate :: Env -> BillInput -> Handler Text
+billsCreate :: Env -> BillInput -> Handler Bill
 billsCreate env input = do
   result <- liftIO $ Bills.createBill (envPool env) input
   case result of
-    QuerySuccess _ -> pure "Created"
-    QueryError err -> throwError $ err500 {errBody = "Database error: " <> TE.encodeUtf8 (T.pack (show err))}
+    QuerySuccess bill -> pure bill
+    QueryError err -> throwError $ err500 {errBody = LBS.encodeUtf8 $ "Database error: " <> TL.fromStrict err}
 
-goodsList :: Env -> Handler [Text]
+billGet :: Env -> Int64 -> Handler Bill
+billGet env bid = do
+  result <- liftIO $ Bills.getBill (envPool env) bid
+  case result of
+    QuerySuccess bill -> pure bill
+    QueryError "Not Found" -> throwError err404
+    QueryError err -> throwError $ err500 {errBody = LBS.encodeUtf8 $ "Database error: " <> TL.fromStrict err}
+
+goodsList :: Env -> Handler [Goods]
 goodsList env = do
   result <- liftIO $ Goods.listGoods (envPool env) Nothing Nothing Nothing Nothing
   case result of
-    QuerySuccess goods -> pure [T.pack $ show (Prelude.length goods)]
-    QueryError err -> throwError $ err500 {errBody = "Database error: " <> TE.encodeUtf8 (T.pack (show err))}
+    QuerySuccess goods -> pure goods
+    QueryError err -> throwError $ err500 {errBody = LBS.encodeUtf8 $ "Database error: " <> TL.fromStrict err}
 
-personsList :: Env -> Handler [Text]
+personsList :: Env -> Handler [Person]
 personsList env = do
   result <- liftIO $ Persons.listPersons (envPool env) Nothing Nothing Nothing Nothing Nothing
   case result of
-    QuerySuccess persons -> pure [T.pack $ show (Prelude.length persons)]
-    QueryError err -> throwError $ err500 {errBody = "Database error: " <> TE.encodeUtf8 (T.pack (show err))}
+    QuerySuccess persons -> pure persons
+    QueryError err -> throwError $ err500 {errBody = LBS.encodeUtf8 $ "Database error: " <> TL.fromStrict err}
 
-paymentsList :: Env -> Handler [Text]
+paymentsList :: Env -> Handler [Payment]
 paymentsList env = do
-  result <- liftIO $ Payments.listPayments (envPool env) Nothing Nothing Nothing Nothing
+  result <- liftIO $ Payments.listPayments (envPool env)
   case result of
-    QuerySuccess payments -> pure [T.pack $ show (Prelude.length payments)]
-    QueryError err -> throwError $ err500 {errBody = "Database error: " <> TE.encodeUtf8 (T.pack (show err))}
+    QuerySuccess payments -> pure payments
+    QueryError err -> throwError $ err500 {errBody = LBS.encodeUtf8 $ "Database error: " <> TL.fromStrict err}

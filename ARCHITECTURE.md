@@ -1,24 +1,45 @@
-RBACCanon Migration and DSL Architecture
+# System Architecture: Surypus ERP/CRM
 
-- Domain: RBACCanon
-  - Core domain types and models in Surypus.Domain.RBACCanon
-  - DSL-based migration generator translating domain changes into SQL migrations
-  - Migrations are written to sql/migrations as versioned files (V001..)
+## Архитектурные принципы
 
-- Infra
-  - DSL in Surypus.Infra.SqlGen.DSL provides basic builders for SQL: CREATE, ALTER, DROP, RENAME, constraints
-  - Migration.hs wires domain changes to DSL builders and emits migration strings
+Система построена на принципах разделения ответственности (Layered Architecture) и доменно-ориентированного проектирования (DDD).
 
-- Observability
-  - Skeleton modules and tests exist to collect latency, backlog, throughput metrics
-  - Plans to add dashboards and alert rules (CI) later
+### Слои системы (Layer Separation)
 
-- Concurrency
-  - Skeleton for stress tests, queues, round‑robin/backpressure patterns
-  - Tests stubbed for now; will evolve to real orchestration
+1.  **Domain/**: Чистые доменные модели, типы данных и инварианты. Не зависят от БД или API.
+2.  **Core/ (Service Layer)**: Бизнес-логика (расчет налогов, проведение документов, учет). Оркестрирует работу между DAL и внешними интерфейсами.
+3.  **DAL/ (Data Access Layer)**: Доступ к PostgreSQL через Hasql и Rel8. Содержит репозитории и Event Store.
+4.  **API/ (Handlers)**: REST эндпоинты (Scotty), преобразование JSON (Aeson) и Swagger спецификация.
+5.  **Infra/**: Утилиты, логирование, работа с JWT, WebSocket и интеграции.
 
-- Config
-  - RuntimeConfig structure with defaults; audit and validation hooks to be added
+## Схема данных (Database Schema)
 
-- CI/CD
-  - Migration generation and tests to run in CI; linting and type checks
+Основные домены в PostgreSQL:
+
+- **RBAC**: `roles`, `permissions`, `user_roles`.
+- **Inventory**: `goods`, `locations`, `stock`, `stock_movements`.
+- **Accounting**: `accounts` (План счетов), `accounting_entries` (Проводки).
+- **Documents**: `bills` (Документы), `bill_items` (Строки документов).
+- **Service**: `jobs` (Очередь задач), `audit_log`, `schema_migrations`.
+
+## Event Sourcing
+
+В Phase 3 внедряется Event Sourcing для критических изменений:
+- Все изменения состояния порождают события в таблице `event_store`.
+- Читаемые модели (projections) обновляются на основе потока событий.
+- Позволяет реализовать "Time Travel" аудит и надежную репликацию.
+
+## Безопасность (Security)
+
+- **Аутентификация**: JWT (Access + Refresh tokens).
+- **Авторизация**: RBAC middleware проверяет разрешения (`requirePermission`) перед выполнением handler-а.
+- **Целостность**: Формальная верификация через LiquidHaskell для финансовых расчетов (внедряется).
+
+## Генерация отчетов
+
+Используется гибридный подход:
+- **PDF-Slave**: YAML-шаблоны для быстрой генерации стандартных форм.
+- **JasperReports**: Сложные аналитические отчеты.
+
+---
+*Последнее обновление: 2026-05-14*

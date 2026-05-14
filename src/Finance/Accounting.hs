@@ -16,7 +16,7 @@ module Finance.Accounting
 import Data.Int (Int64)
 import Data.Text (Text, pack)
 import Data.Time (Day)
-import Surypus.Types (Decimal)
+import Surypus.CoreTypes (Decimal)
 
 -- | Account in the chart of accounts
 data Account = Account

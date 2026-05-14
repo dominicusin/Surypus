@@ -2,6 +2,7 @@
 -- Implements US-3-1: Event-sourced accounting with replay capability
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
 module Infrastructure.EventStore.Accounting
   ( AccountingEvent (..)
   , AccountCreated (..)
@@ -17,6 +18,7 @@ module Infrastructure.EventStore.Accounting
   , replayAccountEvents
   , reconstructAccountBalance
   , AccountSnapshot (..)
+  , getAccountSnapshot
   , projectCurrentState
   ) where
 
@@ -27,18 +29,11 @@ import Data.Time (Day, UTCTime, getCurrentTime)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as M
 import qualified Data.List as L
-import Data.IORef (IORef, newIORef, readIORef, modifyIORef')
 import GHC.Generics (Generic)
-
--- | Accounting event types - every state change captured as an event
-data AccountingEvent
-  = AccountCreatedEvent AccountCreated
-  | JournalEntryPostedEvent JournalEntryPosted
-  | EntryRevertedEvent EntryReverted
-  | EntryCancelledEvent EntryCancelled
-  | AccountFrozenEvent AccountFrozen
-  | AccountUnfrozenEvent AccountUnfrozen
-  deriving (Show, Eq, Generic)
+import Data.Aeson (ToJSON, FromJSON, toJSON, fromJSON, Result(..))
+import Data.Aeson.TH (deriveJSON, defaultOptions)
+import Hasql.Pool (Pool)
+import qualified DAL.EventStore as ES
 
 -- | Account created event payload
 data AccountCreated = AccountCreated
@@ -49,6 +44,8 @@ data AccountCreated = AccountCreated
   , acParentId :: Maybe Int64
   , acTimestamp :: UTCTime
   } deriving (Show, Eq, Generic)
+
+$(deriveJSON defaultOptions ''AccountCreated)
 
 -- | Journal entry posted event payload
 data JournalEntryPosted = JournalEntryPosted
@@ -62,6 +59,8 @@ data JournalEntryPosted = JournalEntryPosted
   , jepTimestamp :: UTCTime
   } deriving (Show, Eq, Generic)
 
+$(deriveJSON defaultOptions ''JournalEntryPosted)
+
 -- | Entry reverted event payload
 data EntryReverted = EntryReverted
   { ervOriginalEntryId :: Int64
@@ -69,6 +68,8 @@ data EntryReverted = EntryReverted
   , ervReason :: Text
   , ervTimestamp :: UTCTime
   } deriving (Show, Eq, Generic)
+
+$(deriveJSON defaultOptions ''EntryReverted)
 
 -- | Entry cancelled event payload
 data EntryCancelled = EntryCancelled
@@ -78,6 +79,8 @@ data EntryCancelled = EntryCancelled
   , ecTimestamp :: UTCTime
   } deriving (Show, Eq, Generic)
 
+$(deriveJSON defaultOptions ''EntryCancelled)
+
 -- | Account frozen event payload
 data AccountFrozen = AccountFrozen
   { afAccountId :: Int64
@@ -86,6 +89,8 @@ data AccountFrozen = AccountFrozen
   , afTimestamp :: UTCTime
   } deriving (Show, Eq, Generic)
 
+$(deriveJSON defaultOptions ''AccountFrozen)
+
 -- | Account unfrozen event payload
 data AccountUnfrozen = AccountUnfrozen
   { ufAccountId :: Int64
@@ -93,6 +98,20 @@ data AccountUnfrozen = AccountUnfrozen
   , ufReason :: Text
   , ufTimestamp :: UTCTime
   } deriving (Show, Eq, Generic)
+
+$(deriveJSON defaultOptions ''AccountUnfrozen)
+
+-- | Accounting event types - every state change captured as an event
+data AccountingEvent
+  = AccountCreatedEvent AccountCreated
+  | JournalEntryPostedEvent JournalEntryPosted
+  | EntryRevertedEvent EntryReverted
+  | EntryCancelledEvent EntryCancelled
+  | AccountFrozenEvent AccountFrozen
+  | AccountUnfrozenEvent AccountUnfrozen
+  deriving (Show, Eq, Generic)
+
+$(deriveJSON defaultOptions ''AccountingEvent)
 
 -- | Projected account state (result of replay)
 data AccountSnapshot = AccountSnapshot
@@ -107,29 +126,58 @@ data AccountSnapshot = AccountSnapshot
   , asEntryCount :: Int
   } deriving (Show, Eq, Generic)
 
--- | Event store for accounting events
+-- | Event store for accounting events using PostgreSQL back-end
 data AccountingEventStore = AccountingEventStore
-  { aesEvents :: IORef [AccountingEvent]
+  { aesPool :: Pool
   , aesStreamName :: Text
   }
 
 -- | Create a new accounting event store
-mkAccountingEventStore :: Text -> IO AccountingEventStore
-mkAccountingEventStore streamName = do
-  ref <- newIORef []
-  pure $ AccountingEventStore
-    { aesEvents = ref
+mkAccountingEventStore :: Pool -> Text -> AccountingEventStore
+mkAccountingEventStore pool streamName =
+  AccountingEventStore
+    { aesPool = pool
     , aesStreamName = streamName
     }
 
--- | Append an event to the store
-appendAccountingEvent :: AccountingEventStore -> AccountingEvent -> IO ()
-appendAccountingEvent store event =
-  modifyIORef' (aesEvents store) (\es -> es ++ [event])
+-- | Helper to extract metadata from event
+getEventInfo :: AccountingEvent -> (Int64, Text, Text)
+getEventInfo (AccountCreatedEvent ev) = (acAccountId ev, "account", "AccountCreated")
+getEventInfo (JournalEntryPostedEvent ev) = (jepDebitAcc ev, "account", "JournalEntryPosted")
+getEventInfo (EntryRevertedEvent ev) = (ervOriginalEntryId ev, "journal_entry", "EntryReverted")
+getEventInfo (EntryCancelledEvent ev) = (ecOriginalEntryId ev, "journal_entry", "EntryCancelled")
+getEventInfo (AccountFrozenEvent ev) = (afAccountId ev, "account", "AccountFrozen")
+getEventInfo (AccountUnfrozenEvent ev) = (ufAccountId ev, "account", "AccountUnfrozen")
 
--- | Read all events for an account stream
-readAccountEvents :: AccountingEventStore -> IO [AccountingEvent]
-readAccountEvents store = readIORef (aesEvents store)
+-- | Append an event to the store
+appendAccountingEvent :: AccountingEventStore -> AccountingEvent -> IO (Either Text ())
+appendAccountingEvent store event = do
+  let (aggId, aggType, evType) = getEventInfo event
+  -- Get latest sequence to increment
+  latestSeqRes <- ES.getLatestSequence (aesPool store) aggId aggType
+  case latestSeqRes of
+    Left err -> pure $ Left err
+    Right latestSeq -> do
+      ES.appendEvent (aesPool store)
+        aggId
+        aggType
+        evType
+        1 -- version
+        (toJSON event)
+        Nothing
+        (latestSeq + 1)
+
+-- | Read events for an account stream
+readAccountEvents :: AccountingEventStore -> Int64 -> IO (Either Text [AccountingEvent])
+readAccountEvents store accountId = do
+  res <- ES.replayAccount (aesPool store) accountId
+  case res of
+    Left err -> pure $ Left err
+    Right rawEvents -> pure $ Right $ map decodeEvent rawEvents
+  where
+    decodeEvent e = case fromJSON (ES.eventEventData e) of
+      Success ev -> ev
+      Error err -> error $ "Failed to decode accounting event: " ++ err
 
 -- | Replay events to reconstruct account state
 replayAccountEvents :: [AccountingEvent] -> Map Int64 AccountSnapshot
@@ -176,8 +224,18 @@ reconstructAccountBalance :: Int64 -> [AccountingEvent] -> Maybe AccountSnapshot
 reconstructAccountBalance accountId events =
   M.lookup accountId (replayAccountEvents events)
 
--- | Project current state from all events
-projectCurrentState :: AccountingEventStore -> IO (Map Int64 AccountSnapshot)
-projectCurrentState store = do
-  events <- readAccountEvents store
-  pure $ replayAccountEvents events
+-- | Get current snapshot for an account
+getAccountSnapshot :: AccountingEventStore -> Int64 -> IO (Either Text (Maybe AccountSnapshot))
+getAccountSnapshot store accountId = do
+  res <- readAccountEvents store accountId
+  case res of
+    Left err -> pure $ Left err
+    Right events -> pure $ Right $ reconstructAccountBalance accountId events
+
+-- | Get full projected state for a specific account
+projectCurrentState :: AccountingEventStore -> Int64 -> IO (Either Text (Map Int64 AccountSnapshot))
+projectCurrentState store accountId = do
+  res <- readAccountEvents store accountId
+  case res of
+    Left err -> pure $ Left err
+    Right events -> pure $ Right $ replayAccountEvents events
