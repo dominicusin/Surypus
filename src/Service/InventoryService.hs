@@ -69,15 +69,20 @@ data StockMovement = StockMovement
   }
 
 -- | Post inventory document — apply stock movements as events
-postInventoryDoc :: IEI.InventoryEventStore -> InventoryDoc -> IO (Either Text ())
-postInventoryDoc store doc = do
+postInventoryDoc :: IEI.InventoryEventStore -> (IEI.InventoryEvent -> IO ()) -> InventoryDoc -> IO (Either Text ())
+postInventoryDoc store notify doc = do
   let status = idStatus doc
   if status /= IDSApproved && status /= IDSDraft
     then pure $ Left "Only draft or approved documents can be posted"
     else do
       now <- getCurrentTime
       let events = generateEvents doc now
-      res <- mapM (IEI.appendInventoryEvent store) events
+      res <- mapM (\ev -> do
+        saveRes <- IEI.appendInventoryEvent store ev
+        case saveRes of
+          Right () -> notify ev >> pure (Right ())
+          Left err -> pure $ Left err
+        ) events
       case sequence res of
         Left err -> pure $ Left err
         Right _ -> pure $ Right ()

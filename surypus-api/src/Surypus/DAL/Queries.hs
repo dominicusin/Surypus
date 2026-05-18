@@ -20,8 +20,6 @@
 -- These are composed using Applicative style for clarity.
 module DAL.Queries where
 
-import Core.Document.Types (DocumentRegisterType (..))
-import Control.Monad.IO.Class (liftIO)
 import DAL.Types
 import Data.Functor.Contravariant ((>$<))
 import Data.Int (Int16, Int64)
@@ -34,7 +32,7 @@ import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
 import Hasql.Statement (Statement (..))
-import Surypus.Types (Decimal (..))
+import Surypus.CoreTypes (Decimal (..))
 import Data.Time.Clock (getCurrentTime, diffUTCTime, NominalDiffTime)
 
 -- | Helper to create prepared statements (old hasql API compatibility)
@@ -95,8 +93,17 @@ goodsRowDecoder =
     <*> D.column (D.nullable D.text)
     <*> D.column (D.nonNullable D.text)
     <*> D.column (D.nullable D.text)
-    <*> D.column (D.nonNullable D.int8)
+    <*> D.column (D.nullable D.text)
     <*> D.column (D.nullable D.int8)
+    <*> D.column (D.nullable D.int8)
+    <*> D.column (D.nullable D.int2)
+    <*> D.column (D.nullable D.int2)
+    <*> D.column (D.nullable D.float8)
+    <*> D.column (D.nullable D.float8)
+    <*> D.column (D.nullable D.float8)
+    <*> D.column (D.nullable D.float8)
+    <*> D.column (D.nullable D.timestamptz)
+    <*> D.column (D.nullable D.timestamptz)
 
 locationRowDecoder :: D.Row Location
 locationRowDecoder =
@@ -116,20 +123,18 @@ billRowDecoder =
     <*> D.column (D.nonNullable D.date)
     <*> D.column (D.nullable D.int8)
     <*> D.column (D.nullable D.int8)
-    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
-    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
-    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
-
-billLineRowDecoder :: D.Row BillLine
+    <*> D.column (D.nonNullable D.float8)
+    <*> D.column (D.nonNullable D.float8)
+    <*> D.column (D.nonNullable D.float8)
 billLineRowDecoder =
   BillLine
     <$> D.column (D.nonNullable D.int8)
     <*> D.column (D.nonNullable D.int8)
     <*> D.column (D.nonNullable D.int8)
-    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
-    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
-    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
-    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+    <*> D.column (D.nonNullable D.float8)
+    <*> D.column (D.nonNullable D.float8)
+    <*> D.column (D.nonNullable D.float8)
+    <*> D.column (D.nonNullable D.float8)
 
 stockRowDecoder :: D.Row Stock
 stockRowDecoder =
@@ -137,8 +142,8 @@ stockRowDecoder =
     <$> D.column (D.nonNullable D.int8)
     <*> D.column (D.nonNullable D.int8)
     <*> D.column (D.nonNullable D.int8)
-    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
-    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+    <*> D.column (D.nonNullable D.float8)
+    <*> D.column (D.nonNullable D.float8)
 
 userRowDecoder :: D.Row User
 userRowDecoder =

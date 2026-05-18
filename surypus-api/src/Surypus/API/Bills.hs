@@ -1,116 +1,56 @@
-{-# LANGUAGE DuplicateRecordFields #-}
+{#- LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeApplications #-}
 
 module Surypus.API.Bills
   ( listBills,
     createBill,
     getBill,
     updateBill,
-    deleteBill
+    deleteBill,
+    postBill,
   )
 where
 
 import DAL.Types (Bill (..), BillInput (..), QueryResult (..))
-import Data.Functor.Contravariant ((>$<))
-import Data.Int (Int64, Int32)
-import Data.Text (Text)
+import DAL.Database (Pool)
+import DAL.Queries (getBills, getBillById)
+import qualified DAL.Mutations as Mut
+import Data.Int (Int64)
 import qualified Data.Text as T
 import Data.Time (Day)
-import qualified Hasql.Decoders as D
-import qualified Hasql.Encoders as E
-import Hasql.Pool (Pool, use)
-import qualified Hasql.Session as Session
-import Hasql.Statement (Statement (..))
 
-listBills :: Pool -> Maybe Text -> Maybe Text -> Maybe Int -> Maybe Int -> Maybe Int -> Maybe Int -> IO (QueryResult [Bill])
-listBills pool _ _ _ _ _ _ = do
-  result <- use pool $ Session.statement () selectBillsStmt
-  return $ case result of
-    Left err -> QueryError (T.pack $ show err)
-    Right bills -> QuerySuccess bills
+-- | List bills using DAL.Queries
+listBills :: Pool -> IO (QueryResult [Bill])
+listBills pool = getBills pool
 
-selectBillsStmt :: Statement () [Bill]
-selectBillsStmt = Statement sql encoder decoder True
-  where
-    sql = "SELECT id, number, status, amount, created_at FROM bills ORDER BY id LIMIT 50"
-    encoder = E.noParams
-    decoder = D.rowList billDecoder
-
+-- | Create bill using DAL.Mutations
 createBill :: Pool -> BillInput -> IO (QueryResult Bill)
 createBill pool input = do
-  result <- use pool $ Session.statement (biCode input, biStatus input, biAmount input, biDate input) insertBillStmt
-  return $ case result of
-    Left err -> QueryError (T.pack $ show err)
-    Right bill -> QuerySuccess bill
+  result <- Mut.createBill pool input
+  case result of
+    QuerySuccess _ -> getBills pool
+    QueryError err -> return $ QueryError err
 
-insertBillStmt :: Statement (Maybe Text, Int, Double, Day) Bill
-insertBillStmt = Statement sql encoder decoder True
-  where
-    sql = "INSERT INTO bills (number, status, amount, created_at) VALUES ($1, $2, $3, $4) RETURNING id, number, status, amount, created_at"
-    encoder =
-      ((\(number, _, _, _) -> number) >$< E.param (E.nullable E.text))
-        <> ((\(_, status, _, _) -> fromIntegral @Int @Int32 status) >$< E.param (E.nonNullable E.int4))
-        <> ((\(_, _, amount, _) -> amount) >$< E.param (E.nonNullable E.float8))
-        <> ((\(_, _, _, date) -> date) >$< E.param (E.nonNullable E.date))
-    decoder = D.singleRow billDecoder
-
+-- | Get bill by ID using DAL.Queries
 getBill :: Pool -> Int64 -> IO (QueryResult Bill)
-getBill pool bid = do
-  result <- use pool $ Session.statement bid selectBillStmt
-  return $ case result of
-    Left err -> QueryError (T.pack $ show err)
-    Right bill -> QuerySuccess bill
+getBill pool bid = getBillById pool bid
 
-selectBillStmt :: Statement Int64 Bill
-selectBillStmt = Statement sql encoder decoder True
-  where
-    sql = "SELECT id, number, status, amount, created_at FROM bills WHERE id = $1"
-    encoder = ((\(bid) -> bid) >$< E.param (E.nonNullable E.int8))
-    decoder = D.singleRow billDecoder
-
+-- | Update bill - partial implementation
 updateBill :: Pool -> Int64 -> BillInput -> IO (QueryResult Bill)
-updateBill pool bid input = do
-  result <- use pool $ Session.statement (biCode input, biStatus input, biAmount input, biDate input, bid) updateBillStmt
-  return $ case result of
-    Left err -> QueryError (T.pack $ show err)
-    Right bill -> QuerySuccess bill
+updateBill _ _ _ = return $ QueryError "Not implemented - requires full bill update logic"
 
-updateBillStmt :: Statement (Maybe Text, Int, Double, Day, Int64) Bill
-updateBillStmt = Statement sql encoder decoder True
-  where
-    sql = "UPDATE bills SET number = $1, status = $2, amount = $3, created_at = $4 WHERE id = $5 RETURNING id, number, status, amount, created_at"
-    encoder =
-      ((\(number, _, _, _, _) -> number) >$< E.param (E.nullable E.text))
-        <> ((\(_, status, _, _, _) -> fromIntegral @Int @Int32 status) >$< E.param (E.nonNullable E.int4))
-        <> ((\(_, _, amount, _, _) -> amount) >$< E.param (E.nonNullable E.float8))
-        <> ((\(_, _, _, date, _) -> date) >$< E.param (E.nonNullable E.date))
-        <> ((\(_, _, _, _, bid) -> bid) >$< E.param (E.nonNullable E.int8))
-    decoder = D.singleRow billDecoder
-
+-- | Delete bill using DAL.Mutations
 deleteBill :: Pool -> Int64 -> IO (QueryResult ())
 deleteBill pool bid = do
-  result <- use pool $ Session.statement bid deleteBillStmt
-  return $ case result of
-    Left err -> QueryError (T.pack $ show err)
-    Right () -> QuerySuccess ()
+  result <- Mut.deleteBill pool bid
+  case result of
+    QuerySuccess _ -> return $ QuerySuccess ()
+    QueryError err -> return $ QueryError err
 
-deleteBillStmt :: Statement Int64 ()
-deleteBillStmt = Statement sql encoder decoder True
-  where
-    sql = "DELETE FROM bills WHERE id = $1"
-    encoder = ((\(gid) -> gid) >$< E.param (E.nonNullable E.int8))
-    decoder = D.noResult
-
-billDecoder :: D.Row Bill
-billDecoder =
-  Bill
-    <$> D.column (D.nonNullable D.int8)
-    <*> D.column (D.nullable D.text)
-    <*> (fromIntegral <$> D.column (D.nonNullable D.int4))
-    <*> D.column (D.nonNullable D.float8)
-    <*> pure []
-    <*> D.column (D.nonNullable D.timestamptz)
-    <*> D.column (D.nullable D.timestamptz)
-    <*> D.column (D.nullable D.int8)
-    <*> D.column (D.nullable D.int8)
+-- | Post bill - updates status to posted and creates accounting entries
+postBill :: Pool -> Int64 -> IO (QueryResult ())
+postBill pool bid = do
+  result <- Mut.postBill pool bid
+  case result of
+    QuerySuccess _ -> return $ QuerySuccess ()
+    QueryError err -> return $ QueryError err

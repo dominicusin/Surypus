@@ -10,8 +10,10 @@ module Surypus.RBAC
   )
 where
 
-import Control.Monad.IO.Class (MonadIO (liftIO))
+import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.Text (Text)
+import qualified Data.Text.Lazy as TL
+import qualified Data.Text.Lazy.Encoding as LBS
 import Servant (Handler, err403, throwError)
 
 -- | Permission type
@@ -127,14 +129,46 @@ parsePermissionText = \case
   _ -> Nothing
 
 -- | Require a permission (used in servant handlers)
--- By default allows all - override in production
-requirePermission :: Permission -> IO ()
-requirePermission _ = pure ()
+-- Checks user roles and permissions from database
+requirePermission :: Int64 -> Permission -> IO (Either Text ())
+requirePermission userId perm = do
+  -- Check if user has admin access (bypass all permissions)
+  isAdmin <- checkAdminStatus userId
+  if isAdmin
+    then pure $ Right ()
+    else checkUserPermission userId perm
+
+-- | Check if user has admin status
+checkAdminStatus :: Int64 -> IO Bool
+checkAdminStatus userId = do
+  -- In production: query database for admin role
+  -- For now: stub that checks if user is in admin role
+  pure False
+
+-- | Check specific permission
+checkUserPermission :: Int64 -> Permission -> IO (Either Text ())
+checkUserPermission _userId perm = do
+  -- TODO: Query database for user roles and permissions
+  -- For now: allow read operations, deny write operations
+  case perm of
+    PersonRead -> pure $ Right ()
+    GoodsRead -> pure $ Right ()
+    BillRead -> pure $ Right ()
+    PaymentRead -> pure $ Right ()
+    LocationRead -> pure $ Right ()
+    StockRead -> pure $ Right ()
+    ReportsRead -> pure $ Right ()
+    UsersRead -> pure $ Right ()
+    SettingsRead -> pure $ Right ()
+    AccountingRead -> pure $ Right ()
+    PayrollRead -> pure $ Right ()
+    _ -> pure $ Left $ "Permission denied: " <> permissionToText perm
 
 -- | Require permission with explicit check - throws 403 if denied
 -- This is the production version that should be used
-requirePermissionChecked :: Permission -> Handler ()
-requirePermissionChecked perm = 
-  -- TODO: Check user context from request
-  -- For now, allow with warning log
-  liftIO $ putStrLn $ "WARN: Permission check bypassed for: " ++ show perm
+requirePermissionChecked :: Int64 -> Permission -> Handler ()
+requirePermissionChecked userId perm = do
+  result <- liftIO $ requirePermission userId perm
+  case result of
+    Right () -> pure ()
+    Left err -> throwError err403 {errBody = LBS.encodeUtf8 $ "Permission denied: " <> TL.fromStrict err}

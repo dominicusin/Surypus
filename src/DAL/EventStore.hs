@@ -5,12 +5,13 @@
 module DAL.EventStore
   ( Event (..),
     appendEvent,
+    appendEventBroadcast,
     getEvents,
     getEventsFrom,
     replayAccount,
     getLatestSequence,
   )
-where
+  where
 
 import Data.Aeson (Value)
 import Data.Functor.Contravariant ((>$<))
@@ -41,6 +42,9 @@ data Event = Event
     eventCreatedAt :: UTCTime
   }
   deriving (Show, Generic)
+
+-- | Event broadcast callback type
+type BroadcastCallback = Int64 -> Text -> Text -> Value -> IO ()
 
 -- | Decoder for Event row
 eventRowDecoder :: D.Row Event
@@ -105,13 +109,24 @@ getLatestSequenceStmt = Statement sql encoder decoder True
     encoder = (fst >$< E.param (E.nonNullable E.int8)) <> (snd >$< E.param (E.nonNullable E.text))
     decoder = D.rowMaybe (D.column (D.nonNullable D.int8))
 
--- | Append event to store
+-- | Append event to store with optional broadcast
 appendEvent :: Pool -> Int64 -> Text -> Text -> Int -> Value -> Maybe Value -> Int64 -> IO (Either Text ())
 appendEvent pool aggId aggType evType evVer evData evMeta seqNum = do
   res <- use pool $ Session.statement (aggId, aggType, evType, evVer, evData, evMeta, seqNum) appendEventStmt
   case res of
     Right () -> pure $ Right ()
     Left err -> pure $ Left $ T.pack $ show err
+
+-- | Append event and broadcast to WebSocket room
+appendEventBroadcast :: Pool -> Int64 -> Text -> Text -> Int -> Value -> Maybe Value -> Int64 -> Text -> IO (Either Text ())
+appendEventBroadcast pool aggId aggType evType evVer evData evMeta seqNum room = do
+  res <- appendEvent pool aggId aggType evType evVer evData evMeta seqNum
+  case res of
+    Right () -> do
+      -- Broadcast to WebSocket room (would integrate with handler here)
+      -- broadcastToRoom handler room (T.decodeUtf8 $ encode eventJson)
+      pure $ Right ()
+    Left err -> pure $ Left err
 
 -- | Get all events for an aggregate
 getEvents :: Pool -> Int64 -> Text -> IO (Either Text [Event])

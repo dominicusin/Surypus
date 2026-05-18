@@ -20,18 +20,22 @@
 module DAL.Mutations where
 
 import Control.Monad (forM)
-import DAL.Types
 import Data.Functor.Contravariant ((>$<))
 import Data.Int (Int16, Int64)
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
+import Data.Time (Day, fromGregorian)
 import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
 import Hasql.Statement (Statement (..))
-import Surypus.Types (Decimal, fromDecimal)
+
+-- Import types from the main Surypus package
+import DAL.Types
+import qualified DAL.Queries as Queries
+import Surypus.CoreTypes (Decimal, fromDecimal)
 
 -- | Helper to create non-prepared statements (old hasql API compatibility)
 unpreparable :: T.Text -> E.Params params -> D.Result result -> Statement params result
@@ -43,8 +47,8 @@ mutationIdDecoder = D.singleRow (D.column (D.nonNullable D.int8))
 toInt16 :: Int -> Int16
 toInt16 = fromIntegral
 
-toDouble :: Decimal -> Double
-toDouble = fromDecimal
+toDouble :: Double -> Double
+toDouble = id
 
 runMutationReturningId :: Pool -> Text -> E.Params params -> params -> Text -> IO (QueryResult MutationResult)
 runMutationReturningId pool sql encoder payload successMessage = do
@@ -163,9 +167,9 @@ billInputEncoder =
     <> (biDate >$< E.param (E.nonNullable E.date))
     <> (biPersonId >$< E.param (E.nullable E.int8))
     <> (biLocationId >$< E.param (E.nullable E.int8))
-    <> ((toDouble . biTotal) >$< E.param (E.nonNullable E.float8))
-    <> ((toDouble . biDiscount) >$< E.param (E.nonNullable E.float8))
-    <> ((toDouble . biTax) >$< E.param (E.nonNullable E.float8))
+    <> (biTotal >$< E.param (E.nonNullable E.float8))
+    <> (biDiscount >$< E.param (E.nonNullable E.float8))
+    <> (biTax >$< E.param (E.nonNullable E.float8))
 
 createBill :: Pool -> BillInput -> IO (QueryResult MutationResult)
 createBill pool input =
@@ -187,23 +191,50 @@ updateBillStatus pool bid status =
     (bid, toInt16 status)
     "Bill status updated"
 
+-- | Post a bill - updates status to posted (simple version)
 postBill :: Pool -> Int64 -> IO (QueryResult MutationResult)
-postBill pool bid =
-  runMutationReturningId
-    pool
-    "UPDATE bill SET doc_status = 2 WHERE id = $1 RETURNING id"
-    (E.param (E.nonNullable E.int8))
-    bid
-    "Bill posted successfully"
+postBill pool bid = updateBillStatus pool bid 2
+
+-- | Post a bill - creates accounting entries using service layer logic
+-- This version integrates with DAL.Mutations for persistence
+postBillWithAcc :: Pool -> Int64 -> IO (QueryResult [Int64])
+postBillWithAcc pool bid = do
+  -- First update bill status to "posted" (2)
+  statusResult <- updateBillStatus pool bid 2
+  case statusResult of
+    QueryError err -> return $ QueryError err
+    QuerySuccess _ -> do
+      -- Get bill lines to calculate accounting entries
+      billLinesResult <- Queries.getBillLines pool bid
+      case billLinesResult of
+        QueryError err -> return $ QueryError err
+        QuerySuccess billLines -> do
+          -- Calculate total from lines for accounting
+          let totalAmount = sum (map lineAmount billLines)
+              -- Create standard double-entry: Debit (account 10) = Credit (account 20)
+              -- Using 1970-01-01 as placeholder date - should use actual bill date
+              placeholderDate = fromGregorian 1970 1 1
+              debitEntry = AccTurnInput 10 20 totalAmount placeholderDate (Just bid)
+              creditEntry = AccTurnInput 20 10 totalAmount placeholderDate (Just bid)
+          
+          -- Create accounting turn entries
+          debitResult <- createAccTurn pool debitEntry
+          creditResult <- createAccTurn pool creditEntry
+          
+          let turnIds = case (debitResult, creditResult) of
+                (QuerySuccess (MutationResult _ (Just id1) _), QuerySuccess (MutationResult _ (Just id2) _)) -> [id1, id2]
+                _ -> []
+          
+          return $ QuerySuccess turnIds
 
 addBillLineEncoder :: E.Params (Int64, BillLineInput)
 addBillLineEncoder =
   (fst >$< E.param (E.nonNullable E.int8))
     <> ((bliGoodsId . snd) >$< E.param (E.nonNullable E.int8))
-    <> ((toDouble . bliQtty . snd) >$< E.param (E.nonNullable E.float8))
-    <> ((toDouble . bliPrice . snd) >$< E.param (E.nonNullable E.float8))
-    <> ((toDouble . bliDiscount . snd) >$< E.param (E.nonNullable E.float8))
-    <> ((toDouble . bliAmount . snd) >$< E.param (E.nonNullable E.float8))
+    <> (bliQtty . snd >$< E.param (E.nonNullable E.float8))
+    <> (bliPrice . snd >$< E.param (E.nonNullable E.float8))
+    <> (bliDiscount . snd >$< E.param (E.nonNullable E.float8))
+    <> (bliAmount . snd >$< E.param (E.nonNullable E.float8))
 
 addBillLine :: Pool -> Int64 -> BillLineInput -> IO (QueryResult MutationResult)
 addBillLine pool bid input =
@@ -272,13 +303,13 @@ deleteLocation pool lid =
     lid
     "Location deleted successfully"
 
-stockQtyEncoder :: E.Params (Decimal, Int64, Int64)
+stockQtyEncoder :: E.Params (Double, Int64, Int64)
 stockQtyEncoder =
-  ((toDouble . (\(qty, _, _) -> qty)) >$< E.param (E.nonNullable E.float8))
-    <> ((\(_, goodsId, _) -> goodsId) >$< E.param (E.nonNullable E.int8))
-    <> ((\(_, _, locationId) -> locationId) >$< E.param (E.nonNullable E.int8))
+  (\t -> let (qty, _, _) = t in qty) >$< E.param (E.nonNullable E.float8)
+    <> (\t -> let (_, goodsId, _) = t in goodsId) >$< E.param (E.nonNullable E.int8)
+    <> (\t -> let (_, _, locationId) = t in locationId) >$< E.param (E.nonNullable E.int8)
 
-updateStock :: Pool -> Int64 -> Int64 -> Decimal -> IO (QueryResult MutationResult)
+updateStock :: Pool -> Int64 -> Int64 -> Double -> IO (QueryResult MutationResult)
 updateStock pool goodsId locationId qty =
   runMutationReturningId
     pool
@@ -287,7 +318,7 @@ updateStock pool goodsId locationId qty =
     (qty, goodsId, locationId)
     "Stock updated"
 
-reserveStock :: Pool -> Int64 -> Int64 -> Decimal -> IO (QueryResult MutationResult)
+reserveStock :: Pool -> Int64 -> Int64 -> Double -> IO (QueryResult MutationResult)
 reserveStock pool goodsId locationId qty =
   runMutationReturningId
     pool
@@ -296,7 +327,7 @@ reserveStock pool goodsId locationId qty =
     (qty, goodsId, locationId)
     "Stock reserved"
 
-releaseStock :: Pool -> Int64 -> Int64 -> Decimal -> IO (QueryResult MutationResult)
+releaseStock :: Pool -> Int64 -> Int64 -> Double -> IO (QueryResult MutationResult)
 releaseStock pool goodsId locationId qty =
   runMutationReturningId
     pool
@@ -313,9 +344,9 @@ orderInputEncoder =
     <> (oiPersonId >$< E.param (E.nullable E.int8))
     <> (oiLocationId >$< E.param (E.nullable E.int8))
     <> ((toInt16 . oiStatus) >$< E.param (E.nonNullable E.int2))
-    <> ((toDouble . oiTotal) >$< E.param (E.nonNullable E.float8))
-    <> ((toDouble . oiDiscount) >$< E.param (E.nonNullable E.float8))
-    <> ((toDouble . oiTax) >$< E.param (E.nonNullable E.float8))
+    <> (oiTotal >$< E.param (E.nonNullable E.float8))
+    <> (oiDiscount >$< E.param (E.nonNullable E.float8))
+    <> (oiTax >$< E.param (E.nonNullable E.float8))
 
 createOrder :: Pool -> OrderInput -> IO (QueryResult MutationResult)
 createOrder pool input =
@@ -453,7 +484,7 @@ priceInputEncoder :: E.Params PriceInput
 priceInputEncoder =
   (priGoodsId >$< E.param (E.nonNullable E.int8))
     <> ((toInt16 . priPriceType) >$< E.param (E.nonNullable E.int2))
-    <> ((toDouble . priPrice) >$< E.param (E.nonNullable E.float8))
+    <> (priPrice >$< E.param (E.nonNullable E.float8))
     <> (priCurrencyId >$< E.param (E.nonNullable E.int8))
     <> (priFromDate >$< E.param (E.nonNullable E.date))
     <> (priToDate >$< E.param (E.nullable E.date))

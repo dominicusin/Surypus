@@ -5,33 +5,26 @@
 
 packages:
 - completed:
-    hackage: liquidhaskell-0.8.10.7.1@sha256:4dbe02abcad5e5e9b85309db81d92152a7fb48bc7af61b580ce0fb9a50b0f948,16307
+    hackage: ekg-0.4.1.2@sha256:df9815979134383dd8f33ae976e1270eb3918d11c3fd41c1cbf2b6c1ab41047f,2234
     pantry-tree:
-      sha256: 69695836eaf6ff5f06d3bc66b54eaa95394e122f12590e784ab918201079208f
-      size: 70673
+      sha256: f6f8a09960708b63ccaafcd7120ae5d002ed0d8d57f211cd2b080b2d86aeef78
+      size: 1495
   original:
-    hackage: liquidhaskell-0.8.10.7.1
+    hackage: ekg-0.4.1.2
 - completed:
-    hackage: liquid-base-4.15.1.0@sha256:2dd56691a8ce1fdfef4cfedc22a7f960a2caf279c71520fd3019f5842b6edd58,9396
+    hackage: ekg-core-0.1.1.7@sha256:2c05b37978f47bac48cc51aa9e7e0d565e2ebc1b46ce34832dd540b326e3f2bb,2046
     pantry-tree:
-      sha256: 020b23aca25c0c7445500a6aa4a77cb6c8458ab9f422647bbe49ae190fbca918
-      size: 15044
+      sha256: 80003fd2cc8c9cf9c03a9b5551eb22dde2ec4f3622a3072c8b05e0248b344258
+      size: 1073
   original:
-    hackage: liquid-base-4.15.1.0
+    hackage: ekg-core-0.1.1.7
 - completed:
-    hackage: liquid-containers-0.6.4.1@sha256:0b748ba45ecbf02f46492c119907330f579fa3a7c976659d68a1dc67e062632d,2351
+    hackage: ekg-json-0.1.1.1@sha256:e72b7d8a91997d4dc50eca7988f4cd81397df794235be5ce05c1e2a85e8a1fb7,1405
     pantry-tree:
-      sha256: 817840cb9068e5c7d872699026fbbadd279a99db3727a2764764cc28a3378282
-      size: 2143
+      sha256: 6a21303e0b5953c3d27ec22877db0af06669d913152ebc1b3932b5f5165fae17
+      size: 265
   original:
-    hackage: liquid-containers-0.6.4.1
-- completed:
-    hackage: validation-selective-0.2.0.0@sha256:cf0701ecfe4d6055cc00fe1d0bde3942e3258f279a17459ea589047369704789,3917
-    pantry-tree:
-      sha256: 850215b81519a0383774dd4ffd940ca0c27e43368bb370daa7ef23fad8ceaafe
-      size: 697
-  original:
-    hackage: validation-selective-0.2.0.0
+    hackage: ekg-json-0.1.1.1
 - completed:
     hackage: cryptonite-0.30@sha256:12c85dea7be63e5ad90bcb487eb3846bf3c413347f94336fa1dede7b28f9936a,18301
     pantry-tree:
@@ -40,120 +33,22 @@ packages:
   original:
     hackage: cryptonite-0.30
 - completed:
-    hackage: servant-swagger-1.2.1@sha256:7cb4bd3e786f3ebe6c0a4aa725cf13ba9eff21cfea21e0de7b022245d60e5126,4803
+    hackage: jose-0.10@sha256:fddc06fefe1ee2a7a5776d4cbc58f2ede6220d25fdeeb12c741c8c3477b6cbcc,3212
     pantry-tree:
-      sha256: 8c91085a172b8dc39fb10388f2432396131eed22edda5331bd386dd0ea9bc8b2
-      size: 1636
-  original:
-    hackage: servant-swagger-1.2.1
-- completed:
-    hackage: swagger2-2.8.10@sha256:e2cd0e2077b3f2571a3bfca2aca0ba03d10086800803d9c0b7bb895f7aad8441,4689
-    pantry-tree:
-      sha256: 1d9fe7cb9fb7c42425a9bc4fe1bb22ebf51d7dd91c04516117c065afd2392626
-      size: 2192
-  original:
-    hackage: swagger2-2.8.10
-- completed:
-    hackage: Decimal-0.5.2@sha256:83dd16a1c0737fd35fdb1088af36e1a53034e75090e3f0d4ad32296f1a35a13b,1711
-    pantry-tree:
-      sha256: 8d94b732e9ea24ab4f0aa185a5128f83cf049d6995747335ad49420d325c1a91
-      size: 373
-  original:
-    hackage: Decimal-0.5.2
-- completed:
-    hackage: smtp-mail-0.1.0.0@sha256:659654c706f845749aae4ee8702feb6c727d2791b2f1de7a7cb5a8d893860b69,862
-    pantry-tree:
-      sha256: 82bf1d8ce19714f250b7529b90a38e18bcae15f754955b01f7ab577b3ffbe2cb
-      size: 279
-  original:
-    hackage: smtp-mail-0.1.0.0
-- completed:
-    hackage: http-client-0.7.13.1@sha256:6480749144f27919547733262f06a6ae3c759b57b692af53f9beb309d05a1699,5777
-    pantry-tree:
-      sha256: 4bb660f3c5aa9eb76026b3e4ac7029946e37bc970be604614a4badefaffb2e03
-      size: 2547
-  original:
-    hackage: http-client-0.7.13.1
-- completed:
-    hackage: http-client-tls-0.3.6.1@sha256:c986b98a06ddde487fcfe139f024717d9263c61037ff45a4c63dae93b290c27f,2042
-    pantry-tree:
-      sha256: ac30cb48175d969b839bbcef4b8b1dc3d970751fdf030fcd4df34e0fb62e228a
-      size: 435
-  original:
-    hackage: http-client-tls-0.3.6.1
-- completed:
-    hackage: yaml-0.11.11.0@sha256:d50741e4db50642fd8b59249bd87b156b4632d9de5b65f0be3abb8fa697e7ac9,5003
-    pantry-tree:
-      sha256: 73f1b46215485d04adee568d5ee5a3fc80645aa377ed9833d0786c1535651529
-      size: 2044
-  original:
-    hackage: yaml-0.11.11.0
-- completed:
-    hackage: postgresql-connection-string-0.1.0.6@sha256:942fa32d6c83fc8f8671dfe7bc5fb68acdb2bc9893c4806905ca5b1c740913ff,3420
-    pantry-tree:
-      sha256: 48c475bc9bdbf22db095a64af06cae5ae72eb04dae36bc36c4bb0826b10bd800
-      size: 1287
-  original:
-    hackage: postgresql-connection-string-0.1.0.6
-- completed:
-    hackage: ekg-core-0.1.2.0@sha256:5d0a5ed6470aed6a5696dbcad334f869e1757750d8900d5355c847039a0bca6e,2208
-    pantry-tree:
-      sha256: 4586b4be97d2faa2fbd5d88480072ef6b08677af26626fcaa7725f0e2a4c3818
-      size: 964
-  original:
-    hackage: ekg-core-0.1.2.0
-- completed:
-    hackage: ekg-0.4.0.15@sha256:d6e48859a89fbbe23496f871581e44a41f97dac627c2b9db81f49b92fa066516,2031
-    pantry-tree:
-      sha256: e56e9c0eadc309a27400af106a2d3133d70ad0a3bbbb9be2c54e837ccdb4a77d
-      size: 1495
-  original:
-    hackage: ekg-0.4.0.15
-- completed:
-    hackage: jose-0.11@sha256:bb915151f3a824538f346f8cf307a2c4c29909cbb3f35cdb628c490aa6b0d331,3980
-    pantry-tree:
-      sha256: 2f9a0a656abe7a04069c7074fee094a7d113f265b3d43f0e9609c17def1a5990
+      sha256: 55ba40a1c4c4bc816e70244cc11ad28a7323b5c475e7d3a4bf2e8cac2ae4d68c
       size: 2154
   original:
-    hackage: jose-0.11
+    hackage: jose-0.10
 - completed:
-    hackage: aeson-casing-0.2.0.0@sha256:0cd116308e91e2a1162b7e57125d2a9fc503a1a6bd6efc59378b518db0a33733,1466
+    hackage: hashtables-1.3.1@sha256:71bca4b409f901a9cad8c2e9bfd098193f82a1825141c35ea8d95a0ef68153f7,10710
     pantry-tree:
-      sha256: b17d246240f7318e25d9ecf92e4d665fe0db00b3cba2cf6556674a863ee1feb3
-      size: 417
-  original:
-    hackage: aeson-casing-0.2.0.0
-- completed:
-    hackage: hashtables-1.4.2@sha256:4940cab94a15d469845ccf5225f9cb3d354c15e8127ebb58425c8b681f7721d9,10386
-    pantry-tree:
-      sha256: 65107f0c970351b971ea1f676a5e00b61e37c298a4c83c867d937f2a774501eb
+      sha256: 8225b99632d967366b47820831208b87db427b22873858e45abe347b510f4b60
       size: 2895
   original:
-    hackage: hashtables-1.4.2
-- completed:
-    hackage: cborg-0.2.10.0@sha256:47c044ade185e59433ec301fd3d85c7a1b9709cc752daf8b6388c9190aa618aa,5397
-    pantry-tree:
-      sha256: cfa8493ce4514f7f7c83ce2d49ab292cc2039929243fcbf4c5c44d8e2a424330
-      size: 2559
-  original:
-    hackage: cborg-0.2.10.0
-- completed:
-    hackage: messagepack-0.5.5@sha256:17066269f1889212a1751f48f430ba2ecc63727a6a36b6df70d46e6bfa394779,1661
-    pantry-tree:
-      sha256: 32ffbe8876dd687d2e4d564d700be6af9460e4f05764e178bbee78c4ca596d5f
-      size: 431
-  original:
-    hackage: messagepack-0.5.5
-- completed:
-    hackage: memory-0.18.0@sha256:9f4de967352f80b6f174c9a166f315393dde80b77d7b67e41268ae7dec0319f9,4581
-    pantry-tree:
-      sha256: 50865fe287a16933cc7c6b12e00320ea656796ae5205a336e1bf3f3c8fdaa8b7
-      size: 2436
-  original:
-    hackage: memory-0.18.0
+    hackage: hashtables-1.3.1
 snapshots:
 - completed:
-    sha256: f51b4cbfe8a6df42815e203f842085528698989ea81f7c82667451ad955b1819
-    size: 680576
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/23/11.yaml
-  original: lts-23.11
+    sha256: b146f371d1a90abbd2aeae1da10f776951046be50eae55a6fe93548a74fcc0dd
+    size: 713338
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/22/21.yaml
+  original: lts-22.21

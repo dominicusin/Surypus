@@ -84,11 +84,11 @@ validateAccPlanInput code name _accType
   | otherwise = Right ()
 
 -- | Validate accounting turn input
-validateAccTurnInput :: Int64 -> Int64 -> Double -> Day -> Either ValidationError ()
-validateAccTurnInput dbtAccId crdAccId amount _date
-  | dbtAccId <= 0 = Left (FieldRequired "debit account")
-  | crdAccId <= 0 = Left (FieldRequired "credit account")
-  | amount <= 0 = Left InvalidAmount
+validateAccTurnInput :: AccTurnInput -> Either ValidationError ()
+validateAccTurnInput AccTurnInput {..}
+  | atiDbtAccId <= 0 = Left (FieldRequired "debit account")
+  | atiCrdAccId <= 0 = Left (FieldRequired "credit account")
+  | atiAmount <= 0 = Left InvalidAmount
   | otherwise = Right ()
 
 -- | Validate bill input

@@ -22,16 +22,13 @@ import Surypus.JWT (jwtConfigFromSecret)
 import Surypus.Metrics (initMetrics)
 import Surypus.RBAC (Permission)
 import Surypus.RBAC.Store (listGrants, listRoles, newRBACStore, writeAuditEntry)
+import Surypus.WebSocket (WebSocketHandler, initWebSocketHandler, handleWebSocket)
 import Text.Read (readMaybe)
 
-websocketApp :: WS.ServerApp
-websocketApp pending = do
+websocketApp :: WebSocketHandler -> WS.ServerApp
+websocketApp handler pending = do
   conn <- WS.acceptRequest pending
-  putStrLn "WebSocket client connected"
-  WS.withPingThread conn 30 (return ()) $ do
-    msg <- WS.receiveData conn
-    putStrLn $ "WebSocket received: " <> show msg
-    WS.sendTextData conn $ ("Echo: " :: Text) <> msg
+  handleWebSocket handler conn
 
 isWsRequest :: Request -> Bool
 isWsRequest req = rawPathInfo req == "/ws"
@@ -60,6 +57,7 @@ main = do
     rbacStore <- newRBACStore $ \entry -> putStrLn $ "RBAC audit: " <> show entry
 
     metrics <- initMetrics
+    wsHandler <- initWebSocketHandler
 
     let authPublicPaths =
           [ "/api/v1/login",
@@ -91,8 +89,7 @@ main = do
     let combinedApp :: Application
         combinedApp req respond
           | isWsRequest req = do
-              putStrLn $ "WS path detected: " <> show (rawPathInfo req)
-              websocketsOr WS.defaultConnectionOptions websocketApp metricsApp req respond
+              websocketsOr WS.defaultConnectionOptions (websocketApp wsHandler) metricsApp req respond
           | otherwise = metricsApp req respond
 
     run port combinedApp

@@ -1,100 +1,86 @@
 -- | WebSocket handler module for real-time notifications
 -- Provides: (1) WebSocket connection handler, (2) Event broadcasting,
 -- (3) Room-based subscriptions for entity types
+{-# LANGUAGE OverloadedStrings #-}
 module Surypus.WebSocket (
   WebSocketHandler,
   initWebSocketHandler,
   handleWebSocket,
   broadcastToRoom,
-  subscribeRoom,
-  unsubscribeRoom
+  broadcastGlobal,
+  broadcastToInventoryRoom,
+  broadcastInventoryEvent
 ) where
 
 import Control.Concurrent.STM
+import Control.Exception (finally)
 import Control.Monad (forever)
+import Data.Aeson (Value, encode, object, (.=))
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as M
 import Data.Text (Text)
-import Network.Websocket (Connection)
-import qualified Network.Websocket as WS
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
+import qualified Network.WebSockets as WS
 
 -- | WebSocket handler managing connections and rooms
+-- Using Int keys since WS.Connection lacks Eq
 data WebSocketHandler = WebSocketHandler
-  { handlerConnections :: TVar (Map Text [Connection])
-  -- ^ Connections by room
-  , handlerRooms :: TVar (Map Text Text)
-  -- ^ ConnectionID -> room mapping
+  { handlerConnections :: TVar (Map Text [(Int, WS.Connection)])
+  -- ^ Connections by room with unique keys
+  , handlerNextKey :: TVar Int
+  -- ^ Next connection key for unique identification
   }
 
 -- | Initialize WebSocket handler
 initWebSocketHandler :: IO WebSocketHandler
 initWebSocketHandler = do
   conns <- newTVarIO M.empty
-  rooms <- newTVarIO M.empty
-  return $ WebSocketHandler conns rooms
+  nextKey <- newTVarIO 0
+  return $ WebSocketHandler conns nextKey
 
 -- | Handle new WebSocket connection
-handleWebSocket :: WebSocketHandler -> Connection -> IO ()
+handleWebSocket :: WebSocketHandler -> WS.Connection -> IO ()
 handleWebSocket handler conn = do
-  -- Get connection ID (simplified - in production use proper UUID)
-  let connId = "conn-" <> show (hash conn)
-
-  -- Join default room
+  -- Get unique key for this connection
+  key <- atomically $ do
+    k <- readTVar (handlerNextKey handler)
+    writeTVar (handlerNextKey handler) (k + 1)
+    return k
+    
+  -- Join global room by default
   atomically $ do
-    modifyTVar (handlerConnections handler) (M.insertWith (++) "default" [conn])
-    modifyTVar (handlerRooms handler) (M.insert connId "default")
+    modifyTVar (handlerConnections handler) (M.insertWith (++) "global" [(key, conn)])
 
-  -- Listen for messages
-  forever $ do
-    msg <- WS.receiveMessage conn
-    case msg of
-      WS.Text txt -> handleMessage handler connId txt
-      WS.Binary _ -> return ()
-      WS.CloseEvent -> do
-        cleanupConnection handler connId
-        WS.sendClose "Connection closed" conn
+  -- Listen for messages or wait for disconnect
+  WS.withPingThread conn 30 (pure ()) $
+    (forever (WS.receiveData conn :: IO Text) `finally` cleanup key)
+  where
+    cleanup key = atomically $ do
+      modifyTVar (handlerConnections handler) $ \conns ->
+        M.map (filter ((/= key) . fst)) conns
 
--- | Handle incoming message
-handleMessage :: WebSocketHandler -> Text -> Text -> IO ()
-handleMessage handler connId msg = do
-  case words msg of
-    ("join":room:_) -> do
-      atomically $ do
-        modifyTVar (handlerConnections handler) (M.insertWith (++) connId [room])
-        modifyTVar (handlerRooms handler) (M.insert connId room)
-    _ -> return ()
-
--- | Broadcast to room
+-- | Broadcast to a specific room
 broadcastToRoom :: WebSocketHandler -> Text -> Text -> IO ()
 broadcastToRoom handler room msg = do
   conns <- readTVarIO (handlerConnections handler)
   let roomConns = M.findWithDefault [] room conns
-  mapM_ (\c -> WS.sendMessage (WS.Text msg) c) roomConns
+  mapM_ (\(_, c) -> WS.sendTextData c msg) roomConns
 
--- | Subscribe connection to room
-subscribeRoom :: WebSocketHandler -> Text -> Connection -> IO ()
-subscribeRoom handler room conn =
-  atomically $ do
-    modifyTVar (handlerConnections handler) (M.insertWith (++) room [conn])
-    modifyTVar (handlerRooms handler) (M.insert (show conn) room)
+-- | Broadcast to everyone
+broadcastGlobal :: WebSocketHandler -> Text -> IO ()
+broadcastGlobal handler = broadcastToRoom handler "global"
 
--- | Unsubscribe connection from room
-unsubscribeRoom :: WebSocketHandler -> Text -> Connection -> IO ()
-unsubscribeRoom handler room conn =
-  atomically $ do
-    modifyTVar (handlerConnections handler) $ \conns ->
-      case M.lookup room conns of
-        Just conns' -> M.insert room (filter (/= conn) conns') conns
-        Nothing -> conns
+-- | Broadcast to inventory room specifically
+broadcastToInventoryRoom :: WebSocketHandler -> Text -> IO ()
+broadcastToInventoryRoom handler = broadcastToRoom handler "inventory"
 
--- | Cleanup disconnected connection
-cleanupConnection :: WebSocketHandler -> Text -> IO ()
-cleanupConnection handler connId =
-  atomically $ do
-    modifyTVar (handlerConnections handler) $ \conns ->
-      M.map (\cs -> filter (/= connId) cs) conns
-    modifyTVar (handlerRooms handler) (M.delete connId)
-
--- | Helper for hashing
-hash :: a -> Int
-hash _ = 0
+-- | Broadcast inventory event as JSON
+broadcastInventoryEvent :: WebSocketHandler -> Int64 -> Text -> Value -> IO ()
+broadcastInventoryEvent handler goodsId eventType eventValue = do
+  let eventObj = object
+        [ "goodsId" .= goodsId
+        , "eventType" .= eventType
+        , "data" .= eventValue
+        ]
+  broadcastToInventoryRoom handler (TE.decodeUtf8 $ encode eventObj)

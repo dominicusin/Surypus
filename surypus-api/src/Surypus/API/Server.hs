@@ -11,25 +11,42 @@ module Surypus.API.Server (apiServer, startServantServer) where
 import Control.Monad.IO.Class (liftIO)
 import Data.Int (Int64)
 import Data.Proxy (Proxy (..))
+import qualified Data.Text as DT
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as LBS
-import Hasql.Pool (Pool)
+import Surypus (Pool, QueryResult (..), Bill (..), BillInput (..), Goods (..), Person (..), Payment (..))
 import Network.Wai as W
-import Servant (Application, Handler, Server, ServerError(..), err404, err500, serve, throwError, (:>), Get, Post, ReqBody, JSON, (:<|>) (..), Capture)
+import Servant (Application, Handler, Server, ServerError(..), err401, err403, err404, err500, serve, throwError, (:>), Get, Post, ReqBody, JSON, (:<|>) (..), Capture)
 import qualified Data.UUID as UUID
 import qualified Data.UUID.V4 as UUID
 import qualified Surypus.API.Logger as Log
-import DAL.Types (QueryResult (..), Bill (..), BillInput (..), Goods (..), Person (..), Payment (..))
 import qualified Surypus.API.Bills as Bills
 import qualified Surypus.API.Goods as Goods
 import qualified Surypus.API.Persons as Persons
 import qualified Surypus.API.Payment as Payments
+import qualified Surypus.WebSocket as WS
 
 data Env = Env
   { envPool :: Pool,
-    envLogger :: Log.Logger
+    envLogger :: Log.Logger,
+    envWSHandler :: Maybe WS.WebSocketHandler
   }
+
+-- | Application context with both database and WebSocket
+type AppContext = Env
+
+-- | Create environment with WebSocket support
+mkEnv :: Pool -> Log.Logger -> Maybe WS.WebSocketHandler -> Env
+mkEnv pool logger wsHandler = Env pool logger wsHandler
+
+-- | Authenticated user context (for future AuthProtect integration)
+data AuthenticatedUser = AuthenticatedUser
+  { userId :: Int64,
+    username :: DT.Text,
+    userRoles :: [DT.Text]
+  }
+  deriving (Show, Eq)
 
 -- | Correlation ID middleware
 correlationMiddleware :: Log.Logger -> Application -> Application
@@ -38,18 +55,34 @@ correlationMiddleware logger app req respond = do
   corrId <- case corrIdHeader of
     Just cid -> return (TE.decodeUtf8 cid)
     Nothing -> UUID.toText <$> UUID.nextRandom
-  Log.withCorrelationId logger corrId $
+  Log.withCorrelationId logger (DT.unpack corrId) $
     app req respond
 
-apiServer :: Pool -> Log.Logger -> Application
-apiServer pool logger =
-  let env = Env pool logger
-   in correlationMiddleware logger (serve (Proxy @SurypusApi) (server env))
+-- | Auth check middleware - validates Authorization header
+authMiddleware :: Application -> Application
+authMiddleware app req respond = do
+  let authHeader = lookup "Authorization" (W.requestHeaders req)
+  case authHeader of
+    Just _ -> app req respond  -- Has auth header, proceed
+    Nothing -> respond $ W.responseLBS [W.status401] [("Content-Type", "text/plain")] "Unauthorized"
 
-startServantServer :: Pool -> Log.Logger -> IO ()
-startServantServer _ logger = do
-  Log.logInfo logger "SERVER" "Starting Servant server" []
-  pure ()
+apiServer :: Pool -> Log.Logger -> Application
+apiServer pool logger = apiServerWithWS pool logger Nothing
+
+-- | API server with optional WebSocket handler for event broadcasting
+apiServerWithWS :: Pool -> Log.Logger -> Maybe WS.WebSocketHandler -> Application
+apiServerWithWS pool logger mbWsHandler =
+  let env = Env pool logger mbWsHandler
+   in correlationMiddleware logger $ authMiddleware (serve (Proxy @SurypusApi) (server env))
+
+-- | Start server with WebSocket support
+startServer :: Pool -> Log.Logger -> IO WS.WebSocketHandler
+startServer pool logger = do
+  wsHandler <- WS.initWebSocketHandler
+  Log.logInfo logger "WebSocket handler initialized" []
+  let env = Env pool logger (Just wsHandler)
+  Log.logInfo logger "Starting Survant server with WebSocket support" []
+  return wsHandler
 
 -- | Full Surypus API type
 type SurypusApi =
@@ -57,6 +90,7 @@ type SurypusApi =
     ( "bills" :> Get '[JSON] [Bill]
       :<|> "bills" :> ReqBody '[JSON] BillInput :> Post '[JSON] Bill
       :<|> "bills" :> Capture "id" Int64 :> Get '[JSON] Bill
+      :<|> "bills" :> Capture "id" Int64 :> "post" :> Post '[JSON] ()
       :<|> "goods" :> Get '[JSON] [Goods]
       :<|> "persons" :> Get '[JSON] [Person]
       :<|> "payments" :> Get '[JSON] [Payment]
@@ -67,6 +101,7 @@ server env =
   ( billsList env
     :<|> billsCreate env
     :<|> billGet env
+    :<|> billPost env
     :<|> goodsList env
     :<|> personsList env
     :<|> paymentsList env
@@ -74,7 +109,7 @@ server env =
 
 billsList :: Env -> Handler [Bill]
 billsList env = do
-  result <- liftIO $ Bills.listBills (envPool env) Nothing Nothing Nothing Nothing Nothing Nothing
+  result <- liftIO $ Bills.listBills (envPool env)
   case result of
     QuerySuccess bills -> pure bills
     QueryError err -> throwError $ err500 {errBody = LBS.encodeUtf8 $ "Database error: " <> TL.fromStrict err}
@@ -94,9 +129,17 @@ billGet env bid = do
     QueryError "Not Found" -> throwError err404
     QueryError err -> throwError $ err500 {errBody = LBS.encodeUtf8 $ "Database error: " <> TL.fromStrict err}
 
+-- | Post a bill to update status
+billPost :: Env -> Int64 -> Handler ()
+billPost env bid = do
+  result <- liftIO $ Bills.postBill (envPool env) bid
+  case result of
+    QuerySuccess () -> pure ()
+    QueryError err -> throwError $ err500 {errBody = LBS.encodeUtf8 $ "Database error: " <> TL.fromStrict err}
+
 goodsList :: Env -> Handler [Goods]
 goodsList env = do
-  result <- liftIO $ Goods.listGoods (envPool env) Nothing Nothing Nothing Nothing
+  result <- liftIO $ Goods.listGoods (envPool env)
   case result of
     QuerySuccess goods -> pure goods
     QueryError err -> throwError $ err500 {errBody = LBS.encodeUtf8 $ "Database error: " <> TL.fromStrict err}

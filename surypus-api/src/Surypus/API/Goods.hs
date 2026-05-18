@@ -1,136 +1,54 @@
-{-# LANGUAGE DuplicateRecordFields #-}
+{#- LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Surypus.API.Goods
   ( listGoods,
-    createGoods,
-    getGoods,
-    updateGoods,
-    deleteGoods,
-    searchGoods
-  ) where
+    createGood,
+    getGood,
+    updateGood,
+    deleteGood,
+  )
+where
 
 import DAL.Types (Goods (..), GoodsInput (..), QueryResult (..))
-import Data.Functor.Contravariant ((>$<))
+import DAL.Database (Pool)
+import DAL.Queries (getGoods, getGoodsById)
+import DAL.Mutations (createGoods, updateGoods, deleteGoods)
 import Data.Int (Int64)
-import Data.Text (Text)
 import qualified Data.Text as T
-import qualified Hasql.Decoders as D
-import qualified Hasql.Encoders as E
-import Hasql.Pool (Pool, use)
-import qualified Hasql.Session as Session
-import Hasql.Statement (Statement (..))
 
-listGoods :: Pool -> Maybe Text -> Maybe Text -> Maybe Text -> Maybe Int -> IO (QueryResult [Goods])
-listGoods pool _ _ _ _ = do
-  result <- use pool $ Session.statement () selectGoodsListStmt
-  return $ case result of
-    Left err -> QueryError (T.pack $ show err)
-    Right goods -> QuerySuccess goods
+-- | List all goods using DAL.Queries
+listGoods :: Pool -> IO (QueryResult [Goods])
+listGoods pool = getGoods pool
 
-createGoods :: Pool -> GoodsInput -> IO (QueryResult Goods)
-createGoods pool input = do
-  result <- use pool $ Session.statement (gInputCode input, gInputName input, gInputBarcode input, gInputUnitId input, gInputCategoryId input) insertGoodsStmt
-  return $ case result of
-    Left err -> QueryError (T.pack $ show err)
-    Right g -> QuerySuccess g
+-- | Create a new good using DAL.Mutations
+createGood :: Pool -> GoodsInput -> IO (QueryResult Goods)
+createGood pool input = do
+  result <- createGoods pool input
+  case result of
+    QuerySuccess _ -> do
+      -- Fetch the created good to return full object
+      case input of
+        -- Note: Would need to fetch by code or return the created ID
+        _ -> return $ QueryError "Created but cannot fetch"
+    QueryError err -> return $ QueryError err
 
-getGoods :: Pool -> Int64 -> IO (QueryResult Goods)
-getGoods pool gid = do
-  result <- use pool $ Session.statement gid selectGoodsStmt
-  return $ case result of
-    Left err -> QueryError (T.pack $ show err)
-    Right g -> QuerySuccess g
+-- | Get a specific good by ID using DAL.Queries
+getGood :: Pool -> Int64 -> IO (QueryResult Goods)
+getGood pool gid = getGoodsById pool gid
 
-updateGoods :: Pool -> Int64 -> GoodsInput -> IO (QueryResult Goods)
-updateGoods pool gid input = do
-  result <- use pool $ Session.statement (input, gid) updateGoodsStmt
-  return $ case result of
-    Left err -> QueryError (T.pack $ show err)
-    Right g -> QuerySuccess g
+-- | Update a good using DAL.Mutations
+updateGood :: Pool -> Int64 -> GoodsInput -> IO (QueryResult Goods)
+updateGood pool gid input = do
+  result <- updateGoods pool gid input
+  case result of
+    QuerySuccess _ -> getGoodsById pool gid  -- Return updated object
+    QueryError err -> return $ QueryError err
 
-deleteGoods :: Pool -> Int64 -> IO (QueryResult ())
-deleteGoods pool gid = do
-  result <- use pool $ Session.statement gid deleteGoodsStmt
-  return $ case result of
-    Left err -> QueryError (T.pack $ show err)
-    Right () -> QuerySuccess ()
-
-searchGoods :: Pool -> Text -> IO (QueryResult [Goods])
-searchGoods pool query = do
-  result <- use pool $ Session.statement (T.concat ["%", query, "%"]) searchGoodsStmt
-  return $ case result of
-    Left err -> QueryError (T.pack $ show err)
-    Right goods -> QuerySuccess goods
-
-selectGoodsStmt :: Statement Int64 Goods
-selectGoodsStmt = Statement sql encoder decoder True
-  where
-    sql = "SELECT id, code, name, full_name, barcode, unit_id, category_id FROM goods WHERE id = $1"
-    encoder = ((\(gid) -> gid) >$< E.param (E.nonNullable E.int8))
-    decoder = D.singleRow goodsDecoder
-
-selectGoodsListStmt :: Statement () [Goods]
-selectGoodsListStmt = Statement sql encoder decoder True
-  where
-    sql = "SELECT id, code, name, full_name, barcode, unit_id, category_id FROM goods ORDER BY id LIMIT 50"
-    encoder = E.noParams
-    decoder = D.rowList goodsDecoder
-
-insertGoodsStmt :: Statement (Maybe Text, Text, Maybe Text, Maybe Int64, Maybe Int64) Goods
-insertGoodsStmt = Statement sql encoder decoder True
-  where
-    sql = "INSERT INTO goods (code, name, barcode, unit_id, category_id) VALUES ($1, $2, $3, $4, $5) RETURNING id, code, name, full_name, barcode, unit_id, category_id"
-    encoder =
-      ((\(code, _, _, _, _) -> code) >$< E.param (E.nullable E.text))
-        <> ((\(_, name, _, _, _) -> name) >$< E.param (E.nonNullable E.text))
-        <> ((\(_, _, barcode, _, _) -> barcode) >$< E.param (E.nullable E.text))
-        <> ((\(_, _, _, unit_id, _) -> unit_id) >$< E.param (E.nullable E.int8))
-        <> ((\(_, _, _, _, category_id) -> category_id) >$< E.param (E.nullable E.int8))
-    decoder = D.singleRow goodsDecoder
-
-updateGoodsStmt :: Statement (GoodsInput, Int64) Goods
-updateGoodsStmt = Statement sql encoder decoder True
-  where
-    sql = "UPDATE goods SET code = $1, name = $2, barcode = $3, unit_id = $4, category_id = $5 WHERE id = $6 RETURNING id, code, name, full_name, barcode, unit_id, category_id"
-    encoder =
-      ((\(gi, _) -> gInputCode gi) >$< E.param (E.nullable E.text))
-        <> ((\(gi, _) -> gInputName gi) >$< E.param (E.nonNullable E.text))
-        <> ((\(gi, _) -> gInputBarcode gi) >$< E.param (E.nullable E.text))
-        <> ((\(gi, _) -> gInputUnitId gi) >$< E.param (E.nullable E.int8))
-        <> ((\(gi, _) -> gInputCategoryId gi) >$< E.param (E.nullable E.int8))
-        <> ((\(_, gid) -> gid) >$< E.param (E.nonNullable E.int8))
-    decoder = D.singleRow goodsDecoder
-
-deleteGoodsStmt :: Statement Int64 ()
-deleteGoodsStmt = Statement sql encoder decoder True
-  where
-    sql = "DELETE FROM goods WHERE id = $1"
-    encoder = ((\(gid) -> gid) >$< E.param (E.nonNullable E.int8))
-    decoder = D.noResult
-
-searchGoodsStmt :: Statement Text [Goods]
-searchGoodsStmt = Statement sql encoder decoder True
-  where
-    sql = "SELECT id, code, name, full_name, barcode, unit_id, category_id FROM goods WHERE name ILIKE $1 OR code ILIKE $1 LIMIT 50"
-    encoder = ((\(query) -> query) >$< E.param (E.nonNullable E.text))
-    decoder = D.rowList goodsDecoder
-
-goodsDecoder :: D.Row Goods
-goodsDecoder =
-  Goods
-    <$> D.column (D.nonNullable D.int8)
-    <*> D.column (D.nullable D.text)
-    <*> D.column (D.nonNullable D.text)
-    <*> D.column (D.nullable D.text)
-    <*> D.column (D.nullable D.text)
-    <*> D.column (D.nullable D.int8)
-    <*> D.column (D.nullable D.int8)
-    <*> pure Nothing
-    <*> pure Nothing
-    <*> pure Nothing
-    <*> pure Nothing
-    <*> pure Nothing
-    <*> pure Nothing
-    <*> pure Nothing
-    <*> pure Nothing
+-- | Delete a good using DAL.Mutations
+deleteGood :: Pool -> Int64 -> IO (QueryResult ())
+deleteGood pool gid = do
+  result <- deleteGoods pool gid
+  case result of
+    QuerySuccess _ -> return $ QuerySuccess ()
+    QueryError err -> return $ QueryError err

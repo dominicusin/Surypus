@@ -147,7 +147,7 @@ instance Arbitrary AccPlanInput where
     isAnalytical <- arbitrary
     pure $ AccPlanInput code name accType parentCode kind isAnalytical
 
--- | AccTurnInput generator
+-- | AccTurn input generator for tests
 instance Arbitrary AccTurnInput where
   arbitrary = do
     dbtAccId <- suchThat arbitrary (> 0)
