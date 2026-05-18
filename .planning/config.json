@@ -1,0 +1,22 @@
+{
+  "mode": "yolo",
+  "project_code": "surypus",
+  "milestone": "v1.0",
+  "commit_docs": true,
+  "auto_advance": true,
+  "_auto_chain_active": true,
+  "research": true,
+  "plan_checker": true,
+  "tdd_mode": false,
+  "verifier": true,
+  "text_mode": false,
+  "workflow": {
+    "skip_discuss": true,
+    "auto_advance": true,
+    "code_review": true,
+    "ui_phase": false,
+    "ui_review": false,
+    "drift_action": "warn"
+  },
+  "model_profile": "balanced"
+}

@@ -1,5 +1,5 @@
 # stack.yaml for Surypus
-resolver: lts-23.11
+resolver: lts-22.21
 
 nix:
   enable: false
@@ -15,40 +15,20 @@ packages:
   - .
   - surypus-common
   - surypus-api
-#   - surypus-frontend  # Disabled: requires reflex-dom
 
 ghc-options:
   "$locals": -Wall -Wcompat
 
 allow-newer: true
 allow-different-user: true
-system-ghc: true
 
 extra-deps:
-  - liquidhaskell-0.8.10.7.1
-  - liquid-base-4.15.1.0
-  - liquid-containers-0.6.4.1
-  - validation-selective-0.2.0.0
+  - ekg-0.4.1.2
+  - ekg-core-0.1.1.7
+  - ekg-json-0.1.1.1
   - cryptonite-0.30
-  - servant-swagger-1.2.1
-  - swagger2-2.8.10
-  - Decimal-0.5.2
-  - smtp-mail-0.1.0.0
-  - http-client-0.7.13.1
-  - http-client-tls-0.3.6.1
-  - yaml-0.11.11.0
-  - postgresql-connection-string-0.1.0.6
-  - ekg-core-0.1.2.0
-  - ekg-0.4.0.15
-  - jose-0.11
-  - aeson-casing-0.2.0.0
-  - hashtables-1.4.2
-  - cborg-0.2.10.0
-  - messagepack-0.5.5
-  - memory-0.18.0
-  #   - reflex-dom-0.6.3.4
-  #   - jsaddle-webkit2gtk-0.9.9.3
-  #   - gi-webkit2-4.0.32
-  #   - webkit2gtk3-javascriptcore-0.14.4.6
-  #   - gi-javascriptcore4-4.0.29@sha256:3ea53cdb3d7bb2b36916ca47a66ede923a5579e6d2c62bfc15585fc5f529d0b2,4031
-  #   - gi-soup2-2.4.30@sha256:1ea031d55cf3bc848023f154f40aca9a07a01b4f1a7218cda57a743d5f78ac1c,8964
+
+# Disable crypton to use cryptonite from snapshot
+constraints:
+  - crypton -any
+  - cryptonite == 0.30
