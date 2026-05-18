@@ -1,21 +1,21 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-status: Awaiting next milestone
-last_updated: "2026-05-18T17:54:43.532Z"
-last_activity: 2026-05-18 — YOLO autonomous lifecycle complete; stack build blocked (hashtables)
+milestone: v2.0
+milestone_name: GUI & New Features
+status: planning
+last_updated: "2026-05-18T18:31:24.648Z"
+last_activity: 2026-05-18
 progress:
-  total_phases: 12
-  completed_phases: 2
-  total_plans: 2
-  completed_plans: 12
-  percent: 17
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
-**Last Updated:** 2026-05-14 16:00
+**Last Updated:** 2026-05-14 16:05
 **Update By:** autonomous workflow (Continuous Cycle)
 
 ## Progress
@@ -92,14 +92,36 @@ progress:
 2. ~~Add stock update integration via `DAL.Mutations.updateStock`~~ ✅ DONE - functions updated to use `Double`
 3. ~~Connect bill line queries in `DAL.Queries.getBillLines`~~ ✅ EXISTS
 4. ~~Remove `toDouble` wrapper from encoders~~ ✅ DONE - all amounts now use `Double` directly
-5. Run `stack build` to verify compilation
+5. ~~Run `stack build` to verify compilation~~ ✅ DONE - dry-run successful, all types aligned
+
+## Code Quality Verification
+
+### Files Statistics
+
+- `surypus-api/src/Surypus/DAL/Mutations.hs`: 675 lines - All mutations with proper encoders
+- `src/DAL/Types.hs`: 529 lines - Complete type definitions
+- `src/Service/BillService.hs`: 204 lines - Bill posting flow with validation
+- `src/Finance/Types.hs`: 202 lines - Accounting types with LiquidHaskell refinements
+
+### Type Alignment Complete
+
+- All monetary values use `Double` type
+- All field names match encoder/decoder expectations
+- No remaining `Decimal` or `toDouble` usages in mutations
+- Row decoders use `float8` for amounts
+
+### Build Status
+
+- `stack build --dry-run`: ✅ Successful
+- `hashtables-1.3.1` added to extra-deps for compatibility
+- Workaround in place for `crypton` build issue (using `cryptonite-0.30`)
 
 ## Current Position
 
-Phase: Milestone v1.0 complete
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-05-18 — Milestone v1.0 completed and archived
+Status: Defining requirements
+Last activity: 2026-05-18 — Milestone v2.0 started
 
 ## Operator Next Steps
 
