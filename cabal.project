@@ -1,55 +1,22 @@
 packages:
-  surypus-common/surypus-common.cabal
-  surypus-api/surypus-api.cabal
-  surypus-frontend/surypus-frontend.cabal
+  ./
+  ./surypus-common/surypus-common.cabal
+  ./surypus-api/surypus-api.cabal
 
-
-
--- Compiler configuration
-with-compiler: ghc-9.4.8
-
--- Global constraints for compatibility
+-- Package constraints (Cabal only; stack.yaml does not support this field)
 constraints:
   base >= 4.16 && < 4.22,
   text >= 2.0,
   aeson >= 2.1,
   time >= 1.11,
-  containers >= 0.6
-
--- Servant constraints
-constraints:
+  containers >= 0.6,
   servant >= 0.20,
   servant-server >= 0.20,
-  servant-client >= 0.20,
   wai >= 3.2,
-  warp >= 3.3
-
--- Database constraints
-constraints:
+  warp >= 3.3,
   hasql >= 1.6,
   hasql-pool >= 0.10,
-  postgresql-binary >= 0.12
-
--- Package-specific constraints
-package surypus-api
-  optimization: 2
-  ghc-options: -Wall -Wcompat -threaded -rtsopts
-
-package surypus-frontend
-  optimization: 2
-  ghc-options: -Wall -Wcompat
-  constraints:
-    reflex >= 0.6,
-    reflex-dom >= 0.6
-
--- Test dependencies
-constraints:
-  hspec >= 2.11,
-  QuickCheck >= 2.14
-
--- Nix support (disabled)
-nix:
-  enable: false
-
--- Documentation
-package-documentation: true
+  postgresql-binary >= 0.12,
+  crypton -any,
+  cryptonite ==0.30,
+  jose >=0.10 && <0.11

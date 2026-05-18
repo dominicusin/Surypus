@@ -22,7 +22,9 @@ library
       Surypus.Reports.Conversion.CrystalTypes
       Surypus.Reports.Conversion.CrystalToPdfSlave
       Surypus.JWT
+      Surypus.RBAC
       DAL.Types
+      DAL.Database
       DAL.EventStore
       Infrastructure.EventStore.Accounting
       Infrastructure.EventStore.Inventory
@@ -30,6 +32,8 @@ library
       Service.InventoryService
       Finance.Accounting
       Inventory.Stock
+      Surypus.WebSocket
+      Infrastructure.WebSocket.InventoryBroadcast
 
   build-depends:
        base >=4.12 && <5
@@ -57,15 +61,15 @@ library
      , http-client >=0.7
      , lens >=5.2
      , hspec >=2.11
-     , hasql >=1.10
-     , hasql-pool >=1.0
-     , ekg-core >=0.1.2
+     , hasql >= 1.6
+     , hasql-pool >=0.10
+     , ekg-core >=0.1.1
      , ekg >=0.4.0
-     , jose >=0.11
+     , jose >=0.10 && <0.11
      , cryptonite >=0.30
-     , memory >=0.18
      , cborg >=0.2
-     , messagepack >=1.0
+     , messagepack >=0.5
+     , websockets >=0.12
      , surypus-common >=0.1
 
 test-suite surypus-test
