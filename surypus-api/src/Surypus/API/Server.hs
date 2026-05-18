@@ -22,6 +22,7 @@ import qualified Data.UUID as UUID
 import qualified Data.UUID.V4 as UUID
 import qualified Surypus.API.Logger as Log
 import qualified Surypus.API.Bills as Bills
+import qualified Surypus.API.CRM as CRM
 import qualified Surypus.API.Dashboard as Dashboard
 import qualified Surypus.API.Goods as Goods
 import qualified Surypus.API.Persons as Persons
@@ -99,6 +100,12 @@ type SurypusApi =
       :<|> "dashboard" :> "revenue" :> Get '[JSON] [Dashboard.RevenuePoint]
       :<|> "dashboard" :> "orders" :> Get '[JSON] [Dashboard.OrderStatus]
       :<|> "dashboard" :> "stock" :> Get '[JSON] [Dashboard.StockSummary]
+      :<|> "crm" :> "deals" :> Get '[JSON] [CRM.Deal]
+      :<|> "crm" :> "deals" :> ReqBody '[JSON] CRM.DealInput :> Post '[JSON] CRM.Deal
+      :<|> "crm" :> "deals" :> Capture "id" Text :> Get '[JSON] CRM.Deal
+      :<|> "crm" :> "deals" :> Capture "id" Text :> "stage" :> Capture "stageId" Text :> Post '[JSON] CRM.Deal
+      :<|> "crm" :> "pipeline" :> Get '[JSON] [CRM.PipelineForecast]
+      :<|> "crm" :> "deals" :> Capture "id" Text :> "activities" :> Get '[JSON] [CRM.Activity]
     )
 
 server :: Env -> Server SurypusApi
@@ -114,6 +121,12 @@ server env =
     :<|> dashboardRevenue env
     :<|> dashboardOrders env
     :<|> dashboardStock env
+    :<|> crmDealsList env
+    :<|> crmDealCreate env
+    :<|> crmDealGet env
+    :<|> crmDealStageUpdate env
+    :<|> crmPipelineForecast env
+    :<|> crmDealActivities env
   )
 
 dashboardKPI :: Env -> Handler Dashboard.DashboardKPI
@@ -143,6 +156,49 @@ dashboardStock env = do
   case result of
     QuerySuccess summary -> pure summary
     QueryError err -> throwError $ err500 {errBody = LBS.encodeUtf8 $ "Dashboard error: " <> TL.fromStrict err}
+
+crmDealsList :: Env -> Handler [CRM.Deal]
+crmDealsList env = do
+  result <- liftIO $ CRM.listDeals (envPool env)
+  case result of
+    QuerySuccess deals -> pure deals
+    QueryError err -> throwError $ err500 {errBody = LBS.encodeUtf8 $ "CRM error: " <> TL.fromStrict err}
+
+crmDealCreate :: Env -> CRM.DealInput -> Handler CRM.Deal
+crmDealCreate env input = do
+  result <- liftIO $ CRM.createDeal (envPool env) input
+  case result of
+    QuerySuccess deal -> pure deal
+    QueryError err -> throwError $ err500 {errBody = LBS.encodeUtf8 $ "CRM error: " <> TL.fromStrict err}
+
+crmDealGet :: Env -> Text -> Handler CRM.Deal
+crmDealGet env did = do
+  result <- liftIO $ CRM.getDeal (envPool env) did
+  case result of
+    QuerySuccess deal -> pure deal
+    QueryError "Not Found" -> throwError err404
+    QueryError err -> throwError $ err500 {errBody = LBS.encodeUtf8 $ "CRM error: " <> TL.fromStrict err}
+
+crmDealStageUpdate :: Env -> Text -> Text -> Handler CRM.Deal
+crmDealStageUpdate env did stageId = do
+  result <- liftIO $ CRM.updateDealStage (envPool env) did stageId
+  case result of
+    QuerySuccess deal -> pure deal
+    QueryError err -> throwError $ err500 {errBody = LBS.encodeUtf8 $ "CRM error: " <> TL.fromStrict err}
+
+crmPipelineForecast :: Env -> Handler [CRM.PipelineForecast]
+crmPipelineForecast env = do
+  result <- liftIO $ CRM.getPipelineForecast (envPool env)
+  case result of
+    QuerySuccess forecast -> pure forecast
+    QueryError err -> throwError $ err500 {errBody = LBS.encodeUtf8 $ "CRM error: " <> TL.fromStrict err}
+
+crmDealActivities :: Env -> Text -> Handler [CRM.Activity]
+crmDealActivities env did = do
+  result <- liftIO $ CRM.listActivities (envPool env) did
+  case result of
+    QuerySuccess activities -> pure activities
+    QueryError err -> throwError $ err500 {errBody = LBS.encodeUtf8 $ "CRM error: " <> TL.fromStrict err}
 
 billsList :: Env -> Handler [Bill]
 billsList env = do

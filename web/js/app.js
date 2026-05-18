@@ -76,6 +76,10 @@ class App {
                 return this.renderStock();
             case 'inventory':
                 return this.renderInventory();
+            case 'crm-deals':
+                return this.renderCRMDeals();
+            case 'crm-pipeline':
+                return this.renderCRMPipeline();
             default:
                 return this.renderPlaceholder(pageName);
         }
@@ -845,6 +849,56 @@ class App {
         document.getElementById('toast').classList.remove('bg-success');
         document.getElementById('toast').classList.add('bg-danger');
         this.toast.show();
+    }
+
+    // ==================== CRM ====================
+    async renderCRMDeals() {
+        const app = this;
+        try {
+            const res = await api.get('/api/v1/crm/deals');
+            const deals = res.data;
+            let rows = deals.map(d => `
+                <tr>
+                    <td>${d.dealName}</td>
+                    <td>${helpers.formatMoney(d.dealValue)}</td>
+                    <td><span class="badge" style="background:${d.dealStage === 'Closed Won' ? '#198754' : d.dealStage === 'Closed Lost' ? '#dc3545' : '#0d6efd'}">${d.dealStage}</span></td>
+                    <td>${d.dealPerson || '-'}</td>
+                    <td>${d.dealExpectedClose || '-'}</td>
+                    <td>${d.dealProbability}%</td>
+                </tr>
+            `).join('');
+            return `
+                <h1 class="h3 mb-4">Сделки</h1>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead><tr><th>Название</th><th>Сумма</th><th>Этап</th><th>Контакт</th><th>Ожидаемая дата</th><th>Вероятность</th></tr></thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+            `;
+        } catch(e) {
+            return this.getErrorHTML(e.message);
+        }
+    }
+
+    async renderCRMPipeline() {
+        try {
+            const res = await api.get('/api/v1/crm/pipeline');
+            const stages = res.data;
+            let cards = stages.map(s => `
+                <div class="stat-card">
+                    <div class="stat-value">${helpers.formatMoney(s.pfWeightedForecast)}</div>
+                    <div class="stat-label">${s.pfStage} (${s.pfDealCount} сделок)</div>
+                    <small class="text-muted">Pipeline: ${helpers.formatMoney(s.pfPipelineValue)}</small>
+                </div>
+            `).join('');
+            return `
+                <h1 class="h3 mb-4">Pipeline Прогноз</h1>
+                <div class="dashboard-stats">${cards}</div>
+            `;
+        } catch(e) {
+            return this.getErrorHTML(e.message);
+        }
     }
 }
 

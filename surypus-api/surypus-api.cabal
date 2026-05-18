@@ -13,6 +13,7 @@ library
   exposed-modules:
     Surypus.API.Server
     Surypus.API.Dashboard
+    Surypus.API.CRM
     Surypus.API.Bills
     Surypus.API.Payment
     Surypus.API.Persons
