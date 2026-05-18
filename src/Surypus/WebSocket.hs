@@ -9,7 +9,9 @@ module Surypus.WebSocket (
   broadcastToRoom,
   broadcastGlobal,
   broadcastToInventoryRoom,
-  broadcastInventoryEvent
+  broadcastInventoryEvent,
+  broadcastToDashboardRoom,
+  broadcastDashboardEvent
 ) where
 
 import Control.Concurrent.STM
@@ -84,3 +86,16 @@ broadcastInventoryEvent handler goodsId eventType eventValue = do
         , "data" .= eventValue
         ]
   broadcastToInventoryRoom handler (TE.decodeUtf8 $ encode eventObj)
+
+-- | Broadcast to dashboard room specifically
+broadcastToDashboardRoom :: WebSocketHandler -> Text -> IO ()
+broadcastToDashboardRoom handler = broadcastToRoom handler "dashboard"
+
+-- | Broadcast dashboard KPI update as JSON
+broadcastDashboardEvent :: WebSocketHandler -> Text -> Value -> IO ()
+broadcastDashboardEvent handler eventType eventValue = do
+  let eventObj = object
+        [ "eventType" .= eventType
+        , "data" .= eventValue
+        ]
+  broadcastToDashboardRoom handler (TE.decodeUtf8 $ encode eventObj)
