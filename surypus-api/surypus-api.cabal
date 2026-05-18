@@ -12,6 +12,7 @@ category:            Web
 library
   exposed-modules:
     Surypus.API.Server
+    Surypus.API.Dashboard
     Surypus.API.Bills
     Surypus.API.Payment
     Surypus.API.Persons

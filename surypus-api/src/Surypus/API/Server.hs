@@ -22,6 +22,7 @@ import qualified Data.UUID as UUID
 import qualified Data.UUID.V4 as UUID
 import qualified Surypus.API.Logger as Log
 import qualified Surypus.API.Bills as Bills
+import qualified Surypus.API.Dashboard as Dashboard
 import qualified Surypus.API.Goods as Goods
 import qualified Surypus.API.Persons as Persons
 import qualified Surypus.API.Payment as Payments
@@ -94,6 +95,10 @@ type SurypusApi =
       :<|> "goods" :> Get '[JSON] [Goods]
       :<|> "persons" :> Get '[JSON] [Person]
       :<|> "payments" :> Get '[JSON] [Payment]
+      :<|> "dashboard" :> Get '[JSON] Dashboard.DashboardKPI
+      :<|> "dashboard" :> "revenue" :> Get '[JSON] [Dashboard.RevenuePoint]
+      :<|> "dashboard" :> "orders" :> Get '[JSON] [Dashboard.OrderStatus]
+      :<|> "dashboard" :> "stock" :> Get '[JSON] [Dashboard.StockSummary]
     )
 
 server :: Env -> Server SurypusApi
@@ -105,7 +110,39 @@ server env =
     :<|> goodsList env
     :<|> personsList env
     :<|> paymentsList env
+    :<|> dashboardKPI env
+    :<|> dashboardRevenue env
+    :<|> dashboardOrders env
+    :<|> dashboardStock env
   )
+
+dashboardKPI :: Env -> Handler Dashboard.DashboardKPI
+dashboardKPI env = do
+  result <- liftIO $ Dashboard.getDashboardKPI (envPool env)
+  case result of
+    QuerySuccess kpi -> pure kpi
+    QueryError err -> throwError $ err500 {errBody = LBS.encodeUtf8 $ "Dashboard error: " <> TL.fromStrict err}
+
+dashboardRevenue :: Env -> Handler [Dashboard.RevenuePoint]
+dashboardRevenue env = do
+  result <- liftIO $ Dashboard.getRevenueTrend (envPool env)
+  case result of
+    QuerySuccess points -> pure points
+    QueryError err -> throwError $ err500 {errBody = LBS.encodeUtf8 $ "Dashboard error: " <> TL.fromStrict err}
+
+dashboardOrders :: Env -> Handler [Dashboard.OrderStatus]
+dashboardOrders env = do
+  result <- liftIO $ Dashboard.getOrderStatuses (envPool env)
+  case result of
+    QuerySuccess statuses -> pure statuses
+    QueryError err -> throwError $ err500 {errBody = LBS.encodeUtf8 $ "Dashboard error: " <> TL.fromStrict err}
+
+dashboardStock :: Env -> Handler [Dashboard.StockSummary]
+dashboardStock env = do
+  result <- liftIO $ Dashboard.getStockSummary (envPool env)
+  case result of
+    QuerySuccess summary -> pure summary
+    QueryError err -> throwError $ err500 {errBody = LBS.encodeUtf8 $ "Dashboard error: " <> TL.fromStrict err}
 
 billsList :: Env -> Handler [Bill]
 billsList env = do
