@@ -83,127 +83,113 @@ class App {
 
     // ==================== Dashboard ====================
     async renderDashboard() {
-        return `
+        const app = this;
+        const container = document.createElement('div');
+        container.innerHTML = `
             <h1 class="h3 mb-4">Главная панель</h1>
-            
-            <div class="dashboard-stats">
-                <div class="stat-card">
-                    <div class="stat-value">1,234</div>
-                    <div class="stat-label">Товаров</div>
-                </div>
-                <div class="stat-card success">
-                    <div class="stat-value">567</div>
-                    <div class="stat-label">Контрагентов</div>
-                </div>
-                <div class="stat-card warning">
-                    <div class="stat-value">890</div>
-                    <div class="stat-label">Документов</div>
-                </div>
-                <div class="stat-card info">
-                    <div class="stat-value">₽1.2M</div>
-                    <div class="stat-label">Остаток на складе</div>
-                </div>
+            <div id="dashboardLoading" class="text-center py-5">
+                <div class="spinner-border" role="status"></div>
+                <p class="mt-2">Загрузка данных...</p>
             </div>
-            
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-header">
-                            <i class="bi bi-graph-up"></i> Продажи за неделю
+            <div id="dashboardContent" style="display:none">
+                <div class="dashboard-stats" id="kpiCards"></div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header"><i class="bi bi-graph-up"></i> Выручка по месяцам</div>
+                            <div class="card-body"><canvas id="revenueChart"></canvas></div>
                         </div>
-                        <div class="card-body">
-                            <div class="chart-container" id="salesChart">
-                                <div class="text-center text-muted">
-                                    <i class="bi bi-bar-chart" style="font-size: 48px;"></i>
-                                    <p>График продаж</p>
-                                </div>
-                            </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header"><i class="bi bi-pie-chart"></i> Статусы заказов</div>
+                            <div class="card-body"><canvas id="ordersChart"></canvas></div>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-header">
-                            <i class="bi bi-exclamation-triangle"></i> Низкие остатки
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-sm">
-                                    <thead>
-                                        <tr>
-                                            <th>Товар</th>
-                                            <th>Остаток</th>
-                                            <th>Мин.</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td>Товар А</td>
-                                            <td class="text-danger">5</td>
-                                            <td>10</td>
-                                        </tr>
-                                        <tr>
-                                            <td>Товар Б</td>
-                                            <td class="text-warning">8</td>
-                                            <td>15</td>
-                                        </tr>
-                                        <tr>
-                                            <td>Товар В</td>
-                                            <td class="text-danger">2</td>
-                                            <td>20</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header"><i class="bi bi-bar-chart"></i> Остатки по категориям</div>
+                            <div class="card-body"><canvas id="stockChart"></canvas></div>
                         </div>
                     </div>
                 </div>
             </div>
-            
-            <div class="row mt-3">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <i class="bi bi-clock-history"></i> Последние документы
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-hover">
-                                    <thead>
-                                        <tr>
-                                            <th>Дата</th>
-                                            <th>№</th>
-                                            <th>Тип</th>
-                                            <th>Контрагент</th>
-                                            <th>Сумма</th>
-                                            <th>Статус</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td>${helpers.formatDate(new Date())}</td>
-                                            <td>001234</td>
-                                            <td>Приход</td>
-                                            <td>ООО "Поставщик"</td>
-                                            <td>${helpers.formatMoney(50000)}</td>
-                                            <td><span class="badge bg-success">Проведён</span></td>
-                                        </tr>
-                                        <tr>
-                                            <td>${helpers.formatDate(new Date())}</td>
-                                            <td>001235</td>
-                                            <td>Расход</td>
-                                            <td>ИП Иванов</td>
-                                            <td>${helpers.formatMoney(25000)}</td>
-                                            <td><span class="badge bg-success">Проведён</span></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <div id="dashboardError" style="display:none" class="alert alert-danger"></div>
         `;
+
+        setTimeout(() => this.loadDashboardData(container), 0);
+        return container.innerHTML;
+    }
+
+    async loadDashboardData(container) {
+        try {
+            const [kpi, revenue, orders] = await Promise.all([
+                api.dashboard.stats(),
+                axios.get('/api/v1/dashboard/revenue'),
+                axios.get('/api/v1/dashboard/orders')
+            ]);
+
+            document.getElementById('dashboardLoading').style.display = 'none';
+            document.getElementById('dashboardContent').style.display = 'block';
+
+            this.renderKPICards(kpi.data);
+            this.renderRevenueChart(revenue.data);
+            this.renderOrdersChart(orders.data);
+        } catch (err) {
+            document.getElementById('dashboardLoading').style.display = 'none';
+            const errEl = document.getElementById('dashboardError');
+            errEl.style.display = 'block';
+            errEl.textContent = 'Ошибка загрузки: ' + (err.message || 'неизвестная ошибка');
+        }
+    }
+
+    renderKPICards(kpi) {
+        const cards = [
+            { label: 'Выручка', value: helpers.formatMoney(kpi.kpiRevenue || 0), cls: '' },
+            { label: 'Заказы', value: (kpi.kpiOrders || 0).toLocaleString(), cls: 'success' },
+            { label: 'Товаров', value: (kpi.kpiActiveGoods || 0).toLocaleString(), cls: 'warning' },
+            { label: 'Контрагентов', value: (kpi.kpiPartners || 0).toLocaleString(), cls: 'info' }
+        ];
+        document.getElementById('kpiCards').innerHTML = cards.map(c =>
+            `<div class="stat-card ${c.cls}"><div class="stat-value">${c.value}</div><div class="stat-label">${c.label}</div></div>`
+        ).join('');
+    }
+
+    renderRevenueChart(data) {
+        const canvas = document.getElementById('revenueChart');
+        if (!canvas || !data || !data.length) return;
+        new Chart(canvas, {
+            type: 'line',
+            data: {
+                labels: data.map(d => d.rpMonth),
+                datasets: [{
+                    label: 'Выручка',
+                    data: data.map(d => d.rpRevenue),
+                    borderColor: '#0d6efd',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: { responsive: true, plugins: { legend: { display: false } } }
+        });
+    }
+
+    renderOrdersChart(data) {
+        const canvas = document.getElementById('ordersChart');
+        if (!canvas || !data || !data.length) return;
+        new Chart(canvas, {
+            type: 'doughnut',
+            data: {
+                labels: data.map(d => d.osStatus),
+                datasets: [{
+                    data: data.map(d => d.osCount),
+                    backgroundColor: ['#198754', '#ffc107', '#dc3545', '#0d6efd', '#6f42c1']
+                }]
+            },
+            options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+        });
     }
 
     // ==================== Goods ====================
