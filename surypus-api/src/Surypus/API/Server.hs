@@ -25,6 +25,8 @@ import qualified Surypus.API.Bills as Bills
 import qualified Surypus.API.CRM as CRM
 import qualified Surypus.API.Dashboard as Dashboard
 import qualified Surypus.API.Goods as Goods
+import qualified Surypus.API.Notifications as Notifications
+import qualified Surypus.API.Reports as Reports
 import qualified Surypus.API.Persons as Persons
 import qualified Surypus.API.Payment as Payments
 import qualified Surypus.WebSocket as WS

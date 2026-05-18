@@ -14,6 +14,8 @@ library
     Surypus.API.Server
     Surypus.API.Dashboard
     Surypus.API.CRM
+    Surypus.API.Notifications
+    Surypus.API.Reports
     Surypus.API.Bills
     Surypus.API.Payment
     Surypus.API.Persons

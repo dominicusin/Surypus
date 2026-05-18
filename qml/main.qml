@@ -12,167 +12,172 @@ ApplicationWindow {
 
     property string apiBase: "http://localhost:8080/api/v1"
     property string authToken: ""
+    property string currentPage: "dashboard"
 
     SwipeView {
         id: view
         currentIndex: 0
         anchors.fill: parent
 
-        // Login page
+        // Login
         Item {
             ColumnLayout {
-                anchors.centerIn: parent
-                spacing: 16
-
+                anchors.centerIn: parent; spacing: 16
                 Text { text: "Surypus ERP"; font.pixelSize: 28; font.bold: true }
                 TextField { id: loginUser; placeholderText: "Username"; Layout.preferredWidth: 250 }
                 TextField { id: loginPass; placeholderText: "Password"; echoMode: TextInput.Password; Layout.preferredWidth: 250 }
-                Button {
-                    text: "Login"
-                    Layout.preferredWidth: 250
-                    onClicked: login()
-                }
+                Button { text: "Login"; Layout.preferredWidth: 250; onClicked: login() }
             }
         }
 
-        // Dashboard page
+        // Main app with sidebar
         Item {
-            ColumnLayout {
-                anchors.fill: parent
-                anchors.margins: 16
-                spacing: 12
+            RowLayout {
+                anchors.fill: parent; spacing: 0
 
-                Text { text: "Dashboard"; font.pixelSize: 22; font.bold: true }
-
-                // KPI cards row
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: 12
-
-                    KpiCard { label: "Revenue"; value: kpiRevenue }
-                    KpiCard { label: "Orders"; value: kpiOrders }
-                    KpiCard { label: "Goods"; value: kpiGoods }
-                    KpiCard { label: "Partners"; value: kpiPartners }
-                }
-
-                // Charts row
-                RowLayout {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 300
-                    spacing: 12
-
-                    ChartView {
-                        title: "Revenue Trend"
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        antialiasing: true
-                        LineSeries {
-                            id: revenueSeries
-                            name: "Revenue"
-                            XYPoint { x: 0; y: 0 }
-                        }
-                    }
-
-                    ChartView {
-                        title: "Order Status"
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        antialiasing: true
-                        PieSeries {
-                            id: ordersPie
-                            name: "Orders"
+                // Sidebar nav
+                Rectangle {
+                    Layout.preferredWidth: 200; Layout.fillHeight: true; color: "#1a1a2e"
+                    ColumnLayout {
+                        anchors.fill: parent; anchors.margins: 8; spacing: 4
+                        Repeater {
+                            model: ["Dashboard","Deals","Pipeline","Goods","Bills","Reports","Settings"]
+                            Button {
+                                text: modelData; Layout.fillWidth: true
+                                background: Rectangle { color: currentPage === modelData.toLowerCase() ? "#16213e" : "transparent"; radius: 4 }
+                                onClicked: { currentPage = modelData.toLowerCase(); stack.pop(null); stack.push(pages[currentPage]) }
+                            }
                         }
                     }
                 }
 
-                // Stock chart
-                ChartView {
-                    title: "Stock Summary"
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 200
-                    antialiasing: true
-                    BarSeries {
-                        id: stockBars
-                        name: "Stock"
-                    }
+                // Content area
+                StackView {
+                    id: stack; Layout.fillWidth: true; Layout.fillHeight: true
+                    initialItem: dashboardPage
                 }
             }
         }
     }
 
-    // KPI card component
-    component KpiCard: Rectangle {
-        property string label
-        property string value
+    Component { id: dashboardPage; DashboardPage {} }
+    Component { id: dealsPage; DealsPage {} }
+    Component { id: pipelinePage; PipelinePage {} }
+    Component { id: goodsPage; GoodsPage {} }
+    Component { id: billsPage; BillsPage {} }
+    Component { id: reportsPage; ReportsPage {} }
+    Component { id: settingsPage; SettingsPage {} }
 
-        Layout.fillWidth: true
-        height: 80
-        radius: 8
-        color: "#f8f9fa"
-        border.color: "#dee2e6"
-
-        ColumnLayout {
-            anchors.centerIn: parent
-            spacing: 4
-            Text { text: value; font.pixelSize: 24; font.bold: true; Layout.alignment: Qt.AlignHCenter }
-            Text { text: label; font.pixelSize: 12; color: "#6c757d"; Layout.alignment: Qt.AlignHCenter }
-        }
-    }
-
-    property string kpiRevenue: "..."
-    property string kpiOrders: "..."
-    property string kpiGoods: "..."
-    property string kpiPartners: "..."
+    property var pages: ({
+        dashboard: dashboardPage, deals: dealsPage, pipeline: pipelinePage,
+        goods: goodsPage, bills: billsPage, reports: reportsPage, settings: settingsPage
+    })
 
     function login() {
         var xhr = new XMLHttpRequest();
         xhr.open("POST", apiBase + "/auth/login", true);
-        xhr.setRequestHeader("Content-Type", "application/json");
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState === XMLHttpRequest.DONE) {
-                if (xhr.status === 200) {
-                    var resp = JSON.parse(xhr.responseText);
-                    authToken = resp.accessToken;
-                    view.currentIndex = 1;
-                    loadDashboard();
-                }
-            }
-        };
-        xhr.send(JSON.stringify({ username: loginUser.text, password: loginPass.text }));
-    }
-
-    function loadDashboard() {
-        fetchWithAuth(apiBase + "/dashboard", function(data) {
-            kpiRevenue = data.kpiRevenue.toLocaleString();
-            kpiOrders = data.kpiOrders.toString();
-            kpiGoods = data.kpiActiveGoods.toString();
-            kpiPartners = data.kpiPartners.toString();
-        });
-
-        fetchWithAuth(apiBase + "/dashboard/revenue", function(data) {
-            revenueSeries.clear();
-            for (var i = 0; i < data.length; i++) {
-                revenueSeries.append(i, data[i].rpRevenue);
-            }
-        });
-
-        fetchWithAuth(apiBase + "/dashboard/orders", function(data) {
-            ordersPie.clear();
-            for (var i = 0; i < data.length; i++) {
-                ordersPie.append(data[i].osStatus, data[i].osCount);
-            }
-        });
-    }
-
-    function fetchWithAuth(url, callback) {
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", url, true);
-        xhr.setRequestHeader("Authorization", "Bearer " + authToken);
+        xhr.setRequestHeader("Content-Type","application/json");
         xhr.onreadystatechange = function() {
             if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
-                callback(JSON.parse(xhr.responseText));
+                authToken = JSON.parse(xhr.responseText).accessToken;
+                view.currentIndex = 1;
             }
         };
+        xhr.send(JSON.stringify({username: loginUser.text, password: loginPass.text}));
+    }
+
+    function apiGet(path, cb) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", apiBase + path, true);
+        xhr.setRequestHeader("Authorization","Bearer " + authToken);
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200)
+                cb(JSON.parse(xhr.responseText));
+        };
         xhr.send();
+    }
+}
+
+// Dashboard page
+import QtQuick 2.15 as QQ
+QQ.Component {
+    id: dashboardPage
+    Item {
+        ColumnLayout {
+            anchors.fill: parent; anchors.margins: 16; spacing: 12
+            Text { text: "Dashboard"; font.pixelSize: 22; font.bold: true }
+            RowLayout {
+                Layout.fillWidth: true; spacing: 12
+                Repeater {
+                    model: [
+                        {label:"Revenue",value:kpiRevenue},
+                        {label:"Orders",value:kpiOrders},
+                        {label:"Goods",value:kpiGoods},
+                        {label:"Partners",value:kpiPartners}
+                    ]
+                    Rectangle {
+                        Layout.fillWidth: true; height: 80; radius: 8; color: "#f8f9fa"; border.color: "#dee2e6"
+                        ColumnLayout {
+                            anchors.centerIn: parent; spacing: 4
+                            Text { text: modelData.value; font.pixelSize: 20; font.bold: true; Layout.alignment: Qt.AlignHCenter }
+                            Text { text: modelData.label; font.pixelSize: 12; color: "#6c757d"; Layout.alignment: Qt.AlignHCenter }
+                        }
+                    }
+                }
+            }
+        }
+        property string kpiRevenue: "..."; property string kpiOrders: "..."
+        property string kpiGoods: "..."; property string kpiPartners: "..."
+        Component.onCompleted: {
+            appWindow.apiGet("/dashboard", function(d) {
+                kpiRevenue = d.kpiRevenue.toFixed(0); kpiOrders = d.kpiOrders; kpiGoods = d.kpiActiveGoods; kpiPartners = d.kpiPartners;
+            });
+        }
+    }
+}
+
+// Stub pages for remaining modules
+QQ.Component {
+    id: dealsPage; Item {
+        ColumnLayout { anchors.fill: parent; anchors.margins: 16
+            Text { text: "CRM Deals"; font.pixelSize: 22; font.bold: true }
+            Text { text: "Deal management — coming soon"; color: "#6c757d" }
+        }
+    }
+}
+QQ.Component {
+    id: pipelinePage; Item {
+        ColumnLayout { anchors.fill: parent; anchors.margins: 16
+            Text { text: "Pipeline"; font.pixelSize: 22; font.bold: true }
+        }
+    }
+}
+QQ.Component {
+    id: goodsPage; Item {
+        ColumnLayout { anchors.fill: parent; anchors.margins: 16
+            Text { text: "Goods"; font.pixelSize: 22; font.bold: true }
+        }
+    }
+}
+QQ.Component {
+    id: billsPage; Item {
+        ColumnLayout { anchors.fill: parent; anchors.margins: 16
+            Text { text: "Bills"; font.pixelSize: 22; font.bold: true }
+        }
+    }
+}
+QQ.Component {
+    id: reportsPage; Item {
+        ColumnLayout { anchors.fill: parent; anchors.margins: 16
+            Text { text: "Reports"; font.pixelSize: 22; font.bold: true }
+            Button { text: "Generate P&L Report"; onClicked: appWindow.apiGet("/dashboard/revenue", function(d){}) }
+        }
+    }
+}
+QQ.Component {
+    id: settingsPage; Item {
+        ColumnLayout { anchors.fill: parent; anchors.margins: 16
+            Text { text: "Settings"; font.pixelSize: 22; font.bold: true }
+        }
     }
 }
