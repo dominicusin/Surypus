@@ -1,6 +1,6 @@
 # Milestones
 
-## v2.0 GUI & New Features (Planning)
+## v2.0 GUI & New Features (Shipped: 2026-05-18)
 
 **Phases planned:** 9 phases, 41 requirements
 
