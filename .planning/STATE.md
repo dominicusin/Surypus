@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: GUI & New Features
-status: planning
-last_updated: "2026-05-18T18:35:19.596Z"
-last_activity: 2026-05-18
+status: Defining requirements
+last_updated: "2026-05-18T18:41:38.759Z"
+last_activity: 2026-05-18 — Milestone v2.0 started
 progress:
-  total_phases: 0
+  total_phases: 9
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
