@@ -35,7 +35,6 @@ import Hasql.Statement (Statement (..))
 -- Import types from the main Surypus package
 import DAL.Types
 import qualified DAL.Queries as Queries
-import Surypus.CoreTypes (Decimal, fromDecimal)
 
 -- | Helper to create non-prepared statements (old hasql API compatibility)
 unpreparable :: T.Text -> E.Params params -> D.Result result -> Statement params result
@@ -46,9 +45,6 @@ mutationIdDecoder = D.singleRow (D.column (D.nonNullable D.int8))
 
 toInt16 :: Int -> Int16
 toInt16 = fromIntegral
-
-toDouble :: Double -> Double
-toDouble = id
 
 runMutationReturningId :: Pool -> Text -> E.Params params -> params -> Text -> IO (QueryResult MutationResult)
 runMutationReturningId pool sql encoder payload successMessage = do
