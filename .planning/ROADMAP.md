@@ -1,155 +1,125 @@
-# Roadmap v1.0
+# Roadmap v2.0 — GUI & New Features
 
-## Phase 1: Project Bootstrap
+## Phase 13: Dashboard Core
 
-**Goal:** Set up project structure, build system, and basic configuration.
+**Goal:** Implement backend KPI queries and chart rendering for both QML and Web UIs.
 
-**Requirements:** [REQ-01, REQ-02]
+**Requirements:** DASH-01, DASH-02, DASH-03, DASH-04, DASH-05
 
 **Success Criteria:**
-- Stack build succeeds
-- Project compiles
-- Basic config structure in place
+- KPI queries use materialized views (performant)
+- Charts render correctly in web (Chart.js) and QML (qtchartjs)
+- Real-time WebSocket updates work for dashboard data
+- Date range filters affect KPI values
 
 ---
 
-## Phase 2: Database Layer
+## Phase 14: CRM Data Model
 
-**Goal:** Implement Hasql-based database access layer with migrations.
+**Goal:** Implement contacts, companies, and deal pipeline with forecasting.
 
-**Requirements:** [REQ-10]
+**Requirements:** CRM-01, CRM-02, CRM-03, CRM-04, CRM-05, CRM-06, CRM-07
 
 **Success Criteria:**
-- Database migrations run successfully
-- Connection pooling configured
-- Basic CRUD operations work
+- Contacts and companies CRUD works via API
+- Deals progress through 5-7 pipeline stages
+- Pipeline forecast shows probability-weighted revenue
+- All CRM changes logged to EventStore
 
 ---
 
-## Phase 3: Authentication System
+## Phase 15: QML Desktop Skeleton
 
-**Goal:** Implement JWT-based authentication.
+**Goal:** First working QML Desktop application connected to backend.
 
-**Requirements:** [REQ-01]
+**Requirements:** QML-01, QML-02, QML-03, QML-04, QML-05, QML-06
 
 **Success Criteria:**
-- JWT tokens issue and validate
-- Login endpoint works
-- Protected routes work
+- Login flow works with JWT
+- Dashboard shows KPIs fetched via REST API
+- Navigation between modules works
+- QRestAccessManager or OpenAPI client used for API calls
+- App packages as AppImage
 
 ---
 
-## Phase 4: RBAC System
+## Phase 16: Notifications
 
-**Goal:** Implement role-based access control.
+**Goal:** Implement email and desktop push notification system.
 
-**Requirements:** [REQ-02]
+**Requirements:** NOTIF-01, NOTIF-02, NOTIF-03, NOTIF-04
 
 **Success Criteria:**
-- Roles and permissions tables
-- User-role assignment
-- Authorization middleware works
+- Email notifications sent for configurable events
+- Desktop push notifications work (Qt system tray)
+- User can set notification preferences
+- Digest mode sends daily/weekly summaries
 
 ---
 
-## Phase 5: Inventory Core
+## Phase 17: Reports
 
-**Goal:** Implement inventory management entities.
+**Goal:** Financial and inventory reports with PDF export.
 
-**Requirements:** [REQ-03]
+**Requirements:** RPT-01, RPT-02, RPT-03, RPT-04
 
 **Success Criteria:**
-- Goods, locations, stock tables
-- CRUD operations for inventory
-- API endpoints for inventory
+- P&L and balance sheet reports generate correctly
+- Inventory stock reports available
+- PDF export works (server-side)
+- LiquidHaskell verifies report calculations
 
 ---
 
-## Phase 6: Accounting Core
+## Phase 18: Purchase/Sales Orders
 
-**Goal:** Implement accounting system foundation.
+**Goal:** New purchase and sales order module.
 
-**Requirements:** [REQ-04]
+**Requirements:** ORD-01, ORD-02, ORD-03, ORD-04
 
 **Success Criteria:**
-- Chart of accounts
-- Journal entries
-- Basic accounting reports
+- Purchase orders with line items CRUD
+- Sales orders with line items CRUD
+- Orders have status workflow
+- Inventory updates on order confirmation
 
 ---
 
-## Phase 7: Documents System
+## Phase 19: Document Workflow
 
-**Goal:** Implement document management.
+**Goal:** Document generation and lifecycle management.
 
-**Requirements:** [REQ-05]
+**Requirements:** DOC-01, DOC-02, DOC-03
 
 **Success Criteria:**
-- Bills and bill items tables
-- Document CRUD operations
-- Document API endpoints
+- PDF generation works for bills and invoices
+- Documents have lifecycle management
+- All document operations via server-side generation
 
 ---
 
-## Phase 8: Event Sourcing
+## Phase 20: Integrations
 
-**Goal:** Add event store for audit trail.
+**Goal:** External system integration framework.
 
-**Requirements:** [REQ-06]
+**Requirements:** INT-01, INT-02, INT-03, INT-04
 
 **Success Criteria:**
-- Event store table
-- Event emission from critical operations
-- Event replay capability
+- Bank statement import works (OFX/ISO 20022)
+- Adapter pattern documented and working
+- Integration health monitoring works
+- REST API documented for external use
 
 ---
 
-## Phase 9: REST API
+## Phase 21: Web PWA Polish
 
-**Goal:** Expose REST API for all modules.
+**Goal:** Offline support, responsiveness, and PWA features.
 
-**Requirements:** [REQ-07]
-
-**Success Criteria:**
-- All endpoints documented
-- OpenAPI spec generated
-- API tests pass
-
----
-
-## Phase 10: Web Interface
-
-**Goal:** Build web PWA interface.
-
-**Requirements:** [REQ-08]
+**Requirements:** PWA-01, PWA-02, PWA-03, PWA-04
 
 **Success Criteria:**
-- Web interface works
-- Responsive design
-- API integration complete
-
----
-
-## Phase 11: LiquidHaskell Verification
-
-**Goal:** Add formal verification to calculations.
-
-**Requirements:** [REQ-09]
-
-**Success Criteria:**
-- LH annotations in place
-- Verification passes
-- CI integration
-
----
-
-## Phase 12: Production Ready
-
-**Goal:** Final polish and deployment readiness.
-
-**Requirements:** All
-
-**Success Criteria:**
-- All tests pass
-- Documentation complete
-- Deployment scripts ready
+- Dashboard works offline with IndexedDB cache
+- UI is responsive on mobile, tablet, desktop
+- Chart.js updates via WebSocket
+- PWA is installable with manifest + service worker
