@@ -2,6 +2,7 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import QtQuick.Window 2.15
+import SurypusApiClient 1.0
 
 ApplicationWindow {
     id: root
@@ -19,10 +20,16 @@ ApplicationWindow {
     property color textColor: "#212121"
     property color secondaryTextColor: "#757575"
     property color borderColor: "#E0E0E0"
-    property string apiBaseUrl: "http://localhost:8080/api/v1"
-    property string jwtToken: ""
     property bool authenticated: false
+    property var apiCallbacks: ({})
     property string selectedReportSql: ""
+    // ─ Dashboard KPI properties ─
+    property bool dashboardLoading: true
+    property real kpiRevenue: 0
+    property int kpiOrders: 0
+    property int kpiActiveGoods: 0
+    property int kpiPartners: 0
+    property var revenueTrend: []
 
     ListModel { id: registerModel }
     ListModel { id: counterModel }
@@ -37,112 +44,154 @@ ApplicationWindow {
     ListModel { id: salaryChargeModel }
     ListModel { id: payrollSummaryModel }
     ListModel { id: payrollSnapshotModel }
+    ListModel { id: reportScheduleModel }
+    ListModel { id: reportScheduleSnapshotModel }
 
-    function httpRequest(method, path, payload, onSuccess, onError) {
-        var xhr = new XMLHttpRequest()
-        xhr.open(method, apiBaseUrl + path)
-        xhr.setRequestHeader("Content-Type", "application/json")
-        if (jwtToken.length > 0) {
-            xhr.setRequestHeader("Authorization", "Bearer " + jwtToken)
-        }
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState === XMLHttpRequest.DONE) {
-                if (xhr.status >= 200 && xhr.status < 300) {
-                    var parsed = JSON.parse(xhr.responseText)
-                    if (parsed.status === "ok") {
-                        onSuccess(parsed)
-                    } else if (onError) {
-                        onError(xhr.status, parsed)
-                    }
-                } else if (onError) {
-                    onError(xhr.status, xhr.responseText)
-                }
-            }
-        }
-        xhr.send(payload ? JSON.stringify(payload) : null)
+    // ── ApiClient helper ──
+    function callApi(method, path, body, onSuccess, onError) {
+        var key = method + ":" + path
+        apiCallbacks[key] = { onSuccess: onSuccess, onError: onError }
+        if (method === "GET") ApiClient.get(path)
+        else if (method === "POST") ApiClient.post(path, body || {})
+        else if (method === "PUT") ApiClient.put(path, body || {})
+        else if (method === "DELETE") ApiClient.del(path)
     }
 
-        function login() {
-            httpRequest("POST", "/auth/login", { login: "admin", password: "admin" },
-            function(resp) {
-                jwtToken = resp.data.lrToken
-                authenticated = true
-                loadDocumentRegisters()
-                loadDocumentCounters()
-                loadReports()
-                loadTechList()
-                loadResourceList()
-                loadReportSchedules()
-                loadPersonSummary()
-                loadPersonSnapshots()
-            }, function(status, error) {
-                console.log("Login failed", status, error)
-            })
+    Connections {
+        target: ApiClient
+        function onRequestSucceeded(path, response) {
+            var obj = response.toVariant()
+            if (typeof obj !== "object") obj = { data: obj }
+            var cb = apiCallbacks["GET:" + path] || apiCallbacks["POST:" + path]
+                     || apiCallbacks["PUT:" + path] || apiCallbacks["DELETE:" + path]
+            if (cb && cb.onSuccess) cb.onSuccess(obj)
+            delete apiCallbacks["GET:" + path]
+            delete apiCallbacks["POST:" + path]
+            delete apiCallbacks["PUT:" + path]
+            delete apiCallbacks["DELETE:" + path]
         }
+        function onRequestFailed(path, statusCode, error) {
+            var cb = apiCallbacks["GET:" + path] || apiCallbacks["POST:" + path]
+                     || apiCallbacks["PUT:" + path] || apiCallbacks["DELETE:" + path]
+            if (cb && cb.onError) cb.onError(statusCode, error)
+            delete apiCallbacks["GET:" + path]
+            delete apiCallbacks["POST:" + path]
+            delete apiCallbacks["PUT:" + path]
+            delete apiCallbacks["DELETE:" + path]
+        }
+        function onLoginSucceeded(token) {
+            console.log("Login succeeded, token stored by ApiClient")
+            authenticated = true
+            loadInitialData()
+        }
+        function onLoginFailed(error) {
+            console.log("Login failed:", error)
+        }
+    }
 
-        function ensureAuth() {
-            if (jwtToken.length === 0) {
-                login()
-            } else {
-                loadDocumentRegisters()
-                loadDocumentCounters()
-                loadReports()
-                loadTechList()
-                loadResourceList()
+    function loadInitialData() {
+        loadDocumentRegisters()
+        loadDocumentCounters()
+        loadReports()
+        loadTechList()
+        loadResourceList()
+        loadReportSchedules()
+        loadPersonSummary()
+        loadPersonSnapshots()
+        loadDashboardData()
+    }
+
+    function loadDashboardData() {
+        dashboardLoading = true
+        callApi("GET", "/dashboard", null,
+            function(resp) {
+                kpiRevenue = resp.kpiRevenue || 0
+                kpiOrders = resp.kpiOrders || 0
+                kpiActiveGoods = resp.kpiActiveGoods || 0
+                kpiPartners = resp.kpiPartners || 0
+                dashboardLoading = false
+            },
+            function(status, err) {
+                console.log("Dashboard KPI fetch failed", status, err)
+                dashboardLoading = false
             }
-        }
+        )
+        callApi("GET", "/dashboard/revenue", null,
+            function(resp) {
+                revenueTrend = resp.data || resp || []
+            },
+            function(status, err) {
+                console.log("Revenue trend fetch failed", status, err)
+            }
+        )
+    }
 
     function loadDocumentRegisters() {
-        if (jwtToken.length === 0) { ensureAuth(); return }
-        httpRequest("GET", "/documents/registers?limit=10&offset=0", null, function(resp) {
-            updateRegisterModel(resp.data)
-        }, function(status, err) {
-            console.log("Register fetch failed", status, err)
-        })
+        callApi("GET", "/documents/registers?limit=10&offset=0", null,
+            function(resp) {
+                var items = resp.data || resp || []
+                registerModel.clear()
+                for (var i = 0; i < items.length; i++) {
+                    var entry = items[i]
+                    registerModel.append({
+                        person: entry.drPersonId !== undefined ? entry.drPersonId : "—",
+                        type: entry.drTypeId !== undefined ? entry.drTypeId : "—",
+                        number: entry.drNumber || "—",
+                        issue: entry.drIssueDate || "—",
+                        expiry: entry.drExpiryDate || "—"
+                    })
+                }
+            },
+            function(status, err) {
+                console.log("Register fetch failed", status, err)
+            }
+        )
     }
 
     function loadDocumentCounters() {
-        if (jwtToken.length === 0) { ensureAuth(); return }
-        httpRequest("GET", "/documents/counters?limit=10&offset=0", null, function(resp) {
-            updateCounterModel(resp.data)
-        }, function(status, err) {
-            console.log("Counter fetch failed", status, err)
-        })
+        callApi("GET", "/documents/counters?limit=10&offset=0", null,
+            function(resp) {
+                var items = resp.data || resp || []
+                counterModel.clear()
+                for (var i = 0; i < items.length; i++) {
+                    var entry = items[i]
+                    counterModel.append({
+                        name: entry.docCounterName,
+                        prefix: entry.docCounterPrefix || "—",
+                        opKind: entry.docCounterOpKindId
+                    })
+                }
+            },
+            function(status, err) {
+                console.log("Counter fetch failed", status, err)
+            }
+        )
     }
 
     function loadReports() {
-        if (jwtToken.length === 0) { ensureAuth(); return }
-        httpRequest("GET", "/reports", null, function(resp) {
-            updateReportModel(resp.data)
-        }, function(status, err) {
-            console.log("Reports fetch failed", status, err)
-        })
-    }
-
-    function updateRegisterModel(items) {
-        registerModel.clear()
-        for (var i = 0; i < items.length; i++) {
-            var entry = items[i]
-            registerModel.append({
-                person: entry.drPersonId !== undefined ? entry.drPersonId : "—",
-                type: entry.drTypeId !== undefined ? entry.drTypeId : "—",
-                number: entry.drNumber || "—",
-                issue: entry.drIssueDate || "—",
-                expiry: entry.drExpiryDate || "—"
-            })
-        }
-    }
-
-    function updateCounterModel(items) {
-        counterModel.clear()
-        for (var i = 0; i < items.length; i++) {
-            var entry = items[i]
-            counterModel.append({
-                name: entry.docCounterName,
-                prefix: entry.docCounterPrefix || "—",
-                opKind: entry.docCounterOpKindId
-            })
-        }
+        callApi("GET", "/reports", null,
+            function(resp) {
+                var items = resp.data || resp || []
+                reportModel.clear()
+                for (var i = 0; i < items.length; i++) {
+                    var entry = items[i]
+                    reportModel.append({
+                        name: entry.name,
+                        title: entry.title,
+                        category: entry.category,
+                        description: entry.description,
+                        sql: entry.sql
+                    })
+                }
+                if (reportModel.count > 0) {
+                    selectedReportSql = reportModel.get(0).sql
+                    reportFormTemplate = reportModel.get(0).name
+                }
+            },
+            function(status, err) {
+                console.log("Reports fetch failed", status, err)
+            }
+        )
     }
 
     property string reportFormName: ""
@@ -151,144 +200,126 @@ ApplicationWindow {
     property string reportFormTemplate: ""
     property int selectedReportScheduleId: -1
 
-    function updateReportModel(items) {
-        reportModel.clear()
-        for (var i = 0; i < items.length; i++) {
-            var entry = items[i]
-            reportModel.append({
-                name: entry.name,
-                title: entry.title,
-                category: entry.category,
-                description: entry.description,
-                sql: entry.sql
-            })
-        }
-        if (reportModel.count > 0) {
-            selectedReportSql = reportModel.get(0).sql
-            reportFormTemplate = reportModel.get(0).name
-        }
-    }
-
     function loadReportSchedules() {
-        if (jwtToken.length === 0) { ensureAuth(); return }
-        httpRequest("GET", "/reports/schedules", null, function(resp) {
-            updateReportSchedules(resp.data)
-        }, function(status, err) {
-            console.log("Schedule fetch failed", status, err)
-        })
-    }
-
-    function updateReportSchedules(items) {
-        reportScheduleModel.clear()
-        for (var i = 0; i < items.length; i++) {
-            var entry = items[i]
-            reportScheduleModel.append({
-                id: entry.rsId,
-                name: entry.rsName,
-                report: entry.rsReport,
-                cron: entry.rsCron,
-                enabled: entry.rsEnabled,
-                nextRun: entry.rsNextRun !== null ? entry.rsNextRun : "—"
-            })
-        }
+        callApi("GET", "/reports/schedules", null,
+            function(resp) {
+                var items = resp.data || resp || []
+                reportScheduleModel.clear()
+                for (var i = 0; i < items.length; i++) {
+                    var entry = items[i]
+                    reportScheduleModel.append({
+                        id: entry.rsId,
+                        name: entry.rsName,
+                        report: entry.rsReport,
+                        cron: entry.rsCron,
+                        enabled: entry.rsEnabled,
+                        nextRun: entry.rsNextRun !== null ? entry.rsNextRun : "—"
+                    })
+                }
+            },
+            function(status, err) {
+                console.log("Schedule fetch failed", status, err)
+            }
+        )
     }
 
     function loadReportScheduleSnapshots(scheduleId) {
-        if (jwtToken.length === 0) { ensureAuth(); return }
-        httpRequest("GET", "/reports/schedules/" + scheduleId + "/snapshots", null, function(resp) {
-            updateReportScheduleSnapshots(resp.data)
-        }, function(status, err) {
-            console.log("Snapshot fetch failed", status, err)
-        })
-    }
-
-    function updateReportScheduleSnapshots(items) {
-        reportScheduleSnapshotModel.clear()
-        for (var i = 0; i < items.length; i++) {
-            var entry = items[i]
-            reportScheduleSnapshotModel.append({
-                runId: entry.rssRunId,
-                runAt: entry.rssRunAt,
-                status: entry.rssStatus,
-                message: entry.rssMessage !== null ? entry.rssMessage : "—"
-            })
-        }
+        callApi("GET", "/reports/schedules/" + scheduleId + "/snapshots", null,
+            function(resp) {
+                var items = resp.data || resp || []
+                reportScheduleSnapshotModel.clear()
+                for (var i = 0; i < items.length; i++) {
+                    var entry = items[i]
+                    reportScheduleSnapshotModel.append({
+                        runId: entry.rssRunId,
+                        runAt: entry.rssRunAt,
+                        status: entry.rssStatus,
+                        message: entry.rssMessage !== null ? entry.rssMessage : "—"
+                    })
+                }
+            },
+            function(status, err) {
+                console.log("Snapshot fetch failed", status, err)
+            }
+        )
     }
 
     function createReportSchedule() {
-        if (jwtToken.length === 0) { ensureAuth(); return }
         var payload = {
             name: reportFormName,
             report: reportFormTemplate,
             cron: reportFormCron,
-            params: reportFormParams === \"\" ? null : reportFormParams,
+            params: reportFormParams === "" ? null : reportFormParams,
             enabled: true
         }
-        httpRequest(\"POST\", \"/reports/schedules\", payload, function(resp) {
-            reportFormName = \"\"
-            reportFormCron = \"0 0 * * *\"
-            reportFormParams = \"\"
-            loadReportSchedules()
-        }, function(status, err) {
-            console.log(\"Schedule create failed\", status, err)
-        })
+        callApi("POST", "/reports/schedules", payload,
+            function(resp) {
+                reportFormName = ""
+                reportFormCron = "0 0 * * *"
+                reportFormParams = ""
+                loadReportSchedules()
+            },
+            function(status, err) {
+                console.log("Schedule create failed", status, err)
+            }
+        )
     }
 
     function runReportSchedule(scheduleId) {
-        if (jwtToken.length === 0) { ensureAuth(); return }
-        httpRequest(\"POST\", \"/reports/schedules/\" + scheduleId + \"/run\", null, function(resp) {
-            console.log(\"Scheduled report enqueued\", resp.data)
-            loadReportScheduleSnapshots(scheduleId)
-        }, function(status, err) {
-            console.log(\"Failed to enqueue report\", status, err)
-        })
+        callApi("POST", "/reports/schedules/" + scheduleId + "/run", null,
+            function(resp) {
+                console.log("Scheduled report enqueued")
+                loadReportScheduleSnapshots(scheduleId)
+            },
+            function(status, err) {
+                console.log("Failed to enqueue report", status, err)
+            }
+        )
     }
 
     function loadTechList() {
-        if (jwtToken.length === 0) { ensureAuth(); return }
-        httpRequest("GET", "/production/tech", null, function(resp) {
-            updateTechModel(resp.data)
-        }, function(status, err) {
-            console.log("Tech fetch failed", status, err)
-        })
+        callApi("GET", "/production/tech", null,
+            function(resp) {
+                var items = resp.data || resp || []
+                techModel.clear()
+                for (var i = 0; i < items.length; i++) {
+                    var entry = items[i]
+                    techModel.append({
+                        name: entry.name,
+                        goodsId: entry.goodsId !== undefined ? entry.goodsId : "—",
+                        version: entry.version,
+                        kind: entry.kind,
+                        flags: entry.flags
+                    })
+                }
+            },
+            function(status, err) {
+                console.log("Tech fetch failed", status, err)
+            }
+        )
     }
 
     function loadResourceList() {
-        if (jwtToken.length === 0) { ensureAuth(); return }
-        httpRequest("GET", "/production/resources", null, function(resp) {
-            updateResourceModel(resp.data)
-        }, function(status, err) {
-            console.log("Resources fetch failed", status, err)
-        })
-    }
-
-    function updateTechModel(items) {
-        techModel.clear()
-        for (var i = 0; i < items.length; i++) {
-            var entry = items[i]
-            techModel.append({
-                name: entry.name,
-                goodsId: entry.goodsId !== undefined ? entry.goodsId : "—",
-                version: entry.version,
-                kind: entry.kind,
-                flags: entry.flags
-            })
-        }
-    }
-
-    function updateResourceModel(items) {
-        resourceModel.clear()
-        for (var i = 0; i < items.length; i++) {
-            var entry = items[i]
-            resourceModel.append({
-                code: entry.code,
-                name: entry.name,
-                kind: entry.kind,
-                capacity: entry.capacity !== null ? entry.capacity : "—",
-                cost: entry.costPerHour !== null ? entry.costPerHour : "—",
-                hours: entry.availableHours !== null ? entry.availableHours : "—"
-            })
-        }
+        callApi("GET", "/production/resources", null,
+            function(resp) {
+                var items = resp.data || resp || []
+                resourceModel.clear()
+                for (var i = 0; i < items.length; i++) {
+                    var entry = items[i]
+                    resourceModel.append({
+                        code: entry.code,
+                        name: entry.name,
+                        kind: entry.kind,
+                        capacity: entry.capacity !== null ? entry.capacity : "—",
+                        cost: entry.costPerHour !== null ? entry.costPerHour : "—",
+                        hours: entry.availableHours !== null ? entry.availableHours : "—"
+                    })
+                }
+            },
+            function(status, err) {
+                console.log("Resources fetch failed", status, err)
+            }
+        )
     }
 
     property int selectedInventoryDocId: -1
@@ -299,33 +330,36 @@ ApplicationWindow {
     property string payrollSnapshotTo: payrollSummaryTo
 
     function loadInventoryDocs() {
-        if (jwtToken.length === 0) { ensureAuth(); return }
-        httpRequest("GET", "/inventory?limit=20&offset=0", null, function(resp) {
-            inventoryDocModel.clear()
-            for (var i = 0; i < resp.data.length; i++) {
-                var doc = resp.data[i]
-                inventoryDocModel.append({
-                    id: doc.invDocId,
-                    code: doc.invDocCode,
-                    date: doc.invDocDate,
-                    warehouse: doc.invDocWarehouseId,
-                    status: doc.invDocStatus,
-                    memo: doc.invDocMemo || "—"
-                })
+        callApi("GET", "/inventory?limit=20&offset=0", null,
+            function(resp) {
+                var items = resp.data || resp || []
+                inventoryDocModel.clear()
+                for (var i = 0; i < items.length; i++) {
+                    var doc = items[i]
+                    inventoryDocModel.append({
+                        id: doc.invDocId,
+                        code: doc.invDocCode,
+                        date: doc.invDocDate,
+                        warehouse: doc.invDocWarehouseId,
+                        status: doc.invDocStatus,
+                        memo: doc.invDocMemo || "—"
+                    })
+                }
+            },
+            function(status, err) {
+                console.log("Inventory fetch failed", status, err)
             }
-        }, function(status, err) {
-            console.log("Inventory fetch failed", status, err)
-        })
+        )
     }
 
     function loadInventoryDetail(docId) {
-        if (jwtToken.length === 0) { ensureAuth(); return }
         selectedInventoryDocId = docId
-        httpRequest("GET", "/inventory/" + docId, null, function(resp) {
-            inventoryLineModel.clear()
-            if (resp.data && resp.data.iddLines) {
-                for (var i = 0; i < resp.data.iddLines.length; i++) {
-                    var line = resp.data.iddLines[i]
+        callApi("GET", "/inventory/" + docId, null,
+            function(resp) {
+                inventoryLineModel.clear()
+                var lines = (resp.data && resp.data.iddLines) || []
+                for (var i = 0; i < lines.length; i++) {
+                    var line = lines[i]
                     inventoryLineModel.append({
                         goods: line.ilGoodsId,
                         expected: line.ilExpectedQtty,
@@ -334,178 +368,186 @@ ApplicationWindow {
                         price: line.ilPrice
                     })
                 }
+                selectedInventorySummary = resp.data && resp.data.iddSummary ? resp.data.iddSummary : null
+            },
+            function(status, err) {
+                console.log("Inventory detail failed", status, err)
             }
-            selectedInventorySummary = resp.data && resp.data.iddSummary ? resp.data.iddSummary : null
-        }, function(status, err) {
-            console.log("Inventory detail failed", status, err)
-        })
+        )
     }
 
     function loadSalaryCharges() {
-        if (jwtToken.length === 0) { ensureAuth(); return }
-        httpRequest("GET", "/hr/charges", null, function(resp) {
-            salaryChargeModel.clear()
-            for (var i = 0; i < resp.data.length; i++) {
-                var charge = resp.data[i]
-                salaryChargeModel.append({
-                    id: charge.scId,
-                    name: charge.scName,
-                    code: charge.scCode || "—",
-                    flags: charge.scFlags
-                })
+        callApi("GET", "/hr/charges", null,
+            function(resp) {
+                var items = resp.data || resp || []
+                salaryChargeModel.clear()
+                for (var i = 0; i < items.length; i++) {
+                    var charge = items[i]
+                    salaryChargeModel.append({
+                        id: charge.scId,
+                        name: charge.scName,
+                        code: charge.scCode || "—",
+                        flags: charge.scFlags
+                    })
+                }
+            },
+            function(status, err) {
+                console.log("Salary charge fetch failed", status, err)
             }
-        }, function(status, err) {
-            console.log("Salary charge fetch failed", status, err)
-        })
+        )
     }
 
     function loadPayrollSummary() {
-        if (jwtToken.length === 0) { ensureAuth(); return }
         var from = payrollSummaryFrom
         var to = payrollSummaryTo
-        httpRequest("GET", "/hr/payrolls/summary?from=" + from + "&to=" + to, null, function(resp) {
-            payrollSummaryModel.clear()
-            for (var i = 0; i < resp.data.length; i++) {
-                var entry = resp.data[i]
-                payrollSummaryModel.append({
-                    name: entry.ssEmployeeName,
-                    position: entry.ssPosition,
-                    total: entry.ssTotal,
-                    employeeId: entry.ssEmployeeId
-                })
+        callApi("GET", "/hr/payrolls/summary?from=" + from + "&to=" + to, null,
+            function(resp) {
+                var items = resp.data || resp || []
+                payrollSummaryModel.clear()
+                for (var i = 0; i < items.length; i++) {
+                    var entry = items[i]
+                    payrollSummaryModel.append({
+                        name: entry.ssEmployeeName,
+                        position: entry.ssPosition,
+                        total: entry.ssTotal,
+                        employeeId: entry.ssEmployeeId
+                    })
+                }
+            },
+            function(status, err) {
+                console.log("Payroll summary fetch failed", status, err)
             }
-        }, function(status, err) {
-            console.log("Payroll summary fetch failed", status, err)
-        })
+        )
     }
 
     function loadPayrollSnapshots() {
-        if (jwtToken.length === 0) { ensureAuth(); return }
-        httpRequest("GET", "/hr/payrolls/snapshots", null, function(resp) {
-            payrollSnapshotModel.clear()
-            for (var i = 0; i < resp.data.length; i++) {
-                var entry = resp.data[i]
-                var summaryCount = entry.psrSummary ? entry.psrSummary.length : 0
-                payrollSnapshotModel.append({
-                    id: entry.psrId,
-                    period: entry.psrPeriodStart + " — " + entry.psrPeriodEnd,
-                    created: entry.psrCreatedAt,
-                    count: summaryCount,
-                    details: summaryCount > 0 ? JSON.stringify(entry.psrSummary.slice(0, 3)) : "[]"
-                })
+        callApi("GET", "/hr/payrolls/snapshots", null,
+            function(resp) {
+                var items = resp.data || resp || []
+                payrollSnapshotModel.clear()
+                for (var i = 0; i < items.length; i++) {
+                    var entry = items[i]
+                    var summaryCount = entry.psrSummary ? entry.psrSummary.length : 0
+                    payrollSnapshotModel.append({
+                        id: entry.psrId,
+                        period: entry.psrPeriodStart + " — " + entry.psrPeriodEnd,
+                        created: entry.psrCreatedAt,
+                        count: summaryCount,
+                        details: summaryCount > 0 ? JSON.stringify(entry.psrSummary.slice(0, 3)) : "[]"
+                    })
+                }
+            },
+            function(status, err) {
+                console.log("Payroll snapshot fetch failed", status, err)
             }
-        }, function(status, err) {
-            console.log("Payroll snapshot fetch failed", status, err)
-        })
+        )
     }
 
     function triggerPayrollSnapshot() {
-        if (jwtToken.length === 0) { ensureAuth(); return }
         var payload = { periodStart: payrollSnapshotFrom, periodEnd: payrollSnapshotTo }
-        httpRequest("POST", "/hr/payrolls/snapshots", payload, function(resp) {
-            console.log("Payroll snapshot job enqueued", resp.data)
-            loadPayrollSnapshots()
-        }, function(status, err) {
-            console.log("Failed to enqueue payroll snapshot", status, err)
-        })
+        callApi("POST", "/hr/payrolls/snapshots", payload,
+            function(resp) {
+                console.log("Payroll snapshot job enqueued")
+                loadPayrollSnapshots()
+            },
+            function(status, err) {
+                console.log("Failed to enqueue payroll snapshot", status, err)
+            }
+        )
     }
 
     function loadJobs() {
-        if (jwtToken.length === 0) { ensureAuth(); return }
-        httpRequest("GET", "/jobs", null, function(resp) {
-            updateJobModel(resp.data)
-        }, function(status, err) {
-            console.log("Jobs fetch failed", status, err)
-        })
+        callApi("GET", "/jobs", null,
+            function(resp) {
+                var items = resp.data || resp || []
+                jobModel.clear()
+                for (var i = 0; i < items.length; i++) {
+                    var entry = items[i]
+                    var deps = "—"
+                    if (entry.jobDependencies && entry.jobDependencies.length > 0) {
+                        deps = entry.jobDependencies.join(", ")
+                    }
+                    jobModel.append({
+                        id: entry.jobId,
+                        code: entry.jobCode,
+                        name: entry.jobName,
+                        type: entry.jobType,
+                        status: entry.jobStatus,
+                        priority: entry.jobPriority,
+                        scheduled: entry.jobScheduledAt !== null ? entry.jobScheduledAt : "—",
+                        created: entry.jobCreatedAt,
+                        message: entry.jobErrorMessage !== null ? entry.jobErrorMessage : "—"
+                        , dependencies: deps
+                    })
+                }
+            },
+            function(status, err) {
+                console.log("Jobs fetch failed", status, err)
+            }
+        )
     }
 
     function loadPersonSummary() {
-        if (jwtToken.length === 0) { ensureAuth(); return }
-        httpRequest("GET", "/persons/summary", null, function(resp) {
-            updatePersonSummary(resp.data)
-        }, function(status, err) {
-            console.log("Person summary failed", status, err)
-        })
-    }
-
-    function updatePersonSummary(items) {
-        personSummaryModel.clear()
-        for (var i = 0; i < items.length; i++) {
-            var entry = items[i]
-            personSummaryModel.append({
-                status: entry.status,
-                category: entry.category,
-                total: entry.total,
-                creditLimit: entry.totalCreditLimit,
-                avgDiscount: entry.avgDiscount
-            })
-        }
+        callApi("GET", "/persons/summary", null,
+            function(resp) {
+                var items = resp.data || resp || []
+                personSummaryModel.clear()
+                for (var i = 0; i < items.length; i++) {
+                    var entry = items[i]
+                    personSummaryModel.append({
+                        status: entry.status,
+                        category: entry.category,
+                        total: entry.total,
+                        creditLimit: entry.totalCreditLimit,
+                        avgDiscount: entry.avgDiscount
+                    })
+                }
+            },
+            function(status, err) {
+                console.log("Person summary failed", status, err)
+            }
+        )
     }
 
     function loadPersonSnapshots() {
-        if (jwtToken.length === 0) { ensureAuth(); return }
-        httpRequest("GET", "/persons/summary/snapshots", null, function(resp) {
-            updatePersonSnapshots(resp.data)
-        }, function(status, err) {
-            console.log("Snapshots fetch failed", status, err)
-        })
-    }
-
-    function updatePersonSnapshots(items) {
-        personSnapshotModel.clear()
-        for (var i = 0; i < items.length; i++) {
-            var entry = items[i]
-            personSnapshotModel.append({
-                runId: entry.pssRunId,
-                runAt: entry.pssRunAt,
-                status: entry.pssStatus,
-                category: entry.pssCategory,
-                total: entry.pssTotal,
-                creditLimit: entry.pssCreditLimit,
-                avgDiscount: entry.pssAvgDiscount
-            })
-        }
+        callApi("GET", "/persons/summary/snapshots", null,
+            function(resp) {
+                var items = resp.data || resp || []
+                personSnapshotModel.clear()
+                for (var i = 0; i < items.length; i++) {
+                    var entry = items[i]
+                    personSnapshotModel.append({
+                        runId: entry.pssRunId,
+                        runAt: entry.pssRunAt,
+                        status: entry.pssStatus,
+                        category: entry.pssCategory,
+                        total: entry.pssTotal,
+                        creditLimit: entry.pssCreditLimit,
+                        avgDiscount: entry.pssAvgDiscount
+                    })
+                }
+            },
+            function(status, err) {
+                console.log("Snapshots fetch failed", status, err)
+            }
+        )
     }
 
     function triggerPersonSnapshot() {
-        if (jwtToken.length === 0) { ensureAuth(); return }
-        httpRequest("POST", "/persons/summary/snapshots", null, function(resp) {
-            console.log("Snapshot taken", resp.data)
-            loadPersonSnapshots()
-        }, function(status, err) {
-            console.log("Snapshot trigger failed", status, err)
-        })
-    }
-
-    function updateJobModel(items) {
-        jobModel.clear()
-        for (var i = 0; i < items.length; i++) {
-            var entry = items[i]
-            var deps = "—"
-            if (entry.jobDependencies && entry.jobDependencies.length > 0) {
-                deps = entry.jobDependencies.join(", ")
+        callApi("POST", "/persons/summary/snapshots", null,
+            function(resp) {
+                console.log("Snapshot taken")
+                loadPersonSnapshots()
+            },
+            function(status, err) {
+                console.log("Snapshot trigger failed", status, err)
             }
-            jobModel.append({
-                id: entry.jobId,
-                code: entry.jobCode,
-                name: entry.jobName,
-                type: entry.jobType,
-                status: entry.jobStatus,
-                priority: entry.jobPriority,
-                scheduled: entry.jobScheduledAt !== null ? entry.jobScheduledAt : "—",
-                created: entry.jobCreatedAt,
-                message: entry.jobErrorMessage !== null ? entry.jobErrorMessage : "—"
-                , dependencies: deps
-            })
-        }
+        )
     }
 
-    Timer {
-        id: authTimer
-        interval: 100
-        running: true
-        repeat: false
-        onTriggered: ensureAuth()
+    // Auto-login on startup (replaced by credential-based login in Task 2)
+    Component.onCompleted: {
+        ApiClient.login("admin", "admin")
     }
 
     header: ToolBar {
@@ -1585,7 +1627,7 @@ Component {
                     dependsOnId: target,
                     dependencyType: dependencyTypeField.text || "BLOCKS"
                 }
-                httpRequest("POST", "/jobs/" + selectedJobId + "/dependencies", payload, function(resp) {
+                callApi("POST", "/jobs/" + selectedJobId + "/dependencies", payload, function(resp) {
                     loadJobs()
                     dependencyField.text = ""
                     dependencyTypeField.text = ""
@@ -1680,11 +1722,11 @@ Component {
                             text: "Создать"
                             onClicked: {
                                 var flags = parseInt(chargeFlagsField.text, 10)
-                                httpRequest("POST", "/hr/charges", {
+                                callApi("POST", "/hr/charges", {
                                     sciName: chargeNameField.text,
                                     sciCode: chargeCodeField.text,
                                     sciFlags: isNaN(flags) ? 0 : flags
-                                }, function() {
+                                }, function(resp) {
                                     chargeNameField.text = ""
                                     chargeCodeField.text = ""
                                     chargeFlagsField.text = ""
