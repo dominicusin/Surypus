@@ -88,6 +88,17 @@ ApplicationWindow {
         }
     }
 
+    function calculateBarHeight(value, data) {
+        if (!data || data.length === 0) return 10
+        var maxVal = 0
+        for (var i = 0; i < data.length; i++) {
+            var v = data[i].rpRevenue || 0
+            if (v > maxVal) maxVal = v
+        }
+        if (maxVal <= 0) return 10
+        return Math.max(10, (value / maxVal) * 140)
+    }
+
     function loadInitialData() {
         loadDocumentRegisters()
         loadDocumentCounters()
@@ -799,6 +810,13 @@ Component {
             color: textColor
         }
 
+        // Loading indicator
+        BusyIndicator {
+            running: dashboardLoading
+            visible: dashboardLoading
+            Layout.alignment: Qt.AlignCenter
+        }
+
         // Stats cards
         GridLayout {
             columns: 4
@@ -807,25 +825,25 @@ Component {
 
             StatCard {
                 title: "Продажи сегодня"
-                value: "125 000 ₽"
+                value: dashboardLoading ? "..." : Number(kpiRevenue).toLocaleString() + " ₽"
                 color: "#4CAF50"
             }
 
             StatCard {
                 title: "Заказов сегодня"
-                value: "15"
+                value: dashboardLoading ? "..." : kpiOrders
                 color: "#2196F3"
             }
 
             StatCard {
                 title: "Товаров в наличии"
-                value: "1 234"
+                value: dashboardLoading ? "..." : kpiActiveGoods
                 color: "#FF9800"
             }
 
             StatCard {
-                title: "Ниже минимума"
-                value: "12"
+                title: "Партнёров"
+                value: dashboardLoading ? "..." : kpiPartners
                 color: "#F44336"
             }
         }
@@ -857,122 +875,44 @@ Component {
                         Layout.fillHeight: true
                         spacing: 8
 
-                        Rectangle {
-                            Layout.fillHeight: true
-                            Layout.fillWidth: true
-                            color: "#E3F2FD"
-                            radius: 4
+                        Repeater {
+                            model: revenueTrend
 
-                            Column {
-                                anchors.bottom: parent.bottom
-                                anchors.bottomMargin: 8
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                spacing: 4
+                            Rectangle {
+                                Layout.fillHeight: true
+                                Layout.fillWidth: true
+                                color: "#42A5F5"
+                                radius: 4
+                                opacity: 0.8
 
-                                Text {
-                                    text: "Пн"
-                                    font.pixelSize: 10
-                                    color: secondaryTextColor
-                                }
-                            }
-                        }
+                                Column {
+                                    anchors.bottom: parent.bottom
+                                    anchors.bottomMargin: 8
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    spacing: 2
 
-                        Rectangle {
-                            Layout.fillHeight: true
-                            Layout.fillWidth: true
-                            color: "#BBDEFB"
-                            radius: 4
+                                    Text {
+                                        text: modelData.rpRevenue !== undefined
+                                              ? Number(modelData.rpRevenue).toLocaleString()
+                                              : ""
+                                        font.pixelSize: 9
+                                        color: "#1565C0"
+                                        font.bold: true
+                                    }
 
-                            Column {
-                                anchors.bottom: parent.bottom
-                                anchors.bottomMargin: 8
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                spacing: 4
+                                    Rectangle {
+                                        width: parent.parent.width * 0.6
+                                        height: calculateBarHeight(modelData.rpRevenue || 0, revenueTrend)
+                                        color: "#42A5F5"
+                                        radius: 2
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                    }
 
-                                Text {
-                                    text: "Вт"
-                                    font.pixelSize: 10
-                                    color: secondaryTextColor
-                                }
-                            }
-                        }
-
-                        Rectangle {
-                            Layout.fillHeight: true
-                            Layout.fillWidth: true
-                            color: "#90CAF9"
-                            radius: 4
-
-                            Column {
-                                anchors.bottom: parent.bottom
-                                anchors.bottomMargin: 8
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                spacing: 4
-
-                                Text {
-                                    text: "Ср"
-                                    font.pixelSize: 10
-                                    color: secondaryTextColor
-                                }
-                            }
-                        }
-
-                        Rectangle {
-                            Layout.fillHeight: true
-                            Layout.fillWidth: true
-                            color: "#64B5F6"
-                            radius: 4
-
-                            Column {
-                                anchors.bottom: parent.bottom
-                                anchors.bottomMargin: 8
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                spacing: 4
-
-                                Text {
-                                    text: "Чт"
-                                    font.pixelSize: 10
-                                    color: secondaryTextColor
-                                }
-                            }
-                        }
-
-                        Rectangle {
-                            Layout.fillHeight: true
-                            Layout.fillWidth: true
-                            color: "#42A5F5"
-                            radius: 4
-
-                            Column {
-                                anchors.bottom: parent.bottom
-                                anchors.bottomMargin: 8
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                spacing: 4
-
-                                Text {
-                                    text: "Пт"
-                                    font.pixelSize: 10
-                                    color: secondaryTextColor
-                                }
-                            }
-                        }
-
-                        Rectangle {
-                            Layout.fillHeight: true
-                            Layout.fillWidth: true
-                            color: "#1E88E5"
-                            radius: 4
-
-                            Column {
-                                anchors.bottom: parent.bottom
-                                anchors.bottomMargin: 8
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                spacing: 4
-
-                                Text {
-                                    text: "Сб"
-                                    font.pixelSize: 10
-                                    color: secondaryTextColor
+                                    Text {
+                                        text: modelData.rpMonth || ""
+                                        font.pixelSize: 9
+                                        color: secondaryTextColor
+                                    }
                                 }
                             }
                         }
