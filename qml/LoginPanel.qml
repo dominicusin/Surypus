@@ -1,5 +1,6 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
+import SurypusApiClient 1.0
 
 Page {
   id: loginPage
@@ -49,31 +50,23 @@ Page {
   }
 
   function login(user, pass) {
-    // Simple placeholder using XMLHttpRequest; in real app use Qt Network access manager
-    var xhr = new XMLHttpRequest();
-    xhr.open("POST", "http://localhost:8080/api/v1/auth/login", true);
-    xhr.setRequestHeader("Content-Type", "application/json");
-    xhr.onreadystatechange = function() {
-      if (xhr.readyState === 4) {
-        if (xhr.status === 200) {
-          try {
-            var resp = JSON.parse(xhr.responseText);
-            var tok = resp.refreshToken || resp.token || null;
-            if (tok) {
-              loginPage.loginSucceeded(tok)
-              loginStatus.text = "Login successful";
-            } else {
-              loginStatus.text = "Login response missing token";
-            }
-          } catch (e) {
-            loginStatus.text = "Invalid login response";
-          }
-        } else {
-          loginStatus.text = "Login failed: " + xhr.status;
-        }
-      }
+    // Validate non-empty credentials (Threat T-15-08)
+    if (!user || user.trim() === "" || !pass || pass.trim() === "") {
+      loginStatus.text = "Please enter username and password"
+      return
     }
-    var payload = { username: user, password: pass };
-    xhr.send(JSON.stringify(payload));
+    loginStatus.text = "Logging in..."
+    ApiClient.login(user, pass)
+  }
+
+  Connections {
+    target: ApiClient
+    function onLoginSucceeded(token) {
+      loginStatus.text = "Login successful"
+      loginPage.loginSucceeded(token)
+    }
+    function onLoginFailed(error) {
+      loginStatus.text = "Login failed: " + error
+    }
   }
 }

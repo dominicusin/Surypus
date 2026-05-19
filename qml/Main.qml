@@ -82,7 +82,6 @@ ApplicationWindow {
         function onLoginSucceeded(token) {
             console.log("Login succeeded, token stored by ApiClient")
             authenticated = true
-            loadInitialData()
         }
         function onLoginFailed(error) {
             console.log("Login failed:", error)
@@ -545,176 +544,203 @@ ApplicationWindow {
         )
     }
 
-    // Auto-login on startup (replaced by credential-based login in Task 2)
-    Component.onCompleted: {
-        ApiClient.login("admin", "admin")
-    }
-
-    header: ToolBar {
-        id: toolbar
-        background: Rectangle { color: surfaceColor }
-
-        RowLayout {
-            anchors.fill: parent
-            spacing: 8
-
-            // Logo
-            Text {
-                text: "📊"
-                font.pixelSize: 24
-            }
-
-            Text {
-                text: "Surypus"
-                font.bold: true
-                font.pixelSize: 18
-                color: primaryColor
-            }
-
-            Rectangle { Layout.fillWidth: true }
-
-            // Search
-            TextField {
-                placeholderText: "Поиск..."
-                width: 200
-                background: Rectangle {
-                    radius: 4
-                    color: backgroundColor
-                }
-            }
-
-            // User menu
-            ToolButton {
-                text: "👤 Администратор"
-            }
-        }
-    }
-
-    // Main content
-    RowLayout {
+    // ── StackView for login flow ──
+    StackView {
+        id: appStack
         anchors.fill: parent
-        spacing: 0
-
-        // Navigation sidebar
-        Rectangle {
-            width: 250
-            Layout.fillHeight: true
-            color: surfaceColor
-            border.right: 1
-
-            ColumnLayout {
-                anchors.fill: parent
-                anchors.margins: 8
-                spacing: 4
-
-                // Navigation items
-                NavigationItem {
-                    icon: "📋"
-                    text: "Обзор"
-                    selected: true
-                }
-
-                NavigationItem {
-                    icon: "📦"
-                    text: "Товары"
-                }
-
-                NavigationItem {
-                    icon: "📄"
-                    text: "Документы"
-                }
-
-                NavigationItem {
-                    icon: "👥"
-                    text: "Контрагенты"
-                    onActivate: contentStack.push(personSummaryPage)
-                }
-
-                NavigationItem {
-                    icon: "🏭"
-                    text: "Склады"
-                    onActivate: {
-                        loadInventoryDocs()
-                        contentStack.push(inventoryPage)
-                    }
-                }
-
-                NavigationItem {
-                    icon: "📊"
-                    text: "Отчёты"
-                    onActivate: contentStack.push(reportPage)
-                }
-
-                NavigationItem {
-                    icon: "🧠"
-                    text: "Jobs"
-                    onActivate: contentStack.push(jobsPage)
-                }
-
-                Rectangle { Layout.fillHeight: true }
-
-                NavigationItem {
-                    icon: "📊"
-                    text: "Отчёты"
-                    onActivate: contentStack.push(reportsPage)
-                }
-
-                NavigationItem {
-                    icon: "⚙️"
-                    text: "Настройки"
-                    onActivate: contentStack.push(settingsPage)
-                }
-                NavigationItem {
-                    icon: "💼"
-                    text: "Кадры"
-                    onActivate: {
-                        loadSalaryCharges()
-                        loadPayrollSummary()
-                        loadPayrollSnapshots()
-                        contentStack.push(hrPage)
-                    }
-                }
-            }
-        }
-
-        // Content area
-        Rectangle {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            color: backgroundColor
-
-            StackView {
-                id: contentStack
-                anchors.fill: parent
-                anchors.margins: 16
-
-                initialItem: DashboardPage {}
+        initialItem: LoginPanel {
+            onLoginSucceeded: {
+                appStack.replace(mainContentPage)
+                loadInitialData()
             }
         }
     }
 
-    // Status bar
-    footer: StatusBar {
-        background: Rectangle { color: surfaceColor }
-
-        RowLayout {
+    Component {
+        id: mainContentPage
+        ColumnLayout {
             anchors.fill: parent
+            spacing: 0
 
-            Text {
-                text: "Готов"
-                color: secondaryTextColor
+            // Toolbar
+            ToolBar {
+                id: toolbar
+                background: Rectangle { color: surfaceColor }
+                Layout.fillWidth: true
+
+                RowLayout {
+                    anchors.fill: parent
+                    spacing: 8
+
+                    Text {
+                        text: "📊"
+                        font.pixelSize: 24
+                    }
+
+                    Text {
+                        text: "Surypus"
+                        font.bold: true
+                        font.pixelSize: 18
+                        color: primaryColor
+                    }
+
+                    Rectangle { Layout.fillWidth: true }
+
+                    TextField {
+                        placeholderText: "Поиск..."
+                        width: 200
+                        background: Rectangle {
+                            radius: 4
+                            color: backgroundColor
+                        }
+                    }
+
+                    ToolButton {
+                        text: "👤 Администратор"
+                    }
+
+                    Button {
+                        text: "Выйти"
+                        flat: true
+                        onClicked: {
+                            ApiClient.logout()
+                            authenticated = false
+                            appStack.replace(LoginPanel {
+                                onLoginSucceeded: {
+                                    appStack.replace(mainContentPage)
+                                    loadInitialData()
+                                }
+                            })
+                        }
+                    }
+                }
             }
 
-            Rectangle { Layout.fillWidth: true }
+            // Main content area
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                spacing: 0
 
-            Text {
-                text: "Подключение: localhost:5433"
-                color: secondaryTextColor
+                Rectangle {
+                    width: 250
+                    Layout.fillHeight: true
+                    color: surfaceColor
+                    border.right: 1
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 8
+                        spacing: 4
+
+                        NavigationItem {
+                            icon: "📋"
+                            text: "Обзор"
+                            selected: true
+                        }
+
+                        NavigationItem {
+                            icon: "📦"
+                            text: "Товары"
+                        }
+
+                        NavigationItem {
+                            icon: "📄"
+                            text: "Документы"
+                        }
+
+                        NavigationItem {
+                            icon: "👥"
+                            text: "Контрагенты"
+                            onActivate: contentStack.push(personSummaryPage)
+                        }
+
+                        NavigationItem {
+                            icon: "🏭"
+                            text: "Склады"
+                            onActivate: {
+                                loadInventoryDocs()
+                                contentStack.push(inventoryPage)
+                            }
+                        }
+
+                        NavigationItem {
+                            icon: "📊"
+                            text: "Отчёты"
+                            onActivate: contentStack.push(reportPage)
+                        }
+
+                        NavigationItem {
+                            icon: "🧠"
+                            text: "Jobs"
+                            onActivate: contentStack.push(jobsPage)
+                        }
+
+                        Rectangle { Layout.fillHeight: true }
+
+                        NavigationItem {
+                            icon: "📊"
+                            text: "Отчёты"
+                            onActivate: contentStack.push(reportsPage)
+                        }
+
+                        NavigationItem {
+                            icon: "⚙️"
+                            text: "Настройки"
+                            onActivate: contentStack.push(settingsPage)
+                        }
+                        NavigationItem {
+                            icon: "💼"
+                            text: "Кадры"
+                            onActivate: {
+                                loadSalaryCharges()
+                                loadPayrollSummary()
+                                loadPayrollSnapshots()
+                                contentStack.push(hrPage)
+                            }
+                        }
+                    }
+                }
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    color: backgroundColor
+
+                    StackView {
+                        id: contentStack
+                        anchors.fill: parent
+                        anchors.margins: 16
+                        initialItem: DashboardPage {}
+                    }
+                }
             }
 
-            Text {
-                text: " | Пользователь: admin"
-                color: secondaryTextColor
+            // Status bar
+            StatusBar {
+                Layout.fillWidth: true
+                background: Rectangle { color: surfaceColor }
+
+                RowLayout {
+                    anchors.fill: parent
+
+                    Text {
+                        text: "Готов"
+                        color: secondaryTextColor
+                    }
+
+                    Rectangle { Layout.fillWidth: true }
+
+                    Text {
+                        text: "Подключение: localhost:5433"
+                        color: secondaryTextColor
+                    }
+
+                    Text {
+                        text: " | Пользователь: admin"
+                        color: secondaryTextColor
+                    }
+                }
             }
         }
     }
