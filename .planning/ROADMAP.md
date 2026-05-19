@@ -26,6 +26,16 @@
 - Pipeline forecast shows probability-weighted revenue
 - All CRM changes logged to EventStore
 
+**Plans:** 5 plans in 5 waves
+
+| Plan | Wave | Objective | Files | 
+|------|------|-----------|-------|
+| 14-01 | 1 | DB migrations + domain types | V182__crm_companies_contacts.sql, src/CRM/*.hs, Surypus.cabal |
+| 14-02 | 2 | API CRUD for contacts/companies + fix stubs | surypus-api/src/Surypus/API/{CRM,Server}.hs |
+| 14-03 | 3 | RBAC permissions + event sourcing | RBAC.hs, Authorization.hs, EventStore/CRM.hs, Server.hs |
+| 14-04 | 4 | Pipeline forecast refresh + stage rules + history | CRM.hs, Server.hs |
+| 14-05 | 5 | Domain + integration tests | test/Domain/CRMSpec.hs, test/Integration/CRMSpec.hs |
+
 ---
 
 ## Phase 15: QML Desktop Skeleton
@@ -40,6 +50,15 @@
 - Navigation between modules works
 - QRestAccessManager or OpenAPI client used for API calls
 - App packages as AppImage
+
+**Plans:** 4 plans in 3 waves
+
+| Plan | Wave | Objective | Files |
+|------|------|-----------|-------|
+| 15-01 | 1 | Backend: Real JWT authentication (jose signing, auth middleware) | surypus-api/src/Surypus/JWT/Token.hs, Server.hs, surypus-api.cabal |
+| 15-02 | 1 | QML: REST client layer (QRestAccessManager C++ wrapper, CMake build) | qml/api/ApiClient.qml, qml/CMakeLists.txt, qml/main.cpp |
+| 15-03 | 2 | QML: Login flow, real dashboard KPIs, module navigation | qml/Main.qml, qml/LoginPanel.qml |
+| 15-04 | 3 | Packaging: AppImage build script and desktop entry | packaging/AppImage/* |
 
 ---
 
