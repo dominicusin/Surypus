@@ -2,24 +2,33 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
 
-module Surypus.API.Server (apiServer, startServantServer) where
+module Surypus.API.Server (apiServer) where
 
 import Control.Monad.IO.Class (liftIO)
 import Data.Int (Int64)
 import Data.Proxy (Proxy (..))
+import Data.Text (Text)
 import qualified Data.Text as DT
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as LBS
-import Surypus (Pool, QueryResult (..), Bill (..), BillInput (..), Goods (..), Person (..), Payment (..))
+import qualified Data.ByteString as BS
+import qualified DAL.Types as DAL
+import Surypus
+    ( Pool, QueryResult (..)
+    , Bill (..), BillInput (..)
+    , Goods (..), Person (..), Payment (..)
+    , LoginRequest (..), LoginResponse (..), User (..)
+    )
+import Network.HTTP.Types (status401)
 import Network.Wai as W
-import Servant (Application, Handler, Server, ServerError(..), err401, err403, err404, err500, serve, throwError, (:>), Get, Post, ReqBody, JSON, (:<|>) (..), Capture)
+import Servant
 import qualified Data.UUID as UUID
 import qualified Data.UUID.V4 as UUID
+import qualified Surypus.JWT.Token as JWT
 import qualified Surypus.API.Logger as Log
 import qualified Surypus.API.Bills as Bills
 import qualified Surypus.API.CRM as CRM
@@ -27,228 +36,214 @@ import qualified Surypus.API.Dashboard as Dashboard
 import qualified Surypus.API.Goods as Goods
 import qualified Surypus.API.Notifications as Notifications
 import qualified Surypus.API.Reports as Reports
+import qualified Surypus.API.Orders as Orders
+import qualified Surypus.API.Workflow as Workflow
 import qualified Surypus.API.Persons as Persons
 import qualified Surypus.API.Payment as Payments
 import qualified Surypus.WebSocket as WS
+import qualified DAL.Mutations
 
 data Env = Env
-  { envPool :: Pool,
-    envLogger :: Log.Logger,
-    envWSHandler :: Maybe WS.WebSocketHandler
+  { envPool :: Pool
+  , envLogger :: Log.Logger
+  , envWSHandler :: Maybe WS.WebSocketHandler
   }
 
--- | Application context with both database and WebSocket
-type AppContext = Env
-
--- | Create environment with WebSocket support
-mkEnv :: Pool -> Log.Logger -> Maybe WS.WebSocketHandler -> Env
-mkEnv pool logger wsHandler = Env pool logger wsHandler
-
--- | Authenticated user context (for future AuthProtect integration)
-data AuthenticatedUser = AuthenticatedUser
-  { userId :: Int64,
-    username :: DT.Text,
-    userRoles :: [DT.Text]
-  }
-  deriving (Show, Eq)
-
--- | Correlation ID middleware
 correlationMiddleware :: Log.Logger -> Application -> Application
 correlationMiddleware logger app req respond = do
   let corrIdHeader = lookup "x-correlation-id" (W.requestHeaders req)
   corrId <- case corrIdHeader of
     Just cid -> return (TE.decodeUtf8 cid)
-    Nothing -> UUID.toText <$> UUID.nextRandom
-  Log.withCorrelationId logger (DT.unpack corrId) $
-    app req respond
+    Nothing  -> UUID.toText <$> UUID.nextRandom
+  Log.withCorrelationId logger (DT.unpack corrId) $ app req respond
 
--- | Auth check middleware - validates Authorization header
 authMiddleware :: Application -> Application
 authMiddleware app req respond = do
-  let authHeader = lookup "Authorization" (W.requestHeaders req)
-  case authHeader of
-    Just _ -> app req respond  -- Has auth header, proceed
-    Nothing -> respond $ W.responseLBS [W.status401] [("Content-Type", "text/plain")] "Unauthorized"
+  let path = W.rawPathInfo req
+  if path == "/api/v1/login"
+    then app req respond
+    else case lookup "Authorization" (W.requestHeaders req) of
+      Nothing  -> respond $ W.responseLBS status401 [("Content-Type","text/plain")] "Unauthorized"
+      Just hdr -> do
+        let tok = TE.decodeUtf8 $ BS.drop 7 hdr
+        JWT.verifyToken tok >>= \case
+          Left _  -> respond $ W.responseLBS status401 [("Content-Type","text/plain")] "Invalid token"
+          Right _ -> app req respond
 
 apiServer :: Pool -> Log.Logger -> Application
-apiServer pool logger = apiServerWithWS pool logger Nothing
+apiServer pool logger =
+  let env = Env pool logger Nothing
+  in correlationMiddleware logger $ authMiddleware (serve (Proxy @SurypusApi) (server env))
 
--- | API server with optional WebSocket handler for event broadcasting
-apiServerWithWS :: Pool -> Log.Logger -> Maybe WS.WebSocketHandler -> Application
-apiServerWithWS pool logger mbWsHandler =
-  let env = Env pool logger mbWsHandler
-   in correlationMiddleware logger $ authMiddleware (serve (Proxy @SurypusApi) (server env))
+-- ── API type ────────────────────────────────────────────────────────────────
 
--- | Start server with WebSocket support
-startServer :: Pool -> Log.Logger -> IO WS.WebSocketHandler
-startServer pool logger = do
-  wsHandler <- WS.initWebSocketHandler
-  Log.logInfo logger "WebSocket handler initialized" []
-  let env = Env pool logger (Just wsHandler)
-  Log.logInfo logger "Starting Survant server with WebSocket support" []
-  return wsHandler
-
--- | Full Surypus API type
-type SurypusApi =
-  "api" :> "v1" :> 
-    ( "bills" :> Get '[JSON] [Bill]
-      :<|> "bills" :> ReqBody '[JSON] BillInput :> Post '[JSON] Bill
-      :<|> "bills" :> Capture "id" Int64 :> Get '[JSON] Bill
-      :<|> "bills" :> Capture "id" Int64 :> "post" :> Post '[JSON] ()
-      :<|> "goods" :> Get '[JSON] [Goods]
-      :<|> "persons" :> Get '[JSON] [Person]
-      :<|> "payments" :> Get '[JSON] [Payment]
-      :<|> "dashboard" :> Get '[JSON] Dashboard.DashboardKPI
-      :<|> "dashboard" :> "revenue" :> Get '[JSON] [Dashboard.RevenuePoint]
-      :<|> "dashboard" :> "orders" :> Get '[JSON] [Dashboard.OrderStatus]
-      :<|> "dashboard" :> "stock" :> Get '[JSON] [Dashboard.StockSummary]
-      :<|> "crm" :> "deals" :> Get '[JSON] [CRM.Deal]
-      :<|> "crm" :> "deals" :> ReqBody '[JSON] CRM.DealInput :> Post '[JSON] CRM.Deal
-      :<|> "crm" :> "deals" :> Capture "id" Text :> Get '[JSON] CRM.Deal
-      :<|> "crm" :> "deals" :> Capture "id" Text :> "stage" :> Capture "stageId" Text :> Post '[JSON] CRM.Deal
-      :<|> "crm" :> "pipeline" :> Get '[JSON] [CRM.PipelineForecast]
-      :<|> "crm" :> "deals" :> Capture "id" Text :> "activities" :> Get '[JSON] [CRM.Activity]
-    )
-
-server :: Env -> Server SurypusApi
-server env =
-  ( billsList env
-    :<|> billsCreate env
-    :<|> billGet env
-    :<|> billPost env
-    :<|> goodsList env
-    :<|> personsList env
-    :<|> paymentsList env
-    :<|> dashboardKPI env
-    :<|> dashboardRevenue env
-    :<|> dashboardOrders env
-    :<|> dashboardStock env
-    :<|> crmDealsList env
-    :<|> crmDealCreate env
-    :<|> crmDealGet env
-    :<|> crmDealStageUpdate env
-    :<|> crmPipelineForecast env
-    :<|> crmDealActivities env
+type SurypusApi = "api" :> "v1" :>
+  ( "login"  :> ReqBody '[JSON] LoginRequest :> Post '[JSON] LoginResponse
+  -- Bills
+  :<|> "bills" :> Get '[JSON] [Bill]
+  :<|> "bills" :> ReqBody '[JSON] BillInput :> Post '[JSON] Bill
+  :<|> "bills" :> Capture "id" Int64 :> Get '[JSON] Bill
+  :<|> "bills" :> Capture "id" Int64 :> "post" :> Post '[JSON] ()
+  -- Goods / Persons / Payments
+  :<|> "goods"    :> Get '[JSON] [Goods]
+  :<|> "persons"  :> Get '[JSON] [Person]
+  :<|> "payments" :> Get '[JSON] [Payment]
+  -- Dashboard
+  :<|> "dashboard"           :> Get '[JSON] Dashboard.DashboardKPI
+  :<|> "dashboard" :> "revenue" :> Get '[JSON] [Dashboard.RevenuePoint]
+  :<|> "dashboard" :> "orders"  :> Get '[JSON] [Dashboard.OrderStatus]
+  :<|> "dashboard" :> "stock"   :> Get '[JSON] [Dashboard.StockSummary]
+  -- CRM
+  :<|> "crm" :> "deals" :> Get '[JSON] [CRM.Deal]
+  :<|> "crm" :> "deals" :> ReqBody '[JSON] CRM.DealInput :> Post '[JSON] CRM.Deal
+  :<|> "crm" :> "deals" :> Capture "id" Text :> Get '[JSON] CRM.Deal
+  :<|> "crm" :> "deals" :> Capture "id" Text :> "stage" :> Capture "stageId" Text :> Post '[JSON] CRM.Deal
+  :<|> "crm" :> "pipeline" :> Get '[JSON] [CRM.PipelineForecast]
+  :<|> "crm" :> "deals" :> Capture "id" Text :> "activities" :> Get '[JSON] [CRM.Activity]
+  :<|> "crm" :> "contacts" :> Get '[JSON] [CRM.Contact]
+  :<|> "crm" :> "contacts" :> ReqBody '[JSON] CRM.ContactInput :> Post '[JSON] CRM.Contact
+  :<|> "crm" :> "contacts" :> Capture "id" Text :> Get '[JSON] CRM.Contact
+  :<|> "crm" :> "contacts" :> Capture "id" Text :> ReqBody '[JSON] CRM.ContactInput :> Put '[JSON] CRM.Contact
+  :<|> "crm" :> "contacts" :> Capture "id" Text :> "delete" :> Post '[JSON] ()
+  :<|> "crm" :> "contacts" :> "search" :> Capture "q" Text :> Get '[JSON] [CRM.Contact]
+  :<|> "crm" :> "companies" :> Get '[JSON] [CRM.Company]
+  :<|> "crm" :> "companies" :> ReqBody '[JSON] CRM.CompanyInput :> Post '[JSON] CRM.Company
+  :<|> "crm" :> "companies" :> Capture "id" Text :> Get '[JSON] CRM.Company
+  :<|> "crm" :> "companies" :> Capture "id" Text :> ReqBody '[JSON] CRM.CompanyInput :> Put '[JSON] CRM.Company
+  :<|> "crm" :> "companies" :> Capture "id" Text :> "delete" :> Post '[JSON] ()
+  :<|> "crm" :> "companies" :> "search" :> Capture "q" Text :> Get '[JSON] [CRM.Company]
+  :<|> "crm" :> "pipeline" :> "stages" :> Get '[JSON] [CRM.PipelineStage]
+  :<|> "crm" :> "pipeline" :> "stages" :> Capture "id" Text :> "rules" :> Get '[JSON] [CRM.StageRule]
+  :<|> "crm" :> "pipeline" :> "forecast" :> "refresh" :> Post '[JSON] ()
+  :<|> "crm" :> "deals" :> Capture "id" Text :> "history" :> Get '[JSON] [CRM.StageTransition]
+  -- Notifications
+  :<|> "notifications" :> Get '[JSON] [Notifications.Notification]
+  :<|> "notifications" :> ReqBody '[JSON] Notifications.NotificationInput :> Post '[JSON] Notifications.Notification
+  :<|> "notifications" :> Capture "id" Text :> "read" :> Post '[JSON] ()
+  :<|> "notifications" :> "prefs" :> Get '[JSON] Notifications.NotificationPref
+  :<|> "notifications" :> "prefs" :> ReqBody '[JSON] Notifications.NotificationPrefInput :> Put '[JSON] Notifications.NotificationPref
+  :<|> "notifications" :> "test" :> Post '[JSON] ()
+  :<|> "notifications" :> "digest" :> Capture "frequency" Text :> Post '[JSON] ()
+  -- Reports
+  :<|> "reports" :> "pnl"       :> Get '[JSON] Reports.Report
+  :<|> "reports" :> "inventory" :> Get '[JSON] Reports.Report
+  -- Orders
+  :<|> "orders" :> Get '[JSON] [Orders.Order]
+  :<|> "orders" :> ReqBody '[JSON] Orders.OrderInput :> Post '[JSON] Orders.Order
+  :<|> "orders" :> Capture "id" Text :> Get '[JSON] Orders.Order
+  :<|> "orders" :> Capture "id" Text :> ReqBody '[JSON] Orders.OrderInput :> Put '[JSON] Orders.Order
+  :<|> "orders" :> Capture "id" Text :> "delete" :> Post '[JSON] ()
+  -- Workflows
+  :<|> "workflows" :> Get '[JSON] [Workflow.Workflow]
+  :<|> "workflows" :> ReqBody '[JSON] Workflow.WorkflowInput :> Post '[JSON] Workflow.Workflow
+  :<|> "workflows" :> "instances" :> Get '[JSON] [Workflow.WorkflowInstance]
+  :<|> "workflows" :> "instances" :> Capture "id" Text :> Get '[JSON] Workflow.WorkflowInstance
+  :<|> "workflows" :> "instances" :> Capture "id" Text :> "complete" :> Post '[JSON] ()
   )
 
-dashboardKPI :: Env -> Handler Dashboard.DashboardKPI
-dashboardKPI env = do
-  result <- liftIO $ Dashboard.getDashboardKPI (envPool env)
-  case result of
-    QuerySuccess kpi -> pure kpi
-    QueryError err -> throwError $ err500 {errBody = LBS.encodeUtf8 $ "Dashboard error: " <> TL.fromStrict err}
+-- ── Server ───────────────────────────────────────────────────────────────────
 
-dashboardRevenue :: Env -> Handler [Dashboard.RevenuePoint]
-dashboardRevenue env = do
-  result <- liftIO $ Dashboard.getRevenueTrend (envPool env)
-  case result of
-    QuerySuccess points -> pure points
-    QueryError err -> throwError $ err500 {errBody = LBS.encodeUtf8 $ "Dashboard error: " <> TL.fromStrict err}
+server :: Env -> Server SurypusApi
+server env
+  =    handleLogin env
+  :<|> billsList env :<|> billsCreate env :<|> billGet env :<|> billPost env
+  :<|> goodsList env :<|> personsList env :<|> paymentsList env
+  :<|> dashboardKPI env :<|> dashboardRevenue env :<|> dashboardOrders env :<|> dashboardStock env
+  :<|> crmDealsList env :<|> crmDealCreate env :<|> crmDealGet env :<|> crmDealStageUpdate env
+  :<|> crmPipelineForecast env :<|> crmDealActivities env
+  :<|> crmContactsList env :<|> crmContactCreate env :<|> crmContactGet env
+  :<|> crmContactUpdate env :<|> crmContactDelete env :<|> crmContactSearch env
+  :<|> crmCompaniesList env :<|> crmCompanyCreate env :<|> crmCompanyGet env
+  :<|> crmCompanyUpdate env :<|> crmCompanyDelete env :<|> crmCompanySearch env
+  :<|> crmPipelineStagesList env :<|> crmPipelineStageRules env
+  :<|> crmPipelineForecastRefresh env :<|> crmDealStageHistory env
+  :<|> notificationsList env :<|> notificationsCreate env :<|> notificationsMarkRead env
+  :<|> notificationsGetPrefs env :<|> notificationsUpdatePrefs env
+  :<|> notificationsSendTest env :<|> notificationsSendDigest env
+  :<|> reportsPnL env :<|> reportsInventory env
+  :<|> ordersList env :<|> ordersCreate env :<|> ordersGet env :<|> ordersUpdate env :<|> ordersDelete env
+  :<|> workflowsList env :<|> workflowsCreate env
+  :<|> workflowsInstancesList env :<|> workflowsGetInstance env :<|> workflowsCompleteInstance env
 
-dashboardOrders :: Env -> Handler [Dashboard.OrderStatus]
-dashboardOrders env = do
-  result <- liftIO $ Dashboard.getOrderStatuses (envPool env)
-  case result of
-    QuerySuccess statuses -> pure statuses
-    QueryError err -> throwError $ err500 {errBody = LBS.encodeUtf8 $ "Dashboard error: " <> TL.fromStrict err}
+-- ── Helpers ──────────────────────────────────────────────────────────────────
 
-dashboardStock :: Env -> Handler [Dashboard.StockSummary]
-dashboardStock env = do
-  result <- liftIO $ Dashboard.getStockSummary (envPool env)
-  case result of
-    QuerySuccess summary -> pure summary
-    QueryError err -> throwError $ err500 {errBody = LBS.encodeUtf8 $ "Dashboard error: " <> TL.fromStrict err}
+ok :: QueryResult a -> (a -> Handler b) -> Handler b
+ok (QuerySuccess a) f = f a
+ok (QueryError "Not Found") _ = throwError err404
+ok (QueryError e) _ = throwError $ err500 { errBody = LBS.encodeUtf8 (TL.fromStrict e) }
 
-crmDealsList :: Env -> Handler [CRM.Deal]
-crmDealsList env = do
-  result <- liftIO $ CRM.listDeals (envPool env)
-  case result of
-    QuerySuccess deals -> pure deals
-    QueryError err -> throwError $ err500 {errBody = LBS.encodeUtf8 $ "CRM error: " <> TL.fromStrict err}
+liftQ :: IO (QueryResult a) -> Handler a
+liftQ action = liftIO action >>= \r -> ok r pure
 
-crmDealCreate :: Env -> CRM.DealInput -> Handler CRM.Deal
-crmDealCreate env input = do
-  result <- liftIO $ CRM.createDeal (envPool env) input
-  case result of
-    QuerySuccess deal -> pure deal
-    QueryError err -> throwError $ err500 {errBody = LBS.encodeUtf8 $ "CRM error: " <> TL.fromStrict err}
+-- ── Handlers ─────────────────────────────────────────────────────────────────
 
-crmDealGet :: Env -> Text -> Handler CRM.Deal
-crmDealGet env did = do
-  result <- liftIO $ CRM.getDeal (envPool env) did
+handleLogin :: Env -> LoginRequest -> Handler LoginResponse
+handleLogin env req = do
+  result <- liftIO $ DAL.Mutations.authenticateUser (envPool env) (lrUsername req) (lrPassword req)
   case result of
-    QuerySuccess deal -> pure deal
-    QueryError "Not Found" -> throwError err404
-    QueryError err -> throwError $ err500 {errBody = LBS.encodeUtf8 $ "CRM error: " <> TL.fromStrict err}
+    QueryError e -> throwError $ err500 { errBody = LBS.encodeUtf8 (TL.fromStrict e) }
+    QuerySuccess Nothing -> throwError err401
+    QuerySuccess (Just user) -> do
+      token <- liftIO $ JWT.generateToken (envPool env) user
+      pure $ LoginResponse token Nothing (DAL.userId user) 3600
 
-crmDealStageUpdate :: Env -> Text -> Text -> Handler CRM.Deal
-crmDealStageUpdate env did stageId = do
-  result <- liftIO $ CRM.updateDealStage (envPool env) did stageId
-  case result of
-    QuerySuccess deal -> pure deal
-    QueryError err -> throwError $ err500 {errBody = LBS.encodeUtf8 $ "CRM error: " <> TL.fromStrict err}
+billsList env         = liftQ $ Bills.listBills (envPool env)
+billsCreate env i     = liftQ $ Bills.createBill (envPool env) i
+billGet env bid       = liftQ $ Bills.getBill (envPool env) bid
+billPost env bid      = liftQ $ Bills.postBill (envPool env) bid
 
-crmPipelineForecast :: Env -> Handler [CRM.PipelineForecast]
-crmPipelineForecast env = do
-  result <- liftIO $ CRM.getPipelineForecast (envPool env)
-  case result of
-    QuerySuccess forecast -> pure forecast
-    QueryError err -> throwError $ err500 {errBody = LBS.encodeUtf8 $ "CRM error: " <> TL.fromStrict err}
+goodsList env         = liftQ $ Goods.listGoods (envPool env)
+personsList env       = liftQ $ Persons.listPersons (envPool env) Nothing Nothing Nothing Nothing Nothing
+paymentsList env      = liftQ $ Payments.listPayments (envPool env)
 
-crmDealActivities :: Env -> Text -> Handler [CRM.Activity]
-crmDealActivities env did = do
-  result <- liftIO $ CRM.listActivities (envPool env) did
-  case result of
-    QuerySuccess activities -> pure activities
-    QueryError err -> throwError $ err500 {errBody = LBS.encodeUtf8 $ "CRM error: " <> TL.fromStrict err}
+dashboardKPI env      = liftQ $ Dashboard.getDashboardKPI (envPool env)
+dashboardRevenue env  = liftQ $ Dashboard.getRevenueTrend (envPool env)
+dashboardOrders env   = liftQ $ Dashboard.getOrderStatuses (envPool env)
+dashboardStock env    = liftQ $ Dashboard.getStockSummary (envPool env)
 
-billsList :: Env -> Handler [Bill]
-billsList env = do
-  result <- liftIO $ Bills.listBills (envPool env)
-  case result of
-    QuerySuccess bills -> pure bills
-    QueryError err -> throwError $ err500 {errBody = LBS.encodeUtf8 $ "Database error: " <> TL.fromStrict err}
+crmDealsList env            = liftQ $ CRM.listDeals (envPool env)
+crmDealCreate env i         = liftQ $ CRM.createDeal (envPool env) i
+crmDealGet env did          = liftQ $ CRM.getDeal (envPool env) did
+crmDealStageUpdate env d s  = liftQ $ CRM.updateDealStage (envPool env) d s
+crmPipelineForecast env     = liftQ $ CRM.getPipelineForecast (envPool env)
+crmDealActivities env did   = liftQ $ CRM.listActivities (envPool env) did
+crmContactsList env         = liftQ $ CRM.listContacts (envPool env)
+crmContactCreate env i      = liftQ $ CRM.createContact (envPool env) i
+crmContactGet env cid       = liftQ $ CRM.getContact (envPool env) cid
+crmContactUpdate env cid i  = liftQ $ CRM.updateContact (envPool env) cid i
+crmContactDelete env cid    = liftQ $ CRM.deleteContact (envPool env) cid
+crmContactSearch env q      = liftQ $ CRM.searchContacts (envPool env) q
+crmCompaniesList env        = liftQ $ CRM.listCompanies (envPool env)
+crmCompanyCreate env i      = liftQ $ CRM.createCompany (envPool env) i
+crmCompanyGet env coid      = liftQ $ CRM.getCompany (envPool env) coid
+crmCompanyUpdate env coid i = liftQ $ CRM.updateCompany (envPool env) coid i
+crmCompanyDelete env coid   = liftQ $ CRM.deleteCompany (envPool env) coid
+crmCompanySearch env q      = liftQ $ CRM.searchCompanies (envPool env) q
+crmPipelineStagesList env   = liftQ $ CRM.listPipelineStages (envPool env)
+crmPipelineStageRules env s = liftQ $ CRM.getStageRules (envPool env) s
+crmPipelineForecastRefresh env = liftQ $ CRM.refreshPipelineForecast (envPool env)
+crmDealStageHistory env did = liftQ $ CRM.getStageHistory (envPool env) did
 
-billsCreate :: Env -> BillInput -> Handler Bill
-billsCreate env input = do
-  result <- liftIO $ Bills.createBill (envPool env) input
-  case result of
-    QuerySuccess bill -> pure bill
-    QueryError err -> throwError $ err500 {errBody = LBS.encodeUtf8 $ "Database error: " <> TL.fromStrict err}
+notificationsList env       = liftQ $ Notifications.listNotifications (envPool env) 1
+notificationsCreate env i   = liftQ $ Notifications.createNotification (envPool env) i
+notificationsMarkRead env nid = liftQ $ Notifications.markNotificationRead (envPool env) nid
+notificationsGetPrefs env   = liftQ $ Notifications.getPreferences (envPool env)
+notificationsUpdatePrefs env i = liftQ $ Notifications.updateNotificationPrefs (envPool env) 1 i
+notificationsSendTest env   = liftQ $ Notifications.sendEmailNotification (envPool env)
+  (Notifications.NotificationInput 1 "Test" "Test notification" "test")
+notificationsSendDigest env f = liftQ $ Notifications.sendDigestNotification (envPool env) 1 f
 
-billGet :: Env -> Int64 -> Handler Bill
-billGet env bid = do
-  result <- liftIO $ Bills.getBill (envPool env) bid
-  case result of
-    QuerySuccess bill -> pure bill
-    QueryError "Not Found" -> throwError err404
-    QueryError err -> throwError $ err500 {errBody = LBS.encodeUtf8 $ "Database error: " <> TL.fromStrict err}
+reportsPnL env      = liftQ $ Reports.getPnLReport (envPool env)
+reportsInventory env = liftQ $ Reports.getInventoryReport (envPool env)
 
--- | Post a bill to update status
-billPost :: Env -> Int64 -> Handler ()
-billPost env bid = do
-  result <- liftIO $ Bills.postBill (envPool env) bid
-  case result of
-    QuerySuccess () -> pure ()
-    QueryError err -> throwError $ err500 {errBody = LBS.encodeUtf8 $ "Database error: " <> TL.fromStrict err}
+ordersList env        = liftQ $ Orders.listOrders (envPool env)
+ordersCreate env i    = liftQ $ Orders.createOrder (envPool env) i
+ordersGet env oid     = liftQ $ Orders.getOrder (envPool env) oid
+ordersUpdate env oid i = liftQ $ Orders.updateOrder (envPool env) oid i
+ordersDelete env oid  = liftQ $ Orders.deleteOrder (envPool env) oid
 
-goodsList :: Env -> Handler [Goods]
-goodsList env = do
-  result <- liftIO $ Goods.listGoods (envPool env)
-  case result of
-    QuerySuccess goods -> pure goods
-    QueryError err -> throwError $ err500 {errBody = LBS.encodeUtf8 $ "Database error: " <> TL.fromStrict err}
-
-personsList :: Env -> Handler [Person]
-personsList env = do
-  result <- liftIO $ Persons.listPersons (envPool env) Nothing Nothing Nothing Nothing Nothing
-  case result of
-    QuerySuccess persons -> pure persons
-    QueryError err -> throwError $ err500 {errBody = LBS.encodeUtf8 $ "Database error: " <> TL.fromStrict err}
-
-paymentsList :: Env -> Handler [Payment]
-paymentsList env = do
-  result <- liftIO $ Payments.listPayments (envPool env)
-  case result of
-    QuerySuccess payments -> pure payments
-    QueryError err -> throwError $ err500 {errBody = LBS.encodeUtf8 $ "Database error: " <> TL.fromStrict err}
+workflowsList env     = liftQ $ Workflow.listWorkflows (envPool env)
+workflowsCreate env i = liftQ $ Workflow.createWorkflow (envPool env) i
+workflowsInstancesList env = liftQ $ Workflow.listWorkflowInstances (envPool env)
+workflowsGetInstance env iid = liftQ $ Workflow.getWorkflowInstance (envPool env) iid
+workflowsCompleteInstance env iid = liftQ $ Workflow.completeWorkflow (envPool env) iid
