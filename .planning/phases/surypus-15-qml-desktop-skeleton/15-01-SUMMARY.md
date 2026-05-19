@@ -74,7 +74,9 @@ metrics:
 - Added missing types and stub implementations to unblock the build
 - All 7 notification handler stubs return sensible defaults
 
-## Self-Check
+## Self-Check: PASSED
+
+All created files verified on disk. Build (`stack build surypus-api`) exits 0. Tests (`stack test surypus-api`) pass with 6 examples, 0 failures, 1 pending.
 
 - [x] `Surypus.JWT.Token` module exists with `generateToken` and `verifyToken`
 - [x] Tests pass: valid token round-trips, expired/tampered tokens rejected

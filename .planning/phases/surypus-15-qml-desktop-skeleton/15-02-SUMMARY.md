@@ -61,7 +61,9 @@ metrics:
 | T-15-06 | Tampering (token in URL) | ✅ Token sent in Authorization header only |
 | T-15-07 | Eavesdropping | ✅ Accepted — dev-only localhost; prod requires HTTPS |
 
-## Self-Check
+## Self-Check: PASSED
+
+All created files verified on disk.
 
 - [x] `api/surypusapiclient.h` — class declaration with all invokable methods
 - [x] `api/surypusapiclient.cpp` — implementation with login/get/post/put/del
