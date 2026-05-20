@@ -18,11 +18,13 @@ import Control.Concurrent.STM
 import Control.Exception (finally)
 import Control.Monad (forever)
 import Data.Aeson (Value, encode, object, (.=))
+import Data.Int (Int64)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as M
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
+import qualified Data.ByteString.Lazy as LBS
 import qualified Network.WebSockets as WS
 
 -- | WebSocket handler managing connections and rooms
@@ -85,7 +87,7 @@ broadcastInventoryEvent handler goodsId eventType eventValue = do
         , "eventType" .= eventType
         , "data" .= eventValue
         ]
-  broadcastToInventoryRoom handler (TE.decodeUtf8 $ encode eventObj)
+  broadcastToInventoryRoom handler (TE.decodeUtf8 $ LBS.toStrict $ encode eventObj)
 
 -- | Broadcast to dashboard room specifically
 broadcastToDashboardRoom :: WebSocketHandler -> Text -> IO ()
@@ -98,4 +100,4 @@ broadcastDashboardEvent handler eventType eventValue = do
         [ "eventType" .= eventType
         , "data" .= eventValue
         ]
-  broadcastToDashboardRoom handler (TE.decodeUtf8 $ encode eventObj)
+  broadcastToDashboardRoom handler (TE.decodeUtf8 $ LBS.toStrict $ encode eventObj)

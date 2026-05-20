@@ -10,7 +10,7 @@ import qualified Data.Text as T
 import Data.Aeson (ToJSON)
 import GHC.Generics (Generic)
 import DAL.Database (Pool)
-import Surypus.CoreTypes (QueryResult(..))
+import DAL.Types (QueryResult(..))
 
 data Report = Report
   { rptName :: !Text, rptData :: !Text

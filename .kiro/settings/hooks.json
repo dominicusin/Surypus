@@ -1,0 +1,41 @@
+{
+  "hooks": {
+    "onSave": [
+      {
+        "pattern": "**/*.{js,ts,jsx,tsx}",
+        "command": "npx prettier --write"
+      }
+    ],
+    "onSessionStop": [
+      {
+        "command": "kspec context",
+        "description": "Update CONTEXT.md on session end"
+      }
+    ],
+    "beforeShell": [
+      {
+        "pattern": "rm -rf *",
+        "action": "block",
+        "message": "Destructive operations blocked by policy"
+      },
+      {
+        "pattern": "git push --force",
+        "action": "block",
+        "message": "Force push blocked by policy"
+      }
+    ],
+    "afterShell": [
+      {
+        "pattern": "*",
+        "command": "echo \"[$(date)] $SHELL_COMMAND\" >> .kiro/audit.log",
+        "description": "Audit log all shell commands"
+      }
+    ],
+    "onTestComplete": [
+      {
+        "command": "kspec task-status --update-from-test-results",
+        "description": "Auto-update task status from test results"
+      }
+    ]
+  }
+}

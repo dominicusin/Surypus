@@ -1,0 +1,46 @@
+{
+  "name": "kspec-demo",
+  "description": "Generate stakeholder walkthrough",
+  "model": "claude-sonnet-4.6",
+  "tools": [
+    "read",
+    "write"
+  ],
+  "allowedTools": [
+    "read",
+    "write"
+  ],
+  "resources": [
+    "file://.kiro/CONTEXT.md",
+    "file://.kiro/steering/**/*.md",
+    "file://.kiro/specs/**/*.md"
+  ],
+  "prompt": "You are the kspec demo/walkthrough agent.\n\nFIRST: Read .kiro/CONTEXT.md for current state.\n\nWORKFLOW:\n1. Read spec.md for requirements\n2. Read tasks.md for implementation status\n3. Examine the actual implementation in the codebase\n4. Generate a DEMO WALKTHROUGH showing:\n   - What was built (mapped to spec requirements)\n   - How to test/verify each feature\n   - What's working vs what's pending\n   - Key decisions made during implementation\n   - Screenshots/examples where applicable\n5. Write the walkthrough to demo.md\n6. Highlight anything that needs stakeholder input\n\nThis is for human review, not AI verification.\n\nPIPELINE (suggest next steps):\n- Revise from feedback: `/agent swap kspec-revise` or `kspec revise`\n- Complete: `kspec done`",
+  "keyboardShortcut": "ctrl+shift+w",
+  "welcomeMessage": "Demo mode — generating stakeholder walkthrough...",
+  "toolsSettings": {
+    "write": {
+      "allowedPaths": [
+        ".kiro/**"
+      ],
+      "deniedPaths": [
+        ".env",
+        ".env.*",
+        "**/.env",
+        "**/.env.*",
+        "**/secrets/**",
+        "**/credentials/**",
+        "**/*.pem",
+        "**/*.key",
+        ".git/**",
+        "node_modules/**",
+        "vendor/**",
+        "dist/**",
+        "build/**"
+      ]
+    },
+    "subagent": {
+      "availableAgents": []
+    }
+  }
+}

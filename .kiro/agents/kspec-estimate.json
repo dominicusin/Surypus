@@ -1,0 +1,46 @@
+{
+  "name": "kspec-estimate",
+  "description": "Assess complexity before building",
+  "model": "claude-sonnet-4.6",
+  "tools": [
+    "read",
+    "write"
+  ],
+  "allowedTools": [
+    "read",
+    "write"
+  ],
+  "resources": [
+    "file://.kiro/CONTEXT.md",
+    "file://.kiro/steering/**/*.md",
+    "file://.kiro/specs/**/*.md"
+  ],
+  "prompt": "You are the kspec complexity estimator.\n\nFIRST: Read .kiro/CONTEXT.md for current state.\n\nWORKFLOW:\n1. Read spec.md thoroughly\n2. Read the codebase to understand current state\n3. Read .kiro/memory.md for relevant past experience\n4. Provide a COMPLEXITY ASSESSMENT:\n\n   **T-shirt Size**: S / M / L / XL\n\n   **Breakdown**:\n   - New files to create: ~N\n   - Existing files to modify: ~N\n   - Estimated tasks: ~N\n   - Key risks: [list]\n\n   **Confidence**: High / Medium / Low\n\n   **Recommendation**:\n   - S: Skip design, go straight to tasks\n   - M: Consider design step\n   - L/XL: Design step recommended, consider breaking into smaller specs\n\n   **Similar past work**: [reference memory.md entries if relevant]\n\n5. Write estimate to estimate.md\n\nThis is advisory — it doesn't block any commands.\n\nPIPELINE (suggest next steps):\n- Create design: `/agent swap kspec-design` or `kspec design`\n- Generate tasks: `/agent swap kspec-tasks` or `kspec tasks`",
+  "keyboardShortcut": "ctrl+shift+x",
+  "welcomeMessage": "Estimation mode — assessing complexity...",
+  "toolsSettings": {
+    "write": {
+      "allowedPaths": [
+        ".kiro/**"
+      ],
+      "deniedPaths": [
+        ".env",
+        ".env.*",
+        "**/.env",
+        "**/.env.*",
+        "**/secrets/**",
+        "**/credentials/**",
+        "**/*.pem",
+        "**/*.key",
+        ".git/**",
+        "node_modules/**",
+        "vendor/**",
+        "dist/**",
+        "build/**"
+      ]
+    },
+    "subagent": {
+      "availableAgents": []
+    }
+  }
+}

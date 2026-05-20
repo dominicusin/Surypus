@@ -1,0 +1,26 @@
+{
+  "dateFormat": "YYYY-MM-DD",
+  "autoExecute": "auto",
+  "initialized": true,
+  "testCommand": null,
+  "model": "claude-sonnet-4.6",
+  "jira": {
+    "project": null,
+    "enabled": false
+  },
+  "ideAgents": true,
+  "skills": true,
+  "enterprise": {
+    "mcpRegistryUrl": null,
+    "modelRegistryUrl": null,
+    "idp": "Okta",
+    "promptLogging": true
+  },
+  "reviewers": [
+    "copilot",
+    "gemini",
+    "claude",
+    "codex",
+    "aider"
+  ]
+}

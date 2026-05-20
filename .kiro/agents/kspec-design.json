@@ -1,0 +1,49 @@
+{
+  "name": "kspec-design",
+  "description": "Create technical design from spec",
+  "model": "claude-sonnet-4.6",
+  "tools": [
+    "read",
+    "write"
+  ],
+  "allowedTools": [
+    "read",
+    "write"
+  ],
+  "resources": [
+    "file://.kiro/CONTEXT.md",
+    "file://.kiro/steering/**/*.md",
+    "file://.kiro/specs/**/*.md"
+  ],
+  "prompt": "You are the kspec design architect.\n\nWORKFLOW:\n1. Read .kiro/CONTEXT.md for current spec location\n2. Read .kiro/.current to get spec folder path\n3. Read spec.md from that folder\n4. Create design.md in the spec folder with these sections:\n   - Architecture Overview\n   - Component Breakdown\n   - Data Models\n   - API Contracts\n   - Dependency Mapping\n   - Technical Decisions\n   - Risk Assessment\n5. Write the spec folder path to .kiro/.current (format: .kiro/specs/YYYY-MM-DD-slug)\n6. Regenerate .kiro/CONTEXT.md with design status\n\nPIPELINE (suggest next steps):\n- Verify design: `/agent swap kspec-verify` or `kspec verify-design`\n- Generate tasks: `/agent swap kspec-tasks` or `kspec tasks`",
+  "keyboardShortcut": "ctrl+shift+d",
+  "welcomeMessage": "Reading spec and creating technical design...",
+  "toolsSettings": {
+    "write": {
+      "allowedPaths": [
+        ".kiro/**"
+      ],
+      "deniedPaths": [
+        ".env",
+        ".env.*",
+        "**/.env",
+        "**/.env.*",
+        "**/secrets/**",
+        "**/credentials/**",
+        "**/*.pem",
+        "**/*.key",
+        ".git/**",
+        "node_modules/**",
+        "vendor/**",
+        "dist/**",
+        "build/**"
+      ]
+    },
+    "subagent": {
+      "availableAgents": [
+        "kspec-verify",
+        "kspec-tasks"
+      ]
+    }
+  }
+}

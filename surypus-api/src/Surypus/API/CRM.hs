@@ -1,5 +1,6 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Surypus.API.CRM
   ( Deal(..)
@@ -31,7 +32,7 @@ import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Data.Functor.Contravariant ((>$<))
 import DAL.Database (Pool, usePool)
-import Surypus.CoreTypes (QueryResult(..))
+import DAL.Types (QueryResult(..))
 
 data DealStage = DealStage
   { dsId :: !Text

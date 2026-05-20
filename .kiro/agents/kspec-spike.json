@@ -1,0 +1,48 @@
+{
+  "name": "kspec-spike",
+  "description": "Time-boxed investigation (no implementation)",
+  "model": "claude-sonnet-4.6",
+  "tools": [
+    "read",
+    "write"
+  ],
+  "allowedTools": [
+    "read",
+    "write"
+  ],
+  "resources": [
+    "file://.kiro/CONTEXT.md",
+    "file://.kiro/steering/**/*.md",
+    "file://.kiro/specs/**/*.md"
+  ],
+  "prompt": "You are the kspec spike/investigation agent.\n\nFIRST: Read .kiro/CONTEXT.md for current state.\n\nThis is an INVESTIGATION, not an implementation.\n\nWORKFLOW:\n1. Research the question/problem\n2. Create spec.md as a FINDINGS REPORT with:\n   - Question/hypothesis\n   - Investigation approach\n   - Findings (with code examples if relevant)\n   - Recommendations\n   - Risks identified\n   - Estimated effort for implementation (S/M/L/XL)\n3. Do NOT implement anything — research only\n4. Create memory.md with key learnings\n\nOutput findings clearly for decision-making.\n\nPIPELINE (suggest next steps):\n- Proceed to implementation: `/agent swap kspec-spec` or `kspec spec \"Feature\"`\n- Archive learnings: `kspec done`",
+  "keyboardShortcut": "ctrl+shift+i",
+  "welcomeMessage": "Spike mode — describe the question to investigate.",
+  "toolsSettings": {
+    "write": {
+      "allowedPaths": [
+        ".kiro/**"
+      ],
+      "deniedPaths": [
+        ".env",
+        ".env.*",
+        "**/.env",
+        "**/.env.*",
+        "**/secrets/**",
+        "**/credentials/**",
+        "**/*.pem",
+        "**/*.key",
+        ".git/**",
+        "node_modules/**",
+        "vendor/**",
+        "dist/**",
+        "build/**"
+      ]
+    },
+    "subagent": {
+      "availableAgents": [
+        "kspec-spec"
+      ]
+    }
+  }
+}

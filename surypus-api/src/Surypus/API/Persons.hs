@@ -1,4 +1,4 @@
-{#- LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Surypus.API.Persons
@@ -13,7 +13,8 @@ where
 
 import DAL.Types (Person (..), PersonInput (..), QueryResult (..))
 import DAL.Database (Pool)
-import DAL.Queries (getPersons, getPersonById, searchPersons as searchPersonsDB)
+import DAL.Queries (getPersons, getPersonById, searchPersons)
+import qualified DAL.Queries as Queries
 import qualified DAL.Mutations as Mut
 import Data.Int (Int64)
 import qualified Data.Text as T
@@ -53,4 +54,4 @@ deletePerson pool pid = do
 
 -- | Search persons using DAL.Queries
 searchPersons :: Pool -> String -> IO (QueryResult [Person])
-searchPersons pool query = searchPersonsDB pool (T.pack query)
+searchPersons pool query = Queries.searchPersons pool (T.pack query)

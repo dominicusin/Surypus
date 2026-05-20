@@ -1,5 +1,6 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Surypus.API.Dashboard
   ( DashboardKPI(..)
@@ -24,7 +25,7 @@ import qualified Hasql.Statement as Statement
 import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import DAL.Database (Pool, usePool)
-import Surypus.CoreTypes (QueryResult(..))
+import DAL.Types (QueryResult(..))
 
 data DashboardKPI = DashboardKPI
   { kpiRevenue :: !Double

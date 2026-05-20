@@ -1,0 +1,137 @@
+{
+  "name": "kspec-build",
+  "description": "Execute tasks with TDD",
+  "model": "claude-sonnet-4.6",
+  "tools": [
+    "read",
+    "write",
+    "shell",
+    "@fetch"
+  ],
+  "allowedTools": [
+    "read",
+    "write",
+    "shell",
+    "@fetch"
+  ],
+  "resources": [
+    "file://.kiro/CONTEXT.md",
+    "file://.kiro/steering/**/*.md",
+    "file://.kiro/specs/**/*.md"
+  ],
+  "prompt": "You are the kspec builder.\n\nWORKFLOW:\n1. Read .kiro/CONTEXT.md for current spec and task progress\n2. Read .kiro/.current to get spec folder path\n3. Read tasks.md from spec folder, find first uncompleted task (- [ ])\n4. For each task, follow STRICT RED-GREEN-REFACTOR:\n   a) Write a failing test for the expected behavior\n   b) Run test — CONFIRM it FAILS (log output). Do NOT proceed if it passes without new code.\n   c) Write MINIMAL implementation to make the failing test pass\n   d) Run test — confirm it passes (log output)\n   e) Refactor if needed, run tests again\n   f) Run ALL tests to check for regressions\n   g) Mark task complete: change \"- [ ]\" to \"- [x]\"\n   h) Update tasks.md file\n   i) Commit with descriptive message\n   j) After completing tasks, regenerate .kiro/CONTEXT.md with updated progress\n\nCRITICAL:\n- NEVER write implementation code before confirming test failure\n- Always update tasks.md after completing each task\n- Update .kiro/CONTEXT.md with current task and progress\n- NEVER delete .kiro folders\n- Use non-interactive flags for commands (--yes, -y)\n- After major changes or /compact: `/agent swap kspec-context` to refresh CONTEXT.md\n\nCHUNK BOUNDARIES:\n- If tasks.md contains \"## Chunk N:\" headers, work on one chunk at a time\n- When all tasks in a chunk are complete, STOP and suggest creating a PR\n- Only continue to the next chunk after user confirms\n\nJIRA INTEGRATION (when Atlassian MCP is available):\n- After completing a task, update the corresponding Jira subtask status if user asks\n- Add implementation notes as comments on Jira subtasks\n- Update the parent story with progress summary when requested\n\nPIPELINE (suggest next steps):\n- When all tasks complete: `/agent swap kspec-verify` or `kspec verify`\n- Review code: `/agent swap kspec-review` or `kspec review`\n- Sync to Jira: `/agent swap kspec-jira` or `kspec sync-jira`\n\n<!-- kspec:mcp-tools -->\n## Available MCP Tools\nYou have access to: `@fetch`.\n- Prefer MCP tools over manual lookups when fetching external context (Jira tickets, GitHub issues, Confluence pages, design docs).\n- Cite the source MCP and resource ID in spec/design output so reviewers can trace provenance.\n- If a relevant MCP is not in your tools list but seems needed, surface that as a question rather than guessing.",
+  "keyboardShortcut": "ctrl+shift+b",
+  "welcomeMessage": "Reading current task and building...",
+  "toolsSettings": {
+    "write": {
+      "allowedPaths": [
+        ".kiro/**",
+        "src/**",
+        "lib/**",
+        "app/**",
+        "test/**",
+        "tests/**",
+        "spec/**",
+        "*.md",
+        "*.json",
+        "*.yml",
+        "*.yaml",
+        "*.ts",
+        "*.tsx",
+        "*.js",
+        "*.jsx",
+        "*.py",
+        "*.go",
+        "*.rs"
+      ],
+      "deniedPaths": [
+        ".env",
+        ".env.*",
+        "**/.env",
+        "**/.env.*",
+        "**/secrets/**",
+        "**/credentials/**",
+        "**/*.pem",
+        "**/*.key",
+        ".git/**",
+        "node_modules/**",
+        "vendor/**",
+        "dist/**",
+        "build/**"
+      ]
+    },
+    "shell": {
+      "allowedCommands": [
+        "npm *",
+        "pnpm *",
+        "yarn *",
+        "pytest",
+        "pytest *",
+        "go test",
+        "go test *",
+        "go build",
+        "go build *",
+        "cargo test",
+        "cargo test *",
+        "cargo build",
+        "cargo build *",
+        "mvn *",
+        "gradle *",
+        "git status",
+        "git diff",
+        "git diff *",
+        "git log",
+        "git log *",
+        "git add *",
+        "git commit *",
+        "git checkout *",
+        "git branch *",
+        "mkdir *",
+        "touch *",
+        "node *",
+        "python *",
+        "python3 *",
+        "ruby *",
+        "rg *",
+        "grep *",
+        "find *",
+        "ls",
+        "ls *",
+        "cat *",
+        "head *",
+        "tail *",
+        "wc *"
+      ],
+      "deniedCommands": [
+        "rm -rf *",
+        "rm -r *",
+        "git push *",
+        "git reset --hard *",
+        "git clean -f*",
+        "git rebase *",
+        "sudo *",
+        "su *",
+        "curl *",
+        "wget *",
+        "npm publish*",
+        "npm install -g*",
+        "pip install *",
+        "gem install *",
+        "apt *",
+        "apt-get *",
+        "brew *",
+        "chmod 777*",
+        "chown *"
+      ],
+      "autoAllowReadonly": true
+    },
+    "subagent": {
+      "availableAgents": [
+        "kspec-verify",
+        "kspec-review",
+        "kspec-fix"
+      ]
+    }
+  },
+  "includeMcpJson": true
+}

@@ -1,0 +1,129 @@
+{
+  "name": "kspec-refactor",
+  "description": "Refactor code with no behavior change",
+  "model": "claude-sonnet-4.6",
+  "tools": [
+    "read",
+    "write",
+    "bash"
+  ],
+  "allowedTools": [
+    "read",
+    "write",
+    "bash"
+  ],
+  "resources": [
+    "file://.kiro/CONTEXT.md",
+    "file://.kiro/steering/**/*.md",
+    "file://.kiro/specs/**/*.md"
+  ],
+  "prompt": "You are the kspec refactoring agent.\n\nFIRST: Read .kiro/CONTEXT.md for current state.\n\nWORKFLOW:\n1. Read the codebase area being refactored\n2. DISCUSS APPROACH (before creating files):\n   - After reading the code area, ask 1-2 questions:\n     * \"I see the current structure is X. I propose restructuring to Y. Sound good?\"\n     * \"Any areas that should NOT be touched during this refactor?\"\n   - Propose defaults. Wait for answers. Skip if told \"just do it\".\n3. Create spec.md with:\n   - Current state (what exists)\n   - Target state (what it should look like)\n   - Constraints (behavior must not change)\n   - Refactor approach\n4. Create tasks.md with refactor tasks:\n   - Ensure existing tests pass first\n   - Restructure step by step\n   - Run tests after each change\n   - If adding new tests, follow RED-GREEN-REFACTOR: write failing test, confirm failure, then implement\n5. Execute tasks\n\nCRITICAL: Run existing tests before AND after each change. No behavior changes.\n\nPIPELINE (suggest next steps):\n- Verify: `/agent swap kspec-verify` or `kspec verify`\n- Review: `/agent swap kspec-review` or `kspec review`",
+  "keyboardShortcut": "ctrl+shift+g",
+  "welcomeMessage": "Refactor mode — describe what to refactor and why.",
+  "toolsSettings": {
+    "write": {
+      "allowedPaths": [
+        ".kiro/**",
+        "src/**",
+        "lib/**",
+        "app/**",
+        "test/**",
+        "tests/**",
+        "spec/**",
+        "*.ts",
+        "*.tsx",
+        "*.js",
+        "*.jsx",
+        "*.py",
+        "*.go",
+        "*.rs"
+      ],
+      "deniedPaths": [
+        ".env",
+        ".env.*",
+        "**/.env",
+        "**/.env.*",
+        "**/secrets/**",
+        "**/credentials/**",
+        "**/*.pem",
+        "**/*.key",
+        ".git/**",
+        "node_modules/**",
+        "vendor/**",
+        "dist/**",
+        "build/**"
+      ]
+    },
+    "shell": {
+      "allowedCommands": [
+        "npm *",
+        "pnpm *",
+        "yarn *",
+        "pytest",
+        "pytest *",
+        "go test",
+        "go test *",
+        "go build",
+        "go build *",
+        "cargo test",
+        "cargo test *",
+        "cargo build",
+        "cargo build *",
+        "mvn *",
+        "gradle *",
+        "git status",
+        "git diff",
+        "git diff *",
+        "git log",
+        "git log *",
+        "git add *",
+        "git commit *",
+        "git checkout *",
+        "git branch *",
+        "mkdir *",
+        "touch *",
+        "node *",
+        "python *",
+        "python3 *",
+        "ruby *",
+        "rg *",
+        "grep *",
+        "find *",
+        "ls",
+        "ls *",
+        "cat *",
+        "head *",
+        "tail *",
+        "wc *"
+      ],
+      "deniedCommands": [
+        "rm -rf *",
+        "rm -r *",
+        "git push *",
+        "git reset --hard *",
+        "git clean -f*",
+        "git rebase *",
+        "sudo *",
+        "su *",
+        "curl *",
+        "wget *",
+        "npm publish*",
+        "npm install -g*",
+        "pip install *",
+        "gem install *",
+        "apt *",
+        "apt-get *",
+        "brew *",
+        "chmod 777*",
+        "chown *"
+      ],
+      "autoAllowReadonly": true
+    },
+    "subagent": {
+      "availableAgents": [
+        "kspec-verify",
+        "kspec-review"
+      ]
+    }
+  }
+}

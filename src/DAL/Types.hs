@@ -38,7 +38,24 @@ module DAL.Types (
     Currency (..),
     CurrencyInput (..),
     TechCard (..),
-    WorkOrder (..)
+    WorkOrder (..),
+    -- Sort and filter types
+    PersonSortBy (..),
+    GoodsSortBy (..),
+    BillSortBy (..),
+    OrderSortBy (..),
+    SortDir (..),
+    PersonFilter (..),
+    GoodsFilter (..),
+    BillFilter (..),
+    OrderFilter (..),
+    DocumentRegisterType (..),
+    Pagination (..),
+    PaginatedResult (..),
+    Workflow (..),
+    WorkflowInstance (..),
+    WorkflowStatus (..),
+    WorkflowInput (..)
 ) where
 
 import Data.Aeson (FromJSON, ToJSON)
@@ -491,13 +508,26 @@ data Currency = Currency
 instance ToJSON Currency
 instance FromJSON Currency
 
+-- | Currency input type
+data CurrencyInput = CurrencyInput
+  { ciCode :: !Text,
+    ciSymbol :: !Text,
+    ciName :: !Text,
+    ciRate :: !Double,
+    ciDefault :: !Bool
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON CurrencyInput
+instance FromJSON CurrencyInput
+
 -- | TechCard type
 data TechCard = TechCard
   { techCardId :: !(Maybe Int64),
-    techCardGoodsId :: !Int64,
-    techCardName :: !Text,
-    techCardCode :: !Text,
-    techCardStatus :: !Int,
+    tgGoodsId :: !Int64,
+    tgName :: !Text,
+    tgVersion :: !Text,
+    tgStatus :: !Int,
     techCardCreatedAt :: !UTCTime,
     techCardUpdatedAt :: !UTCTime,
     techCardNote :: !(Maybe Text)
@@ -528,3 +558,173 @@ data WorkOrder = WorkOrder
 
 instance ToJSON WorkOrder
 instance FromJSON WorkOrder
+
+-- | Sort by options for Person
+data PersonSortBy = PersonSortByName | PersonSortByINN
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON PersonSortBy
+instance FromJSON PersonSortBy
+
+-- | Sort by options for Goods
+data GoodsSortBy = GoodsSortByName | GoodsSortByCode
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON GoodsSortBy
+instance FromJSON GoodsSortBy
+
+-- | Sort by options for Bill
+data BillSortBy = BillSortByDate | BillSortByTotal
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON BillSortBy
+instance FromJSON BillSortBy
+
+-- | Sort direction
+data SortDir = Asc | Desc
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON SortDir
+instance FromJSON SortDir
+
+-- | Person filter options
+data PersonFilter = PersonFilter
+  { pfName :: !(Maybe Text),
+    pfINN :: !(Maybe Text),
+    pfPersonType :: !(Maybe Int),
+    pfStatus :: !(Maybe Int)
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON PersonFilter
+instance FromJSON PersonFilter
+
+-- | Document register type
+data DocumentRegisterType = DocumentRegisterType
+  { drtId :: !Int64,
+    drtCode :: !Text,
+    drtName :: !Text,
+    drtDescription :: !(Maybe Text)
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON DocumentRegisterType
+instance FromJSON DocumentRegisterType
+
+-- | Goods filter options
+data GoodsFilter = GoodsFilter
+  { gfName :: !(Maybe Text),
+    gfCode :: !(Maybe Text),
+    gfBarcode :: !(Maybe Text),
+    gfCategoryId :: !(Maybe Int64),
+    gfStatus :: !(Maybe Int)
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON GoodsFilter
+instance FromJSON GoodsFilter
+
+-- | Bill filter options
+data BillFilter = BillFilter
+  { bfCode :: !(Maybe Text),
+    bfBillType :: !(Maybe Int),
+    bfStatus :: !(Maybe Int),
+    bfPersonId :: !(Maybe Int64),
+    bfLocationId :: !(Maybe Int64),
+    bfDateFrom :: !(Maybe Day),
+    bfDateTo :: !(Maybe Day)
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON BillFilter
+instance FromJSON BillFilter
+
+-- | Order filter options
+data OrderFilter = OrderFilter
+  { ofCode :: !(Maybe Text),
+    ofType :: !(Maybe Int),
+    ofStatus :: !(Maybe Int),
+    ofPersonId :: !(Maybe Int64),
+    ofDateFrom :: !(Maybe Day),
+    ofDateTo :: !(Maybe Day)
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON OrderFilter
+instance FromJSON OrderFilter
+
+-- | Sort by options for Order
+data OrderSortBy = OrderSortByDate | OrderSortByTotal
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON OrderSortBy
+instance FromJSON OrderSortBy
+
+-- | Pagination parameters
+data Pagination = Pagination
+  { pgLimit :: !Int,
+    pgOffset :: !Int
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON Pagination
+instance FromJSON Pagination
+
+-- | Paginated result wrapper
+data PaginatedResult a = PaginatedResult
+  { prItems :: ![a],
+    prTotal :: !Int,
+    prLimit :: !Int,
+    prOffset :: !Int
+  }
+  deriving stock (Show, Eq, Generic, Functor)
+
+instance ToJSON a => ToJSON (PaginatedResult a)
+instance FromJSON a => FromJSON (PaginatedResult a)
+
+-- | Workflow type
+data Workflow = Workflow
+  { wfId :: !Int64,
+    wfCode :: !Text,
+    wfName :: !(Maybe Text),
+    wfDescription :: !Text,
+    wfEnabled :: !Bool,
+    wfDefinition :: !Text
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON Workflow
+instance FromJSON Workflow
+
+-- | Workflow instance type
+data WorkflowInstance = WorkflowInstance
+  { wiId :: !Int64,
+    wiWorkflowId :: !Int64,
+    wiStatus :: !WorkflowStatus,
+    wiCurrentStep :: !(Maybe Text),
+    wiInput :: !(Maybe WorkflowInput),
+    wiStartedAt :: !(Maybe UTCTime),
+    wiCompletedAt :: !(Maybe UTCTime)
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON WorkflowInstance
+instance FromJSON WorkflowInstance
+
+-- | Workflow status
+data WorkflowStatus = WorkflowPending | WorkflowRunning | WorkflowCompleted | WorkflowFailed
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON WorkflowStatus
+instance FromJSON WorkflowStatus
+
+-- | Workflow input
+data WorkflowInput = WorkflowInput
+  { wiInputData :: !(Maybe Text),
+    wiUserId :: !(Maybe Int64),
+    wiContext :: !(Maybe Text)
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON WorkflowInput
+instance FromJSON WorkflowInput

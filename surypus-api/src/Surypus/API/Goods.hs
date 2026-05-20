@@ -1,4 +1,4 @@
-{#- LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Surypus.API.Goods

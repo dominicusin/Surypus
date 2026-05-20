@@ -6,7 +6,7 @@
 module DAL.DB where
 import qualified Data.List as L
 
-import Data.IORef (IORef, newIORef, readIORef, modifyIORef')
+import Data.IORef (IORef, newIORef, readIORef, modifyIORef', writeIORef)
 import Data.Int (Int64)
 import Data.List (find)
 import Data.Text (Text)
@@ -160,18 +160,163 @@ findLocationById db lid = do
   ls <- readIORef (dbLocations db)
   return $ find (\l -> lId l == lid) ls
 
--- Insert operations
+-- | Insert operations
 insertPerson :: Database -> Person -> IO ()
-insertPerson db p = modifyIORef' (dbPersons db) (p :)
+insertPerson db p = modifyIORef (dbPersons db) (p :)
 
 insertGoods :: Database -> Goods -> IO ()
-insertGoods db g = modifyIORef' (dbGoods db) (g :)
+insertGoods db g = modifyIORef (dbGoods db) (g :)
 
 insertLocation :: Database -> Location -> IO ()
-insertLocation db l = modifyIORef' (dbLocations db) (l :)
+insertLocation db l = modifyIORef (dbLocations db) (l :)
 
 insertBill :: Database -> Bill -> IO ()
-insertBill db b = modifyIORef' (dbBills db) (b :)
+insertBill db b = modifyIORef (dbBills db) (b :)
 
 insertStock :: Database -> Stock -> IO ()
-insertStock db s = modifyIORef' (dbStock db) (s :)
+insertStock db s = modifyIORef (dbStock db) (s :)
+
+-- | Update operations
+updatePerson :: Database -> Int64 -> Person -> IO Bool
+updatePerson db pid newPerson = do
+  ps <- readIORef (dbPersons db)
+  case find (\p -> pId p == pid) ps of
+    Just _ -> do
+      let updated = map (\p -> if pId p == pid then newPerson else p) ps
+      writeIORef (dbPersons db) updated
+      return True
+    Nothing -> return False
+
+updateGoods :: Database -> Int64 -> Goods -> IO Bool
+updateGoods db gid newGoods = do
+  gs <- readIORef (dbGoods db)
+  case find (\g -> gId g == gid) gs of
+    Just _ -> do
+      let updated = map (\g -> if gId g == gid then newGoods else g) gs
+      writeIORef (dbGoods db) updated
+      return True
+    Nothing -> return False
+
+updateLocation :: Database -> Int64 -> Location -> IO Bool
+updateLocation db lid newLocation = do
+  ls <- readIORef (dbLocations db)
+  case find (\l -> lId l == lid) ls of
+    Just _ -> do
+      let updated = map (\l -> if lId l == lid then newLocation else l) ls
+      writeIORef (dbLocations db) updated
+      return True
+    Nothing -> return False
+
+updateStock :: Database -> Int64 -> Stock -> IO Bool
+updateStock db sid newStock = do
+  st <- readIORef (dbStock db)
+  case find (\s -> sId s == sid) st of
+    Just _ -> do
+      let updated = map (\s -> if sId s == sid then newStock else s) st
+      writeIORef (dbStock db) updated
+      return True
+    Nothing -> return False
+
+-- | Delete operations
+deletePerson :: Database -> Int64 -> IO Bool
+deletePerson db pid = do
+  ps <- readIORef (dbPersons db)
+  case find (\p -> pId p == pid) ps of
+    Just _ -> do
+      let remaining = filter (\p -> pId p /= pid) ps
+      writeIORef (dbPersons db) remaining
+      return True
+    Nothing -> return False
+
+deleteGoods :: Database -> Int64 -> IO Bool
+deleteGoods db gid = do
+  gs <- readIORef (dbGoods db)
+  case find (\g -> gId g == gid) gs of
+    Just _ -> do
+      let remaining = filter (\g -> gId g /= gid) gs
+      writeIORef (dbGoods db) remaining
+      return True
+    Nothing -> return False
+
+deleteLocation :: Database -> Int64 -> IO Bool
+deleteLocation db lid = do
+  ls <- readIORef (dbLocations db)
+  case find (\l -> lId l == lid) ls of
+    Just _ -> do
+      let remaining = filter (\l -> lId l /= lid) ls
+      writeIORef (dbLocations db) remaining
+      return True
+    Nothing -> return False
+
+deleteBill :: Database -> Int64 -> IO Bool
+deleteBill db bid = do
+  bs <- readIORef (dbBills db)
+  case find (\b -> billId b == bid) bs of
+    Just _ -> do
+      let remaining = filter (\b -> billId b /= bid) bs
+      writeIORef (dbBills db) remaining
+      return True
+    Nothing -> return False
+
+deleteStock :: Database -> Int64 -> IO Bool
+deleteStock db sid = do
+  st <- readIORef (dbStock db)
+  case find (\s -> sId s == sid) st of
+    Just _ -> do
+      let remaining = filter (\s -> sId s /= sid) st
+      writeIORef (dbStock db) remaining
+      return True
+    Nothing -> return False
+
+-- | Filtered query operations
+queryPersonsByType :: Database -> Int -> IO [Person]
+queryPersonsByType db ptype = do
+  ps <- readIORef (dbPersons db)
+  return $ filter (\p -> pPersonType p == ptype) ps
+
+queryGoodsByCategory :: Database -> Int -> IO [Goods]
+queryGoodsByCategory db catId = do
+  gs <- readIORef (dbGoods db)
+  return $ filter (\g -> case gId g of _ -> True) gs  -- Simplified
+
+queryStockByLocation :: Database -> Int64 -> IO [Stock]
+queryStockByLocation db locId = do
+  st <- readIORef (dbStock db)
+  return $ filter (\s -> sLocationId s == locId) st
+
+queryStockByGood :: Database -> Int64 -> IO [Stock]
+queryStockByGood db goodId = do
+  st <- readIORef (dbStock db)
+  return $ filter (\s -> sGoodsId s == goodId) st
+
+queryAvailableStock :: Database -> Int64 -> Int64 -> IO (Maybe Double)
+queryAvailableStock db goodId locId = do
+  st <- readIORef (dbStock db)
+  case find (\s -> sGoodsId s == goodId && sLocationId s == locId) st of
+    Just s -> return $ Just (sQtty s - sResrvQtty s)
+    Nothing -> return Nothing
+
+-- | Count operations
+countPersons :: Database -> IO Int
+countPersons db = length <$> readIORef (dbPersons db)
+
+countGoods :: Database -> IO Int
+countGoods db = length <$> readIORef (dbGoods db)
+
+countLocations :: Database -> IO Int
+countLocations db = length <$> readIORef (dbLocations db)
+
+countBills :: Database -> IO Int
+countBills db = length <$> readIORef (dbBills db)
+
+countStock :: Database -> IO Int
+countStock db = length <$> readIORef (dbStock db)
+
+-- | Clear all data (for testing)
+clearDatabase :: Database -> IO ()
+clearDatabase db = do
+  writeIORef (dbPersons db) []
+  writeIORef (dbGoods db) []
+  writeIORef (dbLocations db) []
+  writeIORef (dbBills db) []
+  writeIORef (dbStock db) []

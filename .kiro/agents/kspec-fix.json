@@ -1,0 +1,130 @@
+{
+  "name": "kspec-fix",
+  "description": "Fix bugs with abbreviated TDD pipeline",
+  "model": "claude-sonnet-4.6",
+  "tools": [
+    "read",
+    "write",
+    "bash"
+  ],
+  "allowedTools": [
+    "read",
+    "write",
+    "bash"
+  ],
+  "resources": [
+    "file://.kiro/CONTEXT.md",
+    "file://.kiro/steering/**/*.md",
+    "file://.kiro/specs/**/*.md"
+  ],
+  "prompt": "You are the kspec bug fixer.\n\nFIRST: Read .kiro/CONTEXT.md for current state.\n\nWORKFLOW (abbreviated pipeline — no full spec/design/tasks cycle):\n1. Understand the bug from the description\n2. Read the codebase to find the relevant area\n3. DISCUSS BRIEFLY (before creating files):\n   - After reading the codebase area, ask 1-2 quick questions:\n     * \"I think the root cause is X. Does that match what you're seeing?\"\n     * \"I plan to fix it by doing Y. Any concerns?\"\n   - Propose your best guess. Wait for confirmation before executing.\n   - If user says \"skip\" or \"just do it\", proceed with your assessment.\n4. Create spec.md in the spec folder with:\n   - Bug description\n   - Steps to reproduce (if inferable)\n   - Expected vs actual behavior\n   - Root cause analysis\n   - Fix approach\n5. Create tasks.md with fix tasks\n6. Execute tasks using STRICT RED-GREEN-REFACTOR:\n   - Write failing test that reproduces the bug\n   - Run test — CONFIRM it FAILS (this proves the bug exists)\n   - Implement the fix (minimal change)\n   - Run test — confirm it passes\n   - Run ALL tests to verify no regressions\n7. Mark tasks complete as you go\n\nCRITICAL: Do NOT implement fix before confirming test failure. Update tasks.md after each step.\n\nPIPELINE (suggest next steps):\n- Verify fix: `/agent swap kspec-verify` or `kspec verify`\n- Complete: `kspec done`",
+  "keyboardShortcut": "ctrl+shift+f",
+  "welcomeMessage": "Bug fix mode — describe the bug to fix.",
+  "toolsSettings": {
+    "write": {
+      "allowedPaths": [
+        ".kiro/**",
+        "src/**",
+        "lib/**",
+        "app/**",
+        "test/**",
+        "tests/**",
+        "spec/**",
+        "*.md",
+        "*.ts",
+        "*.tsx",
+        "*.js",
+        "*.jsx",
+        "*.py",
+        "*.go",
+        "*.rs"
+      ],
+      "deniedPaths": [
+        ".env",
+        ".env.*",
+        "**/.env",
+        "**/.env.*",
+        "**/secrets/**",
+        "**/credentials/**",
+        "**/*.pem",
+        "**/*.key",
+        ".git/**",
+        "node_modules/**",
+        "vendor/**",
+        "dist/**",
+        "build/**"
+      ]
+    },
+    "shell": {
+      "allowedCommands": [
+        "npm *",
+        "pnpm *",
+        "yarn *",
+        "pytest",
+        "pytest *",
+        "go test",
+        "go test *",
+        "go build",
+        "go build *",
+        "cargo test",
+        "cargo test *",
+        "cargo build",
+        "cargo build *",
+        "mvn *",
+        "gradle *",
+        "git status",
+        "git diff",
+        "git diff *",
+        "git log",
+        "git log *",
+        "git add *",
+        "git commit *",
+        "git checkout *",
+        "git branch *",
+        "mkdir *",
+        "touch *",
+        "node *",
+        "python *",
+        "python3 *",
+        "ruby *",
+        "rg *",
+        "grep *",
+        "find *",
+        "ls",
+        "ls *",
+        "cat *",
+        "head *",
+        "tail *",
+        "wc *"
+      ],
+      "deniedCommands": [
+        "rm -rf *",
+        "rm -r *",
+        "git push *",
+        "git reset --hard *",
+        "git clean -f*",
+        "git rebase *",
+        "sudo *",
+        "su *",
+        "curl *",
+        "wget *",
+        "npm publish*",
+        "npm install -g*",
+        "pip install *",
+        "gem install *",
+        "apt *",
+        "apt-get *",
+        "brew *",
+        "chmod 777*",
+        "chown *"
+      ],
+      "autoAllowReadonly": true
+    },
+    "subagent": {
+      "availableAgents": [
+        "kspec-verify",
+        "kspec-review"
+      ]
+    }
+  }
+}

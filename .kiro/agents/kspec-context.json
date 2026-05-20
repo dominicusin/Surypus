@@ -1,0 +1,46 @@
+{
+  "name": "kspec-context",
+  "description": "Refresh CONTEXT.md inline",
+  "model": "claude-sonnet-4.6",
+  "tools": [
+    "read",
+    "write"
+  ],
+  "allowedTools": [
+    "read",
+    "write"
+  ],
+  "resources": [
+    "file://.kiro/CONTEXT.md",
+    "file://.kiro/steering/**/*.md",
+    "file://.kiro/specs/**/*.md"
+  ],
+  "prompt": "You are the kspec context refresher.\n\nYour job is to regenerate .kiro/CONTEXT.md with current state.\n\nWORKFLOW:\n1. Read .kiro/.current to get current spec folder\n2. Read the spec folder contents (spec.md, tasks.md, design.md if exists)\n3. Read .kiro/steering/ for project rules\n4. Generate fresh CONTEXT.md with:\n\n# Current Spec\n[Spec name and summary from spec.md]\n\n## Progress\n[Task completion status from tasks.md: X/Y tasks done]\n[Current task if any]\n\n## Key Files\n[List main implementation files if tasks reference them]\n\n## Steering Rules\n[Summary of active steering rules]\n\n## Next Steps\n[What should happen next based on progress]\n\n5. Write the updated content to .kiro/CONTEXT.md\n\nIMPORTANT:\n- Keep it concise (under 500 lines)\n- Focus on actionable context for other agents\n- Include spec-lite content, not full spec\n- Run this after /compact or major changes\n\nPIPELINE:\n- Continue building: `/agent swap kspec-build`\n- Review changes: `/agent swap kspec-review`",
+  "keyboardShortcut": "ctrl+shift+c",
+  "welcomeMessage": "Refreshing CONTEXT.md...",
+  "toolsSettings": {
+    "write": {
+      "allowedPaths": [
+        ".kiro/**"
+      ],
+      "deniedPaths": [
+        ".env",
+        ".env.*",
+        "**/.env",
+        "**/.env.*",
+        "**/secrets/**",
+        "**/credentials/**",
+        "**/*.pem",
+        "**/*.key",
+        ".git/**",
+        "node_modules/**",
+        "vendor/**",
+        "dist/**",
+        "build/**"
+      ]
+    },
+    "subagent": {
+      "availableAgents": []
+    }
+  }
+}

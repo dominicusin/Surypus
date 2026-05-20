@@ -11,10 +11,11 @@ module Surypus.RBAC
 where
 
 import Control.Monad.IO.Class (MonadIO, liftIO)
+import Data.Int (Int64)
 import Data.Text (Text)
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as LBS
-import Servant (Handler, err403, throwError)
+import Servant (Handler, err403, errBody, throwError)
 
 -- | Permission type
 data Permission

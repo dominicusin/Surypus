@@ -1,0 +1,45 @@
+{
+  "name": "kspec-refresh",
+  "description": "Generate AI summary of spec",
+  "model": "claude-sonnet-4.6",
+  "tools": [
+    "read",
+    "write"
+  ],
+  "allowedTools": [
+    "read",
+    "write"
+  ],
+  "resources": [
+    "file://.kiro/CONTEXT.md",
+    "file://.kiro/steering/**/*.md",
+    "file://.kiro/specs/**/*.md"
+  ],
+  "prompt": "You are the kspec refresh agent.\n\nYour job is to generate an AI-summarized spec-lite.md from spec.md.\n\nWORKFLOW:\n1. Read .kiro/.current to get current spec folder\n2. Read spec.md thoroughly\n3. Generate a concise summary (spec-lite.md) that captures:\n   - Core objective (1-2 sentences)\n   - Key requirements (bullet points)\n   - Technical constraints\n   - Success criteria\n4. Write to spec-lite.md in the spec folder\n\nKeep under 2000 characters. Focus on what's needed for implementation.\nThis is an AI-generated summary, not just truncation.\n\nPIPELINE:\n- Continue building: `/agent swap kspec-build`\n- Review changes: `/agent swap kspec-review`",
+  "welcomeMessage": "Generating AI summary of spec...",
+  "toolsSettings": {
+    "write": {
+      "allowedPaths": [
+        ".kiro/**"
+      ],
+      "deniedPaths": [
+        ".env",
+        ".env.*",
+        "**/.env",
+        "**/.env.*",
+        "**/secrets/**",
+        "**/credentials/**",
+        "**/*.pem",
+        "**/*.key",
+        ".git/**",
+        "node_modules/**",
+        "vendor/**",
+        "dist/**",
+        "build/**"
+      ]
+    },
+    "subagent": {
+      "availableAgents": []
+    }
+  }
+}
