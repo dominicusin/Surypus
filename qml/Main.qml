@@ -183,6 +183,41 @@ ApplicationWindow {
         )
     }
 
+    function loadNotificationPrefs() {
+        callApi("GET", "/notifications/prefs", null,
+            function(resp) {
+                if (notifPrefsLoader && notifPrefsLoader.item) {
+                    notifPrefsLoader.item.setPrefs(
+                        resp.npEmail !== undefined ? resp.npEmail : true,
+                        resp.npPush !== undefined ? resp.npPush : true,
+                        resp.npDigest || "daily"
+                    )
+                }
+            },
+            function(status, err) {
+                console.log("Failed to load notification prefs", status, err)
+            }
+        )
+    }
+
+    function saveNotificationPrefs() {
+        if (!notifPrefsLoader || !notifPrefsLoader.item) return
+        var item = notifPrefsLoader.item
+        var payload = {
+            npiEmail: item.prefEmail,
+            npiPush: item.prefPush,
+            npiDigest: item.prefDigest
+        }
+        callApi("PUT", "/notifications/prefs", payload,
+            function(resp) {
+                console.log("Notification preferences saved")
+            },
+            function(status, err) {
+                console.log("Failed to save notification prefs", status, err)
+            }
+        )
+    }
+
     function loadDocumentRegisters() {
         callApi("GET", "/documents/registers?limit=10&offset=0", null,
             function(resp) {
@@ -2316,10 +2351,42 @@ Component {
                 }
             }
 
+            Rectangle {
+                Layout.fillWidth: true
+                color: surfaceColor
+                radius: 8
+                border.color: borderColor
+
+                ColumnLayout {
+                    anchors.margins: 16
+                    spacing: 12
+
+                    Text {
+                        text: "Уведомления"
+                        font.bold: true
+                        font.pixelSize: 16
+                    }
+
+                    Loader {
+                        id: notifPrefsLoader
+                        source: "NotificationsPanel.qml"
+                        Layout.fillWidth: true
+                        onLoaded: {
+                            loadNotificationPrefs()
+                        }
+                    }
+                }
+            }
+
             Button {
                 text: "Сохранить настройки"
-                onClicked: console.log("Settings saved")
+                onClicked: {
+                    saveNotificationPrefs()
+                    console.log("Settings saved")
+                }
             }
         }
     }
 }
+
+
