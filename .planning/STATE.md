@@ -3,13 +3,14 @@ gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: AI & Advanced Features
 status: In Progress
-last_updated: "2026-05-19T12:31:27.894Z"
+last_updated: "2026-05-19T15:40:00Z"
+last_activity: 2026-05-19 — QML Desktop Waves 2-3 (ApiClient integration, login flow, dashboard KPIs, AppImage packaging)
 progress:
-  total_phases: 9
+  total_phases: 6
   completed_phases: 1
-  total_plans: 1
-  completed_plans: 1
-  percent: 11
+  total_plans: 2
+  completed_plans: 2
+  percent: 33
 ---
 
 # Project State
@@ -21,7 +22,7 @@ progress:
 
 | Phase | Name | Plans | Summaries | Status |
 |-------|------|-------|-----------|--------|
-| 22 | AI Integration | 1 | 1 | Complete ✅ |
+| 22 | AI Integration | 2 | 2 | Complete ✅ |
 | 23 | Mobile Apps | 0 | 0 | Not Started |
 | 24 | LiquidHaskell Verification | 0 | 0 | Not Started |
 | 25 | Multi-tenancy | 0 | 0 | Not Started |
@@ -30,9 +31,8 @@ progress:
 
 #### Completed Today
 
-- **Phase 14 CRM Data Model Plan 01**: V182 migration + 6 domain type modules (`Types.hs`, `Contact.hs`, `Company.hs`, `Deal.hs`, `Activity.hs`, `Pipeline.hs`) + `src/CRM.hs` re-export + `Surypus.cabal` updates. All compile and tests pass.
-- **Test Fix**: Added `ScopedTypeVariables` pragma to `CRMSpec.hs`, fixed `Deal` Arbitrary to ensure non-empty names, fixed `StageTransition` Arbitrary to ensure different from/to stages.
-- **Phase 14 CRM Data Model Plan 02**: Added 6 CRM permissions (CRMContactRead, CRMContactWrite, CRMDealRead, CRMDealWrite, CRMLeadRead, CRMLeadWrite) to RBAC.hs, added CRM path→permission mappings to Authorization.hs, created Infrastructure/EventStore/CRM.hs with CRMEvent types and appendCRMEvent, updated Surypus.cabal, integrated event sourcing in createContact handler. All tests pass.
+- **Phase 22-01 AI Infrastructure**: Created `src/Surypus/AI.hs` with AIProvider, LLMRequest/Response types, parseDocument and getRecommendations stubs. Added to Surypus.cabal. Build and tests pass.
+- **Phase 22-02 AI API Endpoint**: Created `surypus-api/src/Surypus/API/AI.hs` with AIDocumentParseRequest/Response types. Added `/api/v1/ai/parse-document` endpoint to Server.hs. Build and tests pass.
 
 ## What We Did So Far
 
