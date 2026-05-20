@@ -229,7 +229,7 @@ crmDealStageHistory env did = liftQ $ CRM.getStageHistory (envPool env) did
 notificationsList env       = liftQ $ Notifications.listNotifications (envPool env) 1
 notificationsCreate env i   = liftQ $ Notifications.createNotification (envPool env) i
 notificationsMarkRead env nid = liftQ $ Notifications.markNotificationRead (envPool env) nid
-notificationsGetPrefs env   = liftQ $ Notifications.getPreferences (envPool env)
+notificationsGetPrefs env   = liftQ $ Notifications.getNotificationPrefs (envPool env) 1
 notificationsUpdatePrefs env i = liftQ $ Notifications.updateNotificationPrefs (envPool env) 1 i
 notificationsSendTest env   = liftQ $ Notifications.sendEmailNotification (envPool env)
   (Notifications.NotificationInput 1 "Test" "Test notification" "test")
