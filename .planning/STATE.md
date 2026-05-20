@@ -3,20 +3,19 @@ gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: AI & Advanced Features
 status: In Progress
-last_updated: "2026-05-19T15:40:00Z"
-last_activity: 2026-05-19 — QML Desktop Waves 2-3 (ApiClient integration, login flow, dashboard KPIs, AppImage packaging)
+last_updated: "2026-05-20T03:45:00.000Z"
 progress:
-  total_phases: 6
+  total_phases: 9
   completed_phases: 1
-  total_plans: 2
+  total_plans: 3
   completed_plans: 2
-  percent: 33
+  percent: 22
 ---
 
 # Project State
 
-**Last Updated:** 2026-05-19 09:50
-**Update By:** manual correction
+**Last Updated:** 2026-05-20 03:45
+**Update By:** executive agent
 
 ## Progress
 
@@ -31,6 +30,8 @@ progress:
 
 #### Completed Today
 
+- **Phase 16-01 DB Migration + SMTP**: Created V1003 notification migration, Infrastructure.Email module with smtp-mail/mime-mail, stack.yaml extra-deps. Commits: 611b450, f2d5f46.
+- **Phase 16-02 Notifications API**: Rewrote Notifications.hs with real Hasql queries for preference CRUD and SMTP email integration. CTE-based upsert for notification_prefs. LambdaCase, rowMaybe, tuple-extractor encoder patterns. Updated Server.hs. Commit: fe25b80.
 - **Phase 22-01 AI Infrastructure**: Created `src/Surypus/AI.hs` with AIProvider, LLMRequest/Response types, parseDocument and getRecommendations stubs. Added to Surypus.cabal. Build and tests pass.
 - **Phase 22-02 AI API Endpoint**: Created `surypus-api/src/Surypus/API/AI.hs` with AIDocumentParseRequest/Response types. Added `/api/v1/ai/parse-document` endpoint to Server.hs. Build and tests pass.
 
