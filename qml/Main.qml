@@ -2,6 +2,7 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import QtQuick.Window 2.15
+import Qt.labs.platform 1.1  // For SystemTrayIcon
 import SurypusApiClient 1.0
 
 ApplicationWindow {
@@ -46,6 +47,10 @@ ApplicationWindow {
     ListModel { id: payrollSnapshotModel }
     ListModel { id: reportScheduleModel }
     ListModel { id: reportScheduleSnapshotModel }
+    ListModel { id: notificationModel }
+    property int unreadNotificationCount: 0
+    property string lastNotifSeenId: ""
+    property string lastNotificationId: ""
 
     // ── ApiClient helper ──
     function callApi(method, path, body, onSuccess, onError) {
@@ -139,6 +144,41 @@ ApplicationWindow {
             },
             function(status, err) {
                 console.log("Revenue trend fetch failed", status, err)
+            }
+        )
+    }
+
+    function loadNotifications() {
+        callApi("GET", "/notifications", null,
+            function(resp) {
+                var items = resp.data || resp || []
+                notificationModel.clear()
+                var unread = 0
+                for (var i = 0; i < items.length; i++) {
+                    var n = items[i]
+                    notificationModel.append({
+                        notifId: n.notifId,
+                        notifTitle: n.notifTitle,
+                        notifBody: n.notifBody || "",
+                        notifStatus: n.notifStatus
+                    })
+                    if (n.notifStatus === "pending") unread++
+                }
+                unreadNotificationCount = unread
+            },
+            function(status, err) {
+                console.log("Notifications fetch failed", status, err)
+            }
+        )
+    }
+
+    function markNotificationRead(notifId) {
+        callApi("POST", "/notifications/" + notifId + "/read", null,
+            function(resp) {
+                loadNotifications()
+            },
+            function(status, err) {
+                console.log("Failed to mark notification read", status, err)
             }
         )
     }
@@ -570,6 +610,7 @@ ApplicationWindow {
             onLoginSucceeded: {
                 appStack.replace(mainContentPage)
                 loadInitialData()
+                loadNotifications()
             }
         }
     }
@@ -627,6 +668,7 @@ ApplicationWindow {
                                 onLoginSucceeded: {
                                     appStack.replace(mainContentPage)
                                     loadInitialData()
+                                    loadNotifications()
                                 }
                             })
                         }
@@ -781,6 +823,69 @@ ApplicationWindow {
                         color: secondaryTextColor
                     }
                 }
+            }
+        }
+    }
+
+    // ── System Tray ──
+    SystemTrayIcon {
+        id: systemTray
+        visible: authenticated
+        icon.name: "surypus"
+        icon.source: "qrc:/qt/qml/SurypusDashboard/icons/app.png"
+        tooltip: "Surypus ERP — " + (unreadNotificationCount > 0 ? unreadNotificationCount + " уведомлений" : "всё в порядке")
+
+        menu: Menu {
+            MenuItem {
+                text: "Открыть Surypus"
+                onTriggered: {
+                    root.show()
+                    root.raise()
+                }
+            }
+            MenuItem {
+                text: "Уведомления"
+                onTriggered: {
+                    root.show()
+                    root.raise()
+                    loadNotifications()
+                }
+            }
+            MenuItem { separator: true }
+            MenuItem {
+                text: "Выйти"
+                onTriggered: Qt.quit()
+            }
+        }
+
+        onActivated: {
+            // Left-click: show app
+            root.show()
+            root.raise()
+        }
+    }
+
+    // ── Notification polling ──
+    Timer {
+        id: notificationPollTimer
+        interval: 30000  // 30 seconds
+        running: authenticated
+        repeat: true
+        onTriggered: loadNotifications()
+    }
+
+    // Show notification balloon when new unread notifications arrive
+    onUnreadNotificationCountChanged: {
+        if (unreadNotificationCount > 0 && notificationModel.count > 0) {
+            var latest = notificationModel.get(0)
+            if (latest.notifId !== lastNotificationId) {
+                lastNotificationId = latest.notifId
+                systemTray.showMessage(
+                    latest.notifTitle || "Surypus",
+                    latest.notifBody || "Новое уведомление",
+                    SystemTrayIcon.Information,
+                    5000
+                )
             }
         }
     }
