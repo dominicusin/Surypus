@@ -17,6 +17,7 @@ qt_add_qml_module(surypus-dashboard
     VERSION 1.0
     QML_FILES
         Main.qml
+        LoginPanel.qml
         components/Components.qml
 )
 

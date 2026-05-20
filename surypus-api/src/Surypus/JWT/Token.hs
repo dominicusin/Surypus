@@ -38,12 +38,15 @@ import Data.Int (Int64)
 import Data.Map qualified as Map
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
+import Text.Read (readMaybe)
 import Data.Text qualified as T
 import Data.Text.Encoding qualified as TE
 import Data.ByteString.Lazy qualified as LBS
 import Data.Time.Clock (addUTCTime, getCurrentTime)
 import Control.Lens ((&), (?~), (^.))
 import System.Environment (lookupEnv)
+import Control.Exception (throwIO)
+import System.IO.Error (userError)
 import Surypus (Pool, User (..))
 
 -- | User claims extracted from a valid JWT
@@ -54,11 +57,14 @@ data UserClaims = UserClaims
   }
   deriving (Show, Eq)
 
--- | Get the JWT signing key from SURYPUS_JWT_SECRET env var or use dev default
+-- | Get the JWT signing key from SURYPUS_JWT_SECRET env var.
+-- Fails with a clear error if the environment variable is not set.
 getSigningKey :: IO LBS.ByteString
 getSigningKey = do
   mbSecret <- lookupEnv "SURYPUS_JWT_SECRET"
-  pure $ LBS.fromStrict $ TE.encodeUtf8 $ T.pack $ fromMaybe "dev-secret-change-in-production" mbSecret
+  case mbSecret of
+    Nothing -> error "FATAL: SURYPUS_JWT_SECRET environment variable is not set. Set it to a secure random string before starting the server."
+    Just s  -> pure $ LBS.fromStrict $ TE.encodeUtf8 $ T.pack s
 
 -- | Generate a signed JWT token for the given user
 -- The Pool parameter is reserved for future use (e.g., token revocation DB checks)
@@ -79,7 +85,7 @@ generateToken _pool user = do
                   & claimExp ?~ NumericDate (addUTCTime 3600 now)
     signClaims jwk header claims
   case result of
-    Left jwtErr -> pure $ T.pack $ show jwtErr
+    Left jwtErr -> throwIO $ userError $ "JWT signing failed: " ++ show jwtErr
     Right signedJWT ->
       pure $ TE.decodeUtf8 $ LBS.toStrict $ encodeCompact signedJWT
 
@@ -90,6 +96,9 @@ verifyToken tokenStr = do
   secret <- getSigningKey
   result <- runJOSE @JWTError $ do
     let jwk = fromOctets secret
+        -- IN PRODUCTION: replace (const True) with actual audience/issuer validation:
+        -- let expectedAudience = "surypus-api"
+        --     config = defaultJWTValidationSettings (== expectedAudience)
         config = defaultJWTValidationSettings (const True)
     jwt <- decodeCompact tokenBs
     verifyClaims config jwk (jwt :: SignedJWT)
@@ -109,12 +118,12 @@ verifyToken tokenStr = do
             String s -> Just $ T.splitOn "," s
             _ -> Nothing
       case mbUid of
-        Just uid ->
-          pure $
-            Right $
-              UserClaims
-                { ucUserId = read $ T.unpack uid
-                , ucUsername = fromMaybe "" mbName
-                , ucRoles = fromMaybe [] mbRole
-                }
+        Just uid -> case readMaybe (T.unpack uid) of
+          Just uidInt ->
+            pure $ Right $ UserClaims
+              { ucUserId = uidInt
+              , ucUsername = fromMaybe "" mbName
+              , ucRoles = fromMaybe [] mbRole
+              }
+          Nothing -> pure $ Left "Invalid token: sub claim is not a valid integer"
         _ -> pure $ Left "Invalid token: missing or invalid sub claim"

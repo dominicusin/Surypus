@@ -5,7 +5,7 @@
 SurypusApiClient::SurypusApiClient(QObject *parent)
     : QObject(parent)
     , m_manager(new QNetworkAccessManager(this))
-    , m_baseUrl("http://localhost:3000/api/v1")
+    , m_baseUrl("https://localhost:3000/api/v1")
 {
 }
 
@@ -52,6 +52,10 @@ QNetworkReply* SurypusApiClient::makeRequest(const QString &method,
 
 void SurypusApiClient::handleReply(QNetworkReply *reply, const QString &path)
 {
+    if (!reply) {
+        emit requestFailed(path, 0, "Failed to create network request");
+        return;
+    }
     connect(reply, &QNetworkReply::finished, this, [this, reply, path]() {
         reply->deleteLater();
 
@@ -94,6 +98,10 @@ void SurypusApiClient::login(const QString &username, const QString &password)
 
     QByteArray jsonBody = QJsonDocument(body).toJson(QJsonDocument::Compact);
     QNetworkReply *reply = makeRequest("POST", "/login", jsonBody);
+    if (!reply) {
+        emit loginFailed("Failed to create network request");
+        return;
+    }
 
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         reply->deleteLater();

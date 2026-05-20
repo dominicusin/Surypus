@@ -12,6 +12,7 @@ echo "Project: $PROJECT_DIR"
 
 # --- Prerequisites ---
 command -v cmake >/dev/null 2>&1 || { echo "ERROR: cmake required"; exit 1; }
+command -v wget >/dev/null 2>&1 || { echo "ERROR: wget required for downloading linuxdeploy"; exit 1; }
 
 LINUXDEPLOY="$BUILD_DIR/linuxdeploy-x86_64.AppImage"
 LINUXDEPLOY_QT="$BUILD_DIR/linuxdeploy-plugin-qt-x86_64.AppImage"
@@ -72,8 +73,10 @@ export QML_SOURCES_PATHS="$PROJECT_DIR/qml"
     2>&1 | tee "$BUILD_DIR/linuxdeploy.log"
 
 # Move AppImage to dist/
-mv -v Surypus_ERP-*.AppImage "$OUTPUT_DIR/" 2>/dev/null || true
-mv -v *.AppImage "$OUTPUT_DIR/" 2>/dev/null || true
+# The linuxdeploy output filename is derived from the desktop file or cmake project name
+mv -v "$BUILD_DIR"/surypus-dashboard-*.AppImage "$OUTPUT_DIR/" 2>/dev/null || true
+# Fallback: move any AppImage files in BUILD_DIR
+find "$BUILD_DIR" -maxdepth 1 -name '*.AppImage' -not -name 'linuxdeploy*' -exec mv -v {} "$OUTPUT_DIR/" \; 2>/dev/null || true
 
 echo "=== Done ==="
 echo "AppImage: $(ls -lh $OUTPUT_DIR/*.AppImage 2>/dev/null || echo 'Not found in OUTPUT_DIR')"

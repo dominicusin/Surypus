@@ -65,10 +65,12 @@ authMiddleware app req respond = do
     else case lookup "Authorization" (W.requestHeaders req) of
       Nothing  -> respond $ W.responseLBS status401 [("Content-Type","text/plain")] "Unauthorized"
       Just hdr -> do
-        let tok = TE.decodeUtf8 $ BS.drop 7 hdr
-        JWT.verifyToken tok >>= \case
-          Left _  -> respond $ W.responseLBS status401 [("Content-Type","text/plain")] "Invalid token"
-          Right _ -> app req respond
+        let hdrStr = TE.decodeUtf8 hdr
+        case DT.stripPrefix "Bearer " hdrStr of
+          Nothing -> respond $ W.responseLBS status401 [("Content-Type","text/plain")] "Invalid authorization header format"
+          Just tok -> JWT.verifyToken tok >>= \case
+            Left _  -> respond $ W.responseLBS status401 [("Content-Type","text/plain")] "Invalid token"
+            Right _ -> app req respond
 
 apiServer :: Pool -> Log.Logger -> Application
 apiServer pool logger =

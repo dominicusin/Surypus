@@ -62,22 +62,29 @@ ApplicationWindow {
         function onRequestSucceeded(path, response) {
             var obj = response.toVariant()
             if (typeof obj !== "object") obj = { data: obj }
-            var cb = apiCallbacks["GET:" + path] || apiCallbacks["POST:" + path]
-                     || apiCallbacks["PUT:" + path] || apiCallbacks["DELETE:" + path]
-            if (cb && cb.onSuccess) cb.onSuccess(obj)
-            delete apiCallbacks["GET:" + path]
-            delete apiCallbacks["POST:" + path]
-            delete apiCallbacks["PUT:" + path]
-            delete apiCallbacks["DELETE:" + path]
+            // Look up the exact method that was used for this path
+            var keys = ["GET:", "POST:", "PUT:", "DELETE:"]
+            for (var i = 0; i < keys.length; i++) {
+                var key = keys[i] + path
+                var cb = apiCallbacks[key]
+                if (cb) {
+                    delete apiCallbacks[key]
+                    if (cb.onSuccess) cb.onSuccess(obj)
+                    return
+                }
+            }
         }
         function onRequestFailed(path, statusCode, error) {
-            var cb = apiCallbacks["GET:" + path] || apiCallbacks["POST:" + path]
-                     || apiCallbacks["PUT:" + path] || apiCallbacks["DELETE:" + path]
-            if (cb && cb.onError) cb.onError(statusCode, error)
-            delete apiCallbacks["GET:" + path]
-            delete apiCallbacks["POST:" + path]
-            delete apiCallbacks["PUT:" + path]
-            delete apiCallbacks["DELETE:" + path]
+            var keys = ["GET:", "POST:", "PUT:", "DELETE:"]
+            for (var i = 0; i < keys.length; i++) {
+                var key = keys[i] + path
+                var cb = apiCallbacks[key]
+                if (cb) {
+                    delete apiCallbacks[key]
+                    if (cb.onError) cb.onError(statusCode, error)
+                    return
+                }
+            }
         }
         function onLoginSucceeded(token) {
             console.log("Login succeeded, token stored by ApiClient")
@@ -644,70 +651,92 @@ ApplicationWindow {
                         anchors.margins: 8
                         spacing: 4
 
-                        NavigationItem {
-                            icon: "📋"
-                            text: "Обзор"
-                            selected: true
-                        }
-
-                        NavigationItem {
-                            icon: "📦"
-                            text: "Товары"
-                        }
-
-                        NavigationItem {
-                            icon: "📄"
-                            text: "Документы"
-                        }
-
-                        NavigationItem {
-                            icon: "👥"
-                            text: "Контрагенты"
-                            onActivate: contentStack.push(personSummaryPage)
-                        }
-
-                        NavigationItem {
-                            icon: "🏭"
-                            text: "Склады"
-                            onActivate: {
-                                loadInventoryDocs()
-                                contentStack.push(inventoryPage)
+                        Loader {
+                            sourceComponent: navItem
+                            onItemChanged: if (item) {
+                                item.icon = "📋"
+                                item.text = "Обзор"
+                                item.selected = true
                             }
                         }
 
-                        NavigationItem {
-                            icon: "📊"
-                            text: "Отчёты"
-                            onActivate: contentStack.push(reportPage)
+                        Loader {
+                            sourceComponent: navItem
+                            onItemChanged: if (item) {
+                                item.icon = "📦"
+                                item.text = "Товары"
+                            }
                         }
 
-                        NavigationItem {
-                            icon: "🧠"
-                            text: "Jobs"
-                            onActivate: contentStack.push(jobsPage)
+                        Loader {
+                            sourceComponent: navItem
+                            onItemChanged: if (item) {
+                                item.icon = "📄"
+                                item.text = "Документы"
+                            }
+                        }
+
+                        Loader {
+                            sourceComponent: navItem
+                            onItemChanged: if (item) {
+                                item.icon = "👥"
+                                item.text = "Контрагенты"
+                                item.onActivate = function() { contentStack.push(personSummaryPage) }
+                            }
+                        }
+
+                        Loader {
+                            sourceComponent: navItem
+                            onItemChanged: if (item) {
+                                item.icon = "🏭"
+                                item.text = "Склады"
+                                item.onActivate = function() { loadInventoryDocs(); contentStack.push(inventoryPage) }
+                            }
+                        }
+
+                        Loader {
+                            sourceComponent: navItem
+                            onItemChanged: if (item) {
+                                item.icon = "📊"
+                                item.text = "Отчёты"
+                                item.onActivate = function() { contentStack.push(reportPage) }
+                            }
+                        }
+
+                        Loader {
+                            sourceComponent: navItem
+                            onItemChanged: if (item) {
+                                item.icon = "🧠"
+                                item.text = "Jobs"
+                                item.onActivate = function() { contentStack.push(jobsPage) }
+                            }
                         }
 
                         Rectangle { Layout.fillHeight: true }
 
-                        NavigationItem {
-                            icon: "📊"
-                            text: "Отчёты"
-                            onActivate: contentStack.push(reportsPage)
+                        Loader {
+                            sourceComponent: navItem
+                            onItemChanged: if (item) {
+                                item.icon = "📊"
+                                item.text = "Отчёты"
+                                item.onActivate = function() { contentStack.push(reportsPage) }
+                            }
                         }
 
-                        NavigationItem {
-                            icon: "⚙️"
-                            text: "Настройки"
-                            onActivate: contentStack.push(settingsPage)
+                        Loader {
+                            sourceComponent: navItem
+                            onItemChanged: if (item) {
+                                item.icon = "⚙️"
+                                item.text = "Настройки"
+                                item.onActivate = function() { contentStack.push(settingsPage) }
+                            }
                         }
-                        NavigationItem {
-                            icon: "💼"
-                            text: "Кадры"
-                            onActivate: {
-                                loadSalaryCharges()
-                                loadPayrollSummary()
-                                loadPayrollSnapshots()
-                                contentStack.push(hrPage)
+                        Loader {
+                            sourceComponent: navItem
+                            onItemChanged: if (item) {
+                                item.icon = "💼"
+                                item.text = "Кадры"
+                                item.onActivate = function() { loadSalaryCharges(); loadPayrollSummary(); loadPayrollSnapshots(); contentStack.push(hrPage) }
                             }
                         }
                     }
@@ -722,7 +751,7 @@ ApplicationWindow {
                         id: contentStack
                         anchors.fill: parent
                         anchors.margins: 16
-                        initialItem: DashboardPage {}
+                        initialItem: dashboardPage
                     }
                 }
             }
@@ -823,28 +852,40 @@ Component {
             rowSpacing: 16
             columnSpacing: 16
 
-            StatCard {
-                title: "Продажи сегодня"
-                value: dashboardLoading ? "..." : Number(kpiRevenue).toLocaleString() + " ₽"
-                color: "#4CAF50"
+            Loader {
+                sourceComponent: statCard
+                onItemChanged: if (item) {
+                    item.title = "Продажи сегодня"
+                    item.value = Qt.binding(function() { return dashboardLoading ? "..." : Number(kpiRevenue).toLocaleString() + " ₽" })
+                    item.color = "#4CAF50"
+                }
             }
 
-            StatCard {
-                title: "Заказов сегодня"
-                value: dashboardLoading ? "..." : kpiOrders
-                color: "#2196F3"
+            Loader {
+                sourceComponent: statCard
+                onItemChanged: if (item) {
+                    item.title = "Заказов сегодня"
+                    item.value = Qt.binding(function() { return dashboardLoading ? "..." : kpiOrders })
+                    item.color = "#2196F3"
+                }
             }
 
-            StatCard {
-                title: "Товаров в наличии"
-                value: dashboardLoading ? "..." : kpiActiveGoods
-                color: "#FF9800"
+            Loader {
+                sourceComponent: statCard
+                onItemChanged: if (item) {
+                    item.title = "Товаров в наличии"
+                    item.value = Qt.binding(function() { return dashboardLoading ? "..." : kpiActiveGoods })
+                    item.color = "#FF9800"
+                }
             }
 
-            StatCard {
-                title: "Партнёров"
-                value: dashboardLoading ? "..." : kpiPartners
-                color: "#F44336"
+            Loader {
+                sourceComponent: statCard
+                onItemChanged: if (item) {
+                    item.title = "Партнёров"
+                    item.value = Qt.binding(function() { return dashboardLoading ? "..." : kpiPartners })
+                    item.color = "#F44336"
+                }
             }
         }
 
