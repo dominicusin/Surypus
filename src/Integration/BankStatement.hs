@@ -1,13 +1,16 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
 
--- | Bank statement import — OFX and ISO 20022 (camt.053) parsing
+-- | Bank statement import — OFX and ISO 20022 (camt.053) parsing with auto-matching
 module Integration.BankStatement
   ( BankTxn  (..)
   , ImportResult  (..)
+  , MatchResult  (..)
   , parseOFX
   , parseISO20022
   , importStatementLines
+  , matchTransactionsToBills
+  , flagUnmatchedTransactions
   ) where
 
 import Data.Text (Text)
@@ -42,6 +45,14 @@ data ImportResult = ImportResult
   } deriving (Show, Eq, Generic)
 
 instance ToJSON ImportResult
+
+data MatchResult = MatchResult
+  { mrMatchedCount :: !Int
+  , mrUnmatchedCount :: !Int
+  , mrMatchedIds :: ![Text]
+  } deriving (Show, Eq, Generic)
+
+instance ToJSON MatchResult
 
 -- | Parse OFX text into transactions.
 -- OFX is SGML-like; we extract STMTTRN blocks with simple text scanning.
@@ -144,3 +155,76 @@ importStatementLines pool tenantId filename txns = do
               (importId, btDate t, btValueDate t, btAmount t, btCurrency t,
                btDescription t, btRef t, btCounterparty t) lineStmt) txns
       return $ QuerySuccess $ ImportResult importId (length txns) "done"
+
+-- | Match imported transactions to existing bills by amount and date
+matchTransactionsToBills :: Pool -> Text -> IO (QueryResult MatchResult)
+matchTransactionsToBills pool importId = do
+  -- Get imported transactions
+  let getTxnsStmt = Statement
+        "SELECT id, amount, txn_date FROM bank_statement_line WHERE import_id = $1::UUID"
+        (E.param (E.nonNullable E.text))
+        (D.rowList $ (,,) <$> D.column (D.nonNullable D.text)
+                            <*> D.column (D.nonNullable D.float8)
+                            <*> D.column (D.nonNullable D.text))
+        True
+  txnRes <- usePool pool $ Session.statement importId getTxnsStmt
+  case txnRes of
+    Left err -> return $ QueryError (T.pack $ show err)
+    Right txns -> do
+      -- Get unpaid bills
+      let getBillsStmt = Statement
+            "SELECT id, amount, due_date FROM bill WHERE status = 'unpaid'"
+            E.noParams
+            (D.rowList $ (,,) <$> D.column (D.nonNullable D.text)
+                            <*> D.column (D.nonNullable D.float8)
+                            <*> D.column (D.nonNullable D.text))
+            True
+      billRes <- usePool pool $ Session.statement () getBillsStmt
+      case billRes of
+        Left err -> return $ QueryError (T.pack $ show err)
+        Right bills -> do
+          -- Match transactions to bills (simple amount + date match)
+          let matches = findMatches txns bills
+          -- Update matched bills
+          let updateMatchStmt = Statement
+                "UPDATE bill SET status = 'paid', paid_date = $2::DATE WHERE id = $1::UUID"
+                ((\(a,_) -> a) >$< E.param (E.nonNullable E.text))
+                D.noResult
+                True
+          mapM_ (\(billId, txnDate) -> usePool pool $ Session.statement (billId, txnDate) updateMatchStmt) matches
+          -- Link transactions to bills
+          let linkStmt = Statement
+                "UPDATE bank_statement_line SET matched_bill_id = $1::UUID WHERE id = $2::UUID"
+                ((\(a,_) -> a) >$< E.param (E.nonNullable E.text))
+                D.noResult
+                True
+          mapM_ (\(billId, txnId) -> usePool pool $ Session.statement (billId, txnId) linkStmt) matches
+          return $ QuerySuccess $ MatchResult
+            { mrMatchedCount = length matches
+            , mrUnmatchedCount = length txns - length matches
+            , mrMatchedIds = map fst matches
+            }
+
+-- | Find matches between transactions and bills
+findMatches :: [(Text, Double, Text)] -> [(Text, Double, Text)] -> [(Text, Text)]
+findMatches txns bills =
+  let matches = [(billId, txnId) |
+                 (txnId, txnAmt, txnDate) <- txns,
+                 (billId, billAmt, billDate) <- bills,
+                 abs (txnAmt - billAmt) < 0.01,  -- Amount tolerance
+                 txnDate == billDate]  -- Date match
+  in matches
+
+-- | Flag unmatched transactions for manual review
+flagUnmatchedTransactions :: Pool -> Text -> IO (QueryResult ())
+flagUnmatchedTransactions pool importId = do
+  let flagStmt = Statement
+        "UPDATE bank_statement_line SET needs_review = true \
+        \WHERE import_id = $1::UUID AND matched_bill_id IS NULL"
+        (E.param (E.nonNullable E.text))
+        D.noResult
+        True
+  res <- usePool pool $ Session.statement importId flagStmt
+  case res of
+    Left err -> return $ QueryError (T.pack $ show err)
+    Right () -> return $ QuerySuccess ()

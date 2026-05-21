@@ -152,6 +152,11 @@ library
       InfiniteLightness.InfiniteLightness
       Source.InfiniteSource
       Beginning.AbsoluteBeginning
+      Integration.Adapter
+      Integration.BankStatement
+      Integration.Health
+      API.Integration.BankStatement
+      API.Integration.REST
 
   build-depends:
        base >=4.12 && <5
