@@ -1,0 +1,16 @@
+{
+  "phase": 123,
+  "name": "Absolute Finish",
+  "milestone": "v37.0",
+  "status": "Ready",
+  "deliverables": [
+    "Ultimate conclusion",
+    "Final synthesis",
+    "Absolute ending"
+  ],
+  "acceptance": [
+    "Conclusion is ultimate",
+    "Synthesis is final",
+    "Ending is absolute"
+  ]
+}

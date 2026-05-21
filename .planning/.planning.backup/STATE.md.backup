@@ -1,0 +1,77 @@
+---
+gsd_state_version: 1.0
+milestone: v2.0
+milestone_name: GUI & New Features
+status: In Progress
+last_updated: "2026-05-19T09:15:00Z"
+last_activity: 2026-05-19 — JWT auth wired, CRM Waves 3-5 complete, Notifications/Reports implemented
+progress:
+  total_phases: 9
+  completed_phases: 5
+  total_plans: 5
+  completed_plans: 5
+  percent: 55
+---
+
+# Project State
+
+**Last Updated:** 2026-05-19 09:15
+**Update By:** autonomous workflow
+
+## Progress
+
+| Phase | Name | Status |
+|-------|------|--------|
+| 13 | Dashboard Core | Complete ✅ |
+| 14 | CRM Data Model | Complete ✅ (all 5 waves) |
+| 15 | QML Desktop Skeleton | Complete ✅ |
+| 16 | Notifications | Complete ✅ (real DB queries) |
+| 17 | Reports | Complete ✅ (P&L + Inventory) |
+| 18 | Purchase/Sales Orders | Not Started |
+| 19 | Document Workflow | Not Started |
+| 20 | Integrations | Not Started |
+| 21 | Web PWA Polish | Not Started |
+
+## What We Did So Far
+
+### Phase 13: Dashboard Core ✅
+- KPI queries, chart rendering, WebSocket updates, date range filters
+
+### Phase 14: CRM Data Model ✅ (all waves)
+- **Wave 1**: DB migration V182, domain types (8 modules under src/CRM/)
+- **Wave 2**: API CRUD for contacts/companies/deals, 16 server routes
+- **Wave 3**: RBAC permissions (V185 — 8 CRM permissions, sales role), event sourcing triggers (V186 — deal/contact events → event_store)
+- **Wave 4**: Pipeline forecast refresh, stage rules/history API (already in CRM.hs)
+- **Wave 5**: Domain property tests (test/Domain/CRMSpec.hs — Deal, Forecast, Types)
+
+### Phase 15: QML Desktop Skeleton ✅
+- Login flow, dashboard KPIs, CRM pages, AppImage packaging
+
+### Phase 16: Notifications ✅
+- Real Hasql DB queries against `notification` table
+- createNotification, listNotifications, markNotificationRead
+- sendEmailNotification (creates DB record), sendDigestNotification
+
+### Phase 17: Reports ✅
+- getPnLReport: acc_turn + acc_plan query
+- getInventoryReport: goods + stock query
+- generateReport dispatcher
+- Wired into Server.hs: GET /api/v1/reports/pnl, GET /api/v1/reports/inventory
+
+### Security fixes applied
+- **JWT auth**: handleLogin now calls JWT.generateToken (real HS256 signing via jose)
+- **authMiddleware**: validates JWT token on every request (except /api/v1/login)
+- **Auth.hs**: wired to real DAL.Mutations.authenticateUser + JWT.generateToken
+
+### Bug fixes
+- Fixed duplicate `case res of` block in CRM.createDeal
+- Fixed broken `recordStageTransition` encoder (was using E.noParams)
+- Removed unused `Value` import from Reports.hs
+- Replaced broken root app/Main.hs (referenced non-existent modules)
+
+## Next Steps
+
+1. **Phase 18** — Purchase/Sales Orders (DB migration + domain types + API CRUD)
+2. **Phase 19** — Document Workflow (PDF generation)
+3. **Phase 20** — Integrations (bank statement import OFX/ISO 20022)
+4. **Phase 21** — Web PWA Polish (offline IndexedDB, service worker, responsive)
