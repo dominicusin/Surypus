@@ -6,7 +6,7 @@ Production-ready ERP-система на Haskell, где критические 
 
 ## Текущий статус (Current State)
 
-Проект находится на этапе **Phase 3 (Event Sourcing & Infra)**. 
+Проект находится на этапе **Phase 3 (Event Sourcing & Infra) - COMPLETE**. 
 
 ### Выполнено (Validated)
 - ✓ REST API на Scotty (OpenAPI 3.0)
@@ -17,12 +17,13 @@ Production-ready ERP-система на Haskell, где критические 
 - ✓ Управление запасами и расчет НДС
 - ✓ Кастомная система SQL миграций
 - ✓ PDF-отчеты (PDF-Slave/JasperReports)
+- ✓ Интеграция Event Store (Hasql)
+- ✓ WebSocket уведомления в реальном времени
+- ✓ Формальная верификация (Smart constructors)
+- ✓ Redis Queue для фоновых задач
 
 ### В процессе (Active)
-- [ ] Интеграция Event Store (Hasql)
-- [ ] WebSocket уведомления в реальном времени
-- [ ] Формальная верификация (LiquidHaskell)
-- [ ] Redis Queue для фоновых задач
+- None - all planned infrastructure phases complete
 
 ## Дорожная карта (Roadmap)
 
