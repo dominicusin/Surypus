@@ -18,15 +18,17 @@ module Infrastructure.Redis.TaskQueue
   , ReportTask(..)
   ) where
 
-import Data.Aeson (ToJSON, FromJSON, Value)
+import Data.Aeson (ToJSON, FromJSON, Value, encode, decode)
 import Data.Text (Text)
 import qualified Data.Text as T
+import Data.Text.Encoding (encodeUtf8, decodeUtf8)
 import Data.Time (UTCTime, getCurrentTime)
 import Data.UUID (UUID)
 import qualified Data.UUID.V4 as UUID
 import GHC.Generics (Generic)
 import qualified Database.Redis as R
-import Data.ByteString.Char8 (pack, unpack)
+import Data.ByteString (ByteString)
+import qualified Data.ByteString.Lazy as LBS
 import Control.Concurrent (forkIO, threadDelay)
 import Control.Monad (forever, void)
 import Control.Exception (catch, SomeException)
@@ -74,6 +76,17 @@ mkTaskQueue conn queueName workerCount =
     , tqWorkerCount = workerCount
     }
 
+-- | Serialize task to ByteString
+taskToBytes :: Task -> Either String ByteString
+taskToBytes task = Right $ LBS.toStrict (encode task)
+
+-- | Deserialize task from ByteString
+taskFromBytes :: ByteString -> Either String Task
+taskFromBytes bs = 
+  case decode (LBS.fromStrict bs) of
+    Just task -> Right task
+    Nothing -> Left "Failed to parse task"
+
 -- | Enqueue a task for background processing
 enqueueTask :: TaskQueue -> Text -> Value -> IO (Either Text UUID)
 enqueueTask queue taskType payload = do
@@ -89,61 +102,70 @@ enqueueTask queue taskType payload = do
         , taskCompletedAt = Nothing
         , taskError = Nothing
         }
-  -- Serialize task to JSON and push to Redis list
-  let taskJson = T.pack $ show task -- Simplified - would use proper JSON encoding
-  result <- R.runRedis (tqRedisConn queue) $ do
-    R.rpush (pack $ tqQueueName queue <> ":pending") (pack taskJson)
-    R.set (pack $ "task:" <> T.pack (show taskId)) (pack taskJson)
-  case result of
-    Right _ -> pure $ Right taskId
-    Left err -> pure $ Left $ T.pack $ show err
+  case taskToBytes task of
+    Left err -> pure $ Left $ T.pack err
+    Right taskBytes -> do
+      let queueKey = encodeUtf8 $ tqQueueName queue <> ":pending"
+      let taskKey = encodeUtf8 $ "task:" <> T.pack (show taskId)
+      result <- R.runRedis (tqRedisConn queue) $ do
+        _ <- R.rpush queueKey [taskBytes]
+        R.set taskKey taskBytes
+      case result of
+        Right _ -> pure $ Right taskId
+        Left redisErr -> pure $ Left $ T.pack $ show redisErr
 
 -- | Dequeue a task for processing
 dequeueTask :: TaskQueue -> IO (Either Text (Maybe Task))
 dequeueTask queue = do
-  result <- R.runRedis (tqRedisConn queue) $ do
-    R.brpop (pack $ tqQueueName queue <> ":pending") 0
+  let queueKey = encodeUtf8 $ tqQueueName queue <> ":pending"
+  result <- R.runRedis (tqRedisConn queue) $ R.brpop [queueKey] 0
   case result of
-    Right (Just taskJson) -> do
-      -- Parse task from JSON (simplified - would use proper JSON decoding)
-      let task = parseTaskFromJson (unpack taskJson)
-      pure $ Right $ Just task
+    Right (Just (_, taskBytes)) -> 
+      case taskFromBytes taskBytes of
+        Right task -> pure $ Right $ Just task
+        Left err -> pure $ Left $ T.pack err
     Right Nothing -> pure $ Right Nothing
-    Left err -> pure $ Left $ T.pack $ show err
+    Left redisErr -> pure $ Left $ T.pack $ show redisErr
 
 -- | Get task status from Redis
 getTaskStatus :: TaskQueue -> UUID -> IO (Either Text TaskStatus)
 getTaskStatus queue taskId = do
-  result <- R.runRedis (tqRedisConn queue) $ do
-    R.get (pack $ "task:" <> T.pack (show taskId))
+  let taskKey = encodeUtf8 $ "task:" <> T.pack (show taskId)
+  result <- R.runRedis (tqRedisConn queue) $ R.get taskKey
   case result of
-    Right (Just taskJson) -> do
-      let task = parseTaskFromJson (unpack taskJson)
-      pure $ Right $ taskStatus task
+    Right (Just taskBytes) -> 
+      case taskFromBytes taskBytes of
+        Right task -> pure $ Right $ taskStatus task
+        Left err -> pure $ Left $ T.pack err
     Right Nothing -> pure $ Left "Task not found"
-    Left err -> pure $ Left $ T.pack $ show err
+    Left redisErr -> pure $ Left $ T.pack $ show redisErr
 
 -- | Update task status in Redis
 updateTaskStatus :: TaskQueue -> UUID -> TaskStatus -> Maybe Text -> IO (Either Text ())
 updateTaskStatus queue taskId status errorMsg = do
-  result <- R.runRedis (tqRedisConn queue) $ do
-    taskJson <- R.get (pack $ "task:" <> T.pack (show taskId))
-    case taskJson of
-      Just json -> do
-        let task = parseTaskFromJson (unpack json)
-        timestamp <- getCurrentTime
-        let updatedTask = task
-              { taskStatus = status
-              , taskStartedAt = if status == Processing then Just timestamp else taskStartedAt task
-              , taskCompletedAt = if status `elem` [Completed, Failed] then Just timestamp else taskCompletedAt task
-              , taskError = errorMsg
-              }
-        let updatedJson = T.pack $ show updatedTask
-        R.set (pack $ "task:" <> T.pack (show taskId)) (pack updatedJson)
-      Nothing -> return $ R.Error "Task not found"
+  let taskKey = encodeUtf8 $ "task:" <> T.pack (show taskId)
+  result <- R.runRedis (tqRedisConn queue) $ R.get taskKey
   case result of
-    Right _ -> pure $ Right ()
-    Left err -> pure $ Left $ T.pack $ show err
+    Right (Just taskBytes) -> 
+      case taskFromBytes taskBytes of
+        Right task -> do
+          timestamp <- getCurrentTime
+          let updatedTask = task
+                { taskStatus = status
+                , taskStartedAt = if status == Processing then Just timestamp else taskStartedAt task
+                , taskCompletedAt = if status `elem` [Completed, Failed] then Just timestamp else taskCompletedAt task
+                , taskError = errorMsg
+                }
+          case taskToBytes updatedTask of
+            Left err -> pure $ Left $ T.pack err
+            Right updatedBytes -> do
+              setResult <- R.runRedis (tqRedisConn queue) $ R.set taskKey updatedBytes
+              case setResult of
+                Right _ -> pure $ Right ()
+                Left redisErr -> pure $ Left $ T.pack $ show redisErr
+        Left err -> pure $ Left $ T.pack err
+    Right Nothing -> pure $ Left "Task not found"
+    Left redisErr -> pure $ Left $ T.pack $ show redisErr
 
 -- | Start worker processes for the task queue
 startWorker :: TaskQueue -> (Task -> IO ()) -> IO ()
@@ -174,16 +196,3 @@ workerLoop queue taskHandler = forever $ do
     Left err -> do
       -- Error dequeuing, wait before retrying
       threadDelay 1000000 -- 1 second
-
--- | Parse task from JSON (simplified implementation)
-parseTaskFromJson :: String -> Task
-parseTaskFromJson json = Task
-  { taskId = read "00000000-0000-0000-0000-000000000000" -- Simplified
-  , taskType = "unknown"
-  , taskPayload = "null"
-  , taskStatus = Pending
-  , taskCreatedAt = read "1970-01-01 00:00:00 UTC"
-  , taskStartedAt = Nothing
-  , taskCompletedAt = Nothing
-  , taskError = Nothing
-  }

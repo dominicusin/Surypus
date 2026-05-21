@@ -28,6 +28,7 @@ library
       DAL.EventStore
       Infrastructure.EventStore.Accounting
       Infrastructure.EventStore.Inventory
+      Infrastructure.Redis.TaskQueue
       Core.Services.Accounting
       Service.InventoryService
       Finance.Accounting
