@@ -1,6 +1,6 @@
 -- | TaxInvoice module - Tax invoices
 module Finance.TaxInvoice
-  ( TaxInvoice (..),
+  ( TaxInvoice   (..),
     calcTaxAmount,
     prop_taxAmountNonNeg
   ) where

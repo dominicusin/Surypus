@@ -1,0 +1,16 @@
+{
+  "phase": 99,
+  "name": "Absolute Song",
+  "milestone": "v28.0",
+  "status": "Ready",
+  "deliverables": [
+    "Perfect composition",
+    "Universal chorus",
+    "Infinite verse"
+  ],
+  "acceptance": [
+    "Composition is perfect",
+    "Chorus is universal",
+    "Verse is infinite"
+  ]
+}

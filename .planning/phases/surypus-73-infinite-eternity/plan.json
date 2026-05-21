@@ -1,0 +1,16 @@
+{
+  "phase": 73,
+  "name": "Infinite Eternity",
+  "milestone": "v20.0",
+  "status": "Ready",
+  "deliverables": [
+    "Timeless duration",
+    "Infinite ages",
+    "Eternal ages"
+  ],
+  "acceptance": [
+    "Duration is timeless",
+    "Ages are infinite",
+    "Eternity is complete"
+  ]
+}

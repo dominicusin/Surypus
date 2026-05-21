@@ -4,7 +4,7 @@ import Data.Text (Text)
 import Data.Time.Clock (UTCTime)
 import qualified Data.UUID as UUID
 import Control.Concurrent.STM (TVar, newTVarIO, readTVar, writeTVar)
-import Data.Aeson (ToJSON, Value, object, (.=))
+import Data.Aeson (ToJSON, Value, object,   (..))
 
 -- | Trace context for distributed tracing
 data TraceContext = TraceContext

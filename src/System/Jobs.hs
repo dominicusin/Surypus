@@ -3,11 +3,11 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 module System.Jobs
-  ( JobType (..)
+  ( JobType   (..)
   , JobId
-  , Job (..)
-  , JobStatus (..)
-  , JobResult (..)
+  , Job   (..)
+  , JobStatus   (..)
+  , JobResult   (..)
   , JobRunner
   , newJobRunner
   , enqueueJob

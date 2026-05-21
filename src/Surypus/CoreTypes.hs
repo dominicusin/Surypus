@@ -1,7 +1,7 @@
 -- | Surypus core types
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Surypus.CoreTypes
-  ( Decimal (..),
+  ( Decimal   (..),
     unDecimal,
     NonNeg,
     mkNonNeg,

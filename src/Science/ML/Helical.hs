@@ -1,5 +1,5 @@
 module Science.ML.Helical
-  ( HelicalConfig (..),
+  ( HelicalConfig   (..),
     generateReport
   ) where
 

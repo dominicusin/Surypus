@@ -1,0 +1,16 @@
+{
+  "phase": 90,
+  "name": "Eternal Calm",
+  "milestone": "v25.0",
+  "status": "Ready",
+  "deliverables": [
+    "Infinite serenity",
+    "Perfect peace",
+    "Absolute stillness"
+  ],
+  "acceptance": [
+    "Serenity is infinite",
+    "Peace is perfect",
+    "Stillness is absolute"
+  ]
+}

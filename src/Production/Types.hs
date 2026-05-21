@@ -5,10 +5,10 @@
 {-@ LIQUID "--reflection" @-}
 
 module Production.Types
-  ( TechCard (..),
-    TechLine (..),
-    WorkOrder (..),
-    WorkOrderStatusCode (..),
+  ( TechCard   (..),
+    TechLine   (..),
+    WorkOrder   (..),
+    WorkOrderStatusCode   (..),
     mkWorkOrder,
     validateTechCard,
     validateTechLine,

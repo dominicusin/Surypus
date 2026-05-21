@@ -1,5 +1,5 @@
 module System.Metrics
-  ( Metrics (..),
+  ( Metrics   (..),
     initMetrics,
     incrementRequests,
     incrementResponses4xx,

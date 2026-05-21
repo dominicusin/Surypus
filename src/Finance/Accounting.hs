@@ -6,9 +6,9 @@ module Finance.Accounting
   ( debit,
     credit,
     balance,
-    LedgerEntry (..),
-    Account (..),
-    Transaction (..),
+    LedgerEntry   (..),
+    Account   (..),
+    Transaction   (..),
     validateTransaction,
     processTransaction
   ) where

@@ -9,7 +9,7 @@ module Finance.Types where
 import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Time (Day, fromGregorian)
-import Test.QuickCheck (Arbitrary (..), suchThat)
+import Test.QuickCheck (Arbitrary   (..), suchThat)
 
 -- ============================================================================
 -- ACCOUNT TYPES (from account.cpp)

@@ -1,6 +1,6 @@
 -- | AdvanceInvoice module - Advance invoices
 module Commerce.AdvanceInvoice
-  ( AdvanceInvoice (..),
+  ( AdvanceInvoice   (..),
     calcRemaining,
     prop_advanceInvoiceRemainingNonNeg
   ) where

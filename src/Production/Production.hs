@@ -2,9 +2,9 @@
 
 -- | Production module - Manufacturing
 module Production.Production
-  ( TechLine (..),
-    Processor (..),
-    TSession (..)
+  ( TechLine   (..),
+    Processor   (..),
+    TSession   (..)
   ) where
 
 import Data.Aeson (FromJSON, ToJSON)

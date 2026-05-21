@@ -4,17 +4,17 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 module Infrastructure.EventStore.CRM
-  ( CRMEvent (..)
-  , ContactCreated (..)
-  , ContactUpdated (..)
-  , ContactDeleted (..)
-  , CompanyCreated (..)
-  , CompanyUpdated (..)
-  , DealCreated (..)
-  , DealUpdated (..)
-  , DealStageChanged (..)
-  , ActivityLogged (..)
-  , CRMEventStore (..)
+  ( CRMEvent   (..)
+  , ContactCreated   (..)
+  , ContactUpdated   (..)
+  , ContactDeleted   (..)
+  , CompanyCreated   (..)
+  , CompanyUpdated   (..)
+  , DealCreated   (..)
+  , DealUpdated   (..)
+  , DealStageChanged   (..)
+  , ActivityLogged   (..)
+  , CRMEventStore   (..)
   , mkCRMEventStore
   , appendCRMEvent
   ) where

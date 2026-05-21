@@ -11,8 +11,8 @@ module Production.JobSystem
     processNextJob,
 
     -- * Job Types
-    JobStatus (..),
-    JobPriority (..)
+    JobStatus   (..),
+    JobPriority   (..)
   ) where
 
 import Data.Int (Int64)

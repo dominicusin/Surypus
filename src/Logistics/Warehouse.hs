@@ -3,7 +3,7 @@
 module Logistics.Warehouse
   ( -- module Logistics.Warehouse.Inventory.Types,
     validateLot,
-    StockMovement (..),
+    StockMovement   (..),
     calcStockBalance,
     checkStockAvailable,
     fifoSelect,

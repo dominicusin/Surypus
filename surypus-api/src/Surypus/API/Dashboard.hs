@@ -1,6 +1,7 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 module Surypus.API.Dashboard
   ( DashboardKPI(..)
@@ -76,16 +77,16 @@ getDashboardKPI pool = do
         \  COALESCE((SELECT COUNT(*) FROM bills), 0), \
         \  COALESCE((SELECT COUNT(*) FROM goods WHERE is_active), 0), \
         \  COALESCE((SELECT COUNT(*) FROM persons), 0)"
-        ()
+        E.noParams
         (D.singleRow $ DashboardKPI
           <$> D.column (D.nonNullable D.float8)
-          <*> D.column (D.nonNullable D.int8)
-          <*> D.column (D.nonNullable D.int8)
-          <*> D.column (D.nonNullable D.int8))
+          <*> (fromIntegral <$> D.column (D.nonNullable D.int8))
+          <*> (fromIntegral <$> D.column (D.nonNullable D.int8))
+          <*> (fromIntegral <$> D.column (D.nonNullable D.int8)))
         True
   result <- try $ usePool pool $ Session.statement () stmt
   case result of
-    Right kpi -> return $ QuerySuccess kpi
+    Right (kpi :: DashboardKPI) -> return $ QuerySuccess kpi
     Left (e :: SomeException) -> return $ QueryError (T.pack $ show e)
 
 getRevenueTrend :: Pool -> IO (QueryResult [RevenuePoint])
@@ -99,15 +100,15 @@ getRevenueTrend pool = do
         \WHERE bill_date >= NOW() - INTERVAL '12 months' \
         \GROUP BY TO_CHAR(bill_date, 'YYYY-MM') \
         \ORDER BY 1"
-        ()
+        E.noParams
         (D.rowList $ RevenuePoint
           <$> D.column (D.nonNullable D.text)
           <*> D.column (D.nonNullable D.float8)
-          <*> D.column (D.nonNullable D.int8))
+          <*> (fromIntegral <$> D.column (D.nonNullable D.int8)))
         True
   result <- try $ usePool pool $ Session.statement () stmt
   case result of
-    Right points -> return $ QuerySuccess points
+    Right (points :: [RevenuePoint]) -> return $ QuerySuccess points
     Left (e :: SomeException) -> return $ QueryError (T.pack $ show e)
 
 getOrderStatuses :: Pool -> IO (QueryResult [OrderStatus])
@@ -115,15 +116,15 @@ getOrderStatuses pool = do
   let stmt = Statement.Statement
         "SELECT status, COUNT(*), SUM(total_amount) \
         \FROM bills GROUP BY status"
-        ()
+        E.noParams
         (D.rowList $ OrderStatus
           <$> D.column (D.nonNullable D.text)
-          <*> D.column (D.nonNullable D.int8)
+          <*> (fromIntegral <$> D.column (D.nonNullable D.int8))
           <*> D.column (D.nonNullable D.float8))
         True
   result <- try $ usePool pool $ Session.statement () stmt
   case result of
-    Right statuses -> return $ QuerySuccess statuses
+    Right (statuses :: [OrderStatus]) -> return $ QuerySuccess statuses
     Left (e :: SomeException) -> return $ QueryError (T.pack $ show e)
 
 getStockSummary :: Pool -> IO (QueryResult [StockSummary])
@@ -132,13 +133,13 @@ getStockSummary pool = do
         "SELECT COUNT(*), SUM(CASE WHEN is_active THEN 1 ELSE 0 END), \
         \  COUNT(DISTINCT category_id) \
         \FROM goods"
-        ()
+        E.noParams
         (D.singleRow $ StockSummary
-          <$> D.column (D.nonNullable D.int8)
-          <$> D.column (D.nonNullable D.int8)
-          <$> D.column (D.nonNullable D.int8))
+          <$> (fromIntegral <$> D.column (D.nonNullable D.int8))
+          <*> (fromIntegral <$> D.column (D.nonNullable D.int8))
+          <*> (fromIntegral <$> D.column (D.nonNullable D.int8)))
         True
   result <- try $ usePool pool $ Session.statement () stmt
   case result of
-    Right summary -> return $ QuerySuccess summary
+    Right (summary :: [StockSummary]) -> return $ QuerySuccess summary
     Left (e :: SomeException) -> return $ QueryError (T.pack $ show e)

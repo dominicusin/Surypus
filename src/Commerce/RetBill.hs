@@ -1,6 +1,6 @@
 -- | RetBill module - Retail bills
 module Commerce.RetBill
-  ( RetBill (..),
+  ( RetBill   (..),
     calcFinalAmount,
     prop_retBillFinalAmountNonNeg
   ) where

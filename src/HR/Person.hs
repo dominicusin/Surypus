@@ -1,9 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 module HR.Person
-  ( Person (..),
-    PersonFlags (..),
-    PersonKind (..),
-    PersonStatus (..),
+  ( Person   (..),
+    PersonFlags   (..),
+    PersonKind   (..),
+    PersonStatus   (..),
     validateINN,
     validateKPP,
     validatePhone,

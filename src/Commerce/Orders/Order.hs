@@ -1,9 +1,9 @@
 -- | Order module - Sales orders
 module Commerce.Orders.Order
-  ( Order (..),
-    OrderStatus (..),
-    OrderLine (..),
-    LineStatus (..),
+  ( Order   (..),
+    OrderStatus   (..),
+    OrderLine   (..),
+    LineStatus   (..),
     calcOrderTotal,
     calcLineTotal,
     prop_orderLineTotalNonNeg,

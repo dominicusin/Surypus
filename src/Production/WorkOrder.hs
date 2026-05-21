@@ -2,8 +2,8 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 
 module Production.WorkOrder
-  ( WorkOrder (..),
-    WorkOrderStatus (..),
+  ( WorkOrder   (..),
+    WorkOrderStatus   (..),
     createWorkOrder
   ) where
 

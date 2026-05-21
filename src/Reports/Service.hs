@@ -1,16 +1,16 @@
 module Reports.Service
-  ( ReportService (..),
+  ( ReportService   (..),
     createReportService,
     generateSalesReport,
     generateInventoryReport,
     generateFinancialReport,
     generatePayrollSummary,
     generateTaxReport,
-    SalesReport (..),
-    InventoryReport (..),
-    FinancialReport (..),
-    PayrollSummary (..),
-    TaxReport (..)
+    SalesReport   (..),
+    InventoryReport   (..),
+    FinancialReport   (..),
+    PayrollSummary   (..),
+    TaxReport   (..)
   ) where
 
 import Data.Int (Int64)

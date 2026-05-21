@@ -4,8 +4,8 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Production.MRP
-  ( BOMLine (..),
-    MRPDemand (..),
+  ( BOMLine   (..),
+    MRPDemand   (..),
     calculateMRP,
     calculateMRPWithInventory,
     explodeBOM
@@ -15,7 +15,7 @@ import Data.Int (Int64)
 import Data.Text (Text)
 import qualified Data.Map.Strict as M
 import Data.Foldable (foldl')
-import Production.Types (TechLine(..))
+import Production.Types (TechLine  (..))
 
 data BOMLine = BOMLine
   { bomGoodsId :: Int64,

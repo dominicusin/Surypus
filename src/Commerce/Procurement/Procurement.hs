@@ -1,12 +1,12 @@
 {-# LANGUAGE DeriveGeneric #-}
 
 module Commerce.Procurement.Procurement
-  ( PurchaseRequest(..),
-    PurchaseRequestInput(..),
-    PurchaseOrder(..),
-    PurchaseOrderInput(..),
-    MRPlan(..),
-    MRPlanInput(..)
+  ( PurchaseRequest  (..),
+    PurchaseRequestInput  (..),
+    PurchaseOrder  (..),
+    PurchaseOrderInput  (..),
+    MRPlan  (..),
+    MRPlanInput  (..)
   ) where
 
 import Data.Aeson (FromJSON, ToJSON)
@@ -14,7 +14,7 @@ import Data.Text (Text)
 import Data.Time (Day)
 import GHC.Generics (Generic)
 
--- Purchase Request (PR)
+-- Purchase Request   (..)
 data PurchaseRequest = PurchaseRequest
   { prId :: Int,
     prDate :: Day,
@@ -36,7 +36,7 @@ instance ToJSON PurchaseRequestInput
 
 instance FromJSON PurchaseRequestInput
 
--- Purchase Order (PO)
+-- Purchase Order   (..)
 data PurchaseOrder = PurchaseOrder
   { poId :: Int,
     poNumber :: Text,

@@ -2,7 +2,7 @@
 module System.Validation where
 
 import Data.Either (partitionEithers)
-import Data.List (nub, (\\))
+import Data.List (nub,   (..))
 import Data.Text (Text)
 import qualified Data.Text as T
 

@@ -2,7 +2,7 @@
 {-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Surypus.Validation
-  ( ValidationError (..),
+  ( ValidationError   (..),
     validatePersonInput,
     validateINN,
     validateKPP,

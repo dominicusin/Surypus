@@ -119,7 +119,7 @@ executeWithCircuitBreaker breaker action = do
         writeTVar (cbState breaker) (Open (T.pack "failure threshold reached") now)
 
     (=$+) (Metric name val) m = Map.insert name (Map.findWithDefault 0 name m + val) m
-    (=-) (Metric name val) m = Map.insert name (max 0 (Map.findWithDefault 0 name m - val)) m
+      (..) (Metric name val) m = Map.insert name (max 0 (Map.findWithDefault 0 name m - val)) m
 
 -- | Update metrics atomically
 updateMetrics :: CircuitBreakerExtended -> UTCTime -> [(Lens' CircuitMetrics a, a)] -> IO ()

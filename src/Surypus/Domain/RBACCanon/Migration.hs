@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Surypus.Domain.RBACCanon.Migration where
 
-import Surypus.Infra.SqlGen.DSL (DSL(..), render, multi, createTable, alterTableAddColumn)
+import Surypus.Infra.SqlGen.DSL (DSL  (..), render, multi, createTable, alterTableAddColumn)
 
 -- Generate V001RBAC Canon SQL migration via DSL
 generateV001 :: String
@@ -9,14 +9,14 @@ generateV001 = render $ multi
   [ createTable "rbac_canon"
       [ ("id", "BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY")
       , ("name", "TEXT NOT NULL UNIQUE")
-      , ("created_at", "TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW()")
+      , ("created_at", "TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW  (..)
       ]
   , createTable "rbac_canon_roles"
-      [ ("canon_id", "BIGINT NOT NULL REFERENCES rbac_canon(id)")
+      [ ("canon_id", "BIGINT NOT NULL REFERENCES rbac_canon  (..)")
       , ("role", "TEXT NOT NULL")
       ]
   , createTable "rbac_canon_perms"
-      [ ("canon_id", "BIGINT NOT NULL REFERENCES rbac_canon(id)")
+      [ ("canon_id", "BIGINT NOT NULL REFERENCES rbac_canon  (..)")
       , ("permission", "TEXT NOT NULL")
       ]
   ]

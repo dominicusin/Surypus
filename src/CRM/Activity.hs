@@ -1,14 +1,14 @@
 -- | Activity domain type - calls, meetings, notes, etc.
 module CRM.Activity
-  ( Activity (..),
+  ( Activity   (..),
   )
 where
 
-import CRM.Types (ActivityId, ActivityType (..), ContactId, DealId)
+import CRM.Types (ActivityId, ActivityType   (..), ContactId, DealId)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Time.Calendar (fromGregorian)
-import Data.Time.Clock (UTCTime (..), secondsToDiffTime)
+import Data.Time.Clock (UTCTime   (..), secondsToDiffTime)
 import Test.QuickCheck
 
 data Activity = Activity

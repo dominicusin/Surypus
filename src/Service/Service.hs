@@ -29,7 +29,7 @@
 module Service.Service
   ( -- * Service Types
     ServiceKey,
-    ServiceError (..),
+    ServiceError   (..),
     ServiceM,
 
     -- * Service Class

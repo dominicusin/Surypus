@@ -1,7 +1,7 @@
 -- | Error types for the application
 module Surypus.Error
-  ( AppError (..),
-    AppErrorType (..),
+  ( AppError   (..),
+    AppErrorType   (..),
   )
 where
 

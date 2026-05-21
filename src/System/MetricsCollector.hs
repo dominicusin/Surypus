@@ -35,7 +35,7 @@ recordMetric :: MetricsCollector -> Text -> Double -> Map.Map Text Text -> IO ()
 recordMetric collector name value tags = atomically $ do
   store <- readTVar (metricsStore collector)
   let point = MetricPoint =<< getCurrentTime <*> pure value <*> pure tags
-  let updated = Map.insertWith (++) name [point] store
+  let updated = Map.insertWith   (..) name [point] store
   writeTVar (metricsStore collector) updated
 
 -- | Query metrics within time range

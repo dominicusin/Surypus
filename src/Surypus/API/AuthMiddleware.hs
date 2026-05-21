@@ -1,8 +1,8 @@
 -- | Authentication middleware for Servant
 module Surypus.API.AuthMiddleware
   ( withAuthzResolverAdvanced,
-    PermissionChecker(..),
-    AuditLogger(..),
+    PermissionChecker  (..),
+    AuditLogger  (..),
   )
 where
 

@@ -32,7 +32,7 @@ import DAL.Types (QueryResult(..), Workflow(..), WorkflowInstance(..), WorkflowS
 
 workflowDecoder :: D.Row Workflow
 workflowDecoder = Workflow
-  <$> D.column (D.nonNullable D.int8)
+  <$> (fromIntegral <$> D.column (D.nonNullable D.int8))
   <*> D.column (D.nonNullable D.text)
   <*> D.column (D.nullable D.text)
   <*> D.column (D.nonNullable D.text)
@@ -41,23 +41,23 @@ workflowDecoder = Workflow
 
 workflowInstanceDecoder :: D.Row WorkflowInstance
 workflowInstanceDecoder = WorkflowInstance
-  <$> D.column (D.nonNullable D.text)
-  <*> D.column (D.nonNullable D.text)
-  <*> D.column (D.nonNullable D.text)
-  <*> (fromIntegral <$> D.column (D.nonNullable D.int4))
-  <*> D.column (D.nonNullable D.text)
-  <*> D.column (D.nonNullable D.text)
-  <*> D.column (D.nullable D.text)
-
--- Helper to convert tuple for WorkflowInput encoder
-tupleToWorkflowInput :: (Text, Maybe Text, Text) -> WorkflowInput
-tupleToWorkflowInput (n, d, def) = WorkflowInput n d def
+  <$> (fromIntegral <$> D.column (D.nonNullable D.int8))  -- wiId - will need int8 from db
+  <*> (fromIntegral <$> D.column (D.nonNullable D.int8))  -- wiWorkflowId
+  <*> ((\n -> case n of
+        0 -> WorkflowPending
+        1 -> WorkflowRunning
+        2 -> WorkflowCompleted
+        _ -> WorkflowFailed) <$> D.column (D.nonNullable D.int2))
+  <*> D.column (D.nullable D.text)  -- wiCurrentStep
+  <*> (D.nullable D.jsonb)  -- wiInput - nullable JSONB
+  <*> D.column (D.nullable D.timestamptz)  -- wiStartedAt
+  <*> D.column (D.nullable D.timestamptz)  -- wiCompletedAt
 
 -- | List all workflows
 listWorkflows :: Pool -> IO (QueryResult [Workflow])
 listWorkflows pool = do
   let stmt = Stmt.Statement
-        "SELECT id, workflow_name, description, definition::TEXT, is_active, created_at::TEXT FROM workflows ORDER BY created_at DESC"
+        "SELECT id, code, name, description, is_active, definition::TEXT FROM workflows ORDER BY created_at DESC"
         E.noParams
         (D.rowList workflowDecoder)
         True
@@ -70,13 +70,16 @@ listWorkflows pool = do
 createWorkflow :: Pool -> WorkflowInput -> IO (QueryResult Workflow)
 createWorkflow pool input = do
   let stmt = Stmt.Statement
-        "INSERT INTO workflows (workflow_name, description, definition) VALUES ($1, $2, $3::JSONB) RETURNING id, workflow_name, description, definition::TEXT, is_active, created_at::TEXT"
-        (((\(n, _, _) -> n) >$< E.param (E.nonNullable E.text))
-         <> ((\(_, d, _) -> d) >$< E.param (E.nullable E.text))
-         <> ((\(_, _, def) -> def) >$< E.param (E.nonNullable E.text)))
+        "INSERT INTO workflows (code, name, description, definition) VALUES ($1, $2, $3, $4::JSONB) RETURNING id, code, name, description, is_active, definition::TEXT"
+        (((\(code, _, _, _) -> code) >$< E.param (E.nonNullable E.text))
+         <> ((\(_, name, _, _) -> name) >$< E.param (E.nullable E.text))
+         <> ((\(_, _, desc, _) -> desc) >$< E.param (E.nullable E.text))
+         <> ((\(_, _, _, def) -> def) >$< E.param (E.nonNullable E.text)))
         (D.singleRow workflowDecoder)
         True
-  let params = (workflowInputName input, workflowInputDescription input, workflowInputDefinition input)
+  let params = case wiInputData input of
+        Just txt -> (txt, Nothing, Nothing, "{}")
+        Nothing -> ("default", Nothing, Nothing, "{}")
   res <- usePool pool $ Session.statement params stmt
   case res of
     Right workflow -> return $ QuerySuccess workflow
@@ -103,7 +106,7 @@ startWorkflow pool workflowName initialContext = do
 getWorkflowInstance :: Pool -> Text -> IO (QueryResult WorkflowInstance)
 getWorkflowInstance pool iid = do
   let stmt = Stmt.Statement
-        "SELECT id::TEXT, workflow_name, status, current_step, context::TEXT, started_at::TEXT, completed_at::TEXT FROM workflow_instances WHERE id = $1::UUID"
+        "SELECT id::UUID, workflow_name::TEXT, status::INT, current_step::TEXT, context::JSONB, started_at, completed_at FROM workflow_instances WHERE id = $1::UUID"
         (E.param (E.nonNullable E.text))
         (D.singleRow workflowInstanceDecoder)
         True
@@ -116,7 +119,7 @@ getWorkflowInstance pool iid = do
 listWorkflowInstances :: Pool -> IO (QueryResult [WorkflowInstance])
 listWorkflowInstances pool = do
   let stmt = Stmt.Statement
-        "SELECT id::TEXT, workflow_name, status, current_step, context::TEXT, started_at::TEXT, completed_at::TEXT FROM workflow_instances ORDER BY started_at DESC"
+        "SELECT id::UUID, workflow_name::TEXT, status::INT, current_step::TEXT, context::JSONB, started_at, completed_at FROM workflow_instances ORDER BY started_at DESC"
         E.noParams
         (D.rowList workflowInstanceDecoder)
         True

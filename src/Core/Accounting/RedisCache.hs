@@ -11,9 +11,9 @@
 
 module Core.Accounting.RedisCache
   ( -- * Redis Cache Types
-    RedisCacheConfig(..)
-  , RedisAccountCache(..)
-  , RedisCacheResult(..)
+    RedisCacheConfig  (..)
+  , RedisAccountCache  (..)
+  , RedisCacheResult  (..)
 
     -- * Redis Cache Operations
   , initializeRedisCache

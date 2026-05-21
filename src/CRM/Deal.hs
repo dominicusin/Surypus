@@ -1,17 +1,17 @@
 -- | Deal domain type - deals, stages, and stage transitions
 module CRM.Deal
-  ( Deal (..),
-    DealStage (..),
-    StageTransition (..),
+  ( Deal   (..),
+    DealStage   (..),
+    StageTransition   (..),
   )
 where
 
-import CRM.Types (ActivityId, CompanyId, ContactId, DealId, PipelineStageId, Priority (..))
+import CRM.Types (ActivityId, CompanyId, ContactId, DealId, PipelineStageId, Priority   (..))
 import Data.Int (Int64)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Time.Calendar (Day, fromGregorian)
-import Data.Time.Clock (UTCTime (..), secondsToDiffTime)
+import Data.Time.Clock (UTCTime   (..), secondsToDiffTime)
 import Test.QuickCheck
 
 data Deal = Deal

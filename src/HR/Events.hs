@@ -3,9 +3,9 @@
 
 module HR.Events
   ( -- * Event types
-    HREvent (..),
-    PersonEventData (..),
-    RelationEventData (..),
+    HREvent   (..),
+    PersonEventData   (..),
+    RelationEventData   (..),
     EventStore,
 
     -- * Event operations

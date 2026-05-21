@@ -2,11 +2,11 @@
 -- Patch F: Inventory lifecycle (receipts, issues, adjustments, inventory)
 {-# LANGUAGE OverloadedStrings #-}
 module Service.InventoryService
-  ( InventoryDocType (..)
-  , InventoryDocStatus (..)
-  , InventoryDocLine (..)
-  , InventoryDoc (..)
-  , StockMovement (..)
+  ( InventoryDocType   (..)
+  , InventoryDocStatus   (..)
+  , InventoryDocLine   (..)
+  , InventoryDoc   (..)
+  , StockMovement   (..)
   , postInventoryDoc
   , generateMovements
   , calculateStockBalance

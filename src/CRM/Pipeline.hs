@@ -1,8 +1,8 @@
 -- | Pipeline and forecasting types
 module CRM.Pipeline
-  ( PipelineStage (..),
-    Forecast (..),
-    StageRule (..),
+  ( PipelineStage   (..),
+    Forecast   (..),
+    StageRule   (..),
   )
 where
 

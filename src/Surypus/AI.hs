@@ -4,17 +4,17 @@
 -- | AI Infrastructure Module - LLM integration and document parsing
 -- Phase 22 of v3.0 roadmap
 module Surypus.AI
-  ( AIConfig (..)
-  , AIProvider (..)
-  , LLMRequest (..)
-  , LLMResponse (..)
+  ( AIConfig   (..)
+  , AIProvider   (..)
+  , LLMRequest   (..)
+  , LLMResponse   (..)
   , parseDocument
   , getRecommendations
   ) where
 
 import Data.Text (Text)
 import qualified Data.Text as T
-import Data.Aeson (ToJSON, FromJSON, Value, object, (.=), parseJSON, withObject, (.:))
+import Data.Aeson (ToJSON, FromJSON, Value, object,   (..), parseJSON, withObject,   (..))
 import GHC.Generics (Generic)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.Time.Clock (getCurrentTime, UTCTime)

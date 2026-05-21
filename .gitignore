@@ -49,3 +49,24 @@ skills-lock.json
 # Surypus local config
 src/.beads/
 src/config.yaml
+
+# ── GSD baseline (auto-generated) ──
+.gsd
+.gsd-id
+.mcp.json
+.bg-shell/
+*~
+*.code-workspace
+.env
+.env.*
+!.env.example
+.next/
+build/
+__pycache__/
+*.pyc
+.venv/
+venv/
+target/
+coverage/
+.cache/
+tmp/

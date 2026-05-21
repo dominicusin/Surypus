@@ -2,7 +2,7 @@
 
 -- | GoodsTaxEx module - Extended goods tax
 module Inventory.GoodsTaxEx
-  ( GoodsTaxEx (..),
+  ( GoodsTaxEx   (..),
     calcTaxAmount,
     prop_goodsTaxAmountNonNeg
   ) where

@@ -1,6 +1,6 @@
 -- | BillLine module - Bill lines
 module Commerce.BillLine
-  ( BillLine (..),
+  ( BillLine   (..),
     calcLineTotal,
     prop_lineTotalNonNeg,
     prop_lineTotalDiscountBound

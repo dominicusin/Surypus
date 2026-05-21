@@ -1,8 +1,8 @@
 -- | Lot types - Stock lots/batches
 module Inventory.Lot
-  ( Lot (..),
-    LotStatus (..),
-    LotFlags (..)
+  ( Lot   (..),
+    LotStatus   (..),
+    LotFlags   (..)
   ) where
 
 import Data.Int (Int64)

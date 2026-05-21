@@ -4,9 +4,9 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 module Surypus.JWT
-  ( JWTConfig (..),
-    TokenPair (..),
-    JWTError (..),
+  ( JWTConfig   (..),
+    TokenPair   (..),
+    JWTError   (..),
     jwtConfigFromSecret,
     generateTokenPair,
     validateRefreshToken,

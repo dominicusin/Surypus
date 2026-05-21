@@ -12,7 +12,7 @@ module HR.Operations
     -- * Validation
     validatePersonData,
     checkDuplicatePerson,
-    PersonValidationError (..),
+    PersonValidationError   (..),
 
     -- * Status transitions
     activatePerson,
@@ -28,9 +28,9 @@ module HR.Operations
     countPersons,
 
     -- * Types
-    CreatePersonRequest (..),
-    UpdatePersonRequest (..),
-    PersonOperationResult (..),
+    CreatePersonRequest   (..),
+    UpdatePersonRequest   (..),
+    PersonOperationResult   (..),
   ) where
 
 import Data.Int (Int64)

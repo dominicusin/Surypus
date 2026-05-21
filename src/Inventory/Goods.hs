@@ -3,12 +3,12 @@
 
 module Inventory.Goods
   ( -- * Types
-    Goods (..),
-    GoodsStatus (..),
-    GoodsKind (..),
-    CreateGoodsRequest (..),
-    UpdateGoodsRequest (..),
-    GoodsOperationResult (..),
+    Goods   (..),
+    GoodsStatus   (..),
+    GoodsKind   (..),
+    CreateGoodsRequest   (..),
+    UpdateGoodsRequest   (..),
+    GoodsOperationResult   (..),
 
     -- * Operations
     createGoods,
@@ -19,7 +19,7 @@ module Inventory.Goods
 
     -- * Validation
     validateGoodsData,
-    GoodsValidationError (..),
+    GoodsValidationError   (..),
 
     -- * Status management
     activateGoods,

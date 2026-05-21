@@ -2,8 +2,8 @@
 
 -- | Discount module - Discounts
 module Commerce.Discount
-  ( Discount (..),
-    DiscountType (..),
+  ( Discount   (..),
+    DiscountType   (..),
     calcDiscount,
     prop_discountAmountNonNeg
   ) where

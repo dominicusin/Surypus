@@ -31,7 +31,7 @@ recordMetric state name value = do
   now <- getCurrentTime
   atomically $ do
     store <- readTVar (metricsStore state)
-    let updated = Map.insertWith (++) name [(now, value)] store
+    let updated = Data.Map.Strict.insertWith   (..) name [(now, value)] store
     writeTVar (metricsStore state) updated
     checkThresholds state name value
 
@@ -51,7 +51,7 @@ checkThresholds state name value = do
 getMetrics :: MonitoringState -> Text -> IO [(UTCTime, Double)]
 getMetrics state name = do
   store <- readTVarIO (metricsStore state)
-  return $ Map.findWithDefault [] name store
+  return $ Data.Map.Strict.findWithDefault [] name store
 
 -- | Get alerts
 getAlerts :: MonitoringState -> IO [(UTCTime, Text, Text)]

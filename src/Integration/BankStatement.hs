@@ -3,8 +3,8 @@
 
 -- | Bank statement import — OFX and ISO 20022 (camt.053) parsing
 module Integration.BankStatement
-  ( BankTxn(..)
-  , ImportResult(..)
+  ( BankTxn  (..)
+  , ImportResult  (..)
   , parseOFX
   , parseISO20022
   , importStatementLines
@@ -17,10 +17,10 @@ import GHC.Generics (Generic)
 import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import qualified Hasql.Session as Session
-import Hasql.Statement (Statement(..))
+import Hasql.Statement (Statement  (..))
 import Data.Functor.Contravariant ((>$<))
 import DAL.Database (Pool, usePool)
-import DAL.Types (QueryResult(..))
+import DAL.Types (QueryResult  (..))
 
 data BankTxn = BankTxn
   { btDate        :: !Text

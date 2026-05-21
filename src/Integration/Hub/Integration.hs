@@ -84,7 +84,7 @@ data TransactionStatus
 -- | Execute transaction
 executeTransaction :: Transaction -> IO (Either Text ())
 executeTransaction txn = do
-  results <- mapM (\op -> try op :: IO (Either SomeException ())) (operations txn)
+  results <- mapM (\op -> try op :: IO (Either SomeException   (..) (operations txn)
   if all (either (const False) (const True)) results
     then do
       atomically $ writeTVar (status txn) Committed

@@ -1,6 +1,6 @@
 -- | Company domain type
 module CRM.Company
-  ( Company (..),
+  ( Company   (..),
   )
 where
 
@@ -9,7 +9,7 @@ import Data.Int (Int64)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Time.Calendar (fromGregorian)
-import Data.Time.Clock (UTCTime (..), secondsToDiffTime)
+import Data.Time.Clock (UTCTime   (..), secondsToDiffTime)
 import Test.QuickCheck
 
 data Company = Company

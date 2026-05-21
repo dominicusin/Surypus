@@ -2,10 +2,10 @@
 
 -- | SmartReceipt module - Electronic receipts
 module Retail.Receipts.SmartReceipt
-  ( SmartReceipt (..),
-    PaymentType (..),
-    ReceiptStatus (..),
-    SmartReceiptLine (..),
+  ( SmartReceipt   (..),
+    PaymentType   (..),
+    ReceiptStatus   (..),
+    SmartReceiptLine   (..),
     calcReceiptTotal,
     prop_receiptTotalNonNeg
   ) where

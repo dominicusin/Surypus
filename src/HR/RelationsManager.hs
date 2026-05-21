@@ -3,10 +3,10 @@
 
 module HR.RelationsManager
   ( -- * Types
-    RelationType (..),
-    RelationStatus (..),
-    CreateRelationRequest (..),
-    RelationOperationResult (..),
+    RelationType   (..),
+    RelationStatus   (..),
+    CreateRelationRequest   (..),
+    RelationOperationResult   (..),
 
     -- * Operations
     createRelation,
@@ -22,7 +22,7 @@ module HR.RelationsManager
 
     -- * Validation
     validateRelation,
-    RelationValidationError (..),
+    RelationValidationError   (..),
   ) where
 
 import Data.Int (Int64)

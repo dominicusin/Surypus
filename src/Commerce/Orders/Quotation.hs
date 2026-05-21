@@ -1,8 +1,8 @@
 -- | Quotation module - Commercial offers
 module Commerce.Orders.Quotation
-  ( Quotation (..),
-    QuotationStatus (..),
-    QuotationLine (..),
+  ( Quotation   (..),
+    QuotationStatus   (..),
+    QuotationLine   (..),
     calcQuotationTotal,
     prop_quotationTotalNonNeg
   ) where

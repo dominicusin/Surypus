@@ -1,6 +1,6 @@
 -- | Invoice module - Invoices
 module Commerce.Invoice
-  ( Invoice (..),
+  ( Invoice   (..),
     calcInvoiceBalance
   ) where
 

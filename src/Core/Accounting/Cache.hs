@@ -14,7 +14,7 @@ module Core.Accounting.Cache
 import Data.Int (Int64)
 import Data.Time (UTCTime, getCurrentTime, addUTCTime)
 import Data.IORef (IORef, newIORef, readIORef, atomicModifyIORef')
-import System.Cache (CacheStats(..))
+import System.Cache (CacheStats  (..))
 
 import qualified Core.Accounting.ReadModel as RM
 

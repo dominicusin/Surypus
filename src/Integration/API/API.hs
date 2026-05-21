@@ -74,17 +74,17 @@ module Integration.API.API where
 --     :<|> locationServer
 --     :<|> orderServer
 --   where
---     billServer = serverFor (Proxy :: Proxy (api BS PS ProdS.InventoryService RS.ReportService () () () () () ()))
---     payrollServer = serverFor (Proxy :: Proxy (api BS PS ProdS.InventoryService RS.ReportService () () () () () ()))
---     inventoryServer = serverFor (Proxy :: Proxy (api BS PS ProdS.InventoryService RS.ReportService () () () () () ()))
---     reportsServer = serverFor (Proxy :: Proxy (api BS PS ProdS.InventoryService RS.ReportService () () () () () ()))
+--     billServer = serverFor (Proxy :: Proxy (api BS PS ProdS.InventoryService RS.ReportService () () () () ()   (..)
+--     payrollServer = serverFor (Proxy :: Proxy (api BS PS ProdS.InventoryService RS.ReportService () () () () ()   (..)
+--     inventoryServer = serverFor (Proxy :: Proxy (api BS PS ProdS.InventoryService RS.ReportService () () () () ()   (..)
+--     reportsServer = serverFor (Proxy :: Proxy (api BS PS ProdS.InventoryService RS.ReportService () () () () ()   (..)
 --     personsServer = serverFor (Proxy :: Proxy (personsPermAPI PS.PersonService))
---     currencyServer = serverFor (Proxy :: Proxy (currencyAPI ()))
---     taxServer = serverFor (Proxy :: Proxy (taxAPI ()))
---     accPlanServer = serverFor (Proxy :: Proxy (accPlanAPI ()))
---     accTurnServer = serverFor (Proxy :: Proxy (accTurnAPI ()))
---     locationServer = serverFor (Proxy :: Proxy (locationAPI ()))
---     orderServer = serverFor (Proxy :: Proxy (ordersAPI ()))
+--     currencyServer = serverFor (Proxy :: Proxy (currencyAPI   (..)
+--     taxServer = serverFor (Proxy :: Proxy (taxAPI   (..)
+--     accPlanServer = serverFor (Proxy :: Proxy (accPlanAPI   (..)
+--     accTurnServer = serverFor (Proxy :: Proxy (accTurnAPI   (..)
+--     locationServer = serverFor (Proxy :: Proxy (locationAPI   (..)
+--     orderServer = serverFor (Proxy :: Proxy (ordersAPI   (..)
 
 -- | Application with authentication middleware
 -- app ::
@@ -101,7 +101,7 @@ module Integration.API.API where
 --   () -> -- order service
 --   Application
 -- app bs payroll prod inv report _ _ _ _ _ _ =
---   serveWithContext (Proxy :: Proxy (api BS PS ProdS.InventoryService RS.ReportService () () () () () ())) ctx $ server bs payroll prod inv report _ _ _ _ _ _
+--   serveWithContext (Proxy :: Proxy (api BS PS ProdS.InventoryService RS.ReportService () () () () ()   (..) ctx $ server bs payroll prod inv report _ _ _ _ _ _
 --   where
 --     ctx = ()
 

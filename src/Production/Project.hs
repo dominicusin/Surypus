@@ -7,7 +7,7 @@ import qualified Data.Text as T
 import Data.Time (Day, UTCTime, utctDay, getCurrentTime)
 import qualified Data.Map.Strict as Map
 import Control.Concurrent.STM (TVar, newTVarIO, readTVar, readTVarIO, writeTVar, atomically)
-import System.Validation (ValidationError(..))
+import System.Validation (ValidationError  (..))
 
 -- | Project - Project
 data Project = Project

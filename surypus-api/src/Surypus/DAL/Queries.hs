@@ -1429,21 +1429,21 @@ createWorkOrder pool input createTime userId = do
   let stmt =
         preparable
           "INSERT INTO work_order (code, goods_id, tech_card_id, qty_plan, qty_released, status, start_date, end_date, processor_id, notes, created_at, updated_at, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id, code, goods_id, tech_card_id, qty_plan, qty_released, status, start_date, end_date, processor_id, notes, created_at, updated_at, created_by"
-          (((\(code, _, _, _, _, _, _, _, _, _, _, _, _, _) -> code) >$< E.param (E.nonNullable E.text)) <>
-           ((\(_, goodsId, _, _, _, _, _, _, _, _, _, _, _, _, _) -> goodsId) >$< E.param (E.nonNullable E.int8)) <>
-           ((\(_, _, techCardId, _, _, _, _, _, _, _, _, _, _, _, _, _) -> techCardId) >$< E.param (E.nullable E.int8)) <>
-           ((\(_, _, _, qtyPlan, _, _, _, _, _, _, _, _, _, _, _, _) -> qtyPlan) >$< E.param (E.nonNullable E.numeric)) <>
-           ((\(_, _, _, _, qtyReleased, _, _, _, _, _, _, _, _, _, _, _) -> qtyReleased) >$< E.param (E.nonNullable E.numeric)) <>
-           ((\(_, _, _, _, _, status, _, _, _, _, _, _, _, _) -> (fromIntegral status :: Int16)) >$< E.param (E.nonNullable E.int2)) <>
-           ((\(_, _, _, _, _, _, startDate, _, _, _, _, _, _, _) -> startDate) >$< E.param (E.nullable E.date)) <>
-           ((\(_, _, _, _, _, _, _, endDate, _, _, _, _, _, _, _) -> endDate) >$< E.param (E.nullable E.date)) <>
-           ((\(_, _, _, _, _, _, _, processorId, _, _, _, _, _, _, _) -> processorId) >$< E.param (E.nullable E.int8)) <>
-           ((\(_, _, _, _, _, _, _, _, notes, _, _, _, _, _, _, _) -> notes) >$< E.param (E.nullable E.text)) <>
-           ((\(_, _, _, _, _, _, _, _, _, _, createdAt, _, _, _) -> createdAt) >$< E.param (E.nonNullable E.timestamptz)) <>
-           ((\(_, _, _, _, _, _, _, _, _, _, _, updatedAt, _, _) -> updatedAt) >$< E.param (E.nonNullable E.timestamptz)) <>
-           ((\(_, _, _, _, _, _, _, _, _, _, _, _, createdBy, _) -> createdBy) >$< E.param (E.nullable E.text)))
+          (((\(code, _, _, _, _, _, _, _, _, _, _, _, _) -> code) >$< E.param (E.nonNullable E.text)) <>
+           ((\(_, goodsId, _, _, _, _, _, _, _, _, _, _, _) -> goodsId) >$< E.param (E.nonNullable E.int8)) <>
+           ((\(_, _, techCardId, _, _, _, _, _, _, _, _, _, _) -> techCardId) >$< E.param (E.nullable E.int8)) <>
+           ((\(_, _, _, qtyPlan, _, _, _, _, _, _, _, _, _) -> qtyPlan) >$< E.param (E.nonNullable E.numeric)) <>
+           ((\(_, _, _, _, qtyReleased, _, _, _, _, _, _, _, _) -> qtyReleased) >$< E.param (E.nonNullable E.numeric)) <>
+           ((\(_, _, _, _, _, status, _, _, _, _, _, _, _) -> (fromIntegral status :: Int16)) >$< E.param (E.nonNullable E.int2)) <>
+           ((\(_, _, _, _, _, _, startDate, _, _, _, _, _, _) -> startDate) >$< E.param (E.nullable E.date)) <>
+           ((\(_, _, _, _, _, _, _, endDate, _, _, _, _, _) -> endDate) >$< E.param (E.nullable E.date)) <>
+           ((\(_, _, _, _, _, _, _, _, processorId, _, _, _, _) -> processorId) >$< E.param (E.nullable E.int8)) <>
+           ((\(_, _, _, _, _, _, _, _, _, notes, _, _, _, _) -> notes) >$< E.param (E.nullable E.text)) <>
+           ((\(_, _, _, _, _, _, _, _, _, _, createdAt, _, _) -> createdAt) >$< E.param (E.nonNullable E.timestamptz)) <>
+           ((\(_, _, _, _, _, _, _, _, _, _, _, updatedAt, _) -> updatedAt) >$< E.param (E.nonNullable E.timestamptz)) <>
+           ((\(_, _, _, _, _, _, _, _, _, _, _, _, createdBy) -> createdBy) >$< E.param (E.nullable E.text)))
           (D.singleRow workOrderRowDecoder)
-  res <- use pool $ Session.statement (woCode input, woGoodsId input, woTechCardId input, woQtyPlan input, woQtyReleased input, fromIntegral (woStatus input), woStartDate input, woEndDate input, woProcessorId input, woNotes input, createTime, createTime, Just userId) stmt
+  res <- use pool $ Session.statement (workOrderCode input, workOrderGoodsId input, workOrderParentId input, workOrderPlannedQtty input, workOrderFactQtty input, fromIntegral (workOrderStatus input), workOrderStartDate input, workOrderEndDate input, workOrderAssignedTo input, workOrderNote input, createTime, createTime, Nothing) stmt
   case res of
     Right (Just order) -> pure $ QuerySuccess order
     Right Nothing -> pure $ QueryError "Failed to create work order"
@@ -1469,7 +1469,7 @@ updateWorkOrder pool woId input updateTime userId = do
            ((\(_, _, _, _, _, _, _, _, _, _, _, createdBy, _, _) -> createdBy) >$< E.param (E.nullable E.text)) <>
            ((\(_, _, _, _, _, _, _, _, _, _, _, _, woId, _) -> woId) >$< E.param (E.nonNullable E.int8)))
           (D.singleRow workOrderRowDecoder)
-  res <- use pool $ Session.statement (woCode input, woGoodsId input, woTechCardId input, woQtyPlan input, woQtyReleased input, fromIntegral (woStatus input), woStartDate input, woEndDate input, woProcessorId input, woNotes input, updateTime, Just userId, woId) stmt
+  res <- use pool $ Session.statement (workOrderCode input, workOrderGoodsId input, workOrderParentId input, workOrderPlannedQtty input, workOrderFactQtty input, fromIntegral (workOrderStatus input), workOrderStartDate input, workOrderEndDate input, workOrderAssignedTo input, workOrderNote input, createTime, createTime, Nothing) stmt
   case res of
     Right (Just order) -> pure $ QuerySuccess order
     Right Nothing -> pure $ QueryError "Failed to update work order"
@@ -1496,9 +1496,9 @@ releaseWorkOrder pool woId releaseTime userId = do
           "UPDATE work_order SET status = $1, start_at = $2, updated_at = $3, updated_by = $4 WHERE id = $5 RETURNING id, code, goods_id, tech_card_id, qty_plan, qty_released, status, start_date, end_date, processor_id, notes, created_at, updated_at, created_by"
           (((\(status, _, _, _, _) -> status) >$< E.param (E.nonNullable E.int2)) <>
            ((\(_, startTime, _, _, _) -> startTime) >$< E.param (E.nullable E.timestamptz)) <>
-           ((\(_, _, updatedAt, _, _, _) -> updatedAt) >$< E.param (E.nonNullable E.timestamptz)) <>
-           ((\(_, _, _, updatedBy, _, _) -> updatedBy) >$< E.param (E.nullable E.text)) <>
-           ((\(_, _, _, _, woId, _) -> woId) >$< E.param (E.nonNullable E.int8)))
+           ((\(_, _, updatedAt, _, _) -> updatedAt) >$< E.param (E.nonNullable E.timestamptz)) <>
+           ((\(_, _, _, updatedBy, _) -> updatedBy) >$< E.param (E.nullable E.text)) <>
+           ((\(_, _, _, _, woId) -> woId) >$< E.param (E.nonNullable E.int8)))
           (D.singleRow workOrderRowDecoder)
   res <- use pool $ Session.statement (fromIntegral (1 :: Int16), Just releaseTime, Just releaseTime, Just userId, woId) stmt
   case res of
@@ -1513,10 +1513,9 @@ completeWorkOrder pool woId completionTime userId = do
         preparable
           "UPDATE work_order SET status = $1, end_at = $2, updated_at = $3, updated_by = $4 WHERE id = $5 RETURNING id, code, goods_id, tech_card_id, qty_plan, qty_released, status, start_date, end_date, processor_id, notes, created_at, updated_at, created_by"
           (((\(status, _, _, _, _) -> status) >$< E.param (E.nonNullable E.int2)) <>
-           ((\(_, _, endTime, _, _, _) -> endTime) >$< E.param (E.nullable E.timestamptz)) <>
-           ((\(_, _, _, updatedAt, _, _, _) -> updatedAt) >$< E.param (E.nonNullable E.timestamptz)) <>
-           ((\(_, _, _, updatedBy, _, _) -> updatedBy) >$< E.param (E.nullable E.text)) <>
-           ((\(_, _, _, _, woId, _) -> woId) >$< E.param (E.nonNullable E.int8)))
+           ((\(_, _, endTime, _, _) -> endTime) >$< E.param (E.nullable E.timestamptz)) <>
+           ((\(_, _, _, updatedAt, _) -> updatedAt) >$< E.param (E.nonNullable E.timestamptz)) <>
+           ((\(_, _, _, _, woId) -> woId) >$< E.param (E.nonNullable E.int8)))
           (D.singleRow workOrderRowDecoder)
   res <- use pool $ Session.statement (fromIntegral (2 :: Int16), Just completionTime, Just completionTime, Just userId, woId) stmt
   case res of

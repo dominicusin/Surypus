@@ -4,18 +4,18 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 module Infrastructure.EventStore.Inventory
-  ( InventoryEvent (..)
-  , StockReceived (..)
-  , StockShipped (..)
-  , StockTransferred (..)
-  , StockAdjusted (..)
-  , StockWrittenOff (..)
-  , InventoryEventStore (..)
+  ( InventoryEvent   (..)
+  , StockReceived   (..)
+  , StockShipped   (..)
+  , StockTransferred   (..)
+  , StockAdjusted   (..)
+  , StockWrittenOff   (..)
+  , InventoryEventStore   (..)
   , mkInventoryEventStore
   , appendInventoryEvent
   , readInventoryEvents
   , replayInventoryEvents
-  , StockSnapshot (..)
+  , StockSnapshot   (..)
   , getStockSnapshot
   ) where
 
@@ -27,7 +27,7 @@ import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as M
 import qualified Data.List as L
 import GHC.Generics (Generic)
-import Data.Aeson (ToJSON, FromJSON, toJSON, fromJSON, Result(..))
+import Data.Aeson (ToJSON, FromJSON, toJSON, fromJSON, Result  (..))
 import Data.Aeson.TH (deriveJSON, defaultOptions)
 import Hasql.Pool (Pool)
 import qualified DAL.EventStore as ES

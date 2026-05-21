@@ -1,9 +1,9 @@
 -- | Transfer module - Stock transfers (corresponds to TransferTbl in C<>)
 module Logistics.Transfer
-  ( Transfer (..),
-    TransferStatus (..),
-    TransferFlags (..),
-    TransferLine (..),
+  ( Transfer   (..),
+    TransferStatus   (..),
+    TransferFlags   (..),
+    TransferLine   (..),
     isTransferComplete,
     isTransferLineComplete,
     getRemainingQtty,

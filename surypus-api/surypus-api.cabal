@@ -59,6 +59,8 @@ library
     , network-uri
     , smtp-mail
     , mime-mail
+    , http-client
+    , http-conduit
   hs-source-dirs:      src, src/Surypus
   default-language:    Haskell2010
   ghc-options:         -Wall -Wcompat
@@ -68,6 +70,7 @@ test-suite surypus-api-test
   main-is: Spec.hs
   other-modules:
     Surypus.JWT.TokenSpec
+    Surypus.AITest
   build-depends:
     base,
     surypus-api,

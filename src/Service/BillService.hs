@@ -20,7 +20,7 @@ import Data.Time (Day)
 import qualified Data.Text as T
 import DAL.DB
 import DAL.EventStore (appendEvent)
-import Finance.Types (AccTurn (..))
+import Finance.Types (AccTurn   (..))
 
 --------------------------------------------------------------------------------
 -- Type Aliases with Refinements

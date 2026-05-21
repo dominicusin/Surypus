@@ -6,10 +6,10 @@
 
 -- | HR / Payroll core types and invariants
 module HR.Types
-  ( SalaryCharge (..),
-    SalaryRecord (..),
-    SalarySummary (..),
-    SalaryChargeInput (..),
+  ( SalaryCharge   (..),
+    SalaryRecord   (..),
+    SalarySummary   (..),
+    SalaryChargeInput   (..),
     calcPeriodDays,
     calcSalaryPerDay,
     validateSalaryRecord,

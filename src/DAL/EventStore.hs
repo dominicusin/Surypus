@@ -3,7 +3,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module DAL.EventStore
-  ( Event (..),
+  ( Event   (..),
     appendEvent,
     appendEventBroadcast,
     getEvents,
@@ -26,7 +26,7 @@ import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
-import Hasql.Statement (Statement (..))
+import Hasql.Statement (Statement   (..))
 
 -- | Domain Event data structure matching the event_store table
 data Event = Event

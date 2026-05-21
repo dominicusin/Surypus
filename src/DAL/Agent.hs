@@ -2,7 +2,7 @@
 
 -- | Agent module - Agents
 module DAL.Agent
-  ( Agent (..),
+  ( Agent   (..),
     calcCommission,
     prop_commissionNonNeg
   ) where

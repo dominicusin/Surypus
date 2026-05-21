@@ -1,5 +1,5 @@
 module External.Pentaho.Pentaho
-  ( PentahoConfig (..),
+  ( PentahoConfig   (..),
     generateReport
   ) where
 

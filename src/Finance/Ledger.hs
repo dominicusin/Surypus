@@ -6,7 +6,7 @@
 -- This module provides type-safe ledger operations with formal verification
 module Finance.Ledger where
 
-import Finance.Account (Account (..), AccountId, AccountCode, AccountClass (..))
+import Finance.Account (Account   (..), AccountId, AccountCode, AccountClass   (..))
 import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Time (Day)

@@ -1,6 +1,6 @@
 -- | Accounting Events - Core event types for accounting domain
 module Domain.Accounting.Events
-  ( AccountingEvent(..)
+  ( AccountingEvent  (..)
   , rebuildBalance
   ) where
 

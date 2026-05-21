@@ -6,7 +6,7 @@ import Data.Aeson (encode)
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as TLE
 import Surypus.WebSocket (WebSocketHandler, broadcastToRoom)
-import Infrastructure.EventStore.Inventory (InventoryEvent (..))
+import Infrastructure.EventStore.Inventory (InventoryEvent   (..))
 
 -- | Broadcast inventory event to "inventory" room and globally
 broadcastInventoryEvent :: WebSocketHandler -> InventoryEvent -> IO ()

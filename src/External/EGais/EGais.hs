@@ -1,5 +1,5 @@
 module External.EGais.EGais
-  ( EGaisRecord (..),
+  ( EGaisRecord   (..),
     fetchEGaisData
   ) where
 

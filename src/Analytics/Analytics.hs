@@ -1,9 +1,9 @@
 -- | Analytics module - Reporting and BI
 module Analytics.Analytics
-  ( TimeSeries (..),
-    Period (..),
-    BizScore (..),
-    SalesAnalytics (..),
+  ( TimeSeries   (..),
+    Period   (..),
+    BizScore   (..),
+    SalesAnalytics   (..),
     calcProfit,
     calcMargin,
     prop_profitBounded,

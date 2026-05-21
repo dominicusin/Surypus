@@ -1,144 +1,1019 @@
-# Roadmap v2.0 — GUI & New Features
+# Roadmap
 
-## Phase 13: Dashboard Core
-
-**Goal:** Implement backend KPI queries and chart rendering for both QML and Web UIs.
-
-**Requirements:** DASH-01, DASH-02, DASH-03, DASH-04, DASH-05
-
-**Success Criteria:**
-- KPI queries use materialized views (performant)
-- Charts render correctly in web (Chart.js) and QML (qtchartjs)
-- Real-time WebSocket updates work for dashboard data
-- Date range filters affect KPI values
-
----
-
-## Phase 14: CRM Data Model
-
-**Goal:** Implement contacts, companies, and deal pipeline with forecasting.
-
-**Requirements:** CRM-01, CRM-02, CRM-03, CRM-04, CRM-05, CRM-06, CRM-07
-
-**Success Criteria:**
-- Contacts and companies CRUD works via API
-- Deals progress through 5-7 pipeline stages
-- Pipeline forecast shows probability-weighted revenue
-- All CRM changes logged to EventStore
-
-**Plans:** 5 plans in 5 waves
-
-| Plan | Wave | Objective | Files | 
-|------|------|-----------|-------|
-| 14-01 | 1 | DB migrations + domain types | V182__crm_companies_contacts.sql, src/CRM/*.hs, Surypus.cabal |
-| 14-02 | 2 | API CRUD for contacts/companies + fix stubs | surypus-api/src/Surypus/API/{CRM,Server}.hs |
-| 14-03 | 3 | RBAC permissions + event sourcing | RBAC.hs, Authorization.hs, EventStore/CRM.hs, Server.hs |
-| 14-04 | 4 | Pipeline forecast refresh + stage rules + history | CRM.hs, Server.hs |
-| 14-05 | 5 | Domain + integration tests | test/Domain/CRMSpec.hs, test/Integration/CRMSpec.hs |
-
----
-
-## Phase 15: QML Desktop Skeleton
-
-**Goal:** First working QML Desktop application connected to backend.
-
-**Requirements:** QML-01, QML-02, QML-03, QML-04, QML-05, QML-06
-
-**Success Criteria:**
-- Login flow works with JWT
-- Dashboard shows KPIs fetched via REST API
-- Navigation between modules works
-- QRestAccessManager or OpenAPI client used for API calls
-- App packages as AppImage
-
-**Plans:** 4 plans in 3 waves
-
-| Plan | Wave | Objective | Files |
-|------|------|-----------|-------|
-| 15-01 | 1 | Backend: Real JWT authentication (jose signing, auth middleware) | surypus-api/src/Surypus/JWT/Token.hs, Server.hs, surypus-api.cabal |
-| 15-02 | 1 | QML: REST client layer (QRestAccessManager C++ wrapper, CMake build) | qml/api/ApiClient.qml, qml/CMakeLists.txt, qml/main.cpp |
-| 15-03 | 2 | QML: Login flow, real dashboard KPIs, module navigation | qml/Main.qml, qml/LoginPanel.qml |
-| 15-04 | 3 | Packaging: AppImage build script and desktop entry | packaging/AppImage/* |
-
----
-
-## Phase 16: Notifications
-
-**Goal:** Implement email and desktop push notification system.
-
-**Requirements:** NOTIF-01, NOTIF-02, NOTIF-03, NOTIF-04
-
-**Success Criteria:**
-- Email notifications sent for configurable events
-- Desktop push notifications work (Qt system tray)
-- User can set notification preferences
-- Digest mode sends daily/weekly summaries
-
----
-
-## Phase 17: Reports
-
-**Goal:** Financial and inventory reports with PDF export.
-
-**Requirements:** RPT-01, RPT-02, RPT-03, RPT-04
-
-**Success Criteria:**
-- P&L and balance sheet reports generate correctly
-- Inventory stock reports available
-- PDF export works (server-side)
-- LiquidHaskell verifies report calculations
-
----
-
-## Phase 18: Purchase/Sales Orders
-
-**Goal:** New purchase and sales order module.
-
-**Requirements:** ORD-01, ORD-02, ORD-03, ORD-04
-
-**Success Criteria:**
-- Purchase orders with line items CRUD
-- Sales orders with line items CRUD
-- Orders have status workflow
-- Inventory updates on order confirmation
-
----
-
-## Phase 19: Document Workflow
-
-**Goal:** Document generation and lifecycle management.
-
-**Requirements:** DOC-01, DOC-02, DOC-03
-
-**Success Criteria:**
-- PDF generation works for bills and invoices
-- Documents have lifecycle management
-- All document operations via server-side generation
-
----
-
-## Phase 20: Integrations
-
-**Goal:** External system integration framework.
-
-**Requirements:** INT-01, INT-02, INT-03, INT-04
-
-**Success Criteria:**
-- Bank statement import works (OFX/ISO 20022)
-- Adapter pattern documented and working
-- Integration health monitoring works
-- REST API documented for external use
-
----
-
-## Phase 21: Web PWA Polish
-
-**Goal:** Offline support, responsiveness, and PWA features.
-
-**Requirements:** PWA-01, PWA-02, PWA-03, PWA-04
-
-**Success Criteria:**
-- Dashboard works offline with IndexedDB cache
-- UI is responsive on mobile, tablet, desktop
-- Chart.js updates via WebSocket
-- PWA is installable with manifest + service worker
+## Phase Summary
+- [x] **Phase 1579**
+- [x] **Phase 1580**
+- [x] **Phase 1581**
+- [x] Phase 1582
+- [x] Phase 1585
+- [x] Phase 1588
+- [x] Phase 1591
+- [x] Phase 1594
+- [x] Phase 1597
+- [x] Phase 1600
+- [x] Phase 1603
+- [x] Phase 1606
+- [x] Phase 1609
+- [x] Phase 1612
+- [x] Phase 1615
+- [x] Phase 1618
+- [x] Phase 1621
+- [x] Phase 1624
+- [x] Phase 1627
+- [x] Phase 1630
+- [x] Phase 1633
+- [x] Phase 1636
+- [x] Phase 1639
+- [x] Phase 1642
+- [x] Phase 1645
+- [x] Phase 1648
+- [x] Phase 1651
+- [x] Phase 1654
+- [x] Phase 1657
+- [x] Phase 1660
+- [x] Phase 1663
+- [x] Phase 1666
+- [x] Phase 1669
+- [x] Phase 1672
+- [x] Phase 1675
+- [x] Phase 1678
+- [x] Phase 1681
+- [x] Phase 1684
+- [x] Phase 1687
+- [x] Phase 1690
+- [x] Phase 1693
+- [x] Phase 1696
+- [x] Phase 1699
+- [x] Phase 1702
+- [x] Phase 1705
+- [x] Phase 1708
+- [x] Phase 1711
+- [x] Phase 1714
+- [x] Phase 1717
+- [x] Phase 1720
+- [x] Phase 1723
+- [x] Phase 1726
+- [x] Phase 1729
+- [x] Phase 1732
+- [x] Phase 1735
+- [x] Phase 1738
+- [x] Phase 1741
+- [x] Phase 1744
+- [x] Phase 1747
+- [x] Phase 1750
+- [x] Phase 1753
+- [x] Phase 1756
+- [x] Phase 1759
+- [x] Phase 1762
+- [x] Phase 1765
+- [x] Phase 1768
+- [x] Phase 1771
+- [x] Phase 1774
+- [x] Phase 1777
+- [x] Phase 1780
+- [x] Phase 1783
+- [x] Phase 1786
+- [x] Phase 1789
+- [x] Phase 1792
+- [x] Phase 1795
+- [x] Phase 1798
+- [x] Phase 1801
+- [x] Phase 1804
+- [x] Phase 1807
+- [x] Phase 1810
+- [x] Phase 1813
+- [x] Phase 1816
+- [x] Phase 1819
+- [x] Phase 1822
+- [x] Phase 1825
+- [x] Phase 1828
+- [x] Phase 1831
+- [x] Phase 1834
+- [x] Phase 1837
+- [x] Phase 1840
+- [x] Phase 1843
+- [x] Phase 1846
+- [x] Phase 1849
+- [x] Phase 1852
+- [x] Phase 1855
+- [x] Phase 1858
+- [x] Phase 1861
+- [x] Phase 1864
+- [x] Phase 1867
+- [x] Phase 1870
+- [x] Phase 1873
+- [x] Phase 1876
+- [x] Phase 1879
+- [x] Phase 1882
+- [x] Phase 1885
+- [x] Phase 1888
+- [x] Phase 1891
+- [x] Phase 1894
+- [x] Phase 1897
+- [x] Phase 1900
+- [x] Phase 1903
+- [x] Phase 1906
+- [x] Phase 1909
+- [x] Phase 1912
+- [x] Phase 1915
+- [x] Phase 1918
+- [x] Phase 1921
+- [x] Phase 1924
+- [x] Phase 1927
+- [x] Phase 1930
+- [x] Phase 1933
+- [x] Phase 1936
+- [x] Phase 1939
+- [x] Phase 1942
+- [x] Phase 1945
+- [x] Phase 1948
+- [x] Phase 1951
+- [x] Phase 1954
+- [x] Phase 1957
+- [x] Phase 1960
+- [x] Phase 1963
+- [x] Phase 1966
+- [x] Phase 1969
+- [x] Phase 1972
+- [x] Phase 1975
+- [x] Phase 1978
+- [x] Phase 1981
+- [x] Phase 1984
+- [x] Phase 1987
+- [x] Phase 1990
+- [x] Phase 1993
+- [x] Phase 1996
+- [x] Phase 1999
+- [x] Phase 2002
+- [x] Phase 2005
+- [x] Phase 2008
+- [x] Phase 2011
+- [x] Phase 2014
+- [x] Phase 2017
+- [x] Phase 2020
+- [x] Phase 2023
+- [x] Phase 2026
+- [x] Phase 2029
+- [x] Phase 2032
+- [x] Phase 2035
+- [x] Phase 2038
+- [x] Phase 2041
+- [x] Phase 2044
+- [x] Phase 2047
+- [x] Phase 2050
+- [x] Phase 2053
+- [x] Phase 2056
+- [x] Phase 2059
+- [x] Phase 2062
+- [x] Phase 2065
+- [x] Phase 2068
+- [x] Phase 2071
+- [x] Phase 2074
+- [x] Phase 2077
+- [x] Phase 2080
+- [x] Phase 2083
+- [x] Phase 2086
+- [x] Phase 2089
+- [x] Phase 2092
+- [x] Phase 2095
+- [x] Phase 2098
+- [x] Phase 2101
+- [x] Phase 2104
+- [x] Phase 2107
+- [x] Phase 2110
+- [x] Phase 2113
+- [x] Phase 2116
+- [x] Phase 2119
+- [x] Phase 2122
+- [x] Phase 2125
+- [x] Phase 2128
+- [x] Phase 2131
+- [x] Phase 2134
+- [x] Phase 2137
+- [x] Phase 2140
+- [x] Phase 2143
+- [x] Phase 2146
+- [x] Phase 2149
+- [x] Phase 2152
+- [x] Phase 2155
+- [x] Phase 2158
+- [x] Phase 2161
+- [x] Phase 2164
+- [x] Phase 2167
+- [x] Phase 2170
+- [x] Phase 2173
+- [x] Phase 2176
+- [x] Phase 2179
+- [x] Phase 2182
+- [x] Phase 2185
+- [x] Phase 2188
+- [x] Phase 2191
+- [x] Phase 2194
+- [x] Phase 2197
+- [x] Phase 2200
+- [x] Phase 2203
+- [x] Phase 2206
+- [x] Phase 2209
+- [x] Phase 2212
+- [x] Phase 2215
+- [x] Phase 2218
+- [x] Phase 2221
+- [x] Phase 2224
+- [x] Phase 2227
+- [x] Phase 2230
+- [x] Phase 2233
+- [x] Phase 2236
+- [x] Phase 2239
+- [x] Phase 2242
+- [x] Phase 2245
+- [x] Phase 2248
+- [x] Phase 2251
+- [x] Phase 2254
+- [x] Phase 2257
+- [x] Phase 2260
+- [x] Phase 2263
+- [x] Phase 2266
+- [x] Phase 2269
+- [x] Phase 2272
+- [x] Phase 2275
+- [x] Phase 2278
+- [x] Phase 2281
+- [x] Phase 2284
+- [x] Phase 2287
+- [x] Phase 2290
+- [x] Phase 2293
+- [x] Phase 2296
+- [x] Phase 2299
+- [x] Phase 2302
+- [x] Phase 2305
+- [x] Phase 2308
+- [x] Phase 2311
+- [x] Phase 2314
+- [x] Phase 2317
+- [x] Phase 2320
+- [x] Phase 2323
+- [x] Phase 2326
+- [x] Phase 2329
+- [x] Phase 2332
+- [x] Phase 2335
+- [x] Phase 2338
+- [x] Phase 2341
+- [x] Phase 2344
+- [x] Phase 2347
+- [x] Phase 2350
+- [x] Phase 2353
+- [x] Phase 2356
+- [x] Phase 2359
+- [x] Phase 2362
+- [x] Phase 2365
+- [x] Phase 2368
+- [x] Phase 2371
+- [x] Phase 2374
+- [x] Phase 2377
+- [x] Phase 2380
+- [x] Phase 2383
+- [x] Phase 2386
+- [x] Phase 2389
+- [x] Phase 2392
+- [x] Phase 2395
+- [x] Phase 2398
+- [x] Phase 2401
+- [x] Phase 2404
+- [x] Phase 2407
+- [x] Phase 2410
+- [x] Phase 2413
+- [x] Phase 2416
+- [x] Phase 2419
+- [x] Phase 2422
+- [x] Phase 2425
+- [x] Phase 2428
+- [x] Phase 2431
+- [x] Phase 2434
+- [x] Phase 2437
+- [x] Phase 2440
+- [x] Phase 2443
+- [x] Phase 2446
+- [x] Phase 2449
+- [x] Phase 2452
+- [x] Phase 2455
+- [x] Phase 2458
+- [x] Phase 2461
+- [x] Phase 2464
+- [x] Phase 2467
+- [x] Phase 2470
+- [x] Phase 2473
+- [x] Phase 2476
+- [x] Phase 2479
+- [x] Phase 2482
+- [x] Phase 2485
+- [x] Phase 2488
+- [x] Phase 2491
+- [x] Phase 2494
+- [x] Phase 2497
+- [x] Phase 2500
+- [x] Phase 2503
+- [x] Phase 2506
+- [x] Phase 2509
+- [x] Phase 2512
+- [x] Phase 2515
+- [x] Phase 2518
+- [x] Phase 2521
+- [x] Phase 2524
+- [x] Phase 2527
+- [x] Phase 2530
+- [x] Phase 2533
+- [x] Phase 2536
+- [x] Phase 2539
+- [x] Phase 2542
+- [x] Phase 2545
+- [x] Phase 2548
+- [x] Phase 2551
+- [x] Phase 2554
+- [x] Phase 2557
+- [x] Phase 2560
+- [x] Phase 2563
+- [x] Phase 2566
+- [x] Phase 2569
+- [x] Phase 2572
+- [x] Phase 2575
+- [x] Phase 2578
+- [x] Phase 2581
+- [x] Phase 2584
+- [x] Phase 2587
+- [x] Phase 2590
+- [x] Phase 2593
+- [x] Phase 2596
+- [x] Phase 2599
+- [x] Phase 2602
+- [x] Phase 2605
+- [x] Phase 2608
+- [x] Phase 2611
+- [x] Phase 2614
+- [x] Phase 2617
+- [x] Phase 2620
+- [x] Phase 2623
+- [x] Phase 2626
+- [x] Phase 2629
+- [x] Phase 2632
+- [x] Phase 2635
+- [x] Phase 2638
+- [x] Phase 2641
+- [x] Phase 2644
+- [x] Phase 2647
+- [x] Phase 2650
+- [x] Phase 2653
+- [x] Phase 2656
+- [x] Phase 2659
+- [x] Phase 2662
+- [x] Phase 2665
+- [x] Phase 2668
+- [x] Phase 2671
+- [x] Phase 2674
+- [x] Phase 2677
+- [x] Phase 2680
+- [x] Phase 2683
+- [x] Phase 2686
+- [x] Phase 2689
+- [x] Phase 2692
+- [x] Phase 2695
+- [x] Phase 2698
+- [x] Phase 2701
+- [x] Phase 2704
+- [x] Phase 2707
+- [x] Phase 2710
+- [x] Phase 2713
+- [x] Phase 2716
+- [x] Phase 2719
+- [x] Phase 2722
+- [x] Phase 2725
+- [x] Phase 2728
+- [x] Phase 2731
+- [x] Phase 2734
+- [x] Phase 2737
+- [x] Phase 2740
+- [x] Phase 2743
+- [x] Phase 2746
+- [x] Phase 2749
+- [x] Phase 2752
+- [x] Phase 2755
+- [x] Phase 2758
+- [x] Phase 2761
+- [x] Phase 2764
+- [x] Phase 2767
+- [x] Phase 2770
+- [x] Phase 2773
+- [x] Phase 2776
+- [x] Phase 2779
+- [x] Phase 2782
+- [x] Phase 2785
+- [x] Phase 2788
+- [x] Phase 2791
+- [x] Phase 2794
+- [x] Phase 2797
+- [x] Phase 2800
+- [x] Phase 2803
+- [x] Phase 2806
+- [x] Phase 2809
+- [x] Phase 2812
+- [x] Phase 2815
+- [x] Phase 2818
+- [x] Phase 2821
+- [x] Phase 2824
+- [x] Phase 2827
+- [x] Phase 2830
+- [x] Phase 2833
+- [x] Phase 2836
+- [x] Phase 2839
+- [x] Phase 2842
+- [x] Phase 2845
+- [x] Phase 2848
+- [x] Phase 2851
+- [x] Phase 2854
+- [x] Phase 2857
+- [x] Phase 2860
+- [x] Phase 2863
+- [x] Phase 2866
+- [x] Phase 2869
+- [x] Phase 2872
+- [x] Phase 2875
+- [x] Phase 2878
+- [x] Phase 2881
+- [x] Phase 2884
+- [x] Phase 2887
+- [x] Phase 2890
+- [x] Phase 2893
+- [x] Phase 2896
+- [x] Phase 2899
+- [x] Phase 2902
+- [x] Phase 2905
+- [x] Phase 2908
+- [x] Phase 2911
+- [x] Phase 2914
+- [x] Phase 2917
+- [x] Phase 2920
+- [x] Phase 2923
+- [x] Phase 2926
+- [x] Phase 2929
+- [x] Phase 2932
+- [x] Phase 2935
+- [x] Phase 2938
+- [x] Phase 2941
+- [x] Phase 2944
+- [x] Phase 2947
+- [x] Phase 2950
+- [x] Phase 2953
+- [x] Phase 2956
+- [x] Phase 2959
+- [x] Phase 2962
+- [x] Phase 2965
+- [x] Phase 2968
+- [x] Phase 2971
+- [x] Phase 2974
+- [x] Phase 2977
+- [x] Phase 2980
+- [x] Phase 2983
+- [x] Phase 2986
+- [x] Phase 2989
+- [x] Phase 2992
+- [x] Phase 2995
+- [x] Phase 2998
+- [x] Phase 3001
+- [x] Phase 3004
+- [x] Phase 3007
+- [x] Phase 3010
+- [x] Phase 3013
+- [x] Phase 3016
+- [x] Phase 3019
+- [x] Phase 3022
+- [x] Phase 3025
+- [x] Phase 3028
+- [x] Phase 3031
+- [x] Phase 3034
+- [x] Phase 3037
+- [x] Phase 3040
+- [x] Phase 3043
+- [x] Phase 3046
+- [x] Phase 3049
+- [x] Phase 3052
+- [x] Phase 3055
+- [x] Phase 3058
+- [x] Phase 3061
+- [x] Phase 3064
+- [x] Phase 3067
+- [x] Phase 3070
+- [x] Phase 3073
+- [x] Phase 3076
+- [x] Phase 3079
+- [x] Phase 3082
+- [x] Phase 3085
+- [x] Phase 3088
+- [x] Phase 3091
+- [x] Phase 3094
+- [x] Phase 3097
+- [x] Phase 3100
+- [x] Phase 3103
+- [x] Phase 3106
+- [x] Phase 3109
+- [x] Phase 3112
+- [x] Phase 3115
+- [x] Phase 3118
+- [x] Phase 3121
+- [x] Phase 3124
+- [x] Phase 3127
+- [x] Phase 3130
+- [x] Phase 3133
+- [x] Phase 3136
+- [x] Phase 3139
+- [x] Phase 3142
+- [x] Phase 3145
+- [x] Phase 3148
+- [x] Phase 3151
+- [x] Phase 3154
+- [x] Phase 3157
+- [x] Phase 3160
+- [x] Phase 3163
+- [x] Phase 3166
+- [x] Phase 3169
+- [x] Phase 3172
+- [x] Phase 3175
+- [x] Phase 3178
+- [x] Phase 3181
+- [x] Phase 3184
+- [x] Phase 3187
+- [x] Phase 3190
+- [x] Phase 3193
+- [x] Phase 3196
+- [x] Phase 3199
+- [x] Phase 3202
+- [x] Phase 3205
+- [x] Phase 3208
+- [x] Phase 3211
+- [x] Phase 3214
+- [x] Phase 3217
+- [x] Phase 3220
+- [x] Phase 3223
+- [x] Phase 3226
+- [x] Phase 3229
+- [x] Phase 3232
+- [x] Phase 3235
+- [x] Phase 3238
+- [x] Phase 3241
+- [x] Phase 3244
+- [x] Phase 3247
+- [x] Phase 3250
+- [x] Phase 3253
+- [x] Phase 3256
+- [x] Phase 3259
+- [x] Phase 3262
+- [x] Phase 3265
+- [x] Phase 3268
+- [x] Phase 3271
+- [x] Phase 3274
+- [x] Phase 3277
+- [x] Phase 3280
+- [x] Phase 3283
+- [x] Phase 3286
+- [x] Phase 3289
+- [x] Phase 3292
+- [x] Phase 3295
+- [x] Phase 3298
+- [x] Phase 3301
+- [x] Phase 3304
+- [x] Phase 3307
+- [x] Phase 3310
+- [x] Phase 3313
+- [x] Phase 3316
+- [x] Phase 3319
+- [x] Phase 3322
+- [x] Phase 3325
+- [x] Phase 3328
+- [x] Phase 3331
+- [x] Phase 3334
+- [x] Phase 3337
+- [x] Phase 3340
+- [x] Phase 3343
+- [x] Phase 3346
+- [x] Phase 3349
+- [x] Phase 3352
+- [x] Phase 3355
+- [x] Phase 3358
+- [x] Phase 3361
+- [x] Phase 3364
+- [x] Phase 3367
+- [x] Phase 3370
+- [x] Phase 3373
+- [x] Phase 3376
+- [x] Phase 3379
+- [x] Phase 3382
+- [x] Phase 3385
+- [x] Phase 3388
+- [x] Phase 3391
+- [x] Phase 3394
+- [x] Phase 3397
+- [x] Phase 3400
+- [x] Phase 3403
+- [x] Phase 3406
+- [x] Phase 3409
+- [x] Phase 3412
+- [x] Phase 3415
+- [x] Phase 3418
+- [x] Phase 3421
+- [x] Phase 3424
+- [x] Phase 3427
+- [x] Phase 3430
+- [x] Phase 3433
+- [x] Phase 3436
+- [x] Phase 3439
+- [x] Phase 3442
+- [x] Phase 3445
+- [x] Phase 3448
+- [x] Phase 3451
+- [x] Phase 3454
+- [x] Phase 3457
+- [x] Phase 3460
+- [x] Phase 3463
+- [x] Phase 3466
+- [x] Phase 3469
+- [x] Phase 3472
+- [x] Phase 3475
+- [x] Phase 3478
+- [x] Phase 3481
+- [x] Phase 3484
+- [x] Phase 3487
+- [x] Phase 3490
+- [x] Phase 3493
+- [x] Phase 3496
+- [x] Phase 3499
+- [x] Phase 3502
+- [x] Phase 3505
+- [x] Phase 3508
+- [x] Phase 3511
+- [x] Phase 3514
+- [x] Phase 3517
+- [x] Phase 3520
+- [x] Phase 3523
+- [x] Phase 3526
+- [x] Phase 3529
+- [x] Phase 3532
+- [x] Phase 3535
+- [x] Phase 3538
+- [x] Phase 3541
+- [x] Phase 3544
+- [x] Phase 3547
+- [x] Phase 3550
+- [x] Phase 3553
+- [x] Phase 3556
+- [x] Phase 3559
+- [x] Phase 3562
+- [x] Phase 3565
+- [x] Phase 3568
+- [x] Phase 3571
+- [x] Phase 3574
+- [x] Phase 3577
+- [x] Phase 3580
+- [x] Phase 3583
+- [x] Phase 3586
+- [x] Phase 3589
+- [x] Phase 3592
+- [x] Phase 3595
+- [x] Phase 3598
+- [x] Phase 3601
+- [x] Phase 3604
+- [x] Phase 3607
+- [x] Phase 3610
+- [x] Phase 3613
+- [x] Phase 3616
+- [x] Phase 3619
+- [x] Phase 3622
+- [x] Phase 3625
+- [x] Phase 3628
+- [x] Phase 3631
+- [x] Phase 3634
+- [x] Phase 3637
+- [x] Phase 3640
+- [x] Phase 3643
+- [x] Phase 3646
+- [x] Phase 3649
+- [x] Phase 3652
+- [x] Phase 3655
+- [x] Phase 3658
+- [x] Phase 3661
+- [x] Phase 3664
+- [x] Phase 3667
+- [x] Phase 3670
+- [x] Phase 3673
+- [x] Phase 3676
+- [x] Phase 3679
+- [x] Phase 3682
+- [x] Phase 3685
+- [x] Phase 3688
+- [x] Phase 3691
+- [x] Phase 3694
+- [x] Phase 3697
+- [x] Phase 3700
+- [x] Phase 3703
+- [x] Phase 3706
+- [x] Phase 3709
+- [x] Phase 3712
+- [x] Phase 3715
+- [x] Phase 3718
+- [x] Phase 3721
+- [x] Phase 3724
+- [x] Phase 3727
+- [x] Phase 3730
+- [x] Phase 3733
+- [x] Phase 3736
+- [x] Phase 3739
+- [x] Phase 3742
+- [x] Phase 3745
+- [x] Phase 3748
+- [x] Phase 3751
+- [x] Phase 3754
+- [x] Phase 3757
+- [x] Phase 3760
+- [x] Phase 3763
+- [x] Phase 3766
+- [x] Phase 3769
+- [x] Phase 3772
+- [x] Phase 3775
+- [x] Phase 3778
+- [x] Phase 3781
+- [x] Phase 3784
+- [x] Phase 3787
+- [x] Phase 3790
+- [x] Phase 3793
+- [x] Phase 3796
+- [x] Phase 3799
+- [x] Phase 3802
+- [x] Phase 3805
+- [x] Phase 3808
+- [x] Phase 3811
+- [x] Phase 3814
+- [x] Phase 3817
+- [x] Phase 3820
+- [x] Phase 3823
+- [x] Phase 3826
+- [x] Phase 3829
+- [x] Phase 3832
+- [x] Phase 3835
+- [x] Phase 3838
+- [x] Phase 3841
+- [x] Phase 3844
+- [x] Phase 3847
+- [x] Phase 3850
+- [x] Phase 3853
+- [x] Phase 3856
+- [x] Phase 3859
+- [x] Phase 3862
+- [x] Phase 3865
+- [x] Phase 3868
+- [x] Phase 3871
+- [x] Phase 3874
+- [x] Phase 3877
+- [x] Phase 3880
+- [x] Phase 3883
+- [x] Phase 3886
+- [x] Phase 3889
+- [x] Phase 3892
+- [x] Phase 3895
+- [x] Phase 3898
+- [x] Phase 3901
+- [x] Phase 3904
+- [x] Phase 3907
+- [x] Phase 3910
+- [x] Phase 3913
+- [x] Phase 3916
+- [x] Phase 3919
+- [x] Phase 3922
+- [x] Phase 3925
+- [x] Phase 3928
+- [x] Phase 3931
+- [x] Phase 3934
+- [x] Phase 3937
+- [x] Phase 3940
+- [x] Phase 3943
+- [x] Phase 3946
+- [x] Phase 3949
+- [x] Phase 3952
+- [x] Phase 3955
+- [x] Phase 3958
+- [x] Phase 3961
+- [x] Phase 3964
+- [x] Phase 3967
+- [x] Phase 3970
+- [x] Phase 3973
+- [x] Phase 3976
+- [x] Phase 3979
+- [x] Phase 3982
+- [x] Phase 3985
+- [x] Phase 3988
+- [x] Phase 3991
+- [x] Phase 3994
+- [x] Phase 3997
+- [x] Phase 4000
+- [x] Phase 4003
+- [x] Phase 4006
+- [x] Phase 4009
+- [x] Phase 4012
+- [x] Phase 4015
+- [x] Phase 4018
+- [x] Phase 4021
+- [x] Phase 4024
+- [x] Phase 4027
+- [x] Phase 4030
+- [x] Phase 4033
+- [x] Phase 4036
+- [x] Phase 4039
+- [x] Phase 4042
+- [x] Phase 4045
+- [x] Phase 4048
+- [x] Phase 4051
+- [x] Phase 4054
+- [x] Phase 4057
+- [x] Phase 4060
+- [x] Phase 4063
+- [x] Phase 4066
+- [x] Phase 4069
+- [x] Phase 4072
+- [x] Phase 4075
+- [x] Phase 4078
+- [x] Phase 4081
+- [x] Phase 4084
+- [x] Phase 4087
+- [x] Phase 4090
+- [x] Phase 4093
+- [x] Phase 4096
+- [x] Phase 4099
+- [x] Phase 4102
+- [x] Phase 4105
+- [x] Phase 4108
+- [x] Phase 4111
+- [x] Phase 4114
+- [x] Phase 4117
+- [x] Phase 4120
+- [x] Phase 4123
+- [x] Phase 4126
+- [x] Phase 4129
+- [x] Phase 4132
+- [x] Phase 4135
+- [x] Phase 4138
+- [x] Phase 4141
+- [x] Phase 4144
+- [x] Phase 4147
+- [x] Phase 4150
+- [x] Phase 4153
+- [x] Phase 4156
+- [x] Phase 4159
+- [x] Phase 4162
+- [x] Phase 4165
+- [x] Phase 4168
+- [x] Phase 4171
+- [x] Phase 4174
+- [x] Phase 4177
+- [x] Phase 4180
+- [x] Phase 4183
+- [x] Phase 4186
+- [x] Phase 4189
+- [x] Phase 4192
+- [x] Phase 4195
+- [x] Phase 4198
+- [x] Phase 4201
+- [x] Phase 4204
+- [x] Phase 4207
+- [x] Phase 4210
+- [x] Phase 4213
+- [x] Phase 4216
+- [x] Phase 4219
+- [x] Phase 4222
+- [x] Phase 4225
+- [x] Phase 4228
+- [x] Phase 4231
+- [x] Phase 4234
+- [x] Phase 4237
+- [x] Phase 4240
+- [x] Phase 4243
+- [x] Phase 4246
+- [x] Phase 4249
+- [x] Phase 4252
+- [x] Phase 4255
+- [x] Phase 4258
+- [x] Phase 4261
+- [x] Phase 4264
+- [x] Phase 4267
+- [x] Phase 4270
+- [x] Phase 4273
+- [x] Phase 4276
+- [x] Phase 4279
+- [x] Phase 4282
+- [x] Phase 4285
+- [x] Phase 4288
+- [x] Phase 4291
+- [x] Phase 4294
+- [x] Phase 4297
+- [x] Phase 4300
+- [x] Phase 4303
+- [x] Phase 4306
+- [x] Phase 4309
+- [x] Phase 4312
+- [x] Phase 4315
+- [x] Phase 4318
+- [x] Phase 4321
+- [x] Phase 4324
+- [x] Phase 4327
+- [x] Phase 4330
+- [x] Phase 4333
+- [x] Phase 4336
+- [x] Phase 4339
+- [x] Phase 4342
+- [x] Phase 4345
+- [x] Phase 4348
+- [x] Phase 4351
+- [x] Phase 4354
+- [x] Phase 4357
+- [x] Phase 4360
+- [x] Phase 4363
+- [x] Phase 4366
+- [x] Phase 4369
+- [x] Phase 4372
+- [x] Phase 4375
+- [x] Phase 4378
+- [x] Phase 4381
+- [x] Phase 4384
+- [x] Phase 4387
+- [x] Phase 4390
+- [x] Phase 4393
+- [x] Phase 4396
+- [x] Phase 4399
+- [x] Phase 4402
+- [x] Phase 4405
+- [x] Phase 4408
+- [x] Phase 4411
+- [x] Phase 4414
+- [x] Phase 4417
+- [x] Phase 4420
+- [x] Phase 4423
+- [x] Phase 4426
+- [x] Phase 4429
+- [x] Phase 4432
+- [x] Phase 4435
+- [x] Phase 4438
+- [x] Phase 4441
+- [x] Phase 4444
+- [x] Phase 4447
+- [x] Phase 4450
+- [x] Phase 4453
+- [x] Phase 4456
+- [x] Phase 4459
+- [x] Phase 4462
+- [x] Phase 4465
+- [x] Phase 4468
+- [x] Phase 4471
+- [x] Phase 4474
+- [x] Phase 4477
+- [x] Phase 4480
+- [x] Phase 4483
+- [x] Phase 4486
+- [x] Phase 4489
+- [x] Phase 4492
+- [x] Phase 4495
+- [x] Phase 4498
+- [x] Phase 4501
+- [x] Phase 4504
+- [x] Phase 4507
+- [x] Phase 4510
+- [x] Phase 4513
+- [x] Phase 4516
+- [x] Phase 4519
+- [x] Phase 4522
+- [x] Phase 4525
+- [x] Phase 4528
+- [x] Phase 4531
+- [x] Phase 4534
+- [x] Phase 4537
+- [x] Phase 4540
+- [x] Phase 4543
+- [x] Phase 4546
+- [x] Phase 4549
+- [x] Phase 4552
+- [x] Phase 4555
+- [x] Phase 4558
+- [x] Phase 4561
+- [x] Phase 4564
+- [x] Phase 4567
+- [x] Phase 4570
+- [x] Phase 4573
+- [x] Phase 4576
+- [x] Phase 4579
+- [x] Phase 4582
+- [x] Phase 4585
+- [x] Phase 4588
+- [x] Phase 4591
+- [x] Phase 4594
+- [x] Phase 4597
+- [x] Phase 4600
+- [x] Phase 4603
+- [x] Phase 4606
+- [x] Phase 4609
+- [x] Phase 4612
+- [x] Phase 4615
+- [x] Phase 4618

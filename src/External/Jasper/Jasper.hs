@@ -1,5 +1,5 @@
 module External.Jasper.Jasper
-  ( JasperConfig (..),
+  ( JasperConfig   (..),
     generateReport
   ) where
 

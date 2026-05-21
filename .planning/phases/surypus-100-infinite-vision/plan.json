@@ -1,0 +1,16 @@
+{
+  "phase": 100,
+  "name": "Infinite Vision",
+  "milestone": "v29.0",
+  "status": "Ready",
+  "deliverables": [
+    "Omniscient sight",
+    "Perpetual gaze",
+    "Universal view"
+  ],
+  "acceptance": [
+    "Sight is omniscient",
+    "Gaze is perpetual",
+    "View is universal"
+  ]
+}

@@ -9,8 +9,8 @@
 
 module Core.Accounting.ReadModel
   ( -- * Read Model Types
-    AccountReadModel(..)
-  , BalanceState(..)
+    AccountReadModel  (..)
+  , BalanceState  (..)
 
     -- * Read Model Operations
   , replayAccountEvents

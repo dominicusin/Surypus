@@ -2,11 +2,11 @@
 {-# LANGUAGE DeriveGeneric #-}
 
 module Inventory.Warehouse
-  ( Warehouse(..)
-  , WarehouseType(..)
-  , CreateWarehouseRequest(..)
-  , UpdateWarehouseRequest(..)
-  , WarehouseResult(..)
+  ( Warehouse  (..)
+  , WarehouseType  (..)
+  , CreateWarehouseRequest  (..)
+  , UpdateWarehouseRequest  (..)
+  , WarehouseResult  (..)
   , createWarehouse
   , readWarehouse
   , updateWarehouse

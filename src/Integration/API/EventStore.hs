@@ -47,7 +47,7 @@ initEventStore config = do
 appendEvent :: EventStore -> Text -> Event -> IO ()
 appendEvent store stream event = atomically $ do
   streams <- readTVar (storeEvents store)
-  let updated = Map.insertWith (++) stream [event] streams
+  let updated = Map.insertWith   (..) stream [event] streams
   writeTVar (storeEvents store) updated
 
 -- | Read events from stream

@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Surypus.API.MetricsMiddleware
-  ( MetricsMiddlewareConfig (..),
+  ( MetricsMiddlewareConfig   (..),
     withMetricsCollection,
   )
 where

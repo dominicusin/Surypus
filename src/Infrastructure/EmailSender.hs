@@ -1,6 +1,6 @@
 module Infrastructure.EmailSender where
 
-import Control.Monad.IO.Class (MonadIO (..))
+import Control.Monad.IO.Class (MonadIO   (..))
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Map.Strict as Map

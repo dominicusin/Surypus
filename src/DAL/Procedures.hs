@@ -28,8 +28,8 @@ import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
-import Hasql.Statement (Statement (..))
-import Surypus.CoreTypes (Decimal (..))
+import Hasql.Statement (Statement   (..))
+import Surypus.CoreTypes (Decimal   (..))
 
 -- | Helper to create prepared statements
 preparable :: Text -> E.Params params -> D.Result result -> Statement params result
@@ -58,7 +58,7 @@ getLotBounds pool goodsId locationId = do
   let stmt = preparable
         "SELECT min_date::text, max_date::text, total_qty FROM get_lot_bounds($1, $2)"
         ((fst >$< E.param (E.nonNullable E.int8)) <> (snd >$< E.param (E.nonNullable E.int8)))
-        (D.rowMaybe $ (,,) 
+        (D.rowMaybe $   (..) 
           <$> (D.column (D.nonNullable D.text))
           <*> (D.column (D.nonNullable D.text))
           <*> (fmap (\n -> Decimal (realToFrac n)) (D.column (D.nonNullable D.numeric))))
@@ -115,7 +115,7 @@ calcPriceWithoutVAT pool amount rate = do
 postBill :: Pool -> Int64 -> IO (Either Text Bool)
 postBill pool billId = do
   let stmt = preparable
-        "SELECT post_bill($1)"
+        "SELECT post_bill  (..)"
         (E.param (E.nonNullable E.int8))
         (D.singleRow (D.column (D.nonNullable D.bool)))
   res <- use pool $ Session.statement billId stmt
@@ -127,7 +127,7 @@ postBill pool billId = do
 cancelBill :: Pool -> Int64 -> IO (Either Text Bool)
 cancelBill pool billId = do
   let stmt = preparable
-        "SELECT cancel_bill($1)"
+        "SELECT cancel_bill  (..)"
         (E.param (E.nonNullable E.int8))
         (D.singleRow (D.column (D.nonNullable D.bool)))
   res <- use pool $ Session.statement billId stmt
@@ -143,7 +143,7 @@ cancelBill pool billId = do
 validateDoubleEntry :: Pool -> Int64 -> IO (Either Text Bool)
 validateDoubleEntry pool entryId = do
   let stmt = preparable
-        "SELECT validate_double_entry($1)"
+        "SELECT validate_double_entry  (..)"
         (E.param (E.nonNullable E.int8))
         (D.singleRow (D.column (D.nonNullable D.bool)))
   res <- use pool $ Session.statement entryId stmt
@@ -155,7 +155,7 @@ validateDoubleEntry pool entryId = do
 calcAccountBalance :: Pool -> Int64 -> IO (Either Text Decimal)
 calcAccountBalance pool accountId = do
   let stmt = preparable
-        "SELECT calc_account_balance($1)"
+        "SELECT calc_account_balance  (..)"
         (E.param (E.nonNullable E.int8))
         (D.singleRow (fmap (\n -> Decimal (realToFrac n)) (D.column (D.nonNullable D.numeric))))
   res <- use pool $ Session.statement accountId stmt

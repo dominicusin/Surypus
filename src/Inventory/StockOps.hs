@@ -2,9 +2,9 @@
 {-# LANGUAGE DeriveGeneric #-}
 
 module Inventory.StockOps
-  ( InvStock(..)
-  , MovementType(..)
-  , StockMovement(..)
+  ( InvStock  (..)
+  , MovementType  (..)
+  , StockMovement  (..)
   , applyMovement
   , findStock
   , totalQuantityForGood

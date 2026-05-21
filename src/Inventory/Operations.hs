@@ -1,7 +1,7 @@
 -- | Inventory Operations with Formal Verification
 -- Модуль содержит инварианты и проверенные операции для склада
 module Inventory.Operations
-  ( StockOpResult (..),
+  ( StockOpResult   (..),
     validateStockOperation,
     processReceipt,
     processIssue,
@@ -10,7 +10,7 @@ module Inventory.Operations
     recalculateBalance
   ) where
 
-import Inventory.Lot (Lot (..))
+import Inventory.Lot (Lot   (..))
 import Data.Int (Int64)
 import Data.Text (Text)
 

@@ -1,12 +1,12 @@
 -- | Shared CRM types - newtype wrappers and enumerations
 module CRM.Types
-  ( ContactId (..),
-    CompanyId (..),
-    DealId (..),
-    ActivityId (..),
-    PipelineStageId (..),
-    Priority (..),
-    ActivityType (..),
+  ( ContactId   (..),
+    CompanyId   (..),
+    DealId   (..),
+    ActivityId   (..),
+    PipelineStageId   (..),
+    Priority   (..),
+    ActivityType   (..),
     arbUUID,
   )
 where

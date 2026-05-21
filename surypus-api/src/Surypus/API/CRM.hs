@@ -1,6 +1,7 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 module Surypus.API.CRM
   ( Deal(..)
@@ -141,13 +142,13 @@ createDeal pool input = do
         \RETURNING id::TEXT, $1, $2, (SELECT stage_name FROM crm_pipeline_stages WHERE id = $3::UUID), \
         \  NULL::TEXT, NULL::TEXT, $6::TEXT, $7, \
         \  (SELECT stage_probability FROM crm_pipeline_stages WHERE id = $3::UUID), TRUE"
-        ( E.param (E.nonNullable E.text) >$< (\(DealInput n _ _ _ _ _ p) -> n)
-        <> E.param (E.nonNullable E.float8) >$< (\(DealInput _ v _ _ _ _ _) -> v)
-        <> E.param (E.nonNullable E.text) >$< (\(DealInput _ _ s _ _ _ _) -> s)
-        <> E.param (E.nullable E.text) >$< (\(DealInput _ _ _ p _ _ _) -> p)
-        <> E.param (E.nullable E.text) >$< (\(DealInput _ _ _ _ c _ _) -> c)
-        <> E.param (E.nullable E.text) >$< (\(DealInput _ _ _ _ _ d _) -> d)
-        <> E.param (E.nonNullable E.text) >$< (\(DealInput _ _ _ _ _ _ p) -> p))
+        (((\(DealInput n _ _ _ _ _ _) -> n) >$< E.param (E.nonNullable E.text))
+         <> ((\(DealInput _ v _ _ _ _ _) -> v) >$< E.param (E.nonNullable E.float8))
+         <> ((\(DealInput _ _ s _ _ _ _) -> s) >$< E.param (E.nonNullable E.text))
+         <> ((\(DealInput _ _ _ p _ _ _) -> p) >$< E.param (E.nullable E.text))
+         <> ((\(DealInput _ _ _ _ c _ _) -> c) >$< E.param (E.nullable E.text))
+         <> ((\(DealInput _ _ _ _ _ d _) -> d) >$< E.param (E.nullable E.text))
+         <> ((\(DealInput _ _ _ _ _ _ p) -> p) >$< E.param (E.nonNullable E.text)))
         (D.singleRow $ Deal
           <$> D.column (D.nonNullable D.text)
           <*> D.column (D.nonNullable D.text)
@@ -162,7 +163,7 @@ createDeal pool input = do
         True
   result <- try $ usePool pool $ Session.statement input stmt
   case result of
-    Right deal -> return $ QuerySuccess deal
+    Right (deal :: Deal) -> return $ QuerySuccess deal
     Left (e :: SomeException) -> return $ QueryError (T.pack $ show e)
 
 getDeal :: Pool -> Text -> IO (QueryResult Deal)
@@ -191,7 +192,7 @@ getDeal pool did = do
         True
   result <- try $ usePool pool $ Session.statement did stmt
   case result of
-    Right deal -> return $ QuerySuccess deal
+    Right (deal :: Deal) -> return $ QuerySuccess deal
     Left (e :: SomeException) -> return $ QueryError (T.pack $ show e)
 
 updateDealStage :: Pool -> Text -> Text -> IO (QueryResult Deal)
@@ -220,7 +221,7 @@ updateDealStage pool did newStageId = do
         True
   result <- try $ usePool pool $ Session.statement (did, newStageId) stmt
   case result of
-    Right deal -> return $ QuerySuccess deal
+    Right (deal :: Deal) -> return $ QuerySuccess deal
     Left (e :: SomeException) -> return $ QueryError (T.pack $ show e)
 
 getPipelineForecast :: Pool -> IO (QueryResult [PipelineForecast])
@@ -228,16 +229,16 @@ getPipelineForecast pool = do
   let stmt = Statement.Statement
         "SELECT stage_name, deal_count, pipeline_value, weighted_forecast \
         \FROM mv_crm_pipeline_forecast ORDER BY stage_order"
-        ()
+        E.noParams
         (D.rowList $ PipelineForecast
           <$> D.column (D.nonNullable D.text)
-          <*> D.column (D.nonNullable D.int8)
+          <*> (fromIntegral <$> D.column (D.nonNullable D.int8))
           <*> D.column (D.nonNullable D.float8)
           <*> D.column (D.nonNullable D.float8))
         True
   result <- try $ usePool pool $ Session.statement () stmt
   case result of
-    Right forecast -> return $ QuerySuccess forecast
+    Right (forecast :: [PipelineForecast]) -> return $ QuerySuccess forecast
     Left (e :: SomeException) -> return $ QueryError (T.pack $ show e)
 
 listActivities :: Pool -> Text -> IO (QueryResult [Activity])
@@ -258,7 +259,7 @@ listActivities pool dealId = do
         True
   result <- try $ usePool pool $ Session.statement dealId stmt
   case result of
-    Right activities -> return $ QuerySuccess activities
+    Right (activities :: [Activity]) -> return $ QuerySuccess activities
     Left (e :: SomeException) -> return $ QueryError (T.pack $ show e)
 
 updateDeal :: Pool -> Text -> DealInput -> IO (QueryResult Deal)

@@ -1,6 +1,6 @@
 -- | Contact domain type
 module CRM.Contact
-  ( Contact (..),
+  ( Contact   (..),
   )
 where
 
@@ -9,7 +9,7 @@ import Data.Int (Int64)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Time.Calendar (fromGregorian)
-import Data.Time.Clock (UTCTime (..), secondsToDiffTime)
+import Data.Time.Clock (UTCTime   (..), secondsToDiffTime)
 import Test.QuickCheck
 
 data Contact = Contact
