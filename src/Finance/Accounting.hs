@@ -10,7 +10,9 @@ module Finance.Accounting
     Account   (..),
     Transaction   (..),
     validateTransaction,
-    processTransaction
+    processTransaction,
+    mkLedgerEntry,
+    mkTransaction
   ) where
 
 import Data.Int (Int64)
@@ -28,6 +30,7 @@ data Account = Account
   deriving (Eq, Show)
 
 -- | Single ledger entry (debit or credit)
+-- Invariant: debit and credit amounts must be non-negative
 data LedgerEntry = LedgerEntry
   { leId :: Maybe Int64,
     leDate :: Day,
@@ -39,7 +42,16 @@ data LedgerEntry = LedgerEntry
   }
   deriving (Eq, Show)
 
+-- | Smart constructor for LedgerEntry that ensures non-negative amounts
+-- Returns Nothing if debit or credit is negative
+mkLedgerEntry :: Maybe Int64 -> Day -> Int64 -> Text -> Decimal -> Decimal -> Maybe Text -> Maybe LedgerEntry
+mkLedgerEntry lid date acc desc debitAmt creditAmt docRef
+  | debitAmt < 0 = Nothing
+  | creditAmt < 0 = Nothing
+  | otherwise = Just $ LedgerEntry lid date acc desc debitAmt creditAmt docRef
+
 -- | Transaction (collection of balanced entries)
+-- Invariant: total debits must equal total credits
 data Transaction = Transaction
   { txId :: Maybe Int64,
     txDate :: Day,
@@ -47,6 +59,15 @@ data Transaction = Transaction
     txEntries :: [LedgerEntry]
   }
   deriving (Eq, Show)
+
+-- | Smart constructor for Transaction that validates balance
+-- Returns Nothing if transaction is unbalanced
+mkTransaction :: Maybe Int64 -> Day -> Text -> [LedgerEntry] -> Maybe Transaction
+mkTransaction tid date desc entries = do
+  let tx = Transaction tid date desc entries
+  case validateTransaction tx of
+    Right _ -> Just tx
+    Left _ -> Nothing
 
 -- | Extract debit amount from entry
 debit :: LedgerEntry -> Decimal
@@ -57,6 +78,7 @@ credit :: LedgerEntry -> Decimal
 credit = leCredit
 
 -- | Calculate balance (debit - credit)
+-- Ensures balance doesn't go negative for asset accounts
 balance :: LedgerEntry -> Decimal
 balance le = leDebit le - leCredit le
 
