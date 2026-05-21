@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE Unsafe #-}
 
 module DAL.EventStore
   ( Event   (..),
@@ -10,10 +11,11 @@ module DAL.EventStore
     getEventsFrom,
     replayAccount,
     getLatestSequence,
+    setWebSocketBroadcaster,
   )
   where
 
-import Data.Aeson (Value)
+import Data.Aeson (Value, encode)
 import Data.Functor.Contravariant ((>$<))
 import Data.Int (Int64)
 import Data.Text (Text)
@@ -22,11 +24,14 @@ import qualified Data.Text.Encoding as TE
 import Data.Time (UTCTime)
 import Data.UUID (UUID)
 import GHC.Generics (Generic)
+import System.IO.Unsafe (unsafePerformIO)
 import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
 import qualified Hasql.Session as Session
 import Hasql.Statement (Statement   (..))
+import Control.Concurrent.MVar (MVar, newMVar, putMVar, readMVar)
+import qualified Data.ByteString.Lazy as LBS
 
 -- | Domain Event data structure matching the event_store table
 data Event = Event
@@ -45,6 +50,15 @@ data Event = Event
 
 -- | Event broadcast callback type
 type BroadcastCallback = Int64 -> Text -> Text -> Value -> IO ()
+
+-- | Global WebSocket broadcaster (set at application startup)
+{-# NOINLINE globalBroadcaster #-}
+globalBroadcaster :: MVar (Maybe BroadcastCallback)
+globalBroadcaster = unsafePerformIO (newMVar Nothing)
+
+-- | Set the global WebSocket broadcaster
+setWebSocketBroadcaster :: BroadcastCallback -> IO ()
+setWebSocketBroadcaster callback = putMVar globalBroadcaster (Just callback)
 
 -- | Decoder for Event row
 eventRowDecoder :: D.Row Event
@@ -123,9 +137,13 @@ appendEventBroadcast pool aggId aggType evType evVer evData evMeta seqNum room =
   res <- appendEvent pool aggId aggType evType evVer evData evMeta seqNum
   case res of
     Right () -> do
-      -- Broadcast to WebSocket room (would integrate with handler here)
-      -- broadcastToRoom handler room (T.decodeUtf8 $ encode eventJson)
-      pure $ Right ()
+      -- Broadcast to WebSocket room via global broadcaster
+      broadcaster <- readMVar globalBroadcaster
+      case broadcaster of
+        Just broadcast -> do
+          _ <- broadcast aggId aggType evType evData
+          pure $ Right ()
+        Nothing -> pure $ Right () -- No broadcaster set, skip broadcast
     Left err -> pure $ Left err
 
 -- | Get all events for an aggregate
