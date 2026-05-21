@@ -32,7 +32,7 @@ generateKeyPair _ = do
 signMessage :: Algorithm -> ByteString -> ByteString -> IO PQCSignature
 signMessage algo privKey msg = do
   -- Placeholder: would use actual signing
-  let sig = BS.take 64 $ BS.repeat 0
+  let sig = BS.replicate 64 0
   let pubKey = BS.replicate 32 0
   return $ PQCSignature algo sig pubKey
 

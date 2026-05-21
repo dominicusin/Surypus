@@ -14,7 +14,7 @@ import Data.Time (UTCTime)
 
 -- | Levels of awareness
 data AwarenessLevel = Instinctive | Cognitive | SelfAware | MetaCognitive | Transcendent
-  deriving (Eq, Show, Ord)
+  deriving (Eq, Show, Ord, Enum)
 
 -- | Consciousness state tracking
 data ConsciousnessState = ConsciousnessState

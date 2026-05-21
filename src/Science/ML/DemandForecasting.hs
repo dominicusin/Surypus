@@ -9,6 +9,7 @@ module Science.ML.DemandForecasting
 
 import Data.Time (Day)
 import Data.Text (Text)
+import qualified Data.Text as T
 
 -- | Single forecast point with confidence interval
 data ForecastPoint = ForecastPoint
@@ -48,7 +49,7 @@ predict model itemId horizon = do
         }
   return $ DemandForecast
     { dfItemId = itemId
-    , dfItemName = "Item " <> show itemId
+    , dfItemName = "Item " <> T.pack (show itemId)
     , dfPoints = points
     , dfModelAccuracy = 0.85
     }
