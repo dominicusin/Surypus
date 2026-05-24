@@ -12,8 +12,8 @@ Output: {phase_num}-UI-REVIEW.md
 </objective>
 
 <execution_context>
-@.github/get-shit-done/workflows/ui-review.md
-@.github/get-shit-done/references/ui-brand.md
+@~/.copilot/get-shit-done/workflows/ui-review.md
+@~/.copilot/get-shit-done/references/ui-brand.md
 </execution_context>
 
 <context>

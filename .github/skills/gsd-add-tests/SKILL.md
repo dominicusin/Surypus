@@ -14,7 +14,7 @@ Output: Test files committed with message `test(phase-{N}): add unit and E2E tes
 </objective>
 
 <execution_context>
-@.github/get-shit-done/workflows/add-tests.md
+@~/.copilot/get-shit-done/workflows/add-tests.md
 </execution_context>
 
 <context>

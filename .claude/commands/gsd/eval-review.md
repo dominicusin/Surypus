@@ -1,5 +1,5 @@
 ---
-name: gsd:eval-review
+name: gsd-eval-review
 description: Audit an executed AI phase's evaluation coverage and produce an EVAL-REVIEW.md remediation plan.
 argument-hint: "[phase number]"
 allowed-tools:
@@ -10,6 +10,7 @@ allowed-tools:
   - Grep
   - Agent
   - AskUserQuestion
+requires: [phase]
 ---
 <objective>
 Conduct a retroactive evaluation coverage audit of a completed AI phase.

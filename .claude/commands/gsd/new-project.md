@@ -1,5 +1,5 @@
 ---
-name: gsd:new-project
+name: gsd-new-project
 description: Initialize a new project with deep context gathering and PROJECT.md
 argument-hint: "[--auto]"
 allowed-tools:
@@ -8,6 +8,7 @@ allowed-tools:
   - Write
   - Agent
   - AskUserQuestion
+requires: [config, phase, plan-phase]
 ---
 <runtime_note>
 **Copilot (VS Code):** Use `vscode_askquestions` wherever this workflow calls `AskUserQuestion`. They are equivalent — `vscode_askquestions` is the VS Code Copilot implementation of the same interactive question API.

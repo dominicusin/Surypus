@@ -32,7 +32,7 @@ import qualified Data.List as L
 import GHC.Generics (Generic)
 import Data.Aeson (ToJSON, FromJSON, toJSON, fromJSON, Result  (..))
 import Data.Aeson.TH (deriveJSON, defaultOptions)
-import Hasql.Pool (Pool)
+import DAL.Database (Pool)
 import qualified DAL.EventStore as ES
 
 -- | Account created event payload
@@ -158,6 +158,9 @@ appendAccountingEvent store event = do
   case latestSeqRes of
     Left err -> pure $ Left err
     Right latestSeq -> do
+      let nextSeq = case latestSeq of
+            Nothing -> 1
+            Just seq -> seq + 1
       ES.appendEvent (aesPool store)
         aggId
         aggType
@@ -165,7 +168,7 @@ appendAccountingEvent store event = do
         1 -- version
         (toJSON event)
         Nothing
-        (latestSeq + 1)
+        nextSeq
 
 -- | Read events for an account stream
 readAccountEvents :: AccountingEventStore -> Int64 -> IO (Either Text [AccountingEvent])

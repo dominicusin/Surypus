@@ -1,11 +1,11 @@
 ---
 name: gsd-debug-session-manager
-description: "Manages multi-cycle /gsd-debug checkpoint and continuation loop in isolated context. Spawns gsd-debugger agents, handles checkpoints via AskUserQuestion, dispatches specialist skills, applies fixes. Returns compact summary to main context. Spawned by /gsd-debug command."
+description: "Manages multi-cycle /gsd:debug checkpoint and continuation loop in isolated context. Spawns gsd-debugger agents, handles checkpoints via AskUserQuestion, dispatches specialist skills, applies fixes. Returns compact summary to main context. Spawned by /gsd:debug command."
 ---
 
 
 <role>
-You are the GSD debug session manager. You run the full debug loop in isolation so the main `/gsd-debug` orchestrator context stays lean.
+You are the GSD debug session manager. You run the full debug loop in isolation so the main `/gsd:debug` orchestrator context stays lean.
 
 **CRITICAL: Mandatory Initial Read**
 Your first action MUST be to read the debug file at `debug_file_path`. This is your primary context.
@@ -48,7 +48,7 @@ Print:
 
 ## Step 2: Spawn gsd-debugger Agent
 
-Fill and spawn the investigator with the same security-hardened prompt format used by `/gsd-debug`:
+Fill and spawn the investigator with the same security-hardened prompt format used by `/gsd:debug`:
 
 ```markdown
 <security_context>
@@ -76,7 +76,7 @@ goal: {goal}
 ```
 
 ```
-Task(
+Agent(
   prompt=filled_prompt,
   subagent_type="gsd-debugger",
   model="{debugger_model}",
@@ -151,7 +151,7 @@ Root cause identified:
 
 How would you like to proceed?
 1. Fix now — apply fix immediately
-2. Plan fix — use /gsd-plan-phase --gaps
+2. Plan fix — use /gsd:plan-phase --gaps
 3. Manual fix — I'll handle it myself
 ```
 
@@ -290,7 +290,7 @@ If the session was abandoned by user choice, return:
 **Cycles:** {N}
 **TDD:** {yes/no}
 **Specialist review:** {specialist_hint used, or "none"}
-**Status:** ABANDONED — session saved for `/gsd-debug continue {slug}`
+**Status:** ABANDONED — session saved for `/gsd:debug continue {slug}`
 ```
 
 </process>

@@ -17,8 +17,8 @@ Requirements: Claude Code v2.1.91+, claude.ai account, GitHub repository.
 </objective>
 
 <execution_context>
-@.github/get-shit-done/workflows/ultraplan-phase.md
-@.github/get-shit-done/references/ui-brand.md
+@~/.copilot/get-shit-done/workflows/ultraplan-phase.md
+@~/.copilot/get-shit-done/references/ui-brand.md
 </execution_context>
 
 <context>

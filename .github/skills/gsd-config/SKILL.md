@@ -28,9 +28,9 @@ Mode routing:
 </routing>
 
 <execution_context>
-@.github/get-shit-done/workflows/settings.md
-@.github/get-shit-done/workflows/settings-advanced.md
-@.github/get-shit-done/workflows/settings-integrations.md
+@~/.copilot/get-shit-done/workflows/settings.md
+@~/.copilot/get-shit-done/workflows/settings-advanced.md
+@~/.copilot/get-shit-done/workflows/settings-integrations.md
 </execution_context>
 
 <context>

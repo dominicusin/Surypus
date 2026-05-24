@@ -1,5 +1,5 @@
 ---
-name: gsd:mvp-phase
+name: gsd-mvp-phase
 description: Plan a phase as a vertical MVP slice — user story, SPIDR splitting, then plan-phase
 argument-hint: "<phase-number>"
 allowed-tools:
@@ -10,6 +10,7 @@ allowed-tools:
   - Grep
   - Agent
   - AskUserQuestion
+requires: [new-project, phase, plan-phase]
 ---
 <objective>
 Guide the user through MVP-mode planning for a phase. The command:

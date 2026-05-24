@@ -23,8 +23,8 @@ Context budget: ~15% orchestrator, 100% fresh per subagent.
 </objective>
 
 <execution_context>
-@.github/get-shit-done/workflows/execute-phase.md
-@.github/get-shit-done/references/ui-brand.md
+@~/.copilot/get-shit-done/workflows/execute-phase.md
+@~/.copilot/get-shit-done/references/ui-brand.md
 </execution_context>
 
 <runtime_note>

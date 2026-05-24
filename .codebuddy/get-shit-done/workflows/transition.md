@@ -7,10 +7,10 @@ There is no `/gsd-transition` command. This workflow is invoked automatically by
 verification. Users should never be told to run `/gsd-transition`.
 
 **Valid user commands for phase progression:**
-- `/gsd-discuss-phase {N}` — discuss a phase before planning
-- `/gsd-plan-phase {N}` — plan a phase
-- `/gsd-execute-phase {N}` — execute a phase
-- `/gsd-progress` — see roadmap progress
+- `/gsd:discuss-phase {N}` — discuss a phase before planning
+- `/gsd:plan-phase {N}` — plan a phase
+- `/gsd:execute-phase {N}` — execute a phase
+- `/gsd:progress` — see roadmap progress
 
 </internal_workflow>
 
@@ -93,7 +93,7 @@ Append to the completion confirmation message (regardless of mode):
 Outstanding verification items in this phase:
 {list filenames}
 
-These will carry forward as debt. Review: `/gsd-audit-uat`
+These will carry forward as debt. Review: `/gsd:audit-uat`
 ```
 
 This does NOT block transition — it ensures the user sees the debt before confirming.
@@ -163,7 +163,18 @@ If found, delete them — phase is complete, handoffs are stale.
 **Delegate ROADMAP.md and STATE.md updates to `gsd-sdk query phase.complete`:**
 
 ```bash
-TRANSITION=$(gsd-sdk query phase.complete "${current_phase}")
+# SDK resolution: prefer local gsd-tools.cjs, fall back to global gsd-sdk (#3668)
+GSD_TOOLS="${RUNTIME_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}/get-shit-done/bin/gsd-tools.cjs"
+if [ -f "$GSD_TOOLS" ]; then
+  GSD_SDK="node $GSD_TOOLS"
+elif command -v gsd-sdk >/dev/null 2>&1; then
+  GSD_SDK="gsd-sdk"
+else
+  echo "ERROR: gsd-sdk not found on PATH and $GSD_TOOLS does not exist." >&2
+  echo "Run: npx get-shit-done-cc@latest --claude --local" >&2
+  exit 1
+fi
+TRANSITION=$($GSD_SDK query phase.complete "${current_phase}")
 ```
 
 The CLI handles:
@@ -300,7 +311,7 @@ This step is fully delegated to `graduation.md`. It handles guard checks (featur
 Verify the updates are correct by reading STATE.md. If the progress bar needs updating, use:
 
 ```bash
-PROGRESS=$(gsd-sdk query progress.bar --raw)
+PROGRESS=$($GSD_SDK query progress.bar --raw)
 ```
 
 Update the progress bar line in STATE.md with the result.
@@ -409,7 +420,7 @@ The `next_phase` and `next_phase_name` fields give you the next phase details.
 
 If you need additional context, use:
 ```bash
-ROADMAP=$(gsd-sdk query roadmap.analyze)
+ROADMAP=$($GSD_SDK query roadmap.analyze)
 ```
 
 This returns all phases with goals, disk status, and completion info.
@@ -428,7 +439,7 @@ In flat mode, go directly to **Route B**.
 ```bash
 # Only check if we're in workstream mode
 if [ -n "$GSD_WORKSTREAM" ]; then
-  WS_LIST=$(gsd-sdk query workstream.list --raw)
+  WS_LIST=$($GSD_SDK query workstream.list --raw)
 fi
 ```
 
@@ -468,7 +479,7 @@ Next: Phase [X+1] — [Name]
 ⚡ Auto-continuing: Plan Phase [X+1] in detail
 ```
 
-Exit skill and invoke SlashCommand("/gsd-plan-phase [X+1] --auto ${GSD_WS}")
+Exit skill and invoke SlashCommand("/gsd:plan-phase [X+1] --auto ${GSD_WS}")
 
 **If CONTEXT.md does NOT exist:**
 
@@ -480,7 +491,7 @@ Next: Phase [X+1] — [Name]
 ⚡ Auto-continuing: Discuss Phase [X+1] first
 ```
 
-Exit skill and invoke SlashCommand("/gsd-discuss-phase [X+1] --auto ${GSD_WS}")
+Exit skill and invoke SlashCommand("/gsd:discuss-phase [X+1] --auto ${GSD_WS}")
 
 </if>
 
@@ -499,13 +510,13 @@ Exit skill and invoke SlashCommand("/gsd-discuss-phase [X+1] --auto ${GSD_WS}")
 
 `/clear` then:
 
-`/gsd-discuss-phase [X+1] ${GSD_WS}` — gather context and clarify approach
+`/gsd:discuss-phase [X+1] ${GSD_WS}` — gather context and clarify approach
 
 ---
 
 **Also available:**
-- `/gsd-plan-phase [X+1] ${GSD_WS}` — skip discussion, plan directly
-- `/gsd-plan-phase --research-phase [X+1] ${GSD_WS}` — investigate unknowns
+- `/gsd:plan-phase [X+1] ${GSD_WS}` — skip discussion, plan directly
+- `/gsd:plan-phase --research-phase [X+1] ${GSD_WS}` — investigate unknowns
 
 ---
 ```
@@ -524,13 +535,13 @@ Exit skill and invoke SlashCommand("/gsd-discuss-phase [X+1] --auto ${GSD_WS}")
 
 `/clear` then:
 
-`/gsd-plan-phase [X+1] ${GSD_WS}`
+`/gsd:plan-phase [X+1] ${GSD_WS}`
 
 ---
 
 **Also available:**
-- `/gsd-discuss-phase [X+1] ${GSD_WS}` — revisit context
-- `/gsd-plan-phase --research-phase [X+1] ${GSD_WS}` — investigate unknowns
+- `/gsd:discuss-phase [X+1] ${GSD_WS}` — revisit context
+- `/gsd:plan-phase --research-phase [X+1] ${GSD_WS}` — investigate unknowns
 
 ---
 ```
@@ -548,7 +559,7 @@ to the next milestone — other workstreams are still working.
 **Clear auto-advance chain flag** — workstream boundary is the natural stopping point:
 
 ```bash
-gsd-sdk query config-set workflow._auto_chain_active false
+$GSD_SDK query config-set workflow._auto_chain_active false
 ```
 
 <if mode="yolo">
@@ -576,18 +587,18 @@ This workstream's phases are complete. Other workstreams are still active:
 
 Archive this workstream:
 
-`/gsd-workstreams complete {current_ws_name} ${GSD_WS}`
+`/gsd:workstreams complete {current_ws_name} ${GSD_WS}`
 
 See overall milestone progress:
 
-`/gsd-workstreams progress ${GSD_WS}`
+`/gsd:workstreams progress ${GSD_WS}`
 
 <sub>Milestone completion will be available once all workstreams finish.</sub>
 
 ---
 ```
 
-Do NOT suggest `/gsd-complete-milestone` or `/gsd-new-milestone`.
+Do NOT suggest `/gsd:complete-milestone` or `/gsd:new-milestone`.
 Do NOT auto-invoke any further slash commands.
 
 **Stop here.** The user must explicitly decide what to do next.
@@ -602,7 +613,7 @@ Do NOT auto-invoke any further slash commands.
 **Clear auto-advance chain flag** — milestone boundary is the natural stopping point:
 
 ```bash
-gsd-sdk query config-set workflow._auto_chain_active false
+$GSD_SDK query config-set workflow._auto_chain_active false
 ```
 
 <if mode="yolo">
@@ -615,7 +626,7 @@ Phase {X} marked complete.
 ⚡ Auto-continuing: Complete milestone and archive
 ```
 
-Exit skill and invoke SlashCommand("/gsd-complete-milestone {version} ${GSD_WS}")
+Exit skill and invoke SlashCommand("/gsd:complete-milestone {version} ${GSD_WS}")
 
 </if>
 
@@ -634,7 +645,7 @@ Exit skill and invoke SlashCommand("/gsd-complete-milestone {version} ${GSD_WS}"
 
 `/clear` then:
 
-`/gsd-complete-milestone {version} ${GSD_WS}`
+`/gsd:complete-milestone {version} ${GSD_WS}`
 
 ---
 

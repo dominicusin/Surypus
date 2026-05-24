@@ -1,11 +1,12 @@
 ---
-name: gsd:pause-work
+name: gsd-pause-work
 description: Create context handoff when pausing work mid-phase
 argument-hint: "[--report]"
 allowed-tools:
   - Read
   - Write
   - Bash
+requires: [phase, progress]
 ---
 
 <objective>

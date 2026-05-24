@@ -18,7 +18,7 @@ Routes to the resume-project workflow which handles:
   </objective>
 
 <execution_context>
-@.github/get-shit-done/workflows/resume-project.md
+@~/.copilot/get-shit-done/workflows/resume-project.md
 </execution_context>
 
 <process>

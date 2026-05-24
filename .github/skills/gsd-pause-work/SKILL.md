@@ -18,7 +18,7 @@ Routes to the pause-work workflow which handles:
 </objective>
 
 <execution_context>
-@.github/get-shit-done/workflows/pause-work.md
+@~/.copilot/get-shit-done/workflows/pause-work.md
 </execution_context>
 
 <context>
@@ -27,7 +27,7 @@ State and phase progress are gathered in-workflow with targeted reads.
 
 <process>
 If `--report` is in $ARGUMENTS:
-Read and execute `.github/get-shit-done/workflows/session-report.md` end-to-end.
+Read and execute `~/.copilot/get-shit-done/workflows/session-report.md` end-to-end.
 
 **Follow the pause-work workflow**.
 

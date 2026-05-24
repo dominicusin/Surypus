@@ -18,7 +18,7 @@ Flag handling rule:
 </objective>
 
 <execution_context>
-@.github/get-shit-done/workflows/docs-update.md
+@~/.copilot/get-shit-done/workflows/docs-update.md
 </execution_context>
 
 <context>

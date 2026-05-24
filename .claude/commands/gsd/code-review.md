@@ -1,5 +1,5 @@
 ---
-name: gsd:code-review
+name: gsd-code-review
 description: Review source files changed during a phase for bugs, security issues, and code quality problems
 argument-hint: "<phase-number> [--depth=quick|standard|deep] [--files file1,file2,...] [--fix [--all] [--auto]]"
 allowed-tools:
@@ -9,6 +9,7 @@ allowed-tools:
   - Grep
   - Write
   - Agent
+requires: [config, import, phase, quick, review]
 ---
 <objective>
 Review source files changed during a phase for bugs, security vulnerabilities, and code quality problems.

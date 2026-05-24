@@ -29,14 +29,25 @@ Exit.
 Load phase operation context:
 
 ```bash
-INIT=$(gsd-sdk query init.phase-op "0")
+# SDK resolution: prefer local gsd-tools.cjs, fall back to global gsd-sdk (#3668)
+GSD_TOOLS="${RUNTIME_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}/get-shit-done/bin/gsd-tools.cjs"
+if [ -f "$GSD_TOOLS" ]; then
+  GSD_SDK="node $GSD_TOOLS"
+elif command -v gsd-sdk >/dev/null 2>&1; then
+  GSD_SDK="gsd-sdk"
+else
+  echo "ERROR: gsd-sdk not found on PATH and $GSD_TOOLS does not exist." >&2
+  echo "Run: npx get-shit-done-cc@latest --claude --local" >&2
+  exit 1
+fi
+INIT=$($GSD_SDK query init.phase-op "0")
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 ```
 
 Check `roadmap_exists` from init JSON. If false:
 ```
 ERROR: No roadmap found (.planning/ROADMAP.md)
-Run /gsd-new-project to initialize.
+Run /gsd:new-project to initialize.
 ```
 Exit.
 </step>
@@ -45,7 +56,7 @@ Exit.
 **Delegate the phase addition to `gsd-sdk query phase.add`:**
 
 ```bash
-RESULT=$(gsd-sdk query phase.add "${description}")
+RESULT=$($GSD_SDK query phase.add "${description}")
 ```
 
 The CLI handles:
@@ -89,7 +100,7 @@ Roadmap updated: .planning/ROADMAP.md
 
 `/clear` then:
 
-`/gsd-plan-phase {N}`
+`/gsd:plan-phase {N}`
 
 ---
 

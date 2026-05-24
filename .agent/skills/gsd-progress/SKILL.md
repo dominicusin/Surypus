@@ -21,14 +21,15 @@ Three modes:
 </flags>
 
 <execution_context>
-@.agent/get-shit-done/workflows/progress.md
-@.agent/get-shit-done/workflows/next.md
-@.agent/get-shit-done/workflows/do.md
-@.agent/get-shit-done/references/ui-brand.md
+@~/.gemini/antigravity/get-shit-done/workflows/progress.md
+@~/.gemini/antigravity/get-shit-done/workflows/next.md
+@~/.gemini/antigravity/get-shit-done/workflows/do.md
+@~/.gemini/antigravity/get-shit-done/references/ui-brand.md
 </execution_context>
 
 <process>
-Parse the first token of $ARGUMENTS:
+Arguments provided: "$ARGUMENTS"
+Parse the first token from the provided arguments:
 - If it is `--next`: strip the flag, execute the next workflow (passing remaining args e.g. --force).
 - If it is `--do`: strip the flag, pass remainder as freeform intent to the do workflow.
 - Otherwise: execute the progress workflow end-to-end (pass --forensic through if present).

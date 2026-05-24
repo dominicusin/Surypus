@@ -19,8 +19,8 @@ Uses ROADMAP.md phase discovery and Skill() flat invocations for each phase comm
 </objective>
 
 <execution_context>
-@.github/get-shit-done/workflows/autonomous.md
-@.github/get-shit-done/references/ui-brand.md
+@~/.copilot/get-shit-done/workflows/autonomous.md
+@~/.copilot/get-shit-done/references/ui-brand.md
 </execution_context>
 
 <context>

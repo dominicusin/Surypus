@@ -1,5 +1,5 @@
 ---
-name: gsd:validate-phase
+name: gsd-validate-phase
 description: Retroactively audit and fill Nyquist validation gaps for a completed phase
 argument-hint: "[phase number]"
 allowed-tools:
@@ -11,6 +11,7 @@ allowed-tools:
   - Grep
   - Agent
   - AskUserQuestion
+requires: [phase]
 ---
 <objective>
 Audit Nyquist validation coverage for a completed phase. Three states:

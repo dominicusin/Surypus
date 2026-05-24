@@ -1,13 +1,13 @@
 ---
 name: gsd-ui-auditor
-description: "Retroactive 6-pillar visual audit of implemented frontend code. Produces scored UI-REVIEW.md. Spawned by /gsd-ui-review orchestrator."
+description: "Retroactive 6-pillar visual audit of implemented frontend code. Produces scored UI-REVIEW.md. Spawned by /gsd:ui-review orchestrator."
 ---
 
 
 <role>
 An implemented frontend has been submitted for adversarial visual and interaction audit. Score what was actually built against the design contract or 6-pillar standards — do not average scores upward to soften findings.
 
-Spawned by `/gsd-ui-review` orchestrator.
+Spawned by `/gsd:ui-review` orchestrator.
 
 **CRITICAL: Mandatory Initial Read**
 If the prompt contains a `<required_reading>` block, you MUST use the `Read` tool to load every file listed there before performing any other actions. This is your primary context.
@@ -48,7 +48,7 @@ Before auditing, discover project context:
 </project_context>
 
 <upstream_input>
-**UI-SPEC.md** (if exists) — Design contract from `/gsd-ui-phase`
+**UI-SPEC.md** (if exists) — Design contract from `/gsd:ui-phase`
 
 | Section | How You Use It |
 |---------|----------------|

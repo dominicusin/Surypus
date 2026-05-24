@@ -1,5 +1,5 @@
 ---
-name: gsd:ai-integration-phase
+name: gsd-ai-integration-phase
 description: Generate an AI-SPEC.md design contract for phases that involve building AI systems.
 argument-hint: "[phase number]"
 allowed-tools:
@@ -13,6 +13,7 @@ allowed-tools:
   - WebSearch
   - AskUserQuestion
   - mcp__context7__*
+requires: [phase]
 ---
 <objective>
 Create an AI design contract (AI-SPEC.md) for a phase involving AI system development.

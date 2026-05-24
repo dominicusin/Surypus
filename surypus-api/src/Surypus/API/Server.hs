@@ -38,8 +38,7 @@ import qualified Surypus.API.Notifications as Notifications
 import qualified Surypus.API.Reports as Reports
 import qualified Surypus.API.Orders as Orders
 import qualified Surypus.API.Workflow as Workflow
-import qualified Surypus.API.Persons as Persons
-import qualified Surypus.API.Payment as Payments
+import qualified Surypus.API.Classifiers as Classifiers
 import qualified Surypus.WebSocket as WS
 import qualified DAL.Mutations
 
@@ -141,6 +140,23 @@ type SurypusApi = "api" :> "v1" :>
   :<|> "workflows" :> "instances" :> Get '[JSON] [Workflow.WorkflowInstance]
   :<|> "workflows" :> "instances" :> Capture "id" Text :> Get '[JSON] Workflow.WorkflowInstance
   :<|> "workflows" :> "instances" :> Capture "id" Text :> "complete" :> Post '[JSON] ()
+  -- Classifiers
+  :<|> "classifiers" :> "oksm"   :> Get '[JSON] [DAL.OksmRecord]
+  :<|> "classifiers" :> "okv"    :> Get '[JSON] [DAL.OkvRecord]
+  :<|> "classifiers" :> "okei"   :> Get '[JSON] [DAL.OkeiRecord]
+  :<|> "classifiers" :> "okpd2"  :> Get '[JSON] [DAL.Okpd2Record]
+  :<|> "classifiers" :> "okved2" :> Get '[JSON] [DAL.Okved2Record]
+  :<|> "classifiers" :> "tnved"  :> Get '[JSON] [DAL.TnvedRecord]
+  :<|> "classifiers" :> "okato"  :> Get '[JSON] [DAL.OkatoRecord]
+  :<|> "classifiers" :> "oktmo"  :> Get '[JSON] [DAL.OktmoRecord]
+  :<|> "classifiers" :> "okof"   :> Get '[JSON] [DAL.OkofRecord]
+  :<|> "classifiers" :> "okp"    :> Get '[JSON] [DAL.OkpRecord]
+  :<|> "classifiers" :> "okdp"   :> Get '[JSON] [DAL.OkdpRecord]
+  :<|> "classifiers" :> "okso"   :> Get '[JSON] [DAL.OksoRecord]
+  :<|> "classifiers" :> "okun"   :> Get '[JSON] [DAL.OkunRecord]
+  :<|> "classifiers" :> "okud"   :> Get '[JSON] [DAL.OkudRecord]
+  :<|> "classifiers" :> "okfs"   :> Get '[JSON] [DAL.OkfsRecord]
+  :<|> "classifiers" :> "oknpo"  :> Get '[JSON] [DAL.OknpoRecord]
   )
 
 -- ── Server ───────────────────────────────────────────────────────────────────
@@ -166,6 +182,12 @@ server env
   :<|> ordersList env :<|> ordersCreate env :<|> ordersGet env :<|> ordersUpdate env :<|> ordersDelete env
   :<|> workflowsList env :<|> workflowsCreate env
   :<|> workflowsInstancesList env :<|> workflowsGetInstance env :<|> workflowsCompleteInstance env
+  :<|> classifiersOksmList env :<|> classifiersOkvList env :<|> classifiersOkeiList env
+  :<|> classifiersOkpd2List env :<|> classifiersOkved2List env :<|> classifiersTnvedList env
+  :<|> classifiersOkatoList env :<|> classifiersOktmoList env :<|> classifiersOkofList env
+  :<|> classifiersOkpList env :<|> classifiersOkdpList env :<|> classifiersOksoList env
+  :<|> classifiersOkunList env :<|> classifiersOkudList env :<|> classifiersOkfsList env
+  :<|> classifiersOknpoList env
 
 -- ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -249,3 +271,21 @@ workflowsCreate env i = liftQ $ Workflow.createWorkflow (envPool env) i
 workflowsInstancesList env = liftQ $ Workflow.listWorkflowInstances (envPool env)
 workflowsGetInstance env iid = liftQ $ Workflow.getWorkflowInstance (envPool env) iid
 workflowsCompleteInstance env iid = liftQ $ Workflow.completeWorkflow (envPool env) iid
+
+-- ── Classifier handlers ──────────────────────────────────────────────────────
+classifiersOksmList  env = liftQ $ Classifiers.listOksm (envPool env)
+classifiersOkvList   env = liftQ $ Classifiers.listOkv (envPool env)
+classifiersOkeiList  env = liftQ $ Classifiers.listOkei (envPool env)
+classifiersOkpd2List env = liftQ $ Classifiers.listOkpd2 (envPool env)
+classifiersOkved2List env = liftQ $ Classifiers.listOkved2 (envPool env)
+classifiersTnvedList env = liftQ $ Classifiers.listTnved (envPool env)
+classifiersOkatoList env = liftQ $ Classifiers.listOkato (envPool env)
+classifiersOktmoList env = liftQ $ Classifiers.listOktmo (envPool env)
+classifiersOkofList  env = liftQ $ Classifiers.listOkof (envPool env)
+classifiersOkpList   env = liftQ $ Classifiers.listOkp (envPool env)
+classifiersOkdpList  env = liftQ $ Classifiers.listOkdp (envPool env)
+classifiersOksoList  env = liftQ $ Classifiers.listOkso (envPool env)
+classifiersOkunList  env = liftQ $ Classifiers.listOkun (envPool env)
+classifiersOkudList  env = liftQ $ Classifiers.listOkud (envPool env)
+classifiersOkfsList  env = liftQ $ Classifiers.listOkfs (envPool env)
+classifiersOknpoList env = liftQ $ Classifiers.listOknpo (envPool env)

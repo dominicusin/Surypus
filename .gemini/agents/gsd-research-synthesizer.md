@@ -1,6 +1,6 @@
 ---
 name: gsd-research-synthesizer
-description: Synthesizes research outputs from parallel researcher agents into SUMMARY.md. Spawned by /gsd-new-project after 4 researcher agents complete.
+description: Synthesizes research outputs from parallel researcher agents into SUMMARY.md. Spawned by /gsd:new-project after 4 researcher agents complete.
 # hooks:
 #   PostToolUse:
 #     - matcher: "Write|Edit"
@@ -114,7 +114,7 @@ This is the most important section. Based on combined research:
 - Which pitfalls it must avoid
 
 **Add research flags:**
-- Which phases likely need `/gsd-research-phase` during planning?
+- Which phases likely need `/gsd:plan-phase --research-phase <N>` during planning?
 - Which phases have well-documented patterns (skip research)?
 
 ## Step 5: Assess Confidence

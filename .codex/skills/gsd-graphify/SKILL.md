@@ -27,7 +27,7 @@ Multi-select workaround:
 - Codex has no `multiSelect`. Use sequential single-selects, or present a numbered freeform list asking the user to enter comma-separated numbers.
 
 Execute mode fallback:
-- When `request_user_input` is rejected or unavailable, you MUST stop and present the questions as a plain-text numbered list, then wait for the user's reply. Do NOT pick a default and continue (#3018).
+- When `request_user_input` is rejected or unavailable, activate TEXT_MODE: append `--text` to `{{GSD_ARGS}}` so the workflow's built-in text-mode branching takes over. Present every `AskUserQuestion` call as a plain-text numbered list, then stop and wait for the user's reply. Do NOT pick a default and continue (#3018 / #3808).
 - You may only proceed without a user answer when one of these is true:
   (a) the invocation included an explicit non-interactive flag (`--auto` or `--all`),
   (b) the user has explicitly approved a specific default for this question, or
@@ -43,6 +43,10 @@ Direct mapping:
   GSD embeds the resolved per-agent model directly into each agent's `.toml`
   at install time so `model_overrides` from `.planning/config.json` and
   `~/.gsd/defaults.json` are honored automatically by Codex's agent router.
+- Resolved `reasoning_effort="low|medium|high|xhigh"` (`xhigh` is a GSD/Codex tier, not a generic runtime enum) → pass `reasoning_effort`
+  to `spawn_agent` when the runtime/tool supports it. Omit missing, empty,
+  inherited, or unsupported values; do not invent one-off effort literals in
+  workflow prose.
 - `fork_context: false` by default — GSD agents load their own context via `<files_to_read>` blocks
 - `Task(isolation="worktree")` / `Agent(isolation="worktree")` → no direct Codex mapping.
   Codex `spawn_agent` does not create or bind a git worktree automatically.
@@ -64,7 +68,7 @@ Result parsing:
 
 **STOP -- DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's command system. Using the Read tool on this file wastes tokens. Begin executing Step 0 immediately.**
 
-**CJS-only (graphify):** `graphify` subcommands are not registered on `gsd-sdk query`. Use `node /home/domini/src/My/Surypus/.codex/get-shit-done/bin/gsd-tools.cjs graphify …` as documented in this command and in `docs/CLI-TOOLS.md`. Other tooling may still use `gsd-sdk query` where a handler exists.
+**CJS-only (graphify):** `graphify` subcommands are not registered on `gsd-sdk query`. Use `node $HOME/.codex/get-shit-done/bin/gsd-tools.cjs graphify …` as documented in this command and in `docs/CLI-TOOLS.md`. Other tooling may still use `gsd-sdk query` where a handler exists.
 
 ## Step 0 -- Banner
 
@@ -95,7 +99,7 @@ GSD > GRAPHIFY
 
 Knowledge graph is disabled. To activate:
 
-  node /home/domini/src/My/Surypus/.codex/get-shit-done/bin/gsd-tools.cjs config-set graphify.enabled true
+  node $HOME/.codex/get-shit-done/bin/gsd-tools.cjs config-set graphify.enabled true
 
 Then run $gsd-graphify build to create the initial graph.
 ```
@@ -133,7 +137,7 @@ Modes:
 Run:
 
 ```bash
-node /home/domini/src/My/Surypus/.codex/get-shit-done/bin/gsd-tools.cjs graphify query <term>
+node $HOME/.codex/get-shit-done/bin/gsd-tools.cjs graphify query <term>
 ```
 
 Parse the JSON output and display results:
@@ -149,7 +153,7 @@ Parse the JSON output and display results:
 Run:
 
 ```bash
-node /home/domini/src/My/Surypus/.codex/get-shit-done/bin/gsd-tools.cjs graphify status
+node $HOME/.codex/get-shit-done/bin/gsd-tools.cjs graphify status
 ```
 
 Parse the JSON output and display:
@@ -173,7 +177,7 @@ Surface both so the agent can choose.
 Run:
 
 ```bash
-node /home/domini/src/My/Surypus/.codex/get-shit-done/bin/gsd-tools.cjs graphify diff
+node $HOME/.codex/get-shit-done/bin/gsd-tools.cjs graphify diff
 ```
 
 Parse the JSON output and display:
@@ -191,7 +195,7 @@ If no snapshot exists, suggest running `build` twice (first to create, second to
 Run the pre-flight check first:
 
 ```bash
-node "/home/domini/src/My/Surypus/.codex/get-shit-done/bin/gsd-tools.cjs" graphify build
+node "$HOME/.codex/get-shit-done/bin/gsd-tools.cjs" graphify build
 ```
 
 Parse the JSON output:
@@ -214,8 +218,8 @@ graphify update . \
   && cp graphify-out/graph.json .planning/graphs/graph.json \
   && cp graphify-out/graph.html .planning/graphs/graph.html \
   && cp graphify-out/GRAPH_REPORT.md .planning/graphs/GRAPH_REPORT.md \
-  && node "/home/domini/src/My/Surypus/.codex/get-shit-done/bin/gsd-tools.cjs" graphify build snapshot \
-  && node "/home/domini/src/My/Surypus/.codex/get-shit-done/bin/gsd-tools.cjs" graphify status
+  && node "$HOME/.codex/get-shit-done/bin/gsd-tools.cjs" graphify build snapshot \
+  && node "$HOME/.codex/get-shit-done/bin/gsd-tools.cjs" graphify status
 ```
 
 Do NOT pass `run_in_background: true`. Typical builds complete in 15-60 seconds and the entire chain must run foreground.

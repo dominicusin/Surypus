@@ -20,7 +20,8 @@ module Surypus.API.Workflow
 import Data.Int (Int64)
 import Data.Text (Text)
 import qualified Data.Text as T
-import Data.Aeson (ToJSON, FromJSON)
+import Data.Aeson (ToJSON, FromJSON, parseJSON)
+import Data.Aeson.Types (parseMaybe)
 import GHC.Generics (Generic)
 import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
@@ -49,7 +50,7 @@ workflowInstanceDecoder = WorkflowInstance
         2 -> WorkflowCompleted
         _ -> WorkflowFailed) <$> D.column (D.nonNullable D.int2))
   <*> D.column (D.nullable D.text)  -- wiCurrentStep
-  <*> (D.nullable D.jsonb)  -- wiInput - nullable JSONB
+   <*> ((>>= parseMaybe parseJSON) <$> D.column (D.nullable D.jsonb))  -- wiInput - nullable JSONB
   <*> D.column (D.nullable D.timestamptz)  -- wiStartedAt
   <*> D.column (D.nullable D.timestamptz)  -- wiCompletedAt
 

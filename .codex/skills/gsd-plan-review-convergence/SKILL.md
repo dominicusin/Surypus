@@ -27,7 +27,7 @@ Multi-select workaround:
 - Codex has no `multiSelect`. Use sequential single-selects, or present a numbered freeform list asking the user to enter comma-separated numbers.
 
 Execute mode fallback:
-- When `request_user_input` is rejected or unavailable, you MUST stop and present the questions as a plain-text numbered list, then wait for the user's reply. Do NOT pick a default and continue (#3018).
+- When `request_user_input` is rejected or unavailable, activate TEXT_MODE: append `--text` to `{{GSD_ARGS}}` so the workflow's built-in text-mode branching takes over. Present every `AskUserQuestion` call as a plain-text numbered list, then stop and wait for the user's reply. Do NOT pick a default and continue (#3018 / #3808).
 - You may only proceed without a user answer when one of these is true:
   (a) the invocation included an explicit non-interactive flag (`--auto` or `--all`),
   (b) the user has explicitly approved a specific default for this question, or
@@ -43,6 +43,10 @@ Direct mapping:
   GSD embeds the resolved per-agent model directly into each agent's `.toml`
   at install time so `model_overrides` from `.planning/config.json` and
   `~/.gsd/defaults.json` are honored automatically by Codex's agent router.
+- Resolved `reasoning_effort="low|medium|high|xhigh"` (`xhigh` is a GSD/Codex tier, not a generic runtime enum) → pass `reasoning_effort`
+  to `spawn_agent` when the runtime/tool supports it. Omit missing, empty,
+  inherited, or unsupported values; do not invent one-off effort literals in
+  workflow prose.
 - `fork_context: false` by default — GSD agents load their own context via `<files_to_read>` blocks
 - `Task(isolation="worktree")` / `Agent(isolation="worktree")` → no direct Codex mapping.
   Codex `spawn_agent` does not create or bind a git worktree automatically.
@@ -74,10 +78,10 @@ Replaces gsd-plan-phase's internal gsd-plan-checker with external AI reviewers (
 </objective>
 
 <execution_context>
-@/home/domini/src/My/Surypus/.codex/get-shit-done/workflows/plan-review-convergence.md
-@/home/domini/src/My/Surypus/.codex/get-shit-done/references/revision-loop.md
-@/home/domini/src/My/Surypus/.codex/get-shit-done/references/gates.md
-@/home/domini/src/My/Surypus/.codex/get-shit-done/references/agent-contracts.md
+@$HOME/.codex/get-shit-done/workflows/plan-review-convergence.md
+@$HOME/.codex/get-shit-done/references/revision-loop.md
+@$HOME/.codex/get-shit-done/references/gates.md
+@$HOME/.codex/get-shit-done/references/agent-contracts.md
 </execution_context>
 
 <runtime_note>

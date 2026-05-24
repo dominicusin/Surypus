@@ -25,7 +25,7 @@ Output: {padded_phase}-REVIEW.md in phase directory + inline summary of findings
 </objective>
 
 <execution_context>
-@.github/get-shit-done/workflows/code-review.md
+@~/.copilot/get-shit-done/workflows/code-review.md
 </execution_context>
 
 <context>

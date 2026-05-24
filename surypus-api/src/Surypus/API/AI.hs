@@ -17,6 +17,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import Data.Aeson
+import Data.Aeson.Types (parseMaybe)
 import GHC.Generics (Generic)
 import System.Environment (lookupEnv)
 import qualified Data.ByteString.Lazy as LBS
@@ -79,7 +80,7 @@ callLLM prompt = do
       
       initReq <- parseRequest "https://api.openai.com/v1/chat/completions"
       let req = setRequestMethod "POST"
-               $ setRequestHeader "Authorization" ("Bearer " <> apiKeyVal)
+               $ setRequestHeader "Authorization" ["Bearer " <> apiKeyVal]
                $ setRequestHeader "Content-Type" ["application/json"]
                $ setRequestBodyJSON requestBody initReq
       

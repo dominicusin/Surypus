@@ -1,5 +1,5 @@
 ---
-name: gsd:manager
+name: gsd-manager
 description: Interactive command center for managing multiple phases from one terminal
 argument-hint: "[--analyze-deps]"
 allowed-tools:
@@ -11,6 +11,7 @@ allowed-tools:
   - AskUserQuestion
   - Skill
   - Agent
+requires: [phase]
 ---
 <objective>
 Single-terminal command center for managing a milestone. Shows a dashboard of all phases with visual status indicators, recommends optimal next actions, and dispatches work — discuss runs inline, plan/execute run as background agents.

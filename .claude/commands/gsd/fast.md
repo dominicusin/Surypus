@@ -1,5 +1,5 @@
 ---
-name: gsd:fast
+name: gsd-fast
 description: Execute a trivial task inline — no subagents, no planning overhead
 argument-hint: "[task description]"
 allowed-tools:
@@ -9,6 +9,7 @@ allowed-tools:
   - Bash
   - Grep
   - Glob
+requires: [config, quick]
 ---
 
 <objective>

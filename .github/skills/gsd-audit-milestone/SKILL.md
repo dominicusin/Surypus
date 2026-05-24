@@ -12,7 +12,7 @@ Verify milestone achieved its definition of done. Check requirements coverage, c
 </objective>
 
 <execution_context>
-@.github/get-shit-done/workflows/audit-milestone.md
+@~/.copilot/get-shit-done/workflows/audit-milestone.md
 </execution_context>
 
 <context>

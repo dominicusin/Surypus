@@ -15,17 +15,17 @@ Two modes:
 - **Idea mode** (default) — describe a design idea to sketch
 - **Frontier mode** (no argument or "frontier") — analyzes existing sketch landscape and proposes consistency and frontier sketches
 
-Does not require `/gsd-new-project` — auto-creates `.planning/sketches/` if needed.
+Does not require prior new-project setup — auto-creates `.planning/sketches/` if needed.
 </objective>
 
 <execution_context>
-@.github/get-shit-done/workflows/sketch.md
-@.github/get-shit-done/workflows/sketch-wrap-up.md
-@.github/get-shit-done/references/ui-brand.md
-@.github/get-shit-done/references/sketch-theme-system.md
-@.github/get-shit-done/references/sketch-interactivity.md
-@.github/get-shit-done/references/sketch-tooling.md
-@.github/get-shit-done/references/sketch-variant-patterns.md
+@~/.copilot/get-shit-done/workflows/sketch.md
+@~/.copilot/get-shit-done/workflows/sketch-wrap-up.md
+@~/.copilot/get-shit-done/references/ui-brand.md
+@~/.copilot/get-shit-done/references/sketch-theme-system.md
+@~/.copilot/get-shit-done/references/sketch-interactivity.md
+@~/.copilot/get-shit-done/references/sketch-tooling.md
+@~/.copilot/get-shit-done/references/sketch-variant-patterns.md
 </execution_context>
 
 <runtime_note>

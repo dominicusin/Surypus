@@ -1,5 +1,5 @@
 ---
-name: gsd:docs-update
+name: gsd-docs-update
 description: Generate or update project documentation verified against the codebase
 argument-hint: "[--force] [--verify-only]"
 allowed-tools:
@@ -11,6 +11,7 @@ allowed-tools:
   - Grep
   - Agent
   - AskUserQuestion
+requires: [update]
 ---
 <objective>
 Generate and update up to 9 documentation files for the current project. Each doc type is written by a gsd-doc-writer subagent that explores the codebase directly — no hallucinated paths, phantom endpoints, or stale signatures.

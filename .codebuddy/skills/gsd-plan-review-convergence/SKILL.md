@@ -16,10 +16,10 @@ Replaces gsd-plan-phase's internal gsd-plan-checker with external AI reviewers (
 </objective>
 
 <execution_context>
-@/home/domini/src/My/Surypus/.codebuddy/get-shit-done/workflows/plan-review-convergence.md
-@/home/domini/src/My/Surypus/.codebuddy/get-shit-done/references/revision-loop.md
-@/home/domini/src/My/Surypus/.codebuddy/get-shit-done/references/gates.md
-@/home/domini/src/My/Surypus/.codebuddy/get-shit-done/references/agent-contracts.md
+@$HOME/.codebuddy/get-shit-done/workflows/plan-review-convergence.md
+@$HOME/.codebuddy/get-shit-done/references/revision-loop.md
+@$HOME/.codebuddy/get-shit-done/references/gates.md
+@$HOME/.codebuddy/get-shit-done/references/agent-contracts.md
 </execution_context>
 
 <runtime_note>

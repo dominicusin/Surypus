@@ -1,5 +1,5 @@
 ---
-name: gsd:discuss-phase
+name: gsd-discuss-phase
 description: Gather phase context through adaptive questioning before planning.
 argument-hint: "<phase> [--all] [--auto] [--chain] [--batch] [--analyze] [--text] [--power] [--assumptions]"
 allowed-tools:
@@ -12,6 +12,7 @@ allowed-tools:
   - Agent
   - mcp__context7__resolve-library-id
   - mcp__context7__query-docs
+requires: [config, phase]
 ---
 
 <objective>

@@ -15,7 +15,7 @@ Output: updated VALIDATION.md + generated test files.
 </objective>
 
 <execution_context>
-@.github/get-shit-done/workflows/validate-phase.md
+@~/.copilot/get-shit-done/workflows/validate-phase.md
 </execution_context>
 
 <context>

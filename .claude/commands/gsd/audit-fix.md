@@ -1,6 +1,6 @@
 ---
 type: prompt
-name: gsd:audit-fix
+name: gsd-audit-fix
 description: Autonomous audit-to-fix pipeline — find issues, classify, fix, test, commit
 argument-hint: "--source <audit-uat> [--severity <medium|high|all>] [--max N] [--dry-run]"
 allowed-tools:
@@ -12,6 +12,7 @@ allowed-tools:
   - Glob
   - Agent
   - AskUserQuestion
+requires: [audit-uat]
 ---
 <objective>
 Run an audit, classify findings as auto-fixable vs manual-only, then autonomously fix

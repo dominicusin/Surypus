@@ -11,12 +11,14 @@ module DAL.Types (
     Bill   (..),
     BillInput   (..),
     BillLine   (..),
+    BillLineInput   (..),
     Goods   (..),
     GoodsInput   (..),
     Person   (..),
     PersonInput   (..),
     Payment   (..),
     PaymentInput   (..),
+    UserInput   (..),
     Location   (..),
     LocationInput   (..),
     Stock   (..),
@@ -55,7 +57,24 @@ module DAL.Types (
     Workflow   (..),
     WorkflowInstance   (..),
     WorkflowStatus   (..),
-    WorkflowInput   (..)
+    WorkflowInput   (..),
+    -- Classifiers
+    OksmRecord   (..),
+    OkvRecord   (..),
+    OkeiRecord   (..),
+    Okpd2Record   (..),
+    Okved2Record   (..),
+    TnvedRecord   (..),
+    OkatoRecord   (..),
+    OktmoRecord   (..),
+    OkofRecord   (..),
+    OkpRecord   (..),
+    OkdpRecord   (..),
+    OksoRecord   (..),
+    OkunRecord   (..),
+    OkudRecord   (..),
+    OkfsRecord   (..),
+    OknpoRecord   (..)
 ) where
 
 import Data.Aeson (FromJSON, ToJSON)
@@ -227,9 +246,11 @@ instance FromJSON Payment
 
 -- | Payment input type
 data PaymentInput = PaymentInput
-  { payInputPersonId :: !Int64,
-    payInputAmount :: !Double,
-    payInputDate :: !Day
+  { piBillId :: !Int64,
+    piPayDate :: !Day,
+    piAmount :: !Double,
+    piPayMethod :: !Int,
+    piPayStatus :: !Int
   }
   deriving stock (Show, Eq, Generic)
 
@@ -274,6 +295,18 @@ data User = User
 
 instance ToJSON User
 instance FromJSON User
+
+-- | User input type for API requests
+data UserInput = UserInput
+  { uiLogin :: !Text,
+    uiPasswordHash :: !Text,
+    uiPersonId :: !(Maybe Int64),
+    uiStatus :: !Int
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON UserInput
+instance FromJSON UserInput
 
 -- | Mutation result type
 data MutationResult = MutationResult
@@ -728,3 +761,205 @@ data WorkflowInput = WorkflowInput
 
 instance ToJSON WorkflowInput
 instance FromJSON WorkflowInput
+
+-- ============================================================
+-- All-Russian Classifiers (Общероссийские классификаторы)
+-- ============================================================
+
+-- | OKSM - Countries of the world
+data OksmRecord = OksmRecord
+  { oksmId :: !Int64,
+    oksmCode :: !Text,
+    oksmName :: !Text,
+    oksmFullName :: !(Maybe Text),
+    oksmAlpha2 :: !(Maybe Text),
+    oksmAlpha3 :: !(Maybe Text)
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON OksmRecord
+instance FromJSON OksmRecord
+
+-- | OKV - Currencies
+data OkvRecord = OkvRecord
+  { okvId :: !Int64,
+    okvCode :: !Text,
+    okvLetterCode :: !(Maybe Text),
+    okvName :: !Text,
+    okvCountries :: !(Maybe Text)
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON OkvRecord
+instance FromJSON OkvRecord
+
+-- | OKEI - Units of measurement
+data OkeiRecord = OkeiRecord
+  { okeiId :: !Int64,
+    okeiCode :: !Text,
+    okeiName :: !Text,
+    okeiNationalSymbol :: !(Maybe Text),
+    okeiInternationalSymbol :: !(Maybe Text),
+    okeiNationalLetterCode :: !(Maybe Text),
+    okeiInternationalLetterCode :: !(Maybe Text),
+    okeiSection :: !(Maybe Text)
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON OkeiRecord
+instance FromJSON OkeiRecord
+
+-- | OKPD2 - Product classification by economic activity
+data Okpd2Record = Okpd2Record
+  { okpd2Id :: !Int64,
+    okpd2Code :: !Text,
+    okpd2Name :: !Text,
+    okpd2ParentCode :: !(Maybe Text)
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON Okpd2Record
+instance FromJSON Okpd2Record
+
+-- | OKVED2 - Types of economic activity
+data Okved2Record = Okved2Record
+  { okved2Id :: !Int64,
+    okved2Code :: !Text,
+    okved2Name :: !Text,
+    okved2ParentCode :: !(Maybe Text)
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON Okved2Record
+instance FromJSON Okved2Record
+
+-- | TNVED - Foreign trade nomenclature
+data TnvedRecord = TnvedRecord
+  { tnvedId :: !Int64,
+    tnvedCode :: !Text,
+    tnvedName :: !Text,
+    tnvedParentCode :: !(Maybe Text),
+    tnvedSectionNum :: !(Maybe Text),
+    tnvedGroupNum :: !(Maybe Text)
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON TnvedRecord
+instance FromJSON TnvedRecord
+
+-- | OKATO - Administrative-Territorial Division
+data OkatoRecord = OkatoRecord
+  { okatoId :: !Int64,
+    okatoCode :: !Text,
+    okatoName :: !Text,
+    okatoParentCode :: !(Maybe Text),
+    okatoLevel :: !Int
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON OkatoRecord
+instance FromJSON OkatoRecord
+
+-- | OKTMO - Municipal Territories
+data OktmoRecord = OktmoRecord
+  { oktmoId :: !Int64,
+    oktmoCode :: !Text,
+    oktmoName :: !Text,
+    oktmoParentCode :: !(Maybe Text)
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON OktmoRecord
+instance FromJSON OktmoRecord
+
+-- | OKOF - Fixed Assets
+data OkofRecord = OkofRecord
+  { okofId :: !Int64,
+    okofCode :: !Text,
+    okofName :: !Text,
+    okofParentCode :: !(Maybe Text)
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON OkofRecord
+instance FromJSON OkofRecord
+
+-- | OKP - Products
+data OkpRecord = OkpRecord
+  { okpId :: !Int64,
+    okpCode :: !Text,
+    okpName :: !Text,
+    okpParentCode :: !(Maybe Text)
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON OkpRecord
+instance FromJSON OkpRecord
+
+-- | OKDP - Economic Activities
+data OkdpRecord = OkdpRecord
+  { okdpId :: !Int64,
+    okdpCode :: !Text,
+    okdpName :: !Text,
+    okdpParentCode :: !(Maybe Text)
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON OkdpRecord
+instance FromJSON OkdpRecord
+
+-- | OKSO - Occupations
+data OksoRecord = OksoRecord
+  { oksoId :: !Int64,
+    oksoCode :: !Text,
+    oksoName :: !Text
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON OksoRecord
+instance FromJSON OksoRecord
+
+-- | OKUN - Services
+data OkunRecord = OkunRecord
+  { okunId :: !Int64,
+    okunCode :: !Text,
+    okunName :: !Text,
+    okunParentCode :: !(Maybe Text)
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON OkunRecord
+instance FromJSON OkunRecord
+
+-- | OKUD - Management Documentation
+data OkudRecord = OkudRecord
+  { okudId :: !Int64,
+    okudCode :: !Text,
+    okudName :: !Text
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON OkudRecord
+instance FromJSON OkudRecord
+
+-- | OKFS - Forms of Ownership
+data OkfsRecord = OkfsRecord
+  { okfsId :: !Int64,
+    okfsCode :: !Text,
+    okfsName :: !Text
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON OkfsRecord
+instance FromJSON OkfsRecord
+
+-- | OKNPO - Primary Professional Education
+data OknpoRecord = OknpoRecord
+  { oknpoId :: !Int64,
+    oknpoCode :: !Text,
+    oknpoName :: !Text
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON OknpoRecord
+instance FromJSON OknpoRecord

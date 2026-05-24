@@ -1,6 +1,6 @@
 ---
 name: gsd-ui-researcher
-description: Produces UI-SPEC.md design contract for frontend phases. Reads upstream artifacts, detects design system state, asks only unanswered questions. Spawned by /gsd-ui-phase orchestrator.
+description: Produces UI-SPEC.md design contract for frontend phases. Reads upstream artifacts, detects design system state, asks only unanswered questions. Spawned by /gsd:ui-phase orchestrator.
 # hooks:
 #   PostToolUse:
 #     - matcher: "Write|Edit"

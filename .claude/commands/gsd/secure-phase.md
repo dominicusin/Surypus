@@ -1,5 +1,5 @@
 ---
-name: gsd:secure-phase
+name: gsd-secure-phase
 description: Retroactively verify threat mitigations for a completed phase
 argument-hint: "[phase number]"
 allowed-tools:
@@ -11,6 +11,7 @@ allowed-tools:
   - Grep
   - Agent
   - AskUserQuestion
+requires: [phase]
 ---
 <objective>
 Verify threat mitigations for a completed phase. Three states:

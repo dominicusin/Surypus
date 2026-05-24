@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "appliedMigrations": [
+    {
+      "id": "2026-05-11-first-time-baseline-scan",
+      "appliedAt": "2026-05-24T02:23:13.828Z",
+      "journal": "gsd-migration-journal/2026-05-24T02-23-13-828Z-3efc7b7faa790335.json",
+      "checksum": "sha256:34608ea4e2f4e1c53b069604892860e603600d8573cc6a5584e4194044b48e67"
+    },
+    {
+      "id": "2026-05-11-codex-legacy-hooks-json",
+      "appliedAt": "2026-05-24T02:25:45.567Z",
+      "journal": "gsd-migration-journal/2026-05-24T02-25-45-567Z-e6f7d16e99b9c404.json",
+      "checksum": "sha256:41f1545704dc72dfc3ab019207677a8652e389b200e8c450d52317df5bc198da"
+    }
+  ]
+}

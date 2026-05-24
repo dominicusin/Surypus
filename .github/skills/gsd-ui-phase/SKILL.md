@@ -12,8 +12,8 @@ Flow: Validate → Research UI → Verify UI-SPEC → Done
 </objective>
 
 <execution_context>
-@.github/get-shit-done/workflows/ui-phase.md
-@.github/get-shit-done/references/ui-brand.md
+@~/.copilot/get-shit-done/workflows/ui-phase.md
+@~/.copilot/get-shit-done/references/ui-brand.md
 </execution_context>
 
 <context>

@@ -1,5 +1,5 @@
 ---
-name: gsd:quick
+name: gsd-quick
 description: Execute a quick task with GSD guarantees (atomic commits, state tracking) but skip optional agents
 argument-hint: "[list | status <slug> | resume <slug> | --full] [--validate] [--discuss] [--research] [task description]"
 allowed-tools:
@@ -11,6 +11,7 @@ allowed-tools:
   - Bash
   - Agent
   - AskUserQuestion
+requires: [phase]
 ---
 <objective>
 Execute small, ad-hoc tasks with GSD guarantees (atomic commits, STATE.md tracking).

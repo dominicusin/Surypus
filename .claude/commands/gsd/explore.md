@@ -1,5 +1,5 @@
 ---
-name: gsd:explore
+name: gsd-explore
 description: Socratic ideation and idea routing — think through ideas before committing to plans
 allowed-tools:
   - Read

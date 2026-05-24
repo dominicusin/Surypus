@@ -11,7 +11,7 @@ Use when `.planning/phases/` has accumulated directories from past milestones.
 </objective>
 
 <execution_context>
-@.github/get-shit-done/workflows/cleanup.md
+@~/.copilot/get-shit-done/workflows/cleanup.md
 </execution_context>
 
 <process>

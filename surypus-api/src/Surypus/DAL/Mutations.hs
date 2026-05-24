@@ -1,4 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE Arrows #-}
+{-# LANGUAGE TypeOperators #-}
 
 -- | Database Mutations (Write operations)
 --
@@ -9,8 +11,8 @@
 --
 -- The mutation layer uses:
 --
--- * 'Statement' from hasql for type-safe mutations
--- * Parameter encoders using 'Data.Functor.Contravariant'
+-- * Opaleye for type-safe mutations
+-- * Parameter encoders using 'Data.Profunctor.Product.Default'
 -- * 'runMutationReturningId' for INSERT/UPDATE with RETURNING
 --
 -- = Encoders
@@ -21,171 +23,316 @@ module DAL.Mutations where
 
 import Control.Monad (forM)
 import Data.Functor.Contravariant ((>$<))
+import Data.Profunctor.Product.Default (Default)
 import Data.Int (Int16, Int64)
 import Data.Text (Text)
 import qualified Data.Text as T
-import qualified Data.Text.Encoding as TE
 import Data.Time (Day, fromGregorian)
-import qualified Hasql.Decoders as D
-import qualified Hasql.Encoders as E
-import Hasql.Pool (Pool, use)
-import qualified Hasql.Session as Session
-import Hasql.Statement (Statement (..))
+import qualified Database.PostgreSQL.Simple as PGS
+import qualified Opaleye as OE
+import qualified Opaleye.Internal.HaskellDB.PrimQuery as OPQ
+import qualified Opaleye.Internal.PGTypes as OPG
+import qualified Opaleye.Internal.Tag as OITag
 
 -- Import types from the main Surypus package
 import DAL.Types
 import qualified DAL.Queries as Queries
+import DAL.Database (Pool, usePool, runQuery, runCommand)
 
--- | Helper to create non-prepared statements (old hasql API compatibility)
-unpreparable :: T.Text -> E.Params params -> D.Result result -> Statement params result
-unpreparable sql encoder decoder = Statement (TE.encodeUtf8 sql) encoder decoder False
+-- | Helper to run a mutation that returns an ID
+runMutationReturningId :: Pool -> OE.Insert OE.PGString r -> IO (QueryResult MutationResult)
+runMutationReturningId pool insert = do
+   res <- runCommand pool (OE.runInsert insert)
+   case res of
+     Left err -> return $ QueryError (T.pack (show err))
+     Right count -> if count > 0 
+                    then return $ QuerySuccess (MutationResult True Nothing "Mutation successful") 
+                    else return $ QueryError "No rows affected"
 
-mutationIdDecoder :: D.Result Int64
-mutationIdDecoder = D.singleRow (D.column (D.nonNullable D.int8))
+-- | Helper to run a mutation that returns a list of IDs
+runMutationReturningIds :: Pool -> [OE.Insert OE.PGString r] -> IO (QueryResult [Int64])
+runMutationReturningIds pool inserts = do
+   results <- mapM (\insert -> runCommand pool (OE.runInsert insert)) inserts
+   case sequence results of
+     Right counts -> return $ QuerySuccess (map fromIntegral $ filter (>0) counts)
+     Left err -> return $ QueryError (T.pack (show err))
 
 toInt16 :: Int -> Int16
 toInt16 = fromIntegral
 
-runMutationReturningId :: Pool -> Text -> E.Params params -> params -> Text -> IO (QueryResult MutationResult)
-runMutationReturningId pool sql encoder payload successMessage = do
-  let stmt = unpreparable sql encoder mutationIdDecoder
-  res <- use pool $ Session.statement payload stmt
-  case res of
-    Right rid -> pure $ QuerySuccess (MutationResult True (Just rid) successMessage)
-    Left err -> pure $ QueryError (T.pack (show err))
+-- Define the table structure for persons
+personsTable :: OE.Table (OE.OEText, OE.OEText, OE.OEText, OE.OEText, OE.OEInt2, OE.OEInt2) (OE.OEInt8, OE.OEText, OE.OEText, OE.OEText, OE.OEText, OE.OEInt2, OE.OEInt2)
+personsTable = OE.table "persons.person" (OITag.tag "persons.person")
+   ( \(personId, personCode, personName, personINN, personKPP, personType, personStatus) ->
+      ( personId
+      , personCode
+      , personName
+      , personINN
+      , personKPP
+      , personType
+      , personStatus
+      )
+   )
+   ( \(personId, personCode, personName, personINN, personKPP, personType, personStatus) ->
+      ( OE.required personId
+      , OE.required personCode
+      , OE.required personName
+      , OE.required personINN
+      , OE.required personKPP
+      , OE.required personType
+      , OE.required personStatus
+      )
+   )
 
--- | Execute a mutation multiple times in a single transaction and return a list of generated IDs.
--- This is more efficient than running each mutation separately as it reduces round-trips to the database.
-runMutationReturningIds :: Pool -> Text -> E.Params params -> [params] -> Text -> IO (QueryResult [Int64])
-runMutationReturningIds pool sql encoder payloads _successMessage = do
-  let stmt = unpreparable sql encoder mutationIdDecoder
-  results <- forM payloads $ \payload -> do
-    use pool $ Session.statement payload stmt
-  case sequence results of
-    Right ids -> pure $ QuerySuccess ids
-    Left err -> pure $ QueryError (T.pack (show err))
+personInputEncoder :: (OE.OEText, OE.OEText, OE.OEText, OE.OEText, OE.OEInt2, OE.OEInt2) -> OE.Insert OE.PGString (OE.OEInt8)
+personInputEncoder (personCode, personName, personINN, personKPP, personType, personStatus) =
+   OE.insert personsTable
+      OE.constNothing
+      ( personCode
+      , personName
+      , personINN
+      , personKPP
+      , personType
+      , personStatus
+      )
 
-personInputEncoder :: E.Params PersonInput
-personInputEncoder =
-  (piCode >$< E.param (E.nullable E.text))
-    <> (piName >$< E.param (E.nonNullable E.text))
-    <> (piINN >$< E.param (E.nullable E.text))
-    <> (piKPP >$< E.param (E.nullable E.text))
-    <> (piPersonType >$< E.param (E.nonNullable E.int2))
-    <> (piStatus >$< E.param (E.nonNullable E.int2))
-
-updatePersonEncoder :: E.Params (Int64, PersonInput)
-updatePersonEncoder =
-  (fst >$< E.param (E.nonNullable E.int8))
-    <> ((piCode . snd) >$< E.param (E.nullable E.text))
-    <> ((piName . snd) >$< E.param (E.nonNullable E.text))
-    <> ((piINN . snd) >$< E.param (E.nullable E.text))
-    <> ((piKPP . snd) >$< E.param (E.nullable E.text))
-    <> ((piPersonType . snd) >$< E.param (E.nonNullable E.int2))
-    <> ((piStatus . snd) >$< E.param (E.nonNullable E.int2))
+updatePersonEncoder :: (OE.OEInt8, OE.OEText, OE.OEText, OE.OEText, OE.OEText, OE.OEInt2, OE.OEInt2) -> OE.Update OE.PGString (OE.OEInt8)
+updatePersonEncoder (personId, personCode, personName, personINN, personKPP, personType, personStatus) =
+   OE.update personsTable
+      \(_personId _personCode _personName _personINN _personKPP _personType _personStatus) ->
+        ( _personId
+        , _personCode
+        , _personName
+        , _personINN
+        , _personKPP
+        , _personType
+        , _personStatus
+        )
+      \(_personId _personCode _personName _personINN _personKPP _personType _personStatus) ->
+        ( OE.constant personId
+        , OE.constant personCode
+        , OE.constant personName
+        , OE.constant personINN
+        , OE.constant personKPP
+        , OE.constant personType
+        , OE.constant personStatus
+        )
+      (\(_personId _personCode _personName _personINN _personKPP _personType _personStatus) ->
+        OE.primaryKey _personId)
 
 createPerson :: Pool -> PersonInput -> IO (QueryResult MutationResult)
 createPerson pool input =
-  runMutationReturningId
-    pool
-    "INSERT INTO persons.person (code, name, inn, kpp, person_type, status) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id"
-    personInputEncoder
-    input
-    "Person created successfully"
+   runMutationReturningId pool (personInputEncoder (
+      piCode input
+    , piName input
+    , piINN input
+    , piKPP input
+    , (fromIntegral . piPersonType) input
+    , (fromIntegral . piStatus) input
+    ))
 
 updatePerson :: Pool -> Int64 -> PersonInput -> IO (QueryResult MutationResult)
 updatePerson pool pid input =
-  runMutationReturningId
-    pool
-    "UPDATE persons.person SET code = $2, name = $3, inn = $4, kpp = $5, person_type = $6, status = $7 WHERE id = $1 RETURNING id"
-    updatePersonEncoder
-    (pid, input)
-    "Person updated successfully"
+   runMutationReturningId pool (updatePersonEncoder (
+      pid
+    , piCode input
+    , piName input
+    , piINN input
+    , piKPP input
+    , (fromIntegral . piPersonType) input
+    , (fromIntegral . piStatus) input
+    ))
 
 deletePerson :: Pool -> Int64 -> IO (QueryResult MutationResult)
 deletePerson pool pid =
-  runMutationReturningId
-    pool
-    "DELETE FROM persons.person WHERE id = $1 RETURNING id"
-    (E.param (E.nonNullable E.int8))
-    pid
-    "Person deleted successfully"
+   let deleteQuery = OE.delete personsTable
+        \(_personId _personCode _personName _personINN _personKPP _personType _personStatus) ->
+          OE.primaryKey _personId .== OE.constant pid
+   in runCommand pool deleteQuery >>= \res ->
+        case res of
+          Left err -> return $ QueryError (T.pack (show err))
+          Right count -> if count > 0
+                         then return $ QuerySuccess (MutationResult True Nothing "Person deleted successfully")
+                         else return $ QueryError "No person found to delete"
 
-goodsInputEncoder :: E.Params GoodsInput
-goodsInputEncoder =
-  (giCode >$< E.param (E.nullable E.text))
-    <> (giName >$< E.param (E.nonNullable E.text))
-    <> (giBarcode >$< E.param (E.nullable E.text))
-    <> (giUnitId >$< E.param (E.nonNullable E.int8))
-    <> (giParentId >$< E.param (E.nullable E.int8))
+-- Define the table structure for goods
+goodsTable :: OE.Table (OE.OEText, OE.OEText, OE.OEText, OE.OEInt8, OE.OEInt8) (OE.OEInt8, OE.OEText, OE.OEText, OE.OEText, OE.OEInt8, OE.OEInt8)
+goodsTable = OE.table "goods" (OITag.tag "goods")
+   \(goodsId, goodsCode, goodsName, goodsBarcode, goodsUnitId, goodsParentId) ->
+      ( goodsId
+      , goodsCode
+      , goodsName
+      , goodsBarcode
+      , goodsUnitId
+      , goodsParentId
+      )
+   \(goodsId, goodsCode, goodsName, goodsBarcode, goodsUnitId, goodsParentId) ->
+      ( OE.required goodsId
+      , OE.required goodsCode
+      , OE.required goodsName
+      , OE.required goodsBarcode
+      , OE.required goodsUnitId
+      , OE.required goodsParentId
+      )
 
-updateGoodsEncoder :: E.Params (Int64, GoodsInput)
-updateGoodsEncoder =
-  (fst >$< E.param (E.nonNullable E.int8))
-    <> ((giCode . snd) >$< E.param (E.nullable E.text))
-    <> ((giName . snd) >$< E.param (E.nonNullable E.text))
-    <> ((giBarcode . snd) >$< E.param (E.nullable E.text))
-    <> ((giUnitId . snd) >$< E.param (E.nonNullable E.int8))
-    <> ((giParentId . snd) >$< E.param (E.nullable E.int8))
+goodsInputEncoder :: (OE.OEText, OE.OEText, OE.OEText, OE.OEInt8, OE.OEInt8) -> OE.Insert OE.PGString (OE.OEInt8)
+goodsInputEncoder (goodsCode, goodsName, goodsBarcode, goodsUnitId, goodsParentId) =
+   OE.insert goodsTable
+      OE.constNothing
+      ( goodsCode
+      , goodsName
+      , goodsBarcode
+      , goodsUnitId
+      , goodsParentId
+      )
+
+updateGoodsEncoder :: (OE.OEInt8, OE.OEText, OE.OEText, OE.OEText, OE.OEInt8, OE.OEInt8) -> OE.Update OE.PGString (OE.OEInt8)
+updateGoodsEncoder (goodsId, goodsCode, goodsName, goodsBarcode, goodsUnitId, goodsParentId) =
+   OE.update goodsTable
+      \(_goodsId _goodsCode _goodsName _goodsBarcode _goodsUnitId _goodsParentId) ->
+        ( _goodsId
+        , _goodsCode
+        , _goodsName
+        , _goodsBarcode
+        , _goodsUnitId
+        , _goodsParentId
+        )
+      \(_goodsId _goodsCode _goodsName _goodsBarcode _goodsUnitId _goodsParentId) ->
+        ( OE.constant goodsId
+        , OE.constant goodsCode
+        , OE.constant goodsName
+        , OE.constant goodsBarcode
+        , OE.constant goodsUnitId
+        , OE.constant goodsParentId
+        )
+      (\(_goodsId _goodsCode _goodsName _goodsBarcode _goodsUnitId _goodsParentId) ->
+        OE.primaryKey _goodsId)
 
 createGoods :: Pool -> GoodsInput -> IO (QueryResult MutationResult)
 createGoods pool input =
-  runMutationReturningId
-    pool
-    "INSERT INTO goods (code, name, barcode, unit_id, parent_id) VALUES ($1, $2, $3, $4, $5) RETURNING id"
-    goodsInputEncoder
-    input
-    "Goods created successfully"
+   runMutationReturningId pool (goodsInputEncoder (
+      giCode input
+    , giName input
+    , giBarcode input
+    , giUnitId input
+    , giParentId input
+    ))
 
 updateGoods :: Pool -> Int64 -> GoodsInput -> IO (QueryResult MutationResult)
 updateGoods pool gid input =
-  runMutationReturningId
-    pool
-    "UPDATE goods SET code = $2, name = $3, barcode = $4, unit_id = $5, parent_id = $6 WHERE id = $1 RETURNING id"
-    updateGoodsEncoder
-    (gid, input)
-    "Goods updated successfully"
+   runMutationReturningId pool (updateGoodsEncoder (
+      gid
+    , giCode input
+    , giName input
+    , giBarcode input
+    , giUnitId input
+    , giParentId input
+    ))
 
 deleteGoods :: Pool -> Int64 -> IO (QueryResult MutationResult)
 deleteGoods pool gid =
-  runMutationReturningId
-    pool
-    "DELETE FROM goods WHERE id = $1 RETURNING id"
-    (E.param (E.nonNullable E.int8))
-    gid
-    "Goods deleted successfully"
+   let deleteQuery = OE.delete goodsTable
+        \(_goodsId _goodsCode _goodsName _goodsBarcode _goodsUnitId _goodsParentId) ->
+          OE.primaryKey _goodsId .== OE.constant gid
+   in runCommand pool deleteQuery >>= \res ->
+        case res of
+          Left err -> return $ QueryError (T.pack (show err))
+          Right count -> if count > 0
+                         then return $ QuerySuccess (MutationResult True Nothing "Goods deleted successfully")
+                         else return $ QueryError "No goods found to delete"
 
-billInputEncoder :: E.Params BillInput
-billInputEncoder =
-  (biCode >$< E.param (E.nullable E.text))
-    <> ((toInt16 . biType) >$< E.param (E.nonNullable E.int2))
-    <> ((toInt16 . biStatus) >$< E.param (E.nonNullable E.int2))
-    <> (biDate >$< E.param (E.nonNullable E.date))
-    <> (biPersonId >$< E.param (E.nullable E.int8))
-    <> (biLocationId >$< E.param (E.nullable E.int8))
-    <> (biTotal >$< E.param (E.nonNullable E.float8))
-    <> (biDiscount >$< E.param (E.nonNullable E.float8))
-    <> (biTax >$< E.param (E.nonNullable E.float8))
+-- Define the table structure for bill
+billTable :: OE.Table (OE.OEText, OE.OEInt2, OE.OEInt2, OE.OEDate, OE.OEInt8, OE.OEInt8, OE.OEDouble, OE.OEDouble, OE.OEDouble) (OE.OEInt8, OE.OEText, OE.OEInt2, OE.OEInt2, OE.OEDate, OE.OEInt8, OE.OEInt8, OE.OEDouble, OE.OEDouble, OE.OEDouble)
+billTable = OE.table "bill" (OITag.tag "bill")
+   \(billId, billCode, billType, billStatus, billDate, billPersonId, billLocationId, billTotal, billDiscount, billTaxAmount) ->
+      ( billId
+      , billCode
+      , billType
+      , billStatus
+      , billDate
+      , billPersonId
+      , billLocationId
+      , billTotal
+      , billDiscount
+      , billTaxAmount
+      )
+   \(billId, billCode, billType, billStatus, billDate, billPersonId, billLocationId, billTotal, billDiscount, billTaxAmount) ->
+      ( OE.required billId
+      , OE.required billCode
+      , OE.required billType
+      , OE.required billStatus
+      , OE.required billDate
+      , OE.required billPersonId
+      , OE.required billLocationId
+      , OE.required billTotal
+      , OE.required billDiscount
+      , OE.required billTaxAmount
+      )
+
+billInputEncoder :: (OE.OEText, OE.OEInt2, OE.OEInt2, OE.OEDate, OE.OEInt8, OE.OEInt8, OE.OEDouble, OE.OEDouble, OE.OEDouble) -> OE.Insert OE.PGString (OE.OEInt8)
+billInputEncoder (billCode, billType, billStatus, billDate, billPersonId, billLocationId, billTotal, billDiscount, billTaxAmount) =
+   OE.insert billTable
+      OE.constNothing
+      ( billCode
+      , billType
+      , billStatus
+      , billDate
+      , billPersonId
+      , billLocationId
+      , billTotal
+      , billDiscount
+      , billTaxAmount
+      )
 
 createBill :: Pool -> BillInput -> IO (QueryResult MutationResult)
 createBill pool input =
-  runMutationReturningId
-    pool
-    "INSERT INTO bill (code, bill_type, doc_status, doc_date, person_id, location_id, total, discount_amount, tax_amount) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id"
-    billInputEncoder
-    input
-    "Bill created successfully"
+   runMutationReturningId pool (billInputEncoder (
+      biCode input
+    , (toInt16 . biType) input
+    , (toInt16 . biStatus) input
+    , biDate input
+    , biPersonId input
+    , biLocationId input
+    , biTotal input
+    , biDiscount input
+    , biTax input
+    ))
 
 updateBillStatus :: Pool -> Int64 -> Int -> IO (QueryResult MutationResult)
 updateBillStatus pool bid status =
-  runMutationReturningId
-    pool
-    "UPDATE bill SET doc_status = $2 WHERE id = $1 RETURNING id"
-    ( (fst >$< E.param (E.nonNullable E.int8))
-        <> (snd >$< E.param (E.nonNullable E.int2))
-    )
-    (bid, toInt16 status)
-    "Bill status updated"
+   let updateQuery = OE.update billTable
+        \(_billId _billCode _billType _billStatus _billDate _billPersonId _billLocationId _billTotal _billDiscount _billTaxAmount) ->
+          ( _billId
+          , _billCode
+          , _billType
+          , _billStatus
+          , _billDate
+          , _billPersonId
+          , _billLocationId
+          , _billTotal
+          , _billDiscount
+          , _billTaxAmount
+          )
+        \(_billId _billCode _billType _billStatus _billDate _billPersonId _billLocationId _billTotal _billDiscount _billTaxAmount) ->
+          ( OE.constant billId
+          , OE.constant billCode
+          , OE.constant billType
+          , OE.constant status
+          , OE.constant billDate
+          , OE.constant billPersonId
+          , OE.constant billLocationId
+          , OE.constant billTotal
+          , OE.constant billDiscount
+          , OE.constant billTaxAmount
+          )
+        (\(_billId _billCode _billType _billStatus _billDate _billPersonId _billLocationId _billTotal _billDiscount _billTaxAmount) ->
+          OE.primaryKey _billId)
+   in runCommand pool updateQuery >>= \res ->
+        case res of
+          Left err -> return $ QueryError (T.pack (show err))
+          Right count -> if count > 0
+                         then return $ QuerySuccess (MutationResult True Nothing "Bill status updated")
+                         else return $ QueryError "No bill found to update"
 
 -- | Post a bill - updates status to posted (simple version)
 postBill :: Pool -> Int64 -> IO (QueryResult MutationResult)
@@ -301,9 +448,9 @@ deleteLocation pool lid =
 
 stockQtyEncoder :: E.Params (Double, Int64, Int64)
 stockQtyEncoder =
-  (\t -> let (qty, _, _) = t in qty) >$< E.param (E.nonNullable E.float8)
-    <> (\t -> let (_, goodsId, _) = t in goodsId) >$< E.param (E.nonNullable E.int8)
-    <> (\t -> let (_, _, locationId) = t in locationId) >$< E.param (E.nonNullable E.int8)
+  ((\(qty, _, _) -> qty) >$< E.param (E.nonNullable E.float8)) <>
+  ((\(_, goodsId, _) -> goodsId) >$< E.param (E.nonNullable E.int8)) <>
+  ((\(_, _, locationId) -> locationId) >$< E.param (E.nonNullable E.int8))
 
 updateStock :: Pool -> Int64 -> Int64 -> Double -> IO (QueryResult MutationResult)
 updateStock pool goodsId locationId qty =
@@ -470,8 +617,7 @@ authenticateUserRowDecoder =
     User
       <$> D.column (D.nonNullable D.int8)
       <*> D.column (D.nonNullable D.text)
-      <*> D.column (D.nullable D.int8)
-      <*> D.column (D.nullable D.text)
+      <*> pure Nothing
       <*> D.column (D.nullable D.text)
       <*> D.column (D.nullable D.int8)
       <*> (fromIntegral <$> D.column (D.nonNullable D.int2))

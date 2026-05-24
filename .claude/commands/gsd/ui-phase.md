@@ -1,5 +1,5 @@
 ---
-name: gsd:ui-phase
+name: gsd-ui-phase
 description: Generate UI design contract (UI-SPEC.md) for frontend phases
 argument-hint: "[phase]"
 allowed-tools:
@@ -12,6 +12,7 @@ allowed-tools:
   - WebFetch
   - AskUserQuestion
   - mcp__context7__*
+requires: [phase]
 ---
 <objective>
 Create a UI design contract (UI-SPEC.md) for a frontend phase.

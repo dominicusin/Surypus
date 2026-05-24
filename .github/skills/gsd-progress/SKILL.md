@@ -23,14 +23,15 @@ Three modes:
 </flags>
 
 <execution_context>
-@.github/get-shit-done/workflows/progress.md
-@.github/get-shit-done/workflows/next.md
-@.github/get-shit-done/workflows/do.md
-@.github/get-shit-done/references/ui-brand.md
+@~/.copilot/get-shit-done/workflows/progress.md
+@~/.copilot/get-shit-done/workflows/next.md
+@~/.copilot/get-shit-done/workflows/do.md
+@~/.copilot/get-shit-done/references/ui-brand.md
 </execution_context>
 
 <process>
-Parse the first token of $ARGUMENTS:
+Arguments provided: "$ARGUMENTS"
+Parse the first token from the provided arguments:
 - If it is `--next`: strip the flag, execute the next workflow (passing remaining args e.g. --force).
 - If it is `--do`: strip the flag, pass remainder as freeform intent to the do workflow.
 - Otherwise: execute the progress workflow end-to-end (pass --forensic through if present).

@@ -29,7 +29,7 @@ import qualified Data.List as L
 import GHC.Generics (Generic)
 import Data.Aeson (ToJSON, FromJSON, toJSON, fromJSON, Result  (..))
 import Data.Aeson.TH (deriveJSON, defaultOptions)
-import Hasql.Pool (Pool)
+import DAL.Database (Pool)
 import qualified DAL.EventStore as ES
 
 -- | Stock received event payload
@@ -135,6 +135,9 @@ appendInventoryEvent store event = do
   case latestSeqRes of
     Left err -> pure $ Left err
     Right latestSeq -> do
+      let nextSeq = case latestSeq of
+            Nothing -> 1
+            Just seq -> seq + 1
       ES.appendEvent (iesPool store)
         aggId
         aggType
@@ -142,7 +145,7 @@ appendInventoryEvent store event = do
         1
         (toJSON event)
         Nothing
-        (latestSeq + 1)
+        nextSeq
 
 -- | Read events for a goods item
 readInventoryEvents :: InventoryEventStore -> Int64 -> IO (Either Text [InventoryEvent])

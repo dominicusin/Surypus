@@ -1,5 +1,5 @@
 ---
-name: gsd:config
+name: gsd-config
 description: Configure GSD settings — workflow toggles, advanced knobs, integrations, and model profile
 argument-hint: "[--advanced | --integrations | --profile <name>]"
 allowed-tools:
@@ -7,6 +7,7 @@ allowed-tools:
   - Write
   - Bash
   - AskUserQuestion
+requires: [code-review, review, settings]
 ---
 
 <objective>

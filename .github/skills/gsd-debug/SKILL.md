@@ -24,7 +24,7 @@ Valid GSD subagent types (use exact names — do not fall back to 'general-purpo
 </available_agent_types>
 
 <execution_context>
-@.github/get-shit-done/workflows/debug.md
+@~/.copilot/get-shit-done/workflows/debug.md
 </execution_context>
 
 <context>

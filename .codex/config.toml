@@ -2,7 +2,7 @@
 # GSD codex_hooks ownership: section
 
 [features]
-codex_hooks = true
+hooks = true
 
 [agents.gsd-advisor-researcher]
 description = "Researches a single gray area decision and returns a structured comparison table with rationale. Spawned by discuss-phase advisor mode."
@@ -136,10 +136,3 @@ config_file = "/home/domini/src/My/Surypus/.codex/agents/gsd-user-profiler.toml"
 description = "Verifies phase goal achievement through goal-backward analysis. Checks codebase delivers what phase promised, not just that tasks completed. Creates VERIFICATION.md report."
 config_file = "/home/domini/src/My/Surypus/.codex/agents/gsd-verifier.toml"
 
-
-# GSD Hooks
-[[hooks.SessionStart]]
-
-[[hooks.SessionStart.hooks]]
-type = "command"
-command = "\"/nix/store/4pl6afcwfmv0xn65r7mqjy3avpb785j9-nodejs-slim-24.14.0/bin/node\" \"/home/domini/src/My/Surypus/.codex/hooks/gsd-check-update.js\""

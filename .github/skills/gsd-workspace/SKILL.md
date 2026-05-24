@@ -26,10 +26,10 @@ Mode routing:
 </routing>
 
 <execution_context>
-@.github/get-shit-done/workflows/new-workspace.md
-@.github/get-shit-done/workflows/list-workspaces.md
-@.github/get-shit-done/workflows/remove-workspace.md
-@.github/get-shit-done/references/ui-brand.md
+@~/.copilot/get-shit-done/workflows/new-workspace.md
+@~/.copilot/get-shit-done/workflows/list-workspaces.md
+@~/.copilot/get-shit-done/workflows/remove-workspace.md
+@~/.copilot/get-shit-done/references/ui-brand.md
 </execution_context>
 
 <context>

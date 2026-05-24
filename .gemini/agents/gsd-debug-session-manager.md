@@ -1,6 +1,6 @@
 ---
 name: gsd-debug-session-manager
-description: Manages multi-cycle /gsd-debug checkpoint and continuation loop in isolated context. Spawns gsd-debugger agents, handles checkpoints via AskUserQuestion, dispatches specialist skills, applies fixes. Returns compact summary to main context. Spawned by /gsd-debug command.
+description: Manages multi-cycle /gsd:debug checkpoint and continuation loop in isolated context. Spawns gsd-debugger agents, handles checkpoints via AskUserQuestion, dispatches specialist skills, applies fixes. Returns compact summary to main context. Spawned by /gsd:debug command.
 # hooks:
 #   PostToolUse:
 #     - matcher: "Write|Edit"
@@ -87,7 +87,7 @@ goal: {goal}
 ```
 
 ```
-Task(
+Agent(
   prompt=filled_prompt,
   subagent_type="gsd-debugger",
   model="{debugger_model}",

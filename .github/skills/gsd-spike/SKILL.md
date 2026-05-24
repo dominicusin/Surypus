@@ -15,13 +15,13 @@ Two modes:
 - **Idea mode** (default) — describe an idea to spike
 - **Frontier mode** (no argument or "frontier") — analyzes existing spike landscape and proposes integration and frontier spikes
 
-Does not require `/gsd-new-project` — auto-creates `.planning/spikes/` if needed.
+Does not require prior new-project setup — auto-creates `.planning/spikes/` if needed.
 </objective>
 
 <execution_context>
-@.github/get-shit-done/workflows/spike.md
-@.github/get-shit-done/workflows/spike-wrap-up.md
-@.github/get-shit-done/references/ui-brand.md
+@~/.copilot/get-shit-done/workflows/spike.md
+@~/.copilot/get-shit-done/workflows/spike-wrap-up.md
+@~/.copilot/get-shit-done/references/ui-brand.md
 </execution_context>
 
 <runtime_note>

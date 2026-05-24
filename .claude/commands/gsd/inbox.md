@@ -1,5 +1,5 @@
 ---
-name: gsd:inbox
+name: gsd-inbox
 description: Triage and review open GitHub issues and PRs against project templates and contribution guidelines.
 argument-hint: "[--issues] [--prs] [--label] [--close-incomplete] [--repo owner/repo]"
 allowed-tools:
@@ -9,6 +9,7 @@ allowed-tools:
   - Grep
   - Glob
   - AskUserQuestion
+requires: [review]
 ---
 <objective>
 One-command triage of the project's GitHub inbox. Fetches all open issues and PRs,

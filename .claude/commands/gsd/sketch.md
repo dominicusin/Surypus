@@ -1,5 +1,5 @@
 ---
-name: gsd:sketch
+name: gsd-sketch
 description: Sketch UI/design ideas with throwaway HTML mockups, or propose what to sketch next (frontier mode)
 argument-hint: "[design idea to explore] [--quick] [--text] [--wrap-up] or [frontier]"
 allowed-tools:
@@ -14,6 +14,7 @@ allowed-tools:
   - WebFetch
   - mcp__context7__resolve-library-id
   - mcp__context7__query-docs
+requires: [spike]
 ---
 <objective>
 Explore design directions through throwaway HTML mockups before committing to implementation.
@@ -25,7 +26,7 @@ Two modes:
 - **Idea mode** (default) — describe a design idea to sketch
 - **Frontier mode** (no argument or "frontier") — analyzes existing sketch landscape and proposes consistency and frontier sketches
 
-Does not require `/gsd-new-project` — auto-creates `.planning/sketches/` if needed.
+Does not require prior new-project setup — auto-creates `.planning/sketches/` if needed.
 </objective>
 
 <execution_context>

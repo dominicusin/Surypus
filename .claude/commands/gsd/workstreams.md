@@ -1,9 +1,10 @@
 ---
-name: gsd:workstreams
+name: gsd-workstreams
 description: Manage parallel workstreams — list, create, switch, status, progress, complete, and resume
 allowed-tools:
   - Read
   - Bash
+requires: [new-milestone, phase, progress, resume-work]
 ---
 
 # /gsd-workstreams

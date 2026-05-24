@@ -1,5 +1,5 @@
 ---
-name: gsd:spec-phase
+name: gsd-spec-phase
 description: Clarify WHAT a phase delivers with ambiguity scoring; produces a SPEC.md before discuss-phase.
 argument-hint: "<phase> [--auto] [--text]"
 allowed-tools:
@@ -9,6 +9,7 @@ allowed-tools:
   - Glob
   - Grep
   - AskUserQuestion
+requires: [discuss-phase, execute-phase, phase, plan-phase]
 ---
 
 <objective>

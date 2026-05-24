@@ -1,7 +1,7 @@
 module DAL.Repository.RBAC where
 
 import Data.Text (Text)
-import Hasql.Pool (Pool)
+import DAL.Database (Pool)
 import Control.Monad.Trans.Except (ExceptT)
 import Surypus.RBAC (Permission)
 

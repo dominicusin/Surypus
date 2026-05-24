@@ -20,7 +20,6 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Aeson (ToJSON, FromJSON, genericToJSON, genericParseJSON, defaultOptions, fieldLabelModifier)
 import GHC.Generics (Generic)
-import Control.Exception (try, SomeException)
 import qualified Hasql.Session as Session
 import qualified Hasql.Statement as Statement
 import qualified Hasql.Decoders as D
@@ -84,10 +83,10 @@ getDashboardKPI pool = do
           <*> (fromIntegral <$> D.column (D.nonNullable D.int8))
           <*> (fromIntegral <$> D.column (D.nonNullable D.int8)))
         True
-  result <- try $ usePool pool $ Session.statement () stmt
+  result <- usePool pool $ Session.statement () stmt
   case result of
-    Right (kpi :: DashboardKPI) -> return $ QuerySuccess kpi
-    Left (e :: SomeException) -> return $ QueryError (T.pack $ show e)
+    Right kpi -> return $ QuerySuccess kpi
+    Left err -> return $ QueryError (T.pack $ show err)
 
 getRevenueTrend :: Pool -> IO (QueryResult [RevenuePoint])
 getRevenueTrend pool = do
@@ -106,10 +105,10 @@ getRevenueTrend pool = do
           <*> D.column (D.nonNullable D.float8)
           <*> (fromIntegral <$> D.column (D.nonNullable D.int8)))
         True
-  result <- try $ usePool pool $ Session.statement () stmt
+  result <- usePool pool $ Session.statement () stmt
   case result of
-    Right (points :: [RevenuePoint]) -> return $ QuerySuccess points
-    Left (e :: SomeException) -> return $ QueryError (T.pack $ show e)
+    Right points -> return $ QuerySuccess points
+    Left err -> return $ QueryError (T.pack $ show err)
 
 getOrderStatuses :: Pool -> IO (QueryResult [OrderStatus])
 getOrderStatuses pool = do
@@ -122,12 +121,12 @@ getOrderStatuses pool = do
           <*> (fromIntegral <$> D.column (D.nonNullable D.int8))
           <*> D.column (D.nonNullable D.float8))
         True
-  result <- try $ usePool pool $ Session.statement () stmt
+  result <- usePool pool $ Session.statement () stmt
   case result of
-    Right (statuses :: [OrderStatus]) -> return $ QuerySuccess statuses
-    Left (e :: SomeException) -> return $ QueryError (T.pack $ show e)
+    Right statuses -> return $ QuerySuccess statuses
+    Left err -> return $ QueryError (T.pack $ show err)
 
-getStockSummary :: Pool -> IO (QueryResult [StockSummary])
+getStockSummary :: Pool -> IO (QueryResult StockSummary)
 getStockSummary pool = do
   let stmt = Statement.Statement
         "SELECT COUNT(*), SUM(CASE WHEN is_active THEN 1 ELSE 0 END), \
@@ -139,7 +138,7 @@ getStockSummary pool = do
           <*> (fromIntegral <$> D.column (D.nonNullable D.int8))
           <*> (fromIntegral <$> D.column (D.nonNullable D.int8)))
         True
-  result <- try $ usePool pool $ Session.statement () stmt
+  result <- usePool pool $ Session.statement () stmt
   case result of
-    Right (summary :: [StockSummary]) -> return $ QuerySuccess summary
-    Left (e :: SomeException) -> return $ QueryError (T.pack $ show e)
+    Right summary -> return $ QuerySuccess summary
+    Left err -> return $ QueryError (T.pack $ show err)

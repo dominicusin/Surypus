@@ -1,7 +1,7 @@
 ---
 name: gsd-verify-work
 description: "Validate built features through conversational UAT"
-argument-hint: "[phase number, e.g., '4']"
+argument-hint: "[phase number, e.g., '4'] [--ws <name>]"
 allowed-tools: Read, Bash, Glob, Grep, Edit, Write, Agent
 ---
 
@@ -14,8 +14,8 @@ Output: {phase_num}-UAT.md tracking all test results. If issues found: diagnosed
 </objective>
 
 <execution_context>
-@.github/get-shit-done/workflows/verify-work.md
-@.github/get-shit-done/templates/UAT.md
+@~/.copilot/get-shit-done/workflows/verify-work.md
+@~/.copilot/get-shit-done/templates/UAT.md
 </execution_context>
 
 <context>

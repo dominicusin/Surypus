@@ -7,14 +7,14 @@ allowed-tools: Read, Write, Bash, Glob, Grep, AskUserQuestion, Agent
 
 
 <objective>
-Generate a developer behavioral profile from session analysis (or questionnaire) and produce artifacts (USER-PROFILE.md, /gsd-dev-preferences, copilot-instructions.md section) that personalize the agent's responses.
+Generate a developer behavioral profile from session analysis (or questionnaire) and produce artifacts (USER-PROFILE.md, `gsd-dev-preferences` skill config, copilot-instructions.md section) that personalize the agent's responses.
 
 Routes to the profile-user workflow which orchestrates the full flow: consent gate, session analysis or questionnaire fallback, profile generation, result display, and artifact selection.
 </objective>
 
 <execution_context>
-@.github/get-shit-done/workflows/profile-user.md
-@.github/get-shit-done/references/ui-brand.md
+@~/.copilot/get-shit-done/workflows/profile-user.md
+@~/.copilot/get-shit-done/references/ui-brand.md
 </execution_context>
 
 <context>

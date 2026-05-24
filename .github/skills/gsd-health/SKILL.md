@@ -18,7 +18,7 @@ Validate `.planning/` directory integrity and report actionable issues. Checks f
 </objective>
 
 <execution_context>
-@.github/get-shit-done/workflows/health.md
+@~/.copilot/get-shit-done/workflows/health.md
 </execution_context>
 
 <process>

@@ -1,5 +1,5 @@
 ---
-name: gsd:ultraplan-phase
+name: gsd-ultraplan-phase
 description: "[BETA] Offload plan phase to Claude Code's ultraplan cloud; review in browser and import back."
 argument-hint: "[phase-number]"
 allowed-tools:
@@ -7,6 +7,7 @@ allowed-tools:
   - Bash
   - Glob
   - Grep
+requires: [import, phase, plan-phase]
 ---
 
 <objective>

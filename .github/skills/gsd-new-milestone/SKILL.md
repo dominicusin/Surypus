@@ -21,11 +21,11 @@ Brownfield equivalent of new-project. Project exists, PROJECT.md has history. Ga
 </objective>
 
 <execution_context>
-@.github/get-shit-done/workflows/new-milestone.md
-@.github/get-shit-done/references/questioning.md
-@.github/get-shit-done/references/ui-brand.md
-@.github/get-shit-done/templates/project.md
-@.github/get-shit-done/templates/requirements.md
+@~/.copilot/get-shit-done/workflows/new-milestone.md
+@~/.copilot/get-shit-done/references/questioning.md
+@~/.copilot/get-shit-done/references/ui-brand.md
+@~/.copilot/get-shit-done/templates/project.md
+@~/.copilot/get-shit-done/templates/requirements.md
 </execution_context>
 
 <context>

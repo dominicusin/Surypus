@@ -12,8 +12,8 @@ Produces EVAL-REVIEW.md with score, verdict, gaps, and remediation plan.
 </objective>
 
 <execution_context>
-@.github/get-shit-done/workflows/eval-review.md
-@.github/get-shit-done/references/ai-evals.md
+@~/.copilot/get-shit-done/workflows/eval-review.md
+@~/.copilot/get-shit-done/references/ai-evals.md
 </execution_context>
 
 <context>

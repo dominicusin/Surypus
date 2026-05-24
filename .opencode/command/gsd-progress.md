@@ -1,6 +1,7 @@
 ---
 description: Check progress, advance workflow, or dispatch freeform intent — the unified GSD situational command
 argument-hint: "[--forensic | --next | --do \"task description\"]"
+requires: [phase]
 tools:
   read: true
   bash: true
@@ -34,7 +35,8 @@ Three modes:
 </execution_context>
 
 <process>
-Parse the first token of $ARGUMENTS:
+Arguments provided: "$ARGUMENTS"
+Parse the first token from the provided arguments:
 - If it is `--next`: strip the flag, execute the next workflow (passing remaining args e.g. --force).
 - If it is `--do`: strip the flag, pass remainder as freeform intent to the do workflow.
 - Otherwise: execute the progress workflow end-to-end (pass --forensic through if present).

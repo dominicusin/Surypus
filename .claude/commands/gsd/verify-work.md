@@ -1,7 +1,7 @@
 ---
-name: gsd:verify-work
+name: gsd-verify-work
 description: Validate built features through conversational UAT
-argument-hint: "[phase number, e.g., '4']"
+argument-hint: "[phase number, e.g., '4'] [--ws <name>]"
 allowed-tools:
   - Read
   - Bash
@@ -10,6 +10,7 @@ allowed-tools:
   - Edit
   - Write
   - Agent
+requires: [execute-phase, phase]
 ---
 <objective>
 Validate built features through conversational testing with persistent state.

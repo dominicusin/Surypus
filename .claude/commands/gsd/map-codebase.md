@@ -1,5 +1,5 @@
 ---
-name: gsd:map-codebase
+name: gsd-map-codebase
 description: Analyze codebase with parallel mapper agents to produce .planning/codebase/ documents
 argument-hint: "[--fast [--focus tech|arch|quality|concerns]] [--query <term>|status|diff|refresh] [area]"
 allowed-tools:
@@ -9,6 +9,7 @@ allowed-tools:
   - Grep
   - Write
   - Agent
+requires: [config, new-project, plan-phase]
 ---
 
 <objective>

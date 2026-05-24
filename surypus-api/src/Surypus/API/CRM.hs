@@ -2,6 +2,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE Arrows #-}
+{-# LANGUAGE TypeOperators #-}
 
 module Surypus.API.CRM
   ( Deal(..)
@@ -25,14 +27,15 @@ import Data.Int (Int64)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Aeson (ToJSON, FromJSON, genericToJSON, genericParseJSON, defaultOptions, fieldLabelModifier)
+import Data.Profunctor.Product.Default (Default)
 import GHC.Generics (Generic)
-import Control.Exception (try, SomeException)
-import qualified Hasql.Session as Session
-import qualified Hasql.Statement as Statement
-import qualified Hasql.Decoders as D
-import qualified Hasql.Encoders as E
+import qualified Database.PostgreSQL.Simple as PGS
+import qualified Opaleye as OE
+import qualified Opaleye.Internal.HaskellDB.PrimQuery as OPQ
+import qualified Opaleye.Internal.PGTypes as OPG
+import qualified Opaleye.Internal.Tag as OITag
 import Data.Functor.Contravariant ((>$<))
-import DAL.Database (Pool, usePool)
+import DAL.Database (Pool, usePool, runQuery, runCommand)
 import DAL.Types (QueryResult(..))
 
 data DealStage = DealStage
@@ -105,66 +108,53 @@ instance ToJSON PipelineForecast
 
 listDeals :: Pool -> IO (QueryResult [Deal])
 listDeals pool = do
-  let stmt = Statement.Statement
-        "SELECT d.id, d.deal_name, d.deal_value, s.stage_name, \
-        \  p.full_name, co.company_name, \
-        \  d.expected_close_date::TEXT, d.priority, d.probability, d.is_active \
-        \FROM crm_deals d \
-        \LEFT JOIN crm_pipeline_stages s ON d.stage_id = s.id \
-        \LEFT JOIN persons p ON d.person_id = p.id \
-        \LEFT JOIN companies co ON d.company_id = co.id \
-        \ORDER BY d.created_at DESC"
-        ()
-        (D.rowList $ Deal
-          <$> D.column (D.nonNullable D.text)
-          <*> D.column (D.nonNullable D.text)
-          <*> D.column (D.nonNullable D.float8)
-          <*> D.column (D.nonNullable D.text)
-          <*> D.column (D.nullable D.text)
-          <*> D.column (D.nullable D.text)
-          <*> D.column (D.nullable D.text)
-          <*> D.column (D.nonNullable D.text)
-          <*> D.column (D.nonNullable D.float8)
-          <*> D.column (D.nonNullable D.bool))
-        True
-  result <- try $ usePool pool $ Session.statement () stmt
-  case result of
-    Right deals -> return $ QuerySuccess deals
-    Left (e :: SomeException) -> return $ QueryError (T.pack $ show e)
+   let query = OE.sql 
+         "SELECT d.id, d.deal_name, d.deal_value, s.stage_name, \
+         \  p.full_name, co.company_name, \
+         \  d.expected_close_date::TEXT, d.priority, d.probability, d.is_active \
+         \FROM crm_deals d \
+         \LEFT JOIN crm_pipeline_stages s ON d.stage_id = s.id \
+         \LEFT JOIN persons p ON d.person_id = p.id \
+         \LEFT JOIN companies co ON d.company_id = co.id \
+         \ORDER BY d.created_at DESC"
+         (OE.makeColumns (,,,,,,,,,) 
+            OE.text
+            OE.text
+            OE.double
+            OE.text
+            OE.text
+            OE.text
+            OE.text
+            OE.text
+            OE.double
+            OE.bool
+         ) OE.noParams
+   result <- runQuery pool query
+   case result of
+     Left err -> return $ QueryError (T.pack $ show err)
+     Right cols -> return $ QuerySuccess $ map (\(dealId, dealName, dealValue, stageName, personFullName, companyName, expectedCloseDate, priority, probability, isActive) ->
+        Deal dealId dealName dealValue stageName (Just personFullName) (Just companyName) (Just expectedCloseDate) priority probability isActive) cols
 
 createDeal :: Pool -> DealInput -> IO (QueryResult Deal)
 createDeal pool input = do
-  let stmt = Statement.Statement
-        "INSERT INTO crm_deals (tenant_id, deal_name, deal_value, stage_id, \
-        \  person_id, company_id, expected_close_date, priority, probability) \
-        \VALUES ('00000000-0000-0000-0000-000000000000', $1, $2, $3::UUID, $4::UUID, $5::UUID, $6::DATE, $7, \
-        \  (SELECT stage_probability FROM crm_pipeline_stages WHERE id = $3::UUID)) \
-        \RETURNING id::TEXT, $1, $2, (SELECT stage_name FROM crm_pipeline_stages WHERE id = $3::UUID), \
-        \  NULL::TEXT, NULL::TEXT, $6::TEXT, $7, \
-        \  (SELECT stage_probability FROM crm_pipeline_stages WHERE id = $3::UUID), TRUE"
-        (((\(DealInput n _ _ _ _ _ _) -> n) >$< E.param (E.nonNullable E.text))
-         <> ((\(DealInput _ v _ _ _ _ _) -> v) >$< E.param (E.nonNullable E.float8))
-         <> ((\(DealInput _ _ s _ _ _ _) -> s) >$< E.param (E.nonNullable E.text))
-         <> ((\(DealInput _ _ _ p _ _ _) -> p) >$< E.param (E.nullable E.text))
-         <> ((\(DealInput _ _ _ _ c _ _) -> c) >$< E.param (E.nullable E.text))
-         <> ((\(DealInput _ _ _ _ _ d _) -> d) >$< E.param (E.nullable E.text))
-         <> ((\(DealInput _ _ _ _ _ _ p) -> p) >$< E.param (E.nonNullable E.text)))
-        (D.singleRow $ Deal
-          <$> D.column (D.nonNullable D.text)
-          <*> D.column (D.nonNullable D.text)
-          <*> D.column (D.nonNullable D.float8)
-          <*> D.column (D.nonNullable D.text)
-          <*> D.column (D.nullable D.text)
-          <*> D.column (D.nullable D.text)
-          <*> D.column (D.nullable D.text)
-          <*> D.column (D.nonNullable D.text)
-          <*> D.column (D.nonNullable D.float8)
-          <*> D.column (D.nonNullable D.bool))
-        True
-  result <- try $ usePool pool $ Session.statement input stmt
-  case result of
-    Right (deal :: Deal) -> return $ QuerySuccess deal
-    Left (e :: SomeException) -> return $ QueryError (T.pack $ show e)
+   let insert = OE.insert crmDealsTable
+         OE.constNothing
+         ( T.pack "00000000-0000-0000-0000-000000000000"  -- tenant_id
+         , diName input                                 -- deal_name
+         , diValue input                                -- deal_value
+         , (read $ diStageId input :: UUID)             -- stage_id
+         , (read <$> diPersonId input)                  -- person_id
+         , (read <$> diCompanyId input)                 -- company_id
+         , (read <$> diExpectedClose input)             -- expected_close_date
+         , diPriority input                             -- priority
+         , OE.constant (0 :: Double)                    -- probability (will be updated by trigger or app logic)
+         )
+   result <- runCommand pool insert
+   case result of
+     Left err -> return $ QueryError (T.pack $ show err)
+     Right count -> if count > 0
+                    then getDeal pool ""  -- TODO: Get the actual ID from the insert
+                    else return $ QueryError "Failed to create deal"
 
 getDeal :: Pool -> Text -> IO (QueryResult Deal)
 getDeal pool did = do
@@ -190,10 +180,10 @@ getDeal pool did = do
           <*> D.column (D.nonNullable D.float8)
           <*> D.column (D.nonNullable D.bool))
         True
-  result <- try $ usePool pool $ Session.statement did stmt
+  result <- usePool pool $ Session.statement did stmt
   case result of
-    Right (deal :: Deal) -> return $ QuerySuccess deal
-    Left (e :: SomeException) -> return $ QueryError (T.pack $ show e)
+    Right deal -> return $ QuerySuccess deal
+    Left err -> return $ QueryError (T.pack $ show err)
 
 updateDealStage :: Pool -> Text -> Text -> IO (QueryResult Deal)
 updateDealStage pool did newStageId = do
@@ -206,7 +196,8 @@ updateDealStage pool did newStageId = do
         \  (SELECT stage_name FROM crm_pipeline_stages WHERE id = $2::UUID), \
         \  NULL::TEXT, NULL::TEXT, expected_close_date::TEXT, priority, \
         \  (SELECT stage_probability FROM crm_pipeline_stages WHERE id = $2::UUID), is_active"
-        (E.param (E.nonNullable E.text) <> E.param (E.nonNullable E.text))
+        (((\(did, _) -> did) >$< E.param (E.nonNullable E.text)) <>
+         ((\(_, nid) -> nid) >$< E.param (E.nonNullable E.text)))
         (D.singleRow $ Deal
           <$> D.column (D.nonNullable D.text)
           <*> D.column (D.nonNullable D.text)
@@ -219,10 +210,10 @@ updateDealStage pool did newStageId = do
           <*> D.column (D.nonNullable D.float8)
           <*> D.column (D.nonNullable D.bool))
         True
-  result <- try $ usePool pool $ Session.statement (did, newStageId) stmt
+  result <- usePool pool $ Session.statement (did, newStageId) stmt
   case result of
-    Right (deal :: Deal) -> return $ QuerySuccess deal
-    Left (e :: SomeException) -> return $ QueryError (T.pack $ show e)
+    Right deal -> return $ QuerySuccess deal
+    Left err -> return $ QueryError (T.pack $ show err)
 
 getPipelineForecast :: Pool -> IO (QueryResult [PipelineForecast])
 getPipelineForecast pool = do
@@ -236,10 +227,10 @@ getPipelineForecast pool = do
           <*> D.column (D.nonNullable D.float8)
           <*> D.column (D.nonNullable D.float8))
         True
-  result <- try $ usePool pool $ Session.statement () stmt
+  result <- usePool pool $ Session.statement () stmt
   case result of
-    Right (forecast :: [PipelineForecast]) -> return $ QuerySuccess forecast
-    Left (e :: SomeException) -> return $ QueryError (T.pack $ show e)
+    Right forecast -> return $ QuerySuccess forecast
+    Left err -> return $ QueryError (T.pack $ show err)
 
 listActivities :: Pool -> Text -> IO (QueryResult [Activity])
 listActivities pool dealId = do
@@ -257,10 +248,10 @@ listActivities pool dealId = do
           <*> D.column (D.nonNullable D.text)
           <*> D.column (D.nonNullable D.bool))
         True
-  result <- try $ usePool pool $ Session.statement dealId stmt
+  result <- usePool pool $ Session.statement dealId stmt
   case result of
-    Right (activities :: [Activity]) -> return $ QuerySuccess activities
-    Left (e :: SomeException) -> return $ QueryError (T.pack $ show e)
+    Right activities -> return $ QuerySuccess activities
+    Left err -> return $ QueryError (T.pack $ show err)
 
 updateDeal :: Pool -> Text -> DealInput -> IO (QueryResult Deal)
 updateDeal _ _ _ = return $ QueryError "Not implemented"
