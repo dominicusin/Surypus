@@ -102,7 +102,7 @@ checkIntegrationPermission permissions requiredPermission =
 
 -- | Create integration API handler
 createIntegrationAPI :: IntegrationAPIConfig -> IO IntegrationAPIConfig
-createIntegrationAPI config = return config
+createIntegrationAPI config = pure config
 
 -- | Handle integration API request with authentication
 handleIntegrationRequest :: IntegrationAPIConfig -> Text -> IntegrationRequest -> IO IntegrationResponse
@@ -110,12 +110,12 @@ handleIntegrationRequest config authToken request = do
   -- Validate token
   authResult <- validateIntegrationToken config authToken
   if not (arValid authResult)
-    then return $ errorResponse 401 "Invalid authentication token"
+    then pure $ errorResponse 401 "Invalid authentication token"
     else do
       -- Check permissions based on request method
       let requiredPermission = getRequiredPermission (irMethod request)
       if not (checkIntegrationPermission (arPermissions authResult) requiredPermission)
-        then return $ errorResponse 403 "Insufficient permissions"
+        then pure $ errorResponse 403 "Insufficient permissions"
         else do
           -- Process the request (stub implementation)
           processRequest config (arTenantId authResult) request
@@ -131,13 +131,13 @@ processRequest config tenantId request = do
     "/api/v1/integrations/status" -> 
       handleIntegrationStatus config tenantId request
     _ -> 
-      return $ errorResponse 404 "Endpoint not found"
+      pure $ errorResponse 404 "Endpoint not found"
 
 -- | Handle bank statement upload
 handleBankStatementUpload :: IntegrationAPIConfig -> Text -> IntegrationRequest -> IO IntegrationResponse
 handleBankStatementUpload config tenantId request = do
   case irBody request of
-    Nothing -> return $ errorResponse 400 "Missing request body"
+    Nothing -> pure $ errorResponse 400 "Missing request body"
     Just body -> do
       -- Extract content from request body
       let content = extractContent body
@@ -150,7 +150,7 @@ handleBankStatementUpload config tenantId request = do
             , Bank.irRowCount = length txns
             , Bank.irStatus = "success"
             }
-      return $ successResponse $ object 
+      pure $ successResponse $ object 
         [ "importId" .= Bank.irImportId importResult
         , "rowCount" .= Bank.irRowCount importResult
         , "status" .= Bank.irStatus importResult
@@ -168,20 +168,20 @@ handleHealthCheck config tenantId request = do
       statusResult <- Health.getHealthStatus (iacPool config) tenantId "integration-api"
       case statusResult of
         QuerySuccess status -> 
-          return $ successResponse $ object 
+          pure . successResponse $ object 
             [ "status" .= ("healthy" :: Text)
             , "tenantId" .= tenantId
             , "healthData" .= status
             ]
         QueryError err -> 
-          return $ errorResponse 500 $ "Health check error: " <> err
+          pure . errorResponse 500 $ "Health check error: " <> err
     QueryError err -> 
-      return $ errorResponse 500 $ "Failed to record health: " <> err
+      pure . errorResponse 500 $ "Failed to record health: " <> err
 
 -- | Handle integration status
 handleIntegrationStatus :: IntegrationAPIConfig -> Text -> IntegrationRequest -> IO IntegrationResponse
 handleIntegrationStatus config tenantId request = do
-  return $ successResponse $ object 
+  pure . successResponse $ object 
     [ "status" .= ("operational" :: Text)
     , "tenantId" .= tenantId
     , "endpoints" .= 
