@@ -42,7 +42,7 @@ runApp pool jwtSecret port = do
     get "/health" $ text "OK"
     
     -- Accounting API endpoints
-    get "/api/v1/accounting/ledgers" $ json $ object 
+    get "/api/v1/accounting/ledgers" . json $ object 
       [ "status" .= ("operational" :: Text)
       , "ledgers" .= 
           [ object ["id" .= (1 :: Int), "code" .= ("1000" :: Text), "name" .= ("Cash" :: Text), "type" .= ("Asset" :: Text)]
@@ -89,7 +89,7 @@ runApp pool jwtSecret port = do
         ]
     
     -- Inventory API endpoints
-    get "/api/v1/inventory/goods" $ json $ object
+    get "/api/v1/inventory/goods" . json $ object
       [ "status" .= ("operational" :: Text)
       , "goods" .= 
           [ object ["id" .= (1 :: Int), "name" .= ("Widget A" :: Text), "sku" .= ("WGT-A-001" :: Text)]
@@ -148,7 +148,7 @@ runApp pool jwtSecret port = do
         ]
     
     -- Tax API endpoints
-    get "/api/v1/tax/rates" $ json $ object
+    get "/api/v1/tax/rates" . json $ object
       [ "status" .= ("operational" :: Text)
       , "rates" .= 
           [ object ["id" .= (1 :: Int), "name" .= ("Standard VAT" :: Text), "rate" .= (20 :: Int)]
@@ -189,7 +189,7 @@ runApp pool jwtSecret port = do
             , Report.rptQuery = "SELECT * FROM accounts"
             , Report.rptFlags = 0
             }
-      json $ object
+      json . object $
         [ "status" .= ("operational" :: Text)
         , "reportId" .= Report.rptId sampleReport
         , "reportCode" .= Report.rptCode sampleReport
@@ -207,7 +207,7 @@ runApp pool jwtSecret port = do
             , Report.rptQuery = "SELECT * FROM transactions"
             , Report.rptFlags = 0
             }
-      json $ object
+      json . object $
         [ "status" .= ("operational" :: Text)
         , "reportId" .= Report.rptId sampleReport
         , "reportCode" .= Report.rptCode sampleReport
@@ -225,7 +225,7 @@ runApp pool jwtSecret port = do
             , Report.rptQuery = "SELECT * FROM stock"
             , Report.rptFlags = 0
             }
-      json $ object
+      json . object $
         [ "status" .= ("operational" :: Text)
         , "reportId" .= Report.rptId sampleReport
         , "reportCode" .= Report.rptCode sampleReport
