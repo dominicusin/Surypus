@@ -8,8 +8,7 @@ import Network.Wai.Handler.Warp (run)
 import Surypus.API.Server (apiServer)
 import Surypus.API.Logger (LogLevel(..), initLogger)
 import qualified Surypus.API.Logger as Log
-import qualified Hasql.Connection as C
-import qualified Hasql.Pool as Pool
+import DAL.Database (Pool, acquirePool, releasePool)
 
 main :: IO ()
 main = do

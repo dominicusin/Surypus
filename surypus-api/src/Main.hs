@@ -2,7 +2,7 @@
 
 module Main where
 
-import Hasql.Pool (Pool)
+import DAL.Database (Pool)
 import Network.Wai.Handler.Warp (run)
 import Surypus.API.Server (apiServer)
 import Surypus.JWT (jwtConfigFromSecret)

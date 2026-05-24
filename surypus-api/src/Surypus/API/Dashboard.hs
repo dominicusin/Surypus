@@ -20,11 +20,11 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Aeson (ToJSON, FromJSON, genericToJSON, genericParseJSON, defaultOptions, fieldLabelModifier)
 import GHC.Generics (Generic)
-import qualified Hasql.Session as Session
-import qualified Hasql.Statement as Statement
-import qualified Hasql.Decoders as D
-import qualified Hasql.Encoders as E
-import DAL.Database (Pool, usePool)
+import qualified Opaleye as OE
+import qualified Opaleye.Internal.HaskellDB.PrimQuery as OPQ
+import qualified Opaleye.Internal.PGTypes as OPG
+import qualified Opaleye.Internal.Tag as OITag
+import DAL.Database (Pool, runQuery, runCommand)
 import DAL.Types (QueryResult(..))
 
 data DashboardKPI = DashboardKPI
@@ -70,75 +70,75 @@ instance ToJSON PartnerSummary
 
 getDashboardKPI :: Pool -> IO (QueryResult DashboardKPI)
 getDashboardKPI pool = do
-  let stmt = Statement.Statement
-        "SELECT \
-        \  COALESCE((SELECT SUM(total_amount) FROM bills WHERE status = 'POSTED'), 0), \
-        \  COALESCE((SELECT COUNT(*) FROM bills), 0), \
-        \  COALESCE((SELECT COUNT(*) FROM goods WHERE is_active), 0), \
-        \  COALESCE((SELECT COUNT(*) FROM persons), 0)"
-        E.noParams
-        (D.singleRow $ DashboardKPI
-          <$> D.column (D.nonNullable D.float8)
-          <*> (fromIntegral <$> D.column (D.nonNullable D.int8))
-          <*> (fromIntegral <$> D.column (D.nonNullable D.int8))
-          <*> (fromIntegral <$> D.column (D.nonNullable D.int8)))
-        True
-  result <- usePool pool $ Session.statement () stmt
-  case result of
-    Right kpi -> return $ QuerySuccess kpi
-    Left err -> return $ QueryError (T.pack $ show err)
+   let query = OE.sql 
+         "SELECT \
+         \  COALESCE((SELECT SUM(total_amount) FROM bills WHERE status = 'POSTED'), 0), \
+         \  COALESCE((SELECT COUNT(*) FROM bills), 0), \
+         \  COALESCE((SELECT COUNT(*) FROM goods WHERE is_active), 0), \
+         \  COALESCE((SELECT COUNT(*) FROM persons), 0)"
+         (OE.makeColumns (,,,) 
+            OE.double
+            OE.int8
+            OE.int8
+            OE.int8
+         ) OE.noParams
+   result <- runQuery pool query
+   case result of
+     Left err -> return $ QueryError (T.pack $ show err)
+     Right cols -> return $ QuerySuccess $ map (\(revenue, orders, activeGoods, partners) ->
+        DashboardKPI revenue (fromIntegral orders) (fromIntegral activeGoods) (fromIntegral partners)) cols
 
 getRevenueTrend :: Pool -> IO (QueryResult [RevenuePoint])
 getRevenueTrend pool = do
-  let stmt = Statement.Statement
-        "SELECT \
-        \  TO_CHAR(bill_date, 'YYYY-MM'), \
-        \  SUM(total_amount), \
-        \  COUNT(*) \
-        \FROM bills \
-        \WHERE bill_date >= NOW() - INTERVAL '12 months' \
-        \GROUP BY TO_CHAR(bill_date, 'YYYY-MM') \
-        \ORDER BY 1"
-        E.noParams
-        (D.rowList $ RevenuePoint
-          <$> D.column (D.nonNullable D.text)
-          <*> D.column (D.nonNullable D.float8)
-          <*> (fromIntegral <$> D.column (D.nonNullable D.int8)))
-        True
-  result <- usePool pool $ Session.statement () stmt
-  case result of
-    Right points -> return $ QuerySuccess points
-    Left err -> return $ QueryError (T.pack $ show err)
+   let query = OE.sql 
+         "SELECT \
+         \  TO_CHAR(bill_date, 'YYYY-MM'), \
+         \  SUM(total_amount), \
+         \  COUNT(*) \
+         \FROM bills \
+         \WHERE bill_date >= NOW() - INTERVAL '12 months' \
+         \GROUP BY TO_CHAR(bill_date, 'YYYY-MM') \
+         \ORDER BY 1"
+         (OE.makeColumns (,,) 
+            OE.text
+            OE.double
+            OE.int8
+         ) OE.noParams
+   result <- runQuery pool query
+   case result of
+     Left err -> return $ QueryError (T.pack $ show err)
+     Right cols -> return $ QuerySuccess $ map (\(month, revenue, count) ->
+        RevenuePoint month revenue (fromIntegral count)) cols
 
 getOrderStatuses :: Pool -> IO (QueryResult [OrderStatus])
 getOrderStatuses pool = do
-  let stmt = Statement.Statement
-        "SELECT status, COUNT(*), SUM(total_amount) \
-        \FROM bills GROUP BY status"
-        E.noParams
-        (D.rowList $ OrderStatus
-          <$> D.column (D.nonNullable D.text)
-          <*> (fromIntegral <$> D.column (D.nonNullable D.int8))
-          <*> D.column (D.nonNullable D.float8))
-        True
-  result <- usePool pool $ Session.statement () stmt
-  case result of
-    Right statuses -> return $ QuerySuccess statuses
-    Left err -> return $ QueryError (T.pack $ show err)
+   let query = OE.sql 
+         "SELECT status, COUNT(*), SUM(total_amount) \
+         \FROM bills GROUP BY status"
+         (OE.makeColumns (,,) 
+            OE.text
+            OE.int8
+            OE.double
+         ) OE.noParams
+   result <- runQuery pool query
+   case result of
+     Left err -> return $ QueryError (T.pack $ show err)
+     Right cols -> return $ QuerySuccess $ map (\(status, count, total) ->
+        OrderStatus status (fromIntegral count) total) cols
 
 getStockSummary :: Pool -> IO (QueryResult StockSummary)
 getStockSummary pool = do
-  let stmt = Statement.Statement
-        "SELECT COUNT(*), SUM(CASE WHEN is_active THEN 1 ELSE 0 END), \
-        \  COUNT(DISTINCT category_id) \
-        \FROM goods"
-        E.noParams
-        (D.singleRow $ StockSummary
-          <$> (fromIntegral <$> D.column (D.nonNullable D.int8))
-          <*> (fromIntegral <$> D.column (D.nonNullable D.int8))
-          <*> (fromIntegral <$> D.column (D.nonNullable D.int8)))
-        True
-  result <- usePool pool $ Session.statement () stmt
-  case result of
-    Right summary -> return $ QuerySuccess summary
-    Left err -> return $ QueryError (T.pack $ show err)
+   let query = OE.sql 
+         "SELECT COUNT(*), SUM(CASE WHEN is_active THEN 1 ELSE 0 END), \
+         \  COUNT(DISTINCT category_id) \
+         \FROM goods"
+         (OE.makeColumns (,,) 
+            OE.int8
+            OE.int8
+            OE.int8
+         ) OE.noParams
+   result <- runQuery pool query
+   case result of
+     Left err -> return $ QueryError (T.pack $ show err)
+     Right cols -> return $ QuerySuccess $ map (\(totalGoods, activeGoods, categories) ->
+        StockSummary (fromIntegral totalGoods) (fromIntegral activeGoods) (fromIntegral categories)) cols
