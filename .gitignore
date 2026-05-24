@@ -71,3 +71,4 @@ coverage/
 .cache/
 tmp/
 src/.planning/
+.planning/STATE.md.lock
