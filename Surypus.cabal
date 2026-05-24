@@ -196,6 +196,8 @@ library
      , websockets >=0.12
      , hedis >=0.14
      , surypus-common >=0.1
+     , scotty >=0.12
+     , wai-extra >=3.1
 
 test-suite surypus-test
   type: exitcode-stdio-1.0

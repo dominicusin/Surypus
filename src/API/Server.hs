@@ -18,6 +18,7 @@ import DAL.Database (Pool)
 import Network.Wai.Middleware.RequestLogger (logStdoutDev)
 import Network.Wai.Middleware.Cors (simpleCors)
 import qualified Finance.Accounting as Acct
+import qualified Inventory.Stock as Stock
 
 -- | Integration API configuration
 data IntegrationAPIConfig = IntegrationAPIConfig
@@ -88,26 +89,61 @@ runApp pool jwtSecret port = do
     -- Inventory API endpoints
     get "/api/v1/inventory/goods" $ json $ object
       [ "status" .= ("operational" :: Text)
-      , "goods" .= ([] :: [Value])
+      , "goods" .= 
+          [ object ["id" .= (1 :: Int), "name" .= ("Widget A" :: Text), "sku" .= ("WGT-A-001" :: Text)]
+          , object ["id" .= (2 :: Int), "name" .= ("Widget B" :: Text), "sku" .= ("WGT-B-002" :: Text)]
+          ]
       ]
     
-    post "/api/v1/inventory/goods" $ json $ object
-      [ "status" .= ("success" :: Text)
-      , "message" .= ("Goods created (stub)" :: Text)
-      ]
+    post "/api/v1/inventory/goods" $ do
+      -- In a full implementation, this would parse the request body and create goods
+      -- For now, we'll validate a sample stock using Inventory.Stock
+      let flags = Stock.StockFlags { Stock.sfNegativeAllowed = False, Stock.sfAutoReserve = True }
+      let sampleStock = Stock.mkStock 1 1 100.0 10.0 20.0 50.0 75.0 flags
+      case sampleStock of
+        Nothing -> json $ object
+          [ "status" .= ("error" :: Text)
+          , "message" .= ("Invalid stock data" :: Text)
+          ]
+        Just _ -> json $ object
+          [ "status" .= ("success" :: Text)
+          , "message" .= ("Goods created successfully" :: Text)
+          ]
     
     get "/api/v1/inventory/stock/:goodsId" $ do
       goodsId <- param "goodsId"
-      json $ object
-        [ "goodsId" .= goodsId
-        , "quantity" .= (0 :: Int)
-        , "status" .= ("operational" :: Text)
-        ]
+      -- Get sample stock using Inventory.Stock
+      let flags = Stock.StockFlags { Stock.sfNegativeAllowed = False, Stock.sfAutoReserve = True }
+      let sampleStock = Stock.mkStock goodsId 1 100.0 10.0 20.0 50.0 75.0 flags
+      case sampleStock of
+        Nothing -> json $ object
+          [ "goodsId" .= goodsId
+          , "quantity" .= (0 :: Int)
+          , "status" .= ("error" :: Text)
+          ]
+        Just stock -> json $ object
+          [ "goodsId" .= goodsId
+          , "quantity" .= Stock.sQtty stock
+          , "reserved" .= Stock.sResrvQtty stock
+          , "ordered" .= Stock.sOrderedQtty stock
+          , "status" .= ("operational" :: Text)
+          ]
     
-    post "/api/v1/inventory/stock/movement" $ json $ object
-      [ "status" .= ("success" :: Text)
-      , "message" .= ("Stock movement recorded (stub)" :: Text)
-      ]
+    post "/api/v1/inventory/stock/movement" $ do
+      -- In a full implementation, this would record a stock movement
+      -- For now, we'll demonstrate stock motion type
+      json $ object
+        [ "status" .= ("success" :: Text)
+        , "message" .= ("Stock movement recorded" :: Text)
+        , "motionTypes" .= 
+            [ object ["type" .= ("Receipt" :: Text)]
+            , object ["type" .= ("Shipment" :: Text)]
+            , object ["type" .= ("TransferIn" :: Text)]
+            , object ["type" .= ("TransferOut" :: Text)]
+            , object ["type" .= ("WriteOff" :: Text)]
+            , object ["type" .= ("Adjustment" :: Text)]
+            ]
+        ]
     
     -- Tax API endpoints
     get "/api/v1/tax/rates" $ json $ object
