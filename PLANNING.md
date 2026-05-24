@@ -21,6 +21,8 @@ Phase 170 (API Integration Tests) - COMPLETE.
 Phase 171 (Code Cleanup and Linting) - COMPLETE.
 Phase 172 (CI/CD Configuration) - COMPLETE (already exists).
 Phase 173 (README Improvements) - COMPLETE.
+Phase 174 (Database Persistence) - BLOCKED by pre-existing DAL.Database Opaleye import errors.
+Phase 175 (Fix CircuitBreaker Build Errors) - COMPLETE.
 
 ### Выполнено (Validated)
 - ✓ REST API на Scotty (OpenAPI 3.0)
@@ -48,6 +50,7 @@ Phase 173 (README Improvements) - COMPLETE.
 - ✓ Code Cleanup (replaced return with pure, removed redundant $ operators)
 - ✓ CI/CD Configuration (GitHub Actions workflow)
 - ✓ README Documentation (improved with API docs and recent improvements)
+- ✓ CircuitBreaker Build Fixes (fixed STM monad issues, removed unused imports)
 
 ### В процессе (Active)
 - None - all planned infrastructure phases complete
