@@ -12,6 +12,7 @@ import Data.Text.Lazy (Text)
 import qualified Data.Text.Lazy as TL
 import Data.Text (Text)
 import qualified Data.Text as T
+import Data.Aeson (Value, object, (.=))
 import qualified API.Integration.REST as REST
 import DAL.Database (Pool)
 import Network.Wai.Middleware.RequestLogger (logStdoutDev)
@@ -35,6 +36,49 @@ runApp pool jwtSecret port = do
     
     -- Health check endpoint
     get "/health" $ text "OK"
+    
+    -- Accounting API endpoints
+    get "/api/v1/accounting/ledgers" $ json $ object 
+      [ "status" .= ("operational" :: Text)
+      , "ledgers" .= ([] :: [Value])
+      ]
+    
+    post "/api/v1/accounting/transactions" $ json $ object
+      [ "status" .= ("success" :: Text)
+      , "message" .= ("Transaction created (stub)" :: Text)
+      ]
+    
+    get "/api/v1/accounting/balance/:accountId" $ do
+      accountId <- param "accountId"
+      json $ object
+        [ "accountId" .= accountId
+        , "balance" .= (0 :: Int)
+        , "status" .= ("operational" :: Text)
+        ]
+    
+    -- Inventory API endpoints
+    get "/api/v1/inventory/goods" $ json $ object
+      [ "status" .= ("operational" :: Text)
+      , "goods" .= ([] :: [Value])
+      ]
+    
+    post "/api/v1/inventory/goods" $ json $ object
+      [ "status" .= ("success" :: Text)
+      , "message" .= ("Goods created (stub)" :: Text)
+      ]
+    
+    get "/api/v1/inventory/stock/:goodsId" $ do
+      goodsId <- param "goodsId"
+      json $ object
+        [ "goodsId" .= goodsId
+        , "quantity" .= (0 :: Int)
+        , "status" .= ("operational" :: Text)
+        ]
+    
+    post "/api/v1/inventory/stock/movement" $ json $ object
+      [ "status" .= ("success" :: Text)
+      , "message" .= ("Stock movement recorded (stub)" :: Text)
+      ]
     
     -- Integration API endpoints
     post "/api/v1/integrations/bank-statement/upload" $ do
