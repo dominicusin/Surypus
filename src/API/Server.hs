@@ -19,6 +19,7 @@ import Network.Wai.Middleware.RequestLogger (logStdoutDev)
 import Network.Wai.Middleware.Cors (simpleCors)
 import qualified Finance.Accounting as Acct
 import qualified Inventory.Stock as Stock
+import qualified Finance.Tax as Tax
 
 -- | Integration API configuration
 data IntegrationAPIConfig = IntegrationAPIConfig
@@ -148,14 +149,32 @@ runApp pool jwtSecret port = do
     -- Tax API endpoints
     get "/api/v1/tax/rates" $ json $ object
       [ "status" .= ("operational" :: Text)
-      , "rates" .= ([] :: [Value])
+      , "rates" .= 
+          [ object ["id" .= (1 :: Int), "name" .= ("Standard VAT" :: Text), "rate" .= (20 :: Int)]
+          , object ["id" .= (2 :: Int), "name" .= ("Reduced VAT" :: Text), "rate" .= (10 :: Int)]
+          , object ["id" .= (3 :: Int), "name" .= ("Zero VAT" :: Text), "rate" .= (0 :: Int)]
+          ]
       ]
     
-    post "/api/v1/tax/calculate" $ json $ object
-      [ "status" .= ("success" :: Text)
-      , "taxAmount" .= (0 :: Int)
-      , "message" .= ("Tax calculated (stub)" :: Text)
-      ]
+    post "/api/v1/tax/calculate" $ do
+      -- In a full implementation, this would parse the request body and calculate tax
+      -- For now, we'll demonstrate tax calculation using Finance.Tax
+      let sampleRate = Tax.mkTaxRate 20
+      case sampleRate of
+        Nothing -> json $ object
+          [ "status" .= ("error" :: Text)
+          , "message" .= ("Invalid tax rate" :: Text)
+          ]
+        Just rate -> do
+          let amount = 100
+          let taxAmount = Tax.calcVAT amount rate
+          json $ object
+            [ "status" .= ("success" :: Text)
+            , "amount" .= amount
+            , "taxRate" .= Tax.unTaxRate rate
+            , "taxAmount" .= taxAmount
+            , "total" .= (amount + taxAmount)
+            ]
     
     -- Reports API endpoints
     get "/api/v1/reports/balance-sheet" $ json $ object
