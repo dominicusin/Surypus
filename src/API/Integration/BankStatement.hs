@@ -15,13 +15,13 @@ import GHC.Generics (Generic)
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString.Char8 as BS
 import Data.Time (UTCTime)
-import DAL.Database (Pool, usePool)
+import DAL.Database (Pool, runQuery, runCommand)
 import DAL.Types (QueryResult(..))
 import qualified Integration.BankStatement as BS
-import qualified Hasql.Session as Session
-import Hasql.Statement (Statement(..))
-import qualified Hasql.Decoders as D
-import qualified Hasql.Encoders as E
+import qualified Opaleye as OE
+import qualified Opaleye.Internal.HaskellDB.PrimQuery as OPQ
+import qualified Opaleye.Internal.PGTypes as OPG
+import qualified Opaleye.Internal.Tag as OITag
 import Data.Functor.Contravariant ((>$<))
 
 -- | Request for bank statement upload
@@ -80,66 +80,49 @@ uploadBankStatement pool request = do
                 }
 
 -- | Get import status
-data ImportStatus = ImportStatus
-  { isImportId :: Text
-  , isFilename :: Text
-  , isFormat :: Text
-  , isTotalRows :: Int
-  , isStatus :: Text
-  , isCreatedAt :: UTCTime
-  } deriving (Show, Eq, Generic)
-
-instance ToJSON ImportStatus
-instance FromJSON ImportStatus
-
 getImportStatus :: Pool -> Text -> IO (QueryResult ImportStatus)
 getImportStatus pool importId = do
-  let stmt = Statement
-        "SELECT id::TEXT, filename, format, total_rows, status, created_at \
-        \FROM bank_statement_import WHERE id = $1::UUID"
-        (E.param (E.nonNullable E.text))
-        (D.rowMaybe $ ImportStatus
-          <$> D.column (D.nonNullable D.text)
-          <*> D.column (D.nonNullable D.text)
-          <*> D.column (D.nonNullable D.text)
-          <*> (fromIntegral <$> D.column (D.nonNullable D.int4))
-          <*> D.column (D.nonNullable D.text)
-          <*> D.column (D.nonNullable D.timestamptz))
-        True
-  res <- usePool pool $ Session.statement importId stmt
-  case res of
-    Left err -> return $ QueryError (T.pack $ show err)
-    Right Nothing -> return $ QueryError "Import not found"
-    Right (Just status) -> return $ QuerySuccess status
+   let query = OE.sql 
+         "SELECT id::TEXT, filename, format, total_rows, status, created_at \
+         \FROM bank_statement_import WHERE id = $1::UUID"
+         (OE.makeColumns (,,,,,) 
+            OE.text
+            OE.text
+            OE.text
+            OE.int4
+            OE.text
+            OE.timestamptz
+         ) (OE.required . fst)
+   result <- runQuery pool query importId
+   case result of
+     Left err -> return $ QueryError (T.pack $ show err)
+     Right [] -> return $ QueryError "Import not found"
+     Right ((importId, filename, format, totalRows, status, createdAt):_) ->
+        return $ QuerySuccess $ ImportStatus
+          importId
+          filename
+          format
+          (fromIntegral totalRows)
+          status
+          createdAt
 
 -- | Get unmatched transactions for manual review
-data UnmatchedTxn = UnmatchedTxn
-  { utId :: Text
-  , utDate :: Text
-  , utAmount :: Double
-  , utDescription :: Maybe Text
-  , utRef :: Maybe Text
-  } deriving (Show, Eq, Generic)
-
-instance ToJSON UnmatchedTxn
-instance FromJSON UnmatchedTxn
-
 getUnmatchedTransactions :: Pool -> Text -> IO (QueryResult [UnmatchedTxn])
 getUnmatchedTransactions pool importId = do
-  let stmt = Statement
-        "SELECT id::TEXT, txn_date, amount, description, ref_number \
-        \FROM bank_statement_line \
-        \WHERE import_id = $1::UUID AND needs_review = true \
-        \ORDER BY txn_date"
-        (E.param (E.nonNullable E.text))
-        (D.rowList $ UnmatchedTxn
-          <$> D.column (D.nonNullable D.text)
-          <*> D.column (D.nonNullable D.text)
-          <*> D.column (D.nonNullable D.float8)
-          <*> D.column (D.nullable D.text)
-          <*> D.column (D.nullable D.text))
-        True
-  res <- usePool pool $ Session.statement importId stmt
-  case res of
-    Left err -> return $ QueryError (T.pack $ show err)
-    Right txns -> return $ QuerySuccess txns
+   let query = OE.sql 
+         "SELECT id::TEXT, txn_date, amount, description, ref_number \
+         \FROM bank_statement_line \
+         \WHERE import_id = $1::UUID AND needs_review = true \
+         \ORDER BY txn_date"
+         (OE.makeColumns (,,,,) 
+            OE.text
+            OE.text
+            OE.double
+            (OE.maybe OE.text)
+            (OE.maybe OE.text)
+         ) (OE.required . fst)
+   result <- runQuery pool query importId
+   case result of
+     Left err -> return $ QueryError (T.pack $ show err)
+     Right cols -> return $ QuerySuccess $ map (\(utId, utDate, utAmount, utDescription, utRef) ->
+        UnmatchedTxn utId utDate utAmount utDescription utRef) cols

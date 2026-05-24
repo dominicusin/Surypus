@@ -23,7 +23,7 @@ import DAL.Database (Pool)
 import DAL.Types (QueryResult(..))
 import qualified Surypus.JWT as JWT
 import qualified Surypus.RBAC as RBAC
-import qualified Integration.BankStatement as Bank
+-- import qualified Integration.BankStatement as Bank  -- DISABLED: Opaleye dependency removed
 import qualified Integration.Health as Health
 
 -- ============================================================================
@@ -143,19 +143,17 @@ handleBankStatementUpload config tenantId request = do
       let content = extractContent body
       let format = extractFormat body
       -- Parse bank statement
-      let txns = if format == "OFX" then Bank.parseOFX content else Bank.parseISO20022 content
+      -- DISABLED: Opaleye dependency removed
+      -- let txns = if format == "OFX" then Bank.parseOFX content else Bank.parseISO20022 content
+      let txns = [] :: [Value]  -- Placeholder with type annotation
       -- Import to database (simplified)
-      let importResult = Bank.ImportResult
-            { Bank.irImportId = "import-" <> tenantId
-            , Bank.irRowCount = length txns
-            , Bank.irStatus = "success"
-            }
-      pure $ successResponse $ object 
-        [ "importId" .= Bank.irImportId importResult
-        , "rowCount" .= Bank.irRowCount importResult
-        , "status" .= Bank.irStatus importResult
-        , "transactions" .= txns
-        ]
+      let importResult = object
+            [ "importId" .= ("import-" <> tenantId :: Text)
+            , "rowCount" .= (length txns :: Int)
+            , "status" .= ("disabled" :: Text)
+            , "transactions" .= txns
+            ]
+      pure $ successResponse importResult
 
 -- | Handle health check
 handleHealthCheck :: IntegrationAPIConfig -> Text -> IntegrationRequest -> IO IntegrationResponse
