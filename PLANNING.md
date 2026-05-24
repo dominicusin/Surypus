@@ -19,6 +19,8 @@ Phase 168 (Tax API Implementation) - COMPLETE.
 Phase 169 (Reports API Implementation) - COMPLETE.
 Phase 170 (API Integration Tests) - COMPLETE.
 Phase 171 (Code Cleanup and Linting) - COMPLETE.
+Phase 172 (CI/CD Configuration) - COMPLETE (already exists).
+Phase 173 (README Improvements) - COMPLETE.
 
 ### Выполнено (Validated)
 - ✓ REST API на Scotty (OpenAPI 3.0)
@@ -44,6 +46,8 @@ Phase 171 (Code Cleanup and Linting) - COMPLETE.
 - ✓ Reports API Implementation (connected to Reports.Report module)
 - ✓ API Integration Tests (Accounting, Inventory, Tax, Reports)
 - ✓ Code Cleanup (replaced return with pure, removed redundant $ operators)
+- ✓ CI/CD Configuration (GitHub Actions workflow)
+- ✓ README Documentation (improved with API docs and recent improvements)
 
 ### В процессе (Active)
 - None - all planned infrastructure phases complete
