@@ -2,20 +2,11 @@
 
 **Система управления предприятием нового поколения на Haskell с формальной верификацией**
 
-## Current Milestone: v2.0 GUI & New Features
+## Completed Milestones
 
-**Goal:** Создать QML Desktop UI, улучшить Web PWA, добавить 7 новых функциональных направлений (Dashboard/Analytics, Отчёты, CRM, Закупки/Продажи, Уведомления, Документооборот, Интеграции).
-
-**Target features:**
-- Dashboard/Analytics — графики и метрики
-- Отчёты — финансовые/inventory reports
-- CRM — сделки, контакты, pipeline
-- Закупки/Продажи — purchase/sales orders
-- Уведомления — push/email
-- Документооборот — печать, PDF
-- Интеграции — банки, маркетплейсы, API
-- QML Desktop UI (зеркалит новые функции)
-- Web PWA улучшения
+- ✅ **v49.0 Infinite Transcendence** — Phases 157-159 (shipped 2026-05-24)
+- ✅ **v2.0 GUI & New Features** — Dashboard, CRM, QML UI, Notifications, Reports, POs, Docs, Integrations (shipped 2026-05-18)
+- ✅ **v1.0** — Foundation: RBAC, JWT, Hasql/PostgreSQL, LiquidHaskell (shipped 2026-05-18)
 
 ## Vision
 
