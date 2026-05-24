@@ -7,12 +7,12 @@ module DAL.Database (
   acquirePool,
   releasePool,
   usePool,
-  
+   
   -- * Connection Settings
   Settings,
   settings,
-  
-  -- * Session and Statement types
+   
+  -- * Session and Statement types (kept for compatibility)
   Session,
   Statement,
 ) where
@@ -21,7 +21,6 @@ import qualified Hasql.Connection as C
 import qualified Hasql.Session as Session
 import qualified Hasql.Statement as Statement
 import qualified Hasql.Pool as Pool
-
 type Pool = Pool.Pool
 acquirePool = Pool.acquire
 releasePool = Pool.release

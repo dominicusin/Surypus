@@ -8,7 +8,7 @@ import qualified DAL.Repository.RBAC as RBACRepo
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
-import Hasql.Pool (Pool)
+import DAL.Database (Pool)
 import Network.Wai
 import Network.Wai.Handler.Warp
 import Network.Wai.Handler.WebSockets

@@ -205,29 +205,7 @@ generateV024 = render $ multi
   , alterTableAddColumn "rbac_canon_perms" ("notes2", "TEXT" )
   ]
 
- -- Deprecated block removed to avoid duplication in migration wiring
-
--- V029: placeholder migration (index on a conceptual field)
-generateV029 :: String
-generateV029 = render $ multi
-  [ DSL "CREATE INDEX IF NOT EXISTS idx_rbac_canon_field_29 ON rbac_canon (row_version);" ]
-
--- V030: placeholder migration (additional view)
-generateV030 :: String
-generateV030 = render $ multi
-  [ DSL "CREATE VIEW v_rbac_canon_summary_30 AS SELECT id, name FROM rbac_canon;" ]
-
--- V031: placeholder migration (constraint)
-generateV031 :: String
-generateV031 = render $ multi
-  [ DSL "ALTER TABLE rbac_canon ADD CONSTRAINT ck_rbac_canon_name_31 CHECK (char_length(name) > 1);" ]
-
--- V032: placeholder migration (annotation)
-generateV032 :: String
-generateV032 = render $ multi
-  [ DSL "-- v032 placeholder: add annotation for tooling" ]
-
--- V025: index optimizations on updated_at fields
+ -- V025: index optimizations on updated_at fields
 generateV025 :: String
 generateV025 = render $ multi
   [ DSL "CREATE INDEX IF NOT EXISTS idx_rbac_canon_updated_at ON rbac_canon (updated_at);"
@@ -258,31 +236,3 @@ generateV028 = render $ multi
   , DSL "CREATE VIEW v_rbac_canon_roles_full_summary2 AS SELECT canon_id, role, log_id FROM rbac_canon_roles;"
   , DSL "CREATE VIEW v_rbac_canon_perms_full_summary2 AS SELECT canon_id, permission, log_id FROM rbac_canon_perms;"
   ]
-
--- V033: placeholder
-generateV033 :: String
-generateV033 = render $ multi [ DSL "-- MV033 placeholder" ]
-
-generateV034 :: String
-generateV034 = render $ multi [ DSL "-- MV034 placeholder" ]
-
-generateV035 :: String
-generateV035 = render $ multi [ DSL "-- MV035 placeholder" ]
-
-generateV036 :: String
-generateV036 = render $ multi [ DSL "-- MV036 placeholder" ]
-
--- (duplicate MV033..MV036 placeholder block removed)
-
--- V037..V040 placeholders for further migrations
-generateV037 :: String
-generateV037 = render $ multi [ DSL "-- MV037 placeholder" ]
-
-generateV038 :: String
-generateV038 = render $ multi [ DSL "-- MV038 placeholder" ]
-
-generateV039 :: String
-generateV039 = render $ multi [ DSL "-- MV039 placeholder" ]
-
-generateV040 :: String
-generateV040 = render $ multi [ DSL "-- MV040 placeholder" ]

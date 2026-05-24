@@ -36,18 +36,6 @@ let v017 = RBACMigration.generateV017
   let v026 = RBACMigration.generateV026
   let v027 = RBACMigration.generateV027
 let v028 = RBACMigration.generateV028
-let v029 = RBACMigration.generateV029
-let v030 = RBACMigration.generateV030
-let v031 = RBACMigration.generateV031
-let v032 = RBACMigration.generateV032
-let v033 = RBACMigration.generateV033
-let v034 = RBACMigration.generateV034
-let v035 = RBACMigration.generateV035
-let v036 = RBACMigration.generateV036
-let v037 = RBACMigration.generateV037
-let v038 = RBACMigration.generateV038
-let v039 = RBACMigration.generateV039
-let v040 = RBACMigration.generateV040
   putStrLn "--- Generated V001 migration (DSL) ---"
   putStrLn v001
   -- Emit generated migration to SQL file (for quick iteration)
@@ -189,58 +177,4 @@ let v040 = RBACMigration.generateV040
   -- Persist V028 migration
   let outPath28 = outDir </> "V028__rbac_final_views.generated.sql"
   writeFile outPath28 v028
-  putStrLn $ "Wrote generated migration to: " ++ outPath28
 
-  -- Persist V029 migration
-  let outPath29 = outDir </> "V029__rbac_placeholder.generated.sql"
-  writeFile outPath29 v029
-  putStrLn $ "Wrote generated migration to: " ++ outPath29
-
-  -- Persist V030 migration
-  let outPath30 = outDir </> "V030__rbac_placeholder.generated.sql"
-  writeFile outPath30 v030
-  putStrLn $ "Wrote generated migration to: " ++ outPath30
-
-  -- Persist V031 migration
-  let outPath31 = outDir </> "V031__rbac_placeholder.generated.sql"
-  writeFile outPath31 v031
-  putStrLn $ "Wrote generated migration to: " ++ outPath31
-
-  -- Persist V032 migration
-  let outPath32 = outDir </> "V032__rbac_placeholder.generated.sql"
-  writeFile outPath32 v032
-  putStrLn $ "Wrote generated migration to: " ++ outPath32
-
-  -- Persist V033..V036 migrations
-  let outPath33 = outDir </> "V033__rbac_placeholder.generated.sql"
-  writeFile outPath33 v033
-  putStrLn $ "Wrote generated migration to: " ++ outPath33
-
-  let outPath34 = outDir </> "V034__rbac_placeholder.generated.sql"
-  writeFile outPath34 v034
-  putStrLn $ "Wrote generated migration to: " ++ outPath34
-
-  let outPath35 = outDir </> "V035__rbac_placeholder.generated.sql"
-  writeFile outPath35 v035
-  putStrLn $ "Wrote generated migration to: " ++ outPath35
-
-  let outPath36 = outDir </> "V036__rbac_placeholder.generated.sql"
-  writeFile outPath36 v036
-  putStrLn $ "Wrote generated migration to: " ++ outPath36
-
-  -- Persist V037..V040 placeholders
-  let outPath37 = outDir </> "V037__rbac_placeholder.generated.sql"
-  writeFile outPath37 v037
-  putStrLn $ "Wrote generated migration to: " ++ outPath37
-
-  let outPath38 = outDir </> "V038__rbac_placeholder.generated.sql"
-  writeFile outPath38 v038
-  putStrLn $ "Wrote generated migration to: " ++ outPath38
-
-  let outPath39 = outDir </> "V039__rbac_placeholder.generated.sql"
-  writeFile outPath39 v039
-  putStrLn $ "Wrote generated migration to: " ++ outPath39
-
-  let outPath40 = outDir </> "V040__rbac_placeholder.generated.sql"
-  writeFile outPath40 v040
-  putStrLn $ "Wrote generated migration to: " ++ outPath40

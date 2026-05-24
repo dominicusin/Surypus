@@ -6,10 +6,10 @@ import Commerce.Orders.Order
 import Commerce.Orders.Preorder
 import Commerce.Orders.Quotation
 import Commerce.Orders.Quote
-import Commerce.Payments.Payment
-import Commerce.Payments.PaymentCard
-import Commerce.Payments.CashOperation
-import Commerce.Payments.CashRegister
+import Commerce.Payment
+import Commerce.PaymentCard
+import Commerce.CashOperation
+import Commerce.CashRegister
 import Commerce.AdvanceBill
 import Commerce.AdvanceInvoice
 import Commerce.BillLine

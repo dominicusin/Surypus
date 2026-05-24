@@ -34,7 +34,7 @@ import GHC.Generics (Generic)
 import qualified Data.Aeson as A
 import qualified Data.Aeson.KeyMap as KM
 import qualified DAL.EventStore as ES
-import Hasql.Pool (Pool)
+import DAL.Database (Pool)
 
 -- ============================================================================
 -- READ MODEL TYPES
