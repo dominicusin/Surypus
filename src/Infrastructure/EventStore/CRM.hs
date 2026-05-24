@@ -26,7 +26,7 @@ import Data.Time (UTCTime, getCurrentTime)
 import GHC.Generics (Generic)
 import Data.Aeson (ToJSON, toJSON)
 import Data.Aeson.TH (deriveJSON, defaultOptions)
-import Hasql.Pool (Pool)
+import DAL.Database (Pool)
 import qualified DAL.EventStore as ES
 
 -- | Contact created event payload

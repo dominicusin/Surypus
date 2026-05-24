@@ -232,26 +232,48 @@ getPipelineForecast pool = do
     Right forecast -> return $ QuerySuccess forecast
     Left err -> return $ QueryError (T.pack $ show err)
 
+-- Table definition for crm_activities table
+crmActivitiesTable :: OE.Table (OE.OEText, OE.OEText, OE.OEText, OE.OEText, OE.OEMaybe (OE.OEText), OE.OEMaybe (OE.OEText), OE.OEBool) (OE.OEText, OE.OEText, OE.OEText, OE.OEText, OE.OEMaybe (OE.OEText), OE.OEMaybe (OE.OEText), OE.OEBool)
+crmActivitiesTable = OE.table "crm_activities" (OITag.tag "crm_activities")
+   \(actId, dealId, actType, actSubject, actDescription, actDate, actCompleted) ->
+      ( actId
+      , dealId
+      , actType
+      , actSubject
+      , actDescription
+      , actDate
+      , actCompleted
+      )
+   \(actId, dealId, actType, actSubject, actDescription, actDate, actCompleted) ->
+      ( OE.required actId
+      , OE.required dealId
+      , OE.required actType
+      , OE.required actSubject
+      , OE.required actDescription
+      , OE.required actDate
+      , OE.required actCompleted
+      )
+
 listActivities :: Pool -> Text -> IO (QueryResult [Activity])
 listActivities pool dealId = do
-  let stmt = Statement.Statement
-        "SELECT id::TEXT, deal_id::TEXT, activity_type, subject, \
-        \  description, activity_date::TEXT, is_completed \
-        \FROM crm_activities WHERE deal_id = $1::UUID ORDER BY activity_date DESC"
-        (E.param (E.nonNullable E.text))
-        (D.rowList $ Activity
-          <$> D.column (D.nonNullable D.text)
-          <*> D.column (D.nonNullable D.text)
-          <*> D.column (D.nonNullable D.text)
-          <*> D.column (D.nonNullable D.text)
-          <*> D.column (D.nullable D.text)
-          <*> D.column (D.nonNullable D.text)
-          <*> D.column (D.nonNullable D.bool))
-        True
-  result <- usePool pool $ Session.statement dealId stmt
-  case result of
-    Right activities -> return $ QuerySuccess activities
-    Left err -> return $ QueryError (T.pack $ show err)
+   let query = OE.sql 
+         "SELECT id::TEXT, deal_id::TEXT, activity_type, subject, \
+         \  description, activity_date::TEXT, is_completed \
+         \FROM crm_activities WHERE deal_id = $1::UUID ORDER BY activity_date DESC"
+         (OE.makeColumns (,,,,,,) 
+            OE.text
+            OE.text
+            OE.text
+            OE.text
+            (OE.maybe OE.text)
+            (OE.maybe OE.text)
+            OE.bool
+         ) (OE.required . fst)
+   result <- runQuery pool query (dealId)
+   case result of
+     Left err -> return $ QueryError (T.pack $ show err)
+     Right cols -> return $ QuerySuccess $ map (\(actId, dealId, actType, actSubject, actDescription, actDate, actCompleted) ->
+        Activity actId dealId actType actSubject actDescription actDate actCompleted) cols
 
 updateDeal :: Pool -> Text -> DealInput -> IO (QueryResult Deal)
 updateDeal _ _ _ = return $ QueryError "Not implemented"

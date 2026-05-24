@@ -8,7 +8,7 @@ module Surypus.APIShim.Server
   )
 where
 
-import Hasql.Pool (Pool)
+import DAL.Database (Pool)
 import Network.Wai (Application)
 import Surypus.API.Server (apiServer, startServantServer)
 import Surypus.JWT (JWTConfig (..))
