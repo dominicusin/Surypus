@@ -80,6 +80,34 @@ runApp pool jwtSecret port = do
       , "message" .= ("Stock movement recorded (stub)" :: Text)
       ]
     
+    -- Tax API endpoints
+    get "/api/v1/tax/rates" $ json $ object
+      [ "status" .= ("operational" :: Text)
+      , "rates" .= ([] :: [Value])
+      ]
+    
+    post "/api/v1/tax/calculate" $ json $ object
+      [ "status" .= ("success" :: Text)
+      , "taxAmount" .= (0 :: Int)
+      , "message" .= ("Tax calculated (stub)" :: Text)
+      ]
+    
+    -- Reports API endpoints
+    get "/api/v1/reports/balance-sheet" $ json $ object
+      [ "status" .= ("operational" :: Text)
+      , "message" .= ("Balance sheet report (stub)" :: Text)
+      ]
+    
+    get "/api/v1/reports/income-statement" $ json $ object
+      [ "status" .= ("operational" :: Text)
+      , "message" .= ("Income statement report (stub)" :: Text)
+      ]
+    
+    get "/api/v1/reports/inventory" $ json $ object
+      [ "status" .= ("operational" :: Text)
+      , "message" .= ("Inventory report (stub)" :: Text)
+      ]
+    
     -- Integration API endpoints
     post "/api/v1/integrations/bank-statement/upload" $ do
       body <- body
