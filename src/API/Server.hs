@@ -20,6 +20,7 @@ import Network.Wai.Middleware.Cors (simpleCors)
 import qualified Finance.Accounting as Acct
 import qualified Inventory.Stock as Stock
 import qualified Finance.Tax as Tax
+import qualified Reports.Report as Report
 
 -- | Integration API configuration
 data IntegrationAPIConfig = IntegrationAPIConfig
@@ -177,20 +178,60 @@ runApp pool jwtSecret port = do
             ]
     
     -- Reports API endpoints
-    get "/api/v1/reports/balance-sheet" $ json $ object
-      [ "status" .= ("operational" :: Text)
-      , "message" .= ("Balance sheet report (stub)" :: Text)
-      ]
+    get "/api/v1/reports/balance-sheet" $ do
+      -- In a full implementation, this would generate a balance sheet report
+      -- For now, we'll demonstrate report types using Reports.Report
+      let sampleReport = Report.Report
+            { Report.rptId = 1
+            , Report.rptCode = "BS-001"
+            , Report.rptName = "Balance Sheet"
+            , Report.rptType = Report.RTBalance
+            , Report.rptQuery = "SELECT * FROM accounts"
+            , Report.rptFlags = 0
+            }
+      json $ object
+        [ "status" .= ("operational" :: Text)
+        , "reportId" .= Report.rptId sampleReport
+        , "reportCode" .= Report.rptCode sampleReport
+        , "reportName" .= Report.rptName sampleReport
+        , "reportType" .= show (Report.rptType sampleReport)
+        ]
     
-    get "/api/v1/reports/income-statement" $ json $ object
-      [ "status" .= ("operational" :: Text)
-      , "message" .= ("Income statement report (stub)" :: Text)
-      ]
+    get "/api/v1/reports/income-statement" $ do
+      -- In a full implementation, this would generate an income statement report
+      let sampleReport = Report.Report
+            { Report.rptId = 2
+            , Report.rptCode = "IS-001"
+            , Report.rptName = "Income Statement"
+            , Report.rptType = Report.RTJournal
+            , Report.rptQuery = "SELECT * FROM transactions"
+            , Report.rptFlags = 0
+            }
+      json $ object
+        [ "status" .= ("operational" :: Text)
+        , "reportId" .= Report.rptId sampleReport
+        , "reportCode" .= Report.rptCode sampleReport
+        , "reportName" .= Report.rptName sampleReport
+        , "reportType" .= show (Report.rptType sampleReport)
+        ]
     
-    get "/api/v1/reports/inventory" $ json $ object
-      [ "status" .= ("operational" :: Text)
-      , "message" .= ("Inventory report (stub)" :: Text)
-      ]
+    get "/api/v1/reports/inventory" $ do
+      -- In a full implementation, this would generate an inventory report
+      let sampleReport = Report.Report
+            { Report.rptId = 3
+            , Report.rptCode = "INV-001"
+            , Report.rptName = "Inventory Report"
+            , Report.rptType = Report.RTList
+            , Report.rptQuery = "SELECT * FROM stock"
+            , Report.rptFlags = 0
+            }
+      json $ object
+        [ "status" .= ("operational" :: Text)
+        , "reportId" .= Report.rptId sampleReport
+        , "reportCode" .= Report.rptCode sampleReport
+        , "reportName" .= Report.rptName sampleReport
+        , "reportType" .= show (Report.rptType sampleReport)
+        ]
     
     -- Integration API endpoints
     post "/api/v1/integrations/bank-statement/upload" $ do
