@@ -13,7 +13,9 @@ module API.Integration.REST
 
 import Data.Text (Text)
 import qualified Data.Text as T
-import Data.Aeson (ToJSON, FromJSON, Value, object, (.=), encode)
+import Data.Aeson (ToJSON, FromJSON, Value(..), object, (.=), encode)
+import Data.Aeson.Key (fromString)
+import qualified Data.Aeson.KeyMap as KM
 import GHC.Generics (Generic)
 import Data.Time (UTCTime)
 import Data.Int (Int64)
@@ -193,15 +195,19 @@ handleIntegrationStatus config tenantId request = do
 extractContent :: Value -> Text
 extractContent body = 
   case body of
-    obj -> case obj of
-      _ -> "sample-bank-statement-content"  -- Simplified - would extract actual content
+    Object obj -> case KM.lookup (fromString "content") obj of
+      Just (String txt) -> txt
+      _ -> "sample-bank-statement-content"  -- Fallback for missing content
+    _ -> "sample-bank-statement-content"
 
 -- | Extract format from request body
 extractFormat :: Value -> Text
 extractFormat body = 
   case body of
-    obj -> case obj of
-      _ -> "OFX"  -- Simplified - would extract actual format
+    Object obj -> case KM.lookup (fromString "format") obj of
+      Just (String fmt) -> fmt
+      _ -> "OFX"  -- Default to OFX format
+    _ -> "OFX"
 
 -- ============================================================================
 -- HELPER FUNCTIONS
