@@ -2,6 +2,17 @@
 
 **Система управления предприятием нового поколения на Haskell с формальной верификацией**
 
+## Current Milestone: v50.0 Codebase Consolidation
+
+**Goal:** Fix the build, eliminate technical debt, and establish a maintainable foundation.
+
+**Target features:**
+- Fix `Surypus.cabal` to match actual modules on disk
+- Remove ~150 stub/concept modules with no real logic
+- Consolidate 14 duplicate circuit breaker implementations into one
+- Remove duplicate Commerce modules
+- Consolidate 40 RBAC migrations
+
 ## Completed Milestones
 
 - ✅ **v49.0 Infinite Transcendence** — Phases 157-159 (shipped 2026-05-24)
