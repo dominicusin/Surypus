@@ -50,4 +50,7 @@
 5. All imports updated to reflect removed/consolidated modules
 6. `stack test` passes (if tests exist) or at minimum `stack build` succeeds
 
-**Plans:** 0/1 — pending
+**Plans:** 1/1 — pending execution
+
+Plans:
+- [ ] 160-01-PLAN.md — Remove concept stubs, consolidate circuit breakers, clean Commerce/Payments duplicates, remove RBAC migration placeholders, fix cabal exposed-modules, verify stack build
