@@ -13,6 +13,7 @@ Phase 162 (Scotty Web Server) - COMPLETE.
 Phase 163 (Core API Endpoints) - COMPLETE.
 Phase 164 (Tax and Reports API) - COMPLETE.
 Phase 165 (API Documentation) - COMPLETE.
+Phase 166 (Accounting API Implementation) - COMPLETE.
 
 ### Выполнено (Validated)
 - ✓ REST API на Scotty (OpenAPI 3.0)
@@ -32,6 +33,7 @@ Phase 165 (API Documentation) - COMPLETE.
 - ✓ Scotty Web Server for Integration API
 - ✓ Core API Endpoints (Accounting, Inventory, Tax, Reports)
 - ✓ API Documentation
+- ✓ Accounting API Implementation (connected to Finance.Accounting module)
 
 ### В процессе (Active)
 - None - all planned infrastructure phases complete
