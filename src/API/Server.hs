@@ -1,68 +1,69 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# OPTIONS_GHC -Wno-unused-top-binds #-}
 
--- | API Server - STUBBED
+-- | API Server - Simple Scotty server for Integration API
 module API.Server
-  ( -- app,
-    -- server,
-    -- PersonAPI,
-    -- PersonsAPI,
-    -- AuthAPI,
-    -- HealthAPI,
-    -- APIv1,
-    -- API
+  ( runApp
+  , IntegrationAPIConfig(..)
   ) where
 
--- All handlers stubbed
+import Web.Scotty
+import qualified Web.Scotty.Trans as ST
+import Data.Text.Lazy (Text)
+import qualified Data.Text.Lazy as TL
+import Data.Text (Text)
+import qualified Data.Text as T
+import qualified API.Integration.REST as REST
+import DAL.Database (Pool)
+import Network.Wai.Middleware.RequestLogger (logStdoutDev)
+import Network.Wai.Middleware.Cors (simpleCors)
 
--- All handlers stubbed - commented out
--- type AppM = ExceptT ServantErr IO
--- data Env = Env
--- personRepoFromPool :: Pool -> PersonRepository
--- loggingMiddleware :: LoggerSet -> Middleware
--- metricsMiddleware :: Metrics -> Middleware
--- circuitBreakerMiddleware :: CircuitBreakerBulkheadFullWithMetrics -> Middleware
--- initEnv :: Pool -> JWTConfig -> IO Env
--- listPersonsHandler :: Env -> AppM (PageResponse PersonResponse)
--- createPersonHandler :: Env -> PersonInput -> AppM PersonResponse
--- getPersonHandler :: Env -> Int -> AppM PersonResponse
--- updatePersonHandler :: Env -> Int -> PersonInput -> AppM PersonResponse
--- deletePersonHandler :: Env -> Int -> AppM ()
--- searchPersonsHandler :: Env -> Maybe Text -> AppM (PageResponse PersonResponse)
--- loginHandler :: Env -> LoginRequest -> AppM LoginResponse
--- refreshHandler :: Env -> RefreshRequest -> AppM RefreshResponse
--- logoutHandler :: Env -> Maybe Text -> AppM ()
--- healthHandler :: Env -> AppM Text
--- healthDbHandler :: Env -> AppM Text
--- err400 :: Text -> ServantErr
--- err401 :: Text -> ServantErr
--- err404 :: Text -> ServantErr
--- err409 :: Text -> ServantErr
--- err500 :: Text -> ServantErr
--- err503 :: Text -> ServantErr
--- healthCheckDB :: Pool -> IO Bool
--- personToResponse :: Person -> PersonResponse
--- defaultPersonFilter :: PersonFilter
--- server :: Env -> Server API
--- app :: Application
+-- | Integration API configuration
+data IntegrationAPIConfig = IntegrationAPIConfig
+  { iacPool :: Pool
+  , iacJWTSecret :: Text
+  , iacTokenExpiry :: Int
+  , iacAllowedOrigins :: [Text]
+  }
 
--- Rest of the server code stubbed
--- authServer =
---   loginHandler env
---     :<|> refreshHandler env
---     :<|> logoutHandler env
--- healthServer =
---   healthHandler env
---     :<|> healthDbHandler env
--- apiServer = authServer :<|> personsServer :<|> healthServer
--- swaggerHandler = pure "Swagger JSON placeholder"
--- in apiServer :<|> swaggerHandler
-
--- app :: Pool -> JWTConfig -> IO Application
--- app pool jwtConfig = do
---   env <- initEnv pool jwtConfig
---   let baseApp = serve (Proxy @API) (server env)
---       loggedApp = loggingMiddleware (envLogger env) baseApp
---       metricsApp = metricsMiddleware (envMetrics env) loggedApp
---       protectedApp = circuitBreakerMiddleware (envCircuitBreaker env) metricsApp
---   return protectedApp
+-- | Run the web application
+runApp :: Pool -> Text -> Int -> IO ()
+runApp pool jwtSecret port = do
+  let config = REST.createIntegrationAPI pool jwtSecret 3600 ["*"]
+  scottyOpts defaultOptions { settings = (defaultSettings { settingsPort = port }) } $ do
+    middleware simpleCors
+    middleware logStdoutDev
+    
+    -- Health check endpoint
+    get "/health" $ text "OK"
+    
+    -- Integration API endpoints
+    post "/api/v1/integrations/bank-statement/upload" $ do
+      body <- body
+      let request = REST.IntegrationRequest
+            { REST.irPath = "/api/v1/integrations/bank-statement/upload"
+            , REST.irMethod = "POST"
+            , REST.irBody = Just body
+            , REST.irHeaders = []
+            }
+      response <- liftIO $ REST.handleIntegrationRequest config "default-tenant" request
+      json $ REST.irData response
+    
+    get "/api/v1/integrations/health" $ do
+      let request = REST.IntegrationRequest
+            { REST.irPath = "/api/v1/integrations/health"
+            , REST.irMethod = "GET"
+            , REST.irBody = Nothing
+            , REST.irHeaders = []
+            }
+      response <- liftIO $ REST.handleIntegrationRequest config "default-tenant" request
+      json $ REST.irData response
+    
+    get "/api/v1/integrations/status" $ do
+      let request = REST.IntegrationRequest
+            { REST.irPath = "/api/v1/integrations/status"
+            , REST.irMethod = "GET"
+            , REST.irBody = Nothing
+            , REST.irHeaders = []
+            }
+      response <- liftIO $ REST.handleIntegrationRequest config "default-tenant" request
+      json $ REST.irData response
