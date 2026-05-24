@@ -17,6 +17,7 @@ Phase 166 (Accounting API Implementation) - COMPLETE.
 Phase 167 (Inventory API Implementation) - COMPLETE.
 Phase 168 (Tax API Implementation) - COMPLETE.
 Phase 169 (Reports API Implementation) - COMPLETE.
+Phase 170 (API Integration Tests) - COMPLETE.
 
 ### Выполнено (Validated)
 - ✓ REST API на Scotty (OpenAPI 3.0)
@@ -40,6 +41,7 @@ Phase 169 (Reports API Implementation) - COMPLETE.
 - ✓ Inventory API Implementation (connected to Inventory.Stock module)
 - ✓ Tax API Implementation (connected to Finance.Tax module)
 - ✓ Reports API Implementation (connected to Reports.Report module)
+- ✓ API Integration Tests (Accounting, Inventory, Tax, Reports)
 
 ### В процессе (Active)
 - None - all planned infrastructure phases complete
