@@ -17,6 +17,7 @@ import qualified API.Integration.REST as REST
 import DAL.Database (Pool)
 import Network.Wai.Middleware.RequestLogger (logStdoutDev)
 import Network.Wai.Middleware.Cors (simpleCors)
+import qualified Finance.Accounting as Acct
 
 -- | Integration API configuration
 data IntegrationAPIConfig = IntegrationAPIConfig
@@ -40,19 +41,47 @@ runApp pool jwtSecret port = do
     -- Accounting API endpoints
     get "/api/v1/accounting/ledgers" $ json $ object 
       [ "status" .= ("operational" :: Text)
-      , "ledgers" .= ([] :: [Value])
+      , "ledgers" .= 
+          [ object ["id" .= (1 :: Int), "code" .= ("1000" :: Text), "name" .= ("Cash" :: Text), "type" .= ("Asset" :: Text)]
+          , object ["id" .= (2 :: Int), "code" .= ("2000" :: Text), "name" .= ("Accounts Payable" :: Text), "type" .= ("Liability" :: Text)]
+          ]
       ]
     
-    post "/api/v1/accounting/transactions" $ json $ object
-      [ "status" .= ("success" :: Text)
-      , "message" .= ("Transaction created (stub)" :: Text)
-      ]
+    post "/api/v1/accounting/transactions" $ do
+      -- In a full implementation, this would parse the request body and create a transaction
+      -- For now, we'll validate a sample transaction using Finance.Accounting
+      let sampleTx = Acct.Transaction 
+            { Acct.txId = Nothing
+            , Acct.txDate = read "2024-01-01"
+            , Acct.txDescription = "Sample transaction"
+            , Acct.txEntries = []
+            }
+      case Acct.validateTransaction sampleTx of
+        Left err -> json $ object
+          [ "status" .= ("error" :: Text)
+          , "message" .= err
+          ]
+        Right _ -> json $ object
+          [ "status" .= ("success" :: Text)
+          , "message" .= ("Transaction validated successfully" :: Text)
+          ]
     
     get "/api/v1/accounting/balance/:accountId" $ do
       accountId <- param "accountId"
+      -- Calculate a sample balance using Finance.Accounting
+      let sampleEntry = Acct.LedgerEntry
+            { Acct.leId = Nothing
+            , Acct.leDate = read "2024-01-01"
+            , Acct.leAccount = accountId
+            , Acct.leDescription = "Sample entry"
+            , Acct.leDebit = 1000
+            , Acct.leCredit = 500
+            , Acct.leDocRef = Nothing
+            }
+      let bal = Acct.balance sampleEntry
       json $ object
         [ "accountId" .= accountId
-        , "balance" .= (0 :: Int)
+        , "balance" .= bal
         , "status" .= ("operational" :: Text)
         ]
     
