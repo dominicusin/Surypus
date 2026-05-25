@@ -21,11 +21,11 @@ import Data.Int (Int64)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Time (UTCTime, Day)
-import qualified Opaleye as OE
-import qualified Opaleye.Internal.HaskellDB.PrimQuery as OPQ
-import qualified Opaleye.Internal.PGTypes as OPG
-import qualified Opaleye.Internal.Tag as OITag
-import DAL.Database (Pool, runQuery, runCommand)
+import qualified Hasql.Decoders as D
+import qualified Hasql.Encoders as E
+import Hasql.Pool (Pool, use)
+import qualified Hasql.Session as Session
+import Hasql.Statement (Statement (..))
 import Production.Types (TechCard(..), TechLine(..), WorkOrder(..), WorkOrderStatusCode(..))
 
 -- TechCard endpoints

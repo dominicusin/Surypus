@@ -1,11 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE Arrows #-}
-{-# LANGUAGE TypeOperators #-}
 
 -- | Database Queries (Read operations)
--- NOTE: This module is being converted to use Opaleye instead of Hasql
--- as part of the migration to use only Opaleye for PostgreSQL access
+-- NOTE: This module is disabled for now - will be fixed in later chunks
+-- as part of database integration work
 -- This module provides all read operations for the database layer.
 -- It includes row decoders, query builders, and pagination helpers.
 --
@@ -13,7 +11,7 @@
 --
 -- The query layer uses:
 --
--- * Opaleye for type-safe queries
+-- * 'Statement' from hasql for type-safe queries
 -- * Row decoders for mapping SQL results to Haskell types
 -- * Pagination helpers for server-side paging
 --
@@ -26,19 +24,17 @@ module DAL.Queries where
 import DAL.Types
 import Data.Functor.Contravariant ((>$<))
 import Data.Int (Int16, Int64)
-import Data.Profunctor.Product.Default (Default)
 import Data.Text (Text, splitOn)
 import qualified Data.Text as T
+import Data.Text.Encoding as TE
 import Data.Time (Day, UTCTime)
-import Data.Time.Calendar (fromGregorian)
-import Database.PostgreSQL.Simple (Connection)
-import qualified Opaleye as OE
-import qualified Opaleye.Internal.HaskellDB.PrimQuery as OPQ
-import qualified Opaleye.Internal.PGTypes as OPG
-import qualified Opaleye.Internal.Tag as OITag
+import qualified Hasql.Decoders as D
+import qualified Hasql.Encoders as E
+import Hasql.Pool (Pool, use)
+import qualified Hasql.Session as Session
+import Hasql.Statement (Statement (..))
 import Surypus.CoreTypes (Decimal (..))
 import Data.Time.Clock (getCurrentTime, diffUTCTime, NominalDiffTime)
-import DAL.Database (Pool, usePool, runQuery, runCommand)
 
 -- | Helper to create prepared statements (old hasql API compatibility)
 preparable :: T.Text -> E.Params params -> D.Result result -> Statement params result
@@ -89,6 +85,12 @@ personRowDecoder =
     <*> D.column (D.nullable D.text)
     <*> D.column (D.nullable D.text)
     <*> (fromIntegral <$> D.column (D.nonNullable D.int2))
+    <*> (fmap fromIntegral <$> D.column (D.nonNullable D.int2))
+    <*> (fmap fromIntegral <$> D.column (D.nonNullable D.int2))
+    <*> (fromIntegral <$> D.column (D.nullable D.int2))
+    <*> (fromIntegral <$> D.column (D.nullable D.int2))
+    <*> (fromIntegral <$> D.column (D.nonNullable D.int2))
+    <*> (fromIntegral <$> D.column (D.nonNullable D.int2))
     <*> (fmap fromIntegral <$> D.column (D.nullable D.int2))
 
 goodsRowDecoder :: D.Row Goods
@@ -101,8 +103,8 @@ goodsRowDecoder =
     <*> D.column (D.nullable D.text)
     <*> D.column (D.nullable D.int8)
     <*> D.column (D.nullable D.int8)
-    <*> (fmap fromIntegral <$> D.column (D.nullable D.int2))
-    <*> (fmap fromIntegral <$> D.column (D.nullable D.int2))
+    <*> D.column (D.nullable D.int2)
+    <*> D.column (D.nullable D.int2)
     <*> D.column (D.nullable D.float8)
     <*> D.column (D.nullable D.float8)
     <*> D.column (D.nullable D.float8)
@@ -157,6 +159,7 @@ userRowDecoder =
     <*> D.column (D.nonNullable D.text)
     <*> pure Nothing
     <*> D.column (D.nullable D.text)
+    <*> D.column (D.nullable D.text)
     <*> D.column (D.nullable D.int8)
     <*> (fromIntegral <$> D.column (D.nonNullable D.int2))
 
@@ -175,7 +178,7 @@ accTurnRowDecoder =
     <*> D.column (D.nullable D.int8)
     <*> D.column (D.nonNullable D.int8)
     <*> D.column (D.nonNullable D.int8)
-    <*> (realToFrac <$> D.column (D.nonNullable D.numeric))
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
     <*> D.column (D.nonNullable D.date)
 
 salaryRowDecoder :: D.Row Salary
@@ -184,11 +187,11 @@ salaryRowDecoder =
     <$> D.column (D.nonNullable D.int8)
     <*> D.column (D.nonNullable D.int8)
     <*> D.column (D.nonNullable D.date)
-    <*> (realToFrac <$> D.column (D.nonNullable D.numeric))
-    <*> (realToFrac <$> D.column (D.nonNullable D.numeric))
-    <*> (realToFrac <$> D.column (D.nonNullable D.numeric))
-    <*> (realToFrac <$> D.column (D.nonNullable D.numeric))
-    <*> (realToFrac <$> D.column (D.nonNullable D.numeric))
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
 
 employeeRowDecoder :: D.Row Employee
 employeeRowDecoder =
@@ -220,17 +223,19 @@ orderRowDecoder =
     <*> D.column (D.nullable D.int8)
     <*> D.column (D.nullable D.int8)
     <*> (fromIntegral <$> D.column (D.nonNullable D.int2))
-    <*> (realToFrac <$> D.column (D.nonNullable D.numeric))
-    <*> (realToFrac <$> D.column (D.nonNullable D.numeric))
-    <*> (realToFrac <$> D.column (D.nonNullable D.numeric))
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
 
 paymentRowDecoder :: D.Row Payment
 paymentRowDecoder =
   Payment
     <$> D.column (D.nonNullable D.int8)
     <*> D.column (D.nonNullable D.int8)
-    <*> (realToFrac <$> D.column (D.nonNullable D.numeric))
     <*> D.column (D.nonNullable D.date)
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+    <*> (fromIntegral <$> D.column (D.nonNullable D.int2))
+    <*> (fromIntegral <$> D.column (D.nonNullable D.int2))
 
 goodsPriceRowDecoder :: D.Row GoodsPrice
 goodsPriceRowDecoder =
@@ -238,8 +243,8 @@ goodsPriceRowDecoder =
     <$> D.column (D.nonNullable D.int8)
     <*> D.column (D.nonNullable D.int8)
     <*> (fromIntegral <$> D.column (D.nonNullable D.int2))
-    <*> (realToFrac <$> D.column (D.nonNullable D.numeric))
-    <*> (realToFrac <$> D.column (D.nonNullable D.numeric))
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
     <*> D.column (D.nullable D.date)
     <*> D.column (D.nullable D.date)
 
@@ -257,7 +262,7 @@ taxRowDecoder =
     <$> D.column (D.nonNullable D.int8)
     <*> D.column (D.nonNullable D.text)
     <*> D.column (D.nonNullable D.text)
-    <*> (realToFrac <$> D.column (D.nonNullable D.numeric))
+    <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
 
 currencyRowDecoder :: D.Row Currency
 currencyRowDecoder =
@@ -266,7 +271,7 @@ currencyRowDecoder =
     <*> D.column (D.nullable D.text)
     <*> D.column (D.nullable D.text)
     <*> D.column (D.nullable D.text)
-    <*> (realToFrac <$> D.column (D.nonNullable D.numeric))
+    <*> D.column (D.nonNullable D.numeric)
     <*> D.column (D.nonNullable D.bool)
 
 techCardRowDecoder =
@@ -307,51 +312,28 @@ dashboardStatsRowDecoder =
 
 getPersons :: Pool -> IO (QueryResult [Person])
 getPersons pool = do
-   res <- runQuery pool personQuery
-   case res of
-     Left err -> return $ QueryError err
-     Right cols -> return $ QuerySuccess $ map personFromCols cols
+  let stmt =
+        preparable
+          "SELECT id, code::text, name::text, inn::text, kpp::text, person_type, status FROM persons.person ORDER BY id"
+          E.noParams
+          (D.rowList personRowDecoder)
 
-personQuery :: OE.Query () (OE.Int8, OE.Maybe OE.Text, OE.Text, OE.Maybe OE.Text, OE.Maybe OE.Text, OE.Int2, OE.Maybe OE.Int2)
-personQuery = OE.sql 
-   "SELECT id, code::text, name::text, inn::text, kpp::text, person_type, status FROM persons.person ORDER BY id"
-   (OE.makeColumns (,,,,,,) 
-      OE.int8
-      (OE.maybe OE.text)
-      OE.text
-      (OE.maybe OE.text)
-      (OE.maybe OE.text)
-      OE.int2
-      (OE.maybe OE.int2)
-   )
-
-personFromCols :: (OE.Int8, OE.Maybe OE.Text, OE.Text, OE.Maybe OE.Text, OE.Maybe OE.Text, OE.Int2, OE.Maybe OE.Int2) -> Person
-personFromCols (id, code, name, inn, kpp, personType, status) =
-   Person id code name inn kpp (fromIntegral personType) (fmap fromIntegral status)
+  res <- use pool $ Session.statement () stmt
+  case res of
+    Right rows -> pure $ QuerySuccess rows
+    Left err -> pure $ QueryError (T.pack $ show err)
 
 searchPersons :: Pool -> Text -> IO (QueryResult [Person])
 searchPersons pool query = do
-   res <- runQuery pool (searchPersonsQuery query)
-   case res of
-     Left err -> return $ QueryError err
-     Right cols -> return $ QuerySuccess $ map personFromCols cols
-
-searchPersonsQuery :: Text -> OE.Query (OE.Text) (OE.Int8, OE.Maybe OE.Text, OE.Text, OE.Maybe OE.Text, OE.Maybe OE.Text, OE.Int2, OE.Maybe OE.Int2)
-searchPersonsQuery query = OE.sql 
-   "SELECT id, code::text, name::text, inn::text, kpp::text, person_type, status FROM persons.person WHERE name ILIKE $1 OR code ILIKE $1 OR inn ILIKE $1 ORDER BY id"
-   (OE.makeColumns (,,,,,,) 
-      OE.int8
-      (OE.maybe OE.text)
-      OE.text
-      (OE.maybe OE.text)
-      (OE.maybe OE.text)
-      OE.int2
-      (OE.maybe OE.int2)
-   ) (OE.literal $ "%" <> query <> "%")
-
-personFromCols :: (OE.Int8, OE.Maybe OE.Text, OE.Text, OE.Maybe OE.Text, OE.Maybe OE.Text, OE.Int2, OE.Maybe OE.Int2) -> Person
-personFromCols (id, code, name, inn, kpp, personType, status) =
-   Person id code name inn kpp (fromIntegral personType) (fmap fromIntegral status)
+  let stmt =
+        preparable
+          "SELECT id, code::text, name::text, inn::text, kpp::text, person_type, status FROM persons.person WHERE name ILIKE $1 OR code ILIKE $1 OR inn ILIKE $1 ORDER BY id"
+          (E.param (E.nonNullable E.text))
+          (D.rowList personRowDecoder)
+  res <- use pool $ Session.statement ("%" <> query <> "%") stmt
+  case res of
+    Right rows -> pure $ QuerySuccess rows
+    Left err -> pure $ QueryError (T.pack $ show err)
 
 getPersonById :: Pool -> Int64 -> IO (QueryResult Person)
 getPersonById pool pid = do
@@ -368,27 +350,15 @@ getPersonById pool pid = do
 
 getGoods :: Pool -> IO (QueryResult [Goods])
 getGoods pool = do
-   res <- runQuery pool goodsQuery
-   case res of
-     Left err -> return $ QueryError err
-     Right cols -> return $ QuerySuccess $ map goodsFromCols cols
-
-goodsQuery :: OE.Query () (OE.Int8, OE.Maybe OE.Text, OE.Text, OE.Maybe OE.Text, OE.Maybe OE.Text, OE.Int8, OE.Int8)
-goodsQuery = OE.sql 
-   "SELECT id, code::text, name::text, barcode::text, unit_id, parent_id FROM goods ORDER BY id"
-   (OE.makeColumns (,,,,,,,) 
-      OE.int8
-      (OE.maybe OE.text)
-      OE.text
-      (OE.maybe OE.text)
-      (OE.maybe OE.text)
-      OE.int8
-      OE.int8
-   )
-
-goodsFromCols :: (OE.Int8, OE.Maybe OE.Text, OE.Text, OE.Maybe OE.Text, OE.Maybe OE.Text, OE.Int8, OE.Int8) -> Goods
-goodsFromCols (id, code, name, barcode, unitId, parentId) =
-   Goods id code name barcode unitId parentId
+  let stmt =
+        preparable
+          "SELECT id, code::text, name::text, barcode::text, unit_id, parent_id FROM goods ORDER BY id"
+          E.noParams
+          (D.rowList goodsRowDecoder)
+  res <- use pool $ Session.statement () stmt
+  case res of
+    Right rows -> pure $ QuerySuccess rows
+    Left err -> pure $ QueryError (T.pack $ show err)
 
 searchGoods :: Pool -> Text -> IO (QueryResult [Goods])
 searchGoods pool query = do
@@ -404,220 +374,118 @@ searchGoods pool query = do
 
 getGoodsById :: Pool -> Int64 -> IO (QueryResult Goods)
 getGoodsById pool gid = do
-   res <- runQuery pool (goodsByIdQuery gid)
-   case res of
-     Left err -> return $ QueryError err
-     Right [] -> return $ QueryError "Not Found"
-     Right (col:_) -> return $ QuerySuccess $ goodsFromCols col
-
-goodsByIdQuery :: Int64 -> OE.Query (OE.Int8) (OE.Int8, OE.Maybe OE.Text, OE.Text, OE.Maybe OE.Text, OE.Maybe OE.Text, OE.Int8, OE.Int8)
-goodsByIdQuery gid = OE.sql 
-   "SELECT id, code::text, name::text, barcode::text, unit_id, parent_id FROM goods WHERE id = $1"
-   (OE.makeColumns (,,,,,,,) 
-      OE.int8
-      (OE.maybe OE.text)
-      OE.text
-      (OE.maybe OE.text)
-      (OE.maybe OE.text)
-      OE.int8
-      OE.int8
-   ) (OE.literal gid)
-
-goodsFromCols :: (OE.Int8, OE.Maybe OE.Text, OE.Text, OE.Maybe OE.Text, OE.Maybe OE.Text, OE.Int8, OE.Int8) -> Goods
-goodsFromCols (id, code, name, barcode, unitId, parentId) =
-   Goods id code name barcode unitId parentId
+  let stmt =
+        preparable
+          "SELECT id, code::text, name::text, barcode::text, unit_id, parent_id FROM goods WHERE id = $1"
+          (E.param (E.nonNullable E.int8))
+          (D.rowMaybe goodsRowDecoder)
+  res <- use pool $ Session.statement gid stmt
+  case res of
+    Right (Just g) -> pure $ QuerySuccess g
+    Right Nothing -> pure $ QueryError "Not Found"
+    Left err -> pure $ QueryError (T.pack $ show err)
 
 getGoodsByBarcode :: Pool -> Text -> IO (QueryResult Goods)
 getGoodsByBarcode pool barcode = do
-   res <- runQuery pool (goodsByBarcodeQuery barcode)
-   case res of
-     Left err -> return $ QueryError err
-     Right [] -> return $ QueryError "Not Found"
-     Right (col:_) -> return $ QuerySuccess $ goodsFromCols col
-
-goodsByBarcodeQuery :: Text -> OE.Query (OE.Text) (OE.Int8, OE.Maybe OE.Text, OE.Text, OE.Maybe OE.Text, OE.Maybe OE.Text, OE.Int8, OE.Int8)
-goodsByBarcodeQuery barcode = OE.sql 
-   "SELECT id, code::text, name::text, barcode::text, unit_id, parent_id FROM goods WHERE barcode = $1"
-   (OE.makeColumns (,,,,,,,) 
-      OE.int8
-      (OE.maybe OE.text)
-      OE.text
-      (OE.maybe OE.text)
-      (OE.maybe OE.text)
-      OE.int8
-      OE.int8
-   ) (OE.literal barcode)
-
-goodsFromCols :: (OE.Int8, OE.Maybe OE.Text, OE.Text, OE.Maybe OE.Text, OE.Maybe OE.Text, OE.Int8, OE.Int8) -> Goods
-goodsFromCols (id, code, name, barcode, unitId, parentId) =
-   Goods id code name barcode unitId parentId
+  let stmt =
+        preparable
+          "SELECT id, code::text, name::text, barcode::text, unit_id, parent_id FROM goods WHERE barcode = $1"
+          (E.param (E.nonNullable E.text))
+          (D.rowMaybe goodsRowDecoder)
+  res <- use pool $ Session.statement barcode stmt
+  case res of
+    Right (Just g) -> pure $ QuerySuccess g
+    Right Nothing -> pure $ QueryError "Not Found"
+    Left err -> pure $ QueryError (T.pack $ show err)
 
 getLocations :: Pool -> IO (QueryResult [Location])
 getLocations pool = do
-   res <- runQuery pool locationQuery
-   case res of
-     Left err -> return $ QueryError err
-     Right cols -> return $ QuerySuccess $ map locationFromCols cols
-
-locationQuery :: OE.Query () (OE.Int8, OE.Maybe OE.Text, OE.Text)
-locationQuery = OE.sql 
-   "SELECT id, code::text, name::text, location_type FROM location ORDER BY id"
-   (OE.makeColumns (,,,) 
-      OE.int8
-      (OE.maybe OE.text)
-      OE.text
-   )
-
-locationFromCols :: (OE.Int8, OE.Maybe OE.Text, OE.Text) -> Location
-locationFromCols (id, code, name) =
-   Location id code name
+  let stmt =
+        preparable
+          "SELECT id, code::text, name::text, location_type FROM location ORDER BY id"
+          E.noParams
+          (D.rowList locationRowDecoder)
+  res <- use pool $ Session.statement () stmt
+  case res of
+    Right rows -> pure $ QuerySuccess rows
+    Left err -> pure $ QueryError (T.pack $ show err)
 
 getLocationById :: Pool -> Int64 -> IO (QueryResult Location)
 getLocationById pool lid = do
-   res <- runQuery pool (locationByIdQuery lid)
-   case res of
-     Left err -> return $ QueryError err
-     Right [] -> return $ QueryError "Not Found"
-     Right (col:_) -> return $ QuerySuccess $ locationFromCols col
-
-locationByIdQuery :: Int64 -> OE.Query (OE.Int8) (OE.Int8, OE.Maybe OE.Text, OE.Text)
-locationByIdQuery lid = OE.sql 
-   "SELECT id, code::text, name::text, location_type FROM location WHERE id = $1"
-   (OE.makeColumns (,,,) 
-      OE.int8
-      (OE.maybe OE.text)
-      OE.text
-   ) (OE.literal lid)
-
-locationFromCols :: (OE.Int8, OE.Maybe OE.Text, OE.Text) -> Location
-locationFromCols (id, code, name) =
-   Location id code name
+  let stmt =
+        preparable
+          "SELECT id, code::text, name::text, location_type FROM location WHERE id = $1"
+          (E.param (E.nonNullable E.int8))
+          (D.rowMaybe locationRowDecoder)
+  res <- use pool $ Session.statement lid stmt
+  case res of
+    Right (Just location) -> pure $ QuerySuccess location
+    Right Nothing -> pure $ QueryError "Not Found"
+    Left err -> pure $ QueryError (T.pack $ show err)
 
 getBills :: Pool -> IO (QueryResult [Bill])
 getBills pool = do
-   res <- runQuery pool billsQuery
-   case res of
-     Left err -> return $ QueryError err
-     Right cols -> return $ QuerySuccess $ map billFromCols cols
-
-billsQuery :: OE.Query () (OE.Int8, OE.Maybe OE.Text, OE.Int2, OE.Int2, OE.Date, OE.Int8, OE.Int8, OE.Double, OE.Double, OE.Double)
-billsQuery = OE.sql 
-   "SELECT id, code::text, bill_type, doc_status, doc_date, person_id, location_id, total, discount_amount, tax_amount FROM bill ORDER BY id"
-   (OE.makeColumns (,,,,,,,,,) 
-      OE.int8
-      (OE.maybe OE.text)
-      OE.int2
-      OE.int2
-      OE.date
-      OE.int8
-      OE.int8
-      OE.double
-      OE.double
-      OE.double
-   )
-
-billFromCols :: (OE.Int8, OE.Maybe OE.Text, OE.Int2, OE.Int2, OE.Date, OE.Int8, OE.Int8, OE.Double, OE.Double, OE.Double) -> Bill
-billFromCols (id, code, billType, docStatus, docDate, personId, locationId, total, discountAmount, taxAmount) =
-   Bill id code billType docStatus docDate personId locationId total discountAmount taxAmount
+  let stmt =
+        preparable
+          "SELECT id, code::text, bill_type, doc_status, doc_date, person_id, location_id, total, discount_amount, tax_amount FROM bill ORDER BY id"
+          E.noParams
+          (D.rowList billRowDecoder)
+  res <- use pool $ Session.statement () stmt
+  case res of
+    Right rows -> pure $ QuerySuccess rows
+    Left err -> pure $ QueryError (T.pack $ show err)
 
 getBillById :: Pool -> Int64 -> IO (QueryResult Bill)
 getBillById pool bid = do
-   res <- runQuery pool (billByIdQuery bid)
-   case res of
-     Left err -> return $ QueryError err
-     Right [] -> return $ QueryError "Not Found"
-     Right (col:_) -> return $ QuerySuccess $ billFromCols col
-
-billByIdQuery :: Int64 -> OE.Query (OE.Int8) (OE.Int8, OE.Maybe OE.Text, OE.Int2, OE.Int2, OE.Date, OE.Int8, OE.Int8, OE.Double, OE.Double, OE.Double)
-billByIdQuery bid = OE.sql 
-   "SELECT id, code::text, bill_type, doc_status, doc_date, person_id, location_id, total, discount_amount, tax_amount FROM bill WHERE id = $1"
-   (OE.makeColumns (,,,,,,,,,) 
-      OE.int8
-      (OE.maybe OE.text)
-      OE.int2
-      OE.int2
-      OE.date
-      OE.int8
-      OE.int8
-      OE.double
-      OE.double
-      OE.double
-   ) (OE.literal bid)
-
-billFromCols :: (OE.Int8, OE.Maybe OE.Text, OE.Int2, OE.Int2, OE.Date, OE.Int8, OE.Int8, OE.Double, OE.Double, OE.Double) -> Bill
-billFromCols (id, code, billType, docStatus, docDate, personId, locationId, total, discountAmount, taxAmount) =
-   Bill id code billType docStatus docDate personId locationId total discountAmount taxAmount
+  let stmt =
+        preparable
+          "SELECT id, code::text, bill_type, doc_status, doc_date, person_id, location_id, total, discount_amount, tax_amount FROM bill WHERE id = $1"
+          (E.param (E.nonNullable E.int8))
+          (D.rowMaybe billRowDecoder)
+  res <- use pool $ Session.statement bid stmt
+  case res of
+    Right (Just b) -> pure $ QuerySuccess b
+    Right Nothing -> pure $ QueryError "Not Found"
+    Left err -> pure $ QueryError (T.pack $ show err)
 
 getBillLines :: Pool -> Int64 -> IO (QueryResult [BillLine])
 getBillLines pool bid = do
-   res <- runQuery pool (billLinesQuery bid)
-   case res of
-     Left err -> return $ QueryError err
-     Right cols -> return $ QuerySuccess $ map billLineFromCols cols
-
-billLinesQuery :: Int64 -> OE.Query (OE.Int8) (OE.Int8, OE.Int8, OE.Int8, OE.Double, OE.Double, OE.Double, OE.Double)
-billLinesQuery bid = OE.sql 
-   "SELECT id, bill_id, goods_id, qtty, price, discount_amount, amount FROM bill_line WHERE bill_id = $1 ORDER BY id"
-   (OE.makeColumns (,,,,,,,) 
-      OE.int8
-      OE.int8
-      OE.int8
-      OE.double
-      OE.double
-      OE.double
-      OE.double
-   ) (OE.literal bid)
-
-billLineFromCols :: (OE.Int8, OE.Int8, OE.Int8, OE.Double, OE.Double, OE.Double, OE.Double) -> BillLine
-billLineFromCols (id, billId, goodsId, qtty, price, discountAmount, amount) =
-   BillLine id billId goodsId qtty price discountAmount amount
+  let stmt =
+        preparable
+          "SELECT id, bill_id, goods_id, qtty, price, discount_amount, amount FROM bill_line WHERE bill_id = $1 ORDER BY id"
+          (E.param (E.nonNullable E.int8))
+          (D.rowList billLineRowDecoder)
+  res <- use pool $ Session.statement bid stmt
+  case res of
+    Right rows -> pure $ QuerySuccess rows
+    Left err -> pure $ QueryError (T.pack $ show err)
 
 getStock :: Pool -> Int64 -> Int64 -> IO (QueryResult [Stock])
 getStock pool _ _ = getStockAll pool
 
 getStockAll :: Pool -> IO (QueryResult [Stock])
 getStockAll pool = do
-   res <- runQuery pool stockAllQuery
-   case res of
-     Left err -> return $ QueryError err
-     Right cols -> return $ QuerySuccess $ map stockFromCols cols
-
-stockAllQuery :: OE.Query () (OE.Int8, OE.Int8, OE.Int8, OE.Double, OE.Double)
-stockAllQuery = OE.sql 
-   "SELECT id, goods_id, location_id, qtty, resrv_qtty FROM stock ORDER BY id"
-   (OE.makeColumns (,,,,,) 
-      OE.int8
-      OE.int8
-      OE.int8
-      OE.double
-      OE.double
-   )
-
-stockFromCols :: (OE.Int8, OE.Int8, OE.Int8, OE.Double, OE.Double) -> Stock
-stockFromCols (id, goodsId, locationId, qtty, resrvQtty) =
-   Stock id goodsId locationId qtty resrvQtty
+  let stmt =
+        preparable
+          "SELECT id, goods_id, location_id, qtty, resrv_qtty FROM stock ORDER BY id"
+          E.noParams
+          (D.rowList stockRowDecoder)
+  res <- use pool $ Session.statement () stmt
+  case res of
+    Right rows -> pure $ QuerySuccess rows
+    Left err -> pure $ QueryError (T.pack $ show err)
 
 getStockByLocation :: Pool -> Int64 -> IO (QueryResult [Stock])
 getStockByLocation pool lid = do
-   res <- runQuery pool (stockByLocationQuery lid)
-   case res of
-     Left err -> return $ QueryError err
-     Right cols -> return $ QuerySuccess $ map stockFromCols cols
-
-stockByLocationQuery :: Int64 -> OE.Query (OE.Int8) (OE.Int8, OE.Int8, OE.Int8, OE.Double, OE.Double)
-stockByLocationQuery lid = OE.sql 
-   "SELECT id, goods_id, location_id, qtty, resrv_qtty FROM stock WHERE location_id = $1"
-   (OE.makeColumns (,,,,,) 
-      OE.int8
-      OE.int8
-      OE.int8
-      OE.double
-      OE.double
-   ) (OE.literal lid)
-
-stockFromCols :: (OE.Int8, OE.Int8, OE.Int8, OE.Double, OE.Double) -> Stock
-stockFromCols (id, goodsId, locationId, qtty, resrvQtty) =
-   Stock id goodsId locationId qtty resrvQtty
+  let stmt =
+        preparable
+          "SELECT id, goods_id, location_id, qtty, resrv_qtty FROM stock WHERE location_id = $1"
+          (E.param (E.nonNullable E.int8))
+          (D.rowList stockRowDecoder)
+  res <- use pool $ Session.statement lid stmt
+  case res of
+    Right rows -> pure $ QuerySuccess rows
+    Left err -> pure $ QueryError (T.pack $ show err)
 
 getStockByGoods :: Pool -> Int64 -> IO (QueryResult [Stock])
 getStockByGoods pool gid = do
@@ -644,7 +512,7 @@ getSalesSummary pool daysAgo limit = do
     Left err -> pure $ QueryError (T.pack $ show err)
   where
     dateAmountDecoder :: D.Row (Day, Decimal)
-    dateAmountDecoder = (,) <$> D.column (D.nonNullable D.date) <*> (realToFrac <$> D.column (D.nonNullable D.numeric))
+    dateAmountDecoder = (,) <$> D.column (D.nonNullable D.date) <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
 
 getUsers :: Pool -> IO (QueryResult [User])
 getUsers pool = do
@@ -682,7 +550,7 @@ getTopSellingGoods pool limit = do
       (,,)
         <$> D.column (D.nonNullable D.int8)
         <*> D.column (D.nonNullable D.text)
-        <*> (realToFrac <$> D.column (D.nonNullable D.numeric))
+        <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
 
 inventoryDecoder :: D.Row (Int64, Text, Text, Text, Double, Double, Double)
 inventoryDecoder =
@@ -711,10 +579,10 @@ getDocumentTypes pool = do
     documentTypeRowDecoder :: D.Row DocumentRegisterType
     documentTypeRowDecoder =
       DocumentRegisterType
-        <$> D.column (D.nonNullable D.int8)
-        <*> D.column (D.nonNullable D.text)
+        <$> D.column (D.nullable D.int8)
         <*> D.column (D.nonNullable D.text)
         <*> D.column (D.nullable D.text)
+        <*> (fromIntegral <$> D.column (D.nonNullable D.int4))
 
 -- | Get stock summary (total quantity and value by location/warehouse)
 getStockSummary :: Pool -> IO (QueryResult [(Int64, Text, Int, Double, Double)])
@@ -846,7 +714,7 @@ getPersonsPaginated pool filter' mSortBy mSortDir pagination = do
       pure . QuerySuccess $
         PaginatedResult
           { prItems = items,
-            prTotal = fromIntegral totalCount,
+            prTotal = totalCount,
             prLimit = pgLimit pagination,
             prOffset = pgOffset pagination
           }
@@ -910,7 +778,7 @@ getGoodsPaginated pool filter' pagination mSortBy mSortDir = do
       pure . QuerySuccess $
         PaginatedResult
           { prItems = items,
-            prTotal = fromIntegral totalCount,
+            prTotal = totalCount,
             prLimit = pgLimit pagination,
             prOffset = pgOffset pagination
           }
@@ -1112,7 +980,7 @@ getBillsPaginated pool filter' pagination mSortBy mSortDir = do
       pure . QuerySuccess $
         PaginatedResult
           { prItems = items,
-            prTotal = fromIntegral totalCount,
+            prTotal = totalCount,
             prLimit = pgLimit pagination,
             prOffset = pgOffset pagination
           }
@@ -1152,7 +1020,7 @@ getPaymentTotalByBill pool billId = do
         preparable
           "SELECT COALESCE(SUM(amount), 0) FROM payment WHERE bill_id = $1 AND payment_status = 1"
           (E.param (E.nonNullable E.int8))
-          (D.singleRow (realToFrac <$> D.column (D.nonNullable D.numeric)))
+          (D.singleRow (Decimal . round <$> D.column (D.nonNullable D.numeric)))
   res <- use pool $ Session.statement billId stmt
   case res of
     Right total -> pure $ QuerySuccess total
@@ -1193,8 +1061,8 @@ getLowStockGoods pool = do
       (,,,)
         <$> D.column (D.nonNullable D.int8)
         <*> D.column (D.nonNullable D.text)
-        <*> (realToFrac <$> D.column (D.nonNullable D.numeric))
-        <*> (realToFrac <$> D.column (D.nonNullable D.numeric))
+        <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
+        <*> (Decimal . round <$> D.column (D.nonNullable D.numeric))
 
 -- | Get inventory documents
 getInventoryDocuments :: Pool -> IO (QueryResult [Bill])
@@ -1320,7 +1188,7 @@ getOrdersPaginated pool orderFilter pagination _ _ = do
       pure . QuerySuccess $
         PaginatedResult
           { prItems = items,
-            prTotal = fromIntegral totalCount,
+            prTotal = totalCount,
             prLimit = pgLimit pagination,
             prOffset = pgOffset pagination
           }
@@ -1451,8 +1319,8 @@ getTechCards pool mGoodsId limit offset = do
           "SELECT id, goods_id, name, version, status, created_at, updated_at, created_by FROM tech_card WHERE (? IS NULL OR goods_id = ?) ORDER BY id LIMIT ? OFFSET ?"
           (((\(gid, _, _, _) -> gid) >$< E.param (E.nullable E.int8)) <>
            ((\(_, gid', _, _) -> gid') >$< E.param (E.nullable E.int8)) <>
-           ((\(_, _, limit', _) -> fromIntegral limit') >$< E.param (E.nonNullable E.int4)) <>
-           ((\(_, _, _, offset') -> fromIntegral offset') >$< E.param (E.nonNullable E.int4)))
+           ((\(_, _, limit', _) -> limit') >$< E.param (E.nonNullable E.int4)) <>
+           ((\(_, _, _, offset') -> offset') >$< E.param (E.nonNullable E.int4)))
           (D.rowList techCardRowDecoder)
   res <- use pool $ Session.statement (mGoodsId, mGoodsId, limit, offset) stmt
   case res of
@@ -1469,7 +1337,8 @@ getTechCard pool tcId = do
           (D.singleRow techCardRowDecoder)
   res <- use pool $ Session.statement tcId stmt
   case res of
-    Right card -> pure $ QuerySuccess card
+    Right (Just card) -> pure $ QuerySuccess card
+    Right Nothing -> pure $ QueryError "Not Found"
     Left err -> pure $ QueryError (T.pack $ show err)
 
 -- | Create a new tech card
@@ -1488,7 +1357,8 @@ createTechCard pool input createTime userId = do
           (D.singleRow techCardRowDecoder)
   res <- use pool $ Session.statement (tgGoodsId input, tgName input, tgVersion input, fromIntegral (tgStatus input), createTime, createTime, Just userId) stmt
   case res of
-    Right card -> pure $ QuerySuccess card
+    Right (Just card) -> pure $ QuerySuccess card
+    Right Nothing -> pure $ QueryError "Failed to create tech card"
     Left err -> pure $ QueryError (T.pack $ show err)
 
 -- | Update an existing tech card
@@ -1497,16 +1367,17 @@ updateTechCard pool tcId input updateTime userId = do
   let stmt =
         preparable
           "UPDATE tech_card SET name = $1, version = $2, status = $3, updated_at = $4, created_by = $5 WHERE id = $6 RETURNING id, goods_id, name, version, status, created_at, updated_at, created_by"
-          (((\(name, _, _, _, _, _) -> name) >$< E.param (E.nonNullable E.text)) <>
-           ((\(_, version, _, _, _, _) -> version) >$< E.param (E.nonNullable E.text)) <>
-           ((\(_, _, status, _, _, _) -> (fromIntegral status :: Int16)) >$< E.param (E.nonNullable E.int2)) <>
-           ((\(_, _, _, updatedAt, _, _) -> updatedAt) >$< E.param (E.nonNullable E.timestamptz)) <>
-           ((\(_, _, _, _, createdBy, _) -> createdBy) >$< E.param (E.nullable E.text)) <>
-           ((\(_, _, _, _, _, tcId) -> tcId) >$< E.param (E.nonNullable E.int8)))
+          (((\(name, _, _, _, _, _, _) -> name) >$< E.param (E.nonNullable E.text)) <>
+           ((\(_, version, _, _, _, _, _) -> version) >$< E.param (E.nonNullable E.text)) <>
+           ((\(_, _, status, _, _, _, _) -> (fromIntegral status :: Int16)) >$< E.param (E.nonNullable E.int2)) <>
+           ((\(_, _, _, updatedAt, _, _, _) -> updatedAt) >$< E.param (E.nonNullable E.timestamptz)) <>
+           ((\(_, _, _, _, createdBy, _, _) -> createdBy) >$< E.param (E.nullable E.text)) <>
+           ((\(_, _, _, _, _, tcId, _) -> tcId) >$< E.param (E.nonNullable E.int8)))
           (D.singleRow techCardRowDecoder)
   res <- use pool $ Session.statement (tgName input, tgVersion input, fromIntegral (tgStatus input), updateTime, Just userId, tcId) stmt
   case res of
-    Right card -> pure $ QuerySuccess card
+    Right (Just card) -> pure $ QuerySuccess card
+    Right Nothing -> pure $ QueryError "Failed to update tech card"
     Left err -> pure $ QueryError (T.pack $ show err)
 
 -- | Delete a tech card
@@ -1530,8 +1401,8 @@ getWorkOrders pool mGoodsId limit offset = do
           "SELECT id, code, goods_id, tech_card_id, qty_plan, qty_released, status, start_date, end_date, processor_id, notes, created_at, updated_at, created_by FROM work_order WHERE (? IS NULL OR goods_id = ?) ORDER BY id LIMIT ? OFFSET ?"
           (((\(gid, _, _, _) -> gid) >$< E.param (E.nullable E.int8)) <>
            ((\(_, gid', _, _) -> gid') >$< E.param (E.nullable E.int8)) <>
-           ((\(_, _, limit', _) -> fromIntegral limit') >$< E.param (E.nonNullable E.int4)) <>
-           ((\(_, _, _, offset') -> fromIntegral offset') >$< E.param (E.nonNullable E.int4)))
+           ((\(_, _, limit', _) -> limit') >$< E.param (E.nonNullable E.int4)) <>
+           ((\(_, _, _, offset') -> offset') >$< E.param (E.nonNullable E.int4)))
           (D.rowList workOrderRowDecoder)
   res <- use pool $ Session.statement (mGoodsId, mGoodsId, limit, offset) stmt
   case res of
@@ -1548,7 +1419,8 @@ getWorkOrder pool woId = do
           (D.singleRow workOrderRowDecoder)
   res <- use pool $ Session.statement woId stmt
   case res of
-    Right order -> pure $ QuerySuccess order
+    Right (Just order) -> pure $ QuerySuccess order
+    Right Nothing -> pure $ QueryError "Not Found"
     Left err -> pure $ QueryError (T.pack $ show err)
 
 -- | Create a new work order
@@ -1560,20 +1432,21 @@ createWorkOrder pool input createTime userId = do
           (((\(code, _, _, _, _, _, _, _, _, _, _, _, _) -> code) >$< E.param (E.nonNullable E.text)) <>
            ((\(_, goodsId, _, _, _, _, _, _, _, _, _, _, _) -> goodsId) >$< E.param (E.nonNullable E.int8)) <>
            ((\(_, _, techCardId, _, _, _, _, _, _, _, _, _, _) -> techCardId) >$< E.param (E.nullable E.int8)) <>
-           ((\(_, _, _, qtyPlan, _, _, _, _, _, _, _, _, _) -> realToFrac qtyPlan) >$< E.param (E.nonNullable E.numeric)) <>
-           ((\(_, _, _, _, qtyReleased, _, _, _, _, _, _, _, _) -> realToFrac qtyReleased) >$< E.param (E.nonNullable E.numeric)) <>
+           ((\(_, _, _, qtyPlan, _, _, _, _, _, _, _, _, _) -> qtyPlan) >$< E.param (E.nonNullable E.numeric)) <>
+           ((\(_, _, _, _, qtyReleased, _, _, _, _, _, _, _, _) -> qtyReleased) >$< E.param (E.nonNullable E.numeric)) <>
            ((\(_, _, _, _, _, status, _, _, _, _, _, _, _) -> (fromIntegral status :: Int16)) >$< E.param (E.nonNullable E.int2)) <>
            ((\(_, _, _, _, _, _, startDate, _, _, _, _, _, _) -> startDate) >$< E.param (E.nullable E.date)) <>
            ((\(_, _, _, _, _, _, _, endDate, _, _, _, _, _) -> endDate) >$< E.param (E.nullable E.date)) <>
            ((\(_, _, _, _, _, _, _, _, processorId, _, _, _, _) -> processorId) >$< E.param (E.nullable E.int8)) <>
-           ((\(_, _, _, _, _, _, _, _, _, notes, _, _, _) -> notes) >$< E.param (E.nullable E.text)) <>
+           ((\(_, _, _, _, _, _, _, _, _, notes, _, _, _, _) -> notes) >$< E.param (E.nullable E.text)) <>
            ((\(_, _, _, _, _, _, _, _, _, _, createdAt, _, _) -> createdAt) >$< E.param (E.nonNullable E.timestamptz)) <>
            ((\(_, _, _, _, _, _, _, _, _, _, _, updatedAt, _) -> updatedAt) >$< E.param (E.nonNullable E.timestamptz)) <>
            ((\(_, _, _, _, _, _, _, _, _, _, _, _, createdBy) -> createdBy) >$< E.param (E.nullable E.text)))
           (D.singleRow workOrderRowDecoder)
   res <- use pool $ Session.statement (workOrderCode input, workOrderGoodsId input, workOrderParentId input, workOrderPlannedQtty input, workOrderFactQtty input, fromIntegral (workOrderStatus input), workOrderStartDate input, workOrderEndDate input, workOrderAssignedTo input, workOrderNote input, createTime, createTime, Nothing) stmt
   case res of
-    Right order -> pure $ QuerySuccess order
+    Right (Just order) -> pure $ QuerySuccess order
+    Right Nothing -> pure $ QueryError "Failed to create work order"
     Left err -> pure $ QueryError (T.pack $ show err)
 
 -- | Update an existing work order
@@ -1582,23 +1455,24 @@ updateWorkOrder pool woId input updateTime userId = do
   let stmt =
         preparable
           "UPDATE work_order SET code = $1, goods_id = $2, tech_card_id = $3, qty_plan = $4, qty_released = $5, status = $6, start_date = $7, end_date = $8, processor_id = $9, notes = $10, updated_at = $11, created_by = $12 WHERE id = $13 RETURNING id, code, goods_id, tech_card_id, qty_plan, qty_released, status, start_date, end_date, processor_id, notes, created_at, updated_at, created_by"
-          (((\(code, _, _, _, _, _, _, _, _, _, _, _, _) -> code) >$< E.param (E.nonNullable E.text)) <>
-           ((\(_, goodsId, _, _, _, _, _, _, _, _, _, _, _) -> goodsId) >$< E.param (E.nonNullable E.int8)) <>
-           ((\(_, _, techCardId, _, _, _, _, _, _, _, _, _, _) -> techCardId) >$< E.param (E.nullable E.int8)) <>
-           ((\(_, _, _, qtyPlan, _, _, _, _, _, _, _, _, _) -> realToFrac qtyPlan) >$< E.param (E.nonNullable E.numeric)) <>
-           ((\(_, _, _, _, qtyReleased, _, _, _, _, _, _, _, _) -> realToFrac qtyReleased) >$< E.param (E.nonNullable E.numeric)) <>
-           ((\(_, _, _, _, _, status, _, _, _, _, _, _, _) -> (fromIntegral status :: Int16)) >$< E.param (E.nonNullable E.int2)) <>
-           ((\(_, _, _, _, _, _, startDate, _, _, _, _, _, _) -> startDate) >$< E.param (E.nullable E.date)) <>
-           ((\(_, _, _, _, _, _, _, endDate, _, _, _, _, _) -> endDate) >$< E.param (E.nullable E.date)) <>
-             ((\(_, _, _, _, _, _, _, _, processorId, _, _, _, _) -> processorId) >$< E.param (E.nullable E.int8)) <>
-             ((\(_, _, _, _, _, _, _, _, _, notes, _, _, _) -> notes) >$< E.param (E.nullable E.text)) <>
-             ((\(_, _, _, _, _, _, _, _, _, _, updatedAt, _, _) -> updatedAt) >$< E.param (E.nonNullable E.timestamptz)) <>
-             ((\(_, _, _, _, _, _, _, _, _, _, _, createdBy, _) -> createdBy) >$< E.param (E.nullable E.text)) <>
-             ((\(_, _, _, _, _, _, _, _, _, _, _, _, woId) -> woId) >$< E.param (E.nonNullable E.int8)))
-           (D.singleRow workOrderRowDecoder)
-  res <- use pool $ Session.statement (workOrderCode input, workOrderGoodsId input, workOrderParentId input, workOrderPlannedQtty input, workOrderFactQtty input, fromIntegral (workOrderStatus input), workOrderStartDate input, workOrderEndDate input, workOrderAssignedTo input, workOrderNote input, updateTime, Just userId, woId) stmt
+          (((\(code, _, _, _, _, _, _, _, _, _, _, _, _, _) -> code) >$< E.param (E.nonNullable E.text)) <>
+           ((\(_, goodsId, _, _, _, _, _, _, _, _, _, _, _, _, _) -> goodsId) >$< E.param (E.nonNullable E.int8)) <>
+           ((\(_, _, techCardId, _, _, _, _, _, _, _, _, _, _, _, _, _) -> techCardId) >$< E.param (E.nullable E.int8)) <>
+           ((\(_, _, _, qtyPlan, _, _, _, _, _, _, _, _, _, _, _, _) -> qtyPlan) >$< E.param (E.nonNullable E.numeric)) <>
+           ((\(_, _, _, _, qtyReleased, _, _, _, _, _, _, _, _, _, _, _) -> qtyReleased) >$< E.param (E.nonNullable E.numeric)) <>
+           ((\(_, _, _, _, _, status, _, _, _, _, _, _, _, _) -> (fromIntegral status :: Int16)) >$< E.param (E.nonNullable E.int2)) <>
+           ((\(_, _, _, _, _, _, startDate, _, _, _, _, _, _, _) -> startDate) >$< E.param (E.nullable E.date)) <>
+           ((\(_, _, _, _, _, _, _, endDate, _, _, _, _, _, _, _) -> endDate) >$< E.param (E.nullable E.date)) <>
+           ((\(_, _, _, _, _, _, _, processorId, _, _, _, _, _, _, _) -> processorId) >$< E.param (E.nullable E.int8)) <>
+           ((\(_, _, _, _, _, _, _, _, notes, _, _, _, _, _, _, _) -> notes) >$< E.param (E.nullable E.text)) <>
+           ((\(_, _, _, _, _, _, _, _, _, _, updatedAt, _, _, _) -> updatedAt) >$< E.param (E.nonNullable E.timestamptz)) <>
+           ((\(_, _, _, _, _, _, _, _, _, _, _, createdBy, _, _) -> createdBy) >$< E.param (E.nullable E.text)) <>
+           ((\(_, _, _, _, _, _, _, _, _, _, _, _, woId, _) -> woId) >$< E.param (E.nonNullable E.int8)))
+          (D.singleRow workOrderRowDecoder)
+  res <- use pool $ Session.statement (workOrderCode input, workOrderGoodsId input, workOrderParentId input, workOrderPlannedQtty input, workOrderFactQtty input, fromIntegral (workOrderStatus input), workOrderStartDate input, workOrderEndDate input, workOrderAssignedTo input, workOrderNote input, createTime, createTime, Nothing) stmt
   case res of
-    Right order -> pure $ QuerySuccess order
+    Right (Just order) -> pure $ QuerySuccess order
+    Right Nothing -> pure $ QueryError "Failed to update work order"
     Left err -> pure $ QueryError (T.pack $ show err)
 
 -- | Delete a work order
@@ -1626,9 +1500,10 @@ releaseWorkOrder pool woId releaseTime userId = do
            ((\(_, _, _, updatedBy, _) -> updatedBy) >$< E.param (E.nullable E.text)) <>
            ((\(_, _, _, _, woId) -> woId) >$< E.param (E.nonNullable E.int8)))
           (D.singleRow workOrderRowDecoder)
-  res <- use pool $ Session.statement (fromIntegral (1 :: Int16), Just releaseTime, releaseTime, Just userId, woId) stmt
+  res <- use pool $ Session.statement (fromIntegral (1 :: Int16), Just releaseTime, Just releaseTime, Just userId, woId) stmt
   case res of
-    Right order -> pure $ QuerySuccess order
+    Right (Just order) -> pure $ QuerySuccess order
+    Right Nothing -> pure $ QueryError "Failed to release work order"
     Left err -> pure $ QueryError (T.pack $ show err)
 
 -- | Complete a work order
@@ -1638,14 +1513,14 @@ completeWorkOrder pool woId completionTime userId = do
         preparable
           "UPDATE work_order SET status = $1, end_at = $2, updated_at = $3, updated_by = $4 WHERE id = $5 RETURNING id, code, goods_id, tech_card_id, qty_plan, qty_released, status, start_date, end_date, processor_id, notes, created_at, updated_at, created_by"
           (((\(status, _, _, _, _) -> status) >$< E.param (E.nonNullable E.int2)) <>
-           ((\(_, endTime, _, _, _) -> endTime) >$< E.param (E.nullable E.timestamptz)) <>
-           ((\(_, _, updatedAt, _, _) -> updatedAt) >$< E.param (E.nonNullable E.timestamptz)) <>
-           ((\(_, _, _, updatedBy, _) -> updatedBy) >$< E.param (E.nullable E.text)) <>
+           ((\(_, _, endTime, _, _) -> endTime) >$< E.param (E.nullable E.timestamptz)) <>
+           ((\(_, _, _, updatedAt, _) -> updatedAt) >$< E.param (E.nonNullable E.timestamptz)) <>
            ((\(_, _, _, _, woId) -> woId) >$< E.param (E.nonNullable E.int8)))
           (D.singleRow workOrderRowDecoder)
-  res <- use pool $ Session.statement (fromIntegral (2 :: Int16), Just completionTime, completionTime, Just userId, woId) stmt
+  res <- use pool $ Session.statement (fromIntegral (2 :: Int16), Just completionTime, Just completionTime, Just userId, woId) stmt
   case res of
-    Right order -> pure $ QuerySuccess order
+    Right (Just order) -> pure $ QuerySuccess order
+    Right Nothing -> pure $ QueryError "Failed to complete work order"
     Left err -> pure $ QueryError (T.pack $ show err)
 
 -- | Get accounting turn by id
@@ -1678,7 +1553,7 @@ jobRowDecoder =
   JobRecord
     <$> D.column (D.nonNullable D.int8)
     <*> D.column (D.nonNullable D.text)
-    <*> (fromIntegral <$> D.column (D.nonNullable D.int2))
+    <*> D.column (D.nonNullable D.int2)
     <*> D.column (D.nullable D.text)
     <*> D.column (D.nonNullable D.timestamptz)
 

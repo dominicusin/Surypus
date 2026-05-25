@@ -41,172 +41,55 @@ import Data.Int (Int16, Int64)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Text.Encoding as TE
-import qualified Opaleye as OE
-import qualified Opaleye.Internal.HaskellDB.PrimQuery as OPQ
-import qualified Opaleye.Internal.PGTypes as OPG
-import qualified Opaleye.Internal.Tag as OITag
-import DAL.Database (Pool, runQuery)
+import qualified Hasql.Decoders as D
+import qualified Hasql.Encoders as E
+import Hasql.Pool (Pool, use)
+import qualified Hasql.Session as Session
+import Hasql.Statement (Statement (..))
 
--- These helper functions are no longer needed as we're using Opaleye directly
--- preparable :: T.Text -> E.Params params -> D.Result result -> Statement params result
--- preparable sql encoder decoder = Statement (TE.encodeUtf8 sql) encoder decoder True
+preparable :: T.Text -> E.Params params -> D.Result result -> Statement params result
+preparable sql encoder decoder = Statement (TE.encodeUtf8 sql) encoder decoder True
 
--- queryList :: Pool -> D.Row a -> Text -> IO (QueryResult [a])
--- queryList pool rowDecoder sql = do
---    let stmt = preparable sql E.noParams (D.rowList rowDecoder)
---    res <- use pool $ Session.statement () stmt
---    pure $ case res of
---      Right rows -> QuerySuccess rows
---      Left err   -> QueryError (T.pack $ show err)
+queryList :: Pool -> D.Row a -> Text -> IO (QueryResult [a])
+queryList pool rowDecoder sql = do
+  let stmt = preparable sql E.noParams (D.rowList rowDecoder)
+  res <- use pool $ Session.statement () stmt
+  pure $ case res of
+    Right rows -> QuerySuccess rows
+    Left err   -> QueryError (T.pack $ show err)
 
--- queryById :: Pool -> D.Row a -> Text -> Int64 -> IO (QueryResult a)
--- queryById pool rowDecoder sql pid = do
---    let stmt = preparable sql (E.param (E.nonNullable E.int8)) (D.rowMaybe rowDecoder)
---    res <- use pool $ Session.statement pid stmt
---    pure $ case res of
---      Right (Just v)  -> QuerySuccess v
---      Right Nothing   -> QueryError "Not Found"
---      Left err        -> QueryError (T.pack $ show err)
+queryById :: Pool -> D.Row a -> Text -> Int64 -> IO (QueryResult a)
+queryById pool rowDecoder sql pid = do
+  let stmt = preparable sql (E.param (E.nonNullable E.int8)) (D.rowMaybe rowDecoder)
+  res <- use pool $ Session.statement pid stmt
+  pure $ case res of
+    Right (Just v)  -> QuerySuccess v
+    Right Nothing   -> QueryError "Not Found"
+    Left err        -> QueryError (T.pack $ show err)
 
--- queryByCode :: Pool -> D.Row a -> Text -> Text -> IO (QueryResult a)
--- queryByCode pool rowDecoder sql code = do
---    let stmt = preparable sql (E.param (E.nonNullable E.text)) (D.rowMaybe rowDecoder)
---    res <- use pool $ Session.statement code stmt
---    pure $ case res of
---      Right (Just v)  -> QuerySuccess v
---      Right Nothing   -> QueryError "Not Found"
---      Left err        -> QueryError (T.pack $ show err)
+queryByCode :: Pool -> D.Row a -> Text -> Text -> IO (QueryResult a)
+queryByCode pool rowDecoder sql code = do
+  let stmt = preparable sql (E.param (E.nonNullable E.text)) (D.rowMaybe rowDecoder)
+  res <- use pool $ Session.statement code stmt
+  pure $ case res of
+    Right (Just v)  -> QuerySuccess v
+    Right Nothing   -> QueryError "Not Found"
+    Left err        -> QueryError (T.pack $ show err)
 
--- queryByParent :: Pool -> D.Row a -> Text -> Text -> IO (QueryResult [a])
--- queryByParent pool rowDecoder sql parentCode = do
---    let stmt = preparable sql (E.param (E.nonNullable E.text)) (D.rowList rowDecoder)
---    res <- use pool $ Session.statement parentCode stmt
---    pure $ case res of
---      Right rows -> QuerySuccess rows
---      Left err   -> QueryError (T.pack $ show err)
+queryByParent :: Pool -> D.Row a -> Text -> Text -> IO (QueryResult [a])
+queryByParent pool rowDecoder sql parentCode = do
+  let stmt = preparable sql (E.param (E.nonNullable E.text)) (D.rowList rowDecoder)
+  res <- use pool $ Session.statement parentCode stmt
+  pure $ case res of
+    Right rows -> QuerySuccess rows
+    Left err   -> QueryError (T.pack $ show err)
 
 -- ── Row Decoders ────────────────────────────────────────────────────────────
 
--- These row decoders are no longer needed as we're using Opaleye directly
--- oksmRow :: D.Row OksmRecord
--- oksmRow = OksmRecord
---    <$> D.column (D.nonNullable D.int8)
---    <*> D.column (D.nonNullable D.text)
---    <*> D.column (D.nonNullable D.text)
---    <*> D.column (D.nullable D.text)
---    <*> D.column (D.nullable D.text)
---    <*> D.column (D.nullable D.text)
-
--- okvRow :: D.Row OkvRecord
--- okvRow = OkvRecord
---    <$> D.column (D.nonNullable D.int8)
---    <*> D.column (D.nonNullable D.text)
---    <*> D.column (D.nullable D.text)
---    <*> D.column (D.nonNullable D.text)
---    <*> D.column (D.nullable D.text)
-
--- okeiRow :: D.Row OkeiRecord
--- okeiRow = OkeiRecord
---    <$> D.column (D.nonNullable D.int8)
---    <*> D.column (D.nonNullable D.text)
---    <*> D.column (D.nonNullable D.text)
---    <*> D.column (D.nullable D.text)
---    <*> D.column (D.nullable D.text)
---    <*> D.column (D.nullable D.text)
---    <*> D.column (D.nullable D.text)
---    <*> D.column (D.nullable D.text)
-
--- okpd2Row :: D.Row Okpd2Record
--- okpd2Row = Okpd2Record
---    <$> D.column (D.nonNullable D.int8)
---    <*> D.column (D.nonNullable D.text)
---    <*> D.column (D.nonNullable D.text)
---    <*> D.column (D.nullable D.text)
-
--- okved2Row :: D.Row Okved2Record
--- okved2Row = Okved2Record
---    <$> D.column (D.nonNullable D.int8)
---    <*> D.column (D.nonNullable D.text)
---    <*> D.column (D.nonNullable D.text)
---    <*> D.column (D.nullable D.text)
-
--- tnvedRow :: D.Row TnvedRecord
--- tnvedRow = TnvedRecord
---    <$> D.column (D.nonNullable D.int8)
---    <*> D.column (D.nonNullable D.text)
---    <*> D.column (D.nonNullable D.text)
---    <*> D.column (D.nullable D.text)
---    <*> D.column (D.nullable D.text)
---    <*> D.column (D.nullable D.text)
---    <*> D.column (D.nullable D.text)
-
--- okatoRow :: D.Row OkatoRecord
--- okatoRow = OkatoRecord
---    <$> D.column (D.nonNullable D.int8)
---    <*> D.column (D.nonNullable D.text)
---    <*> D.column (D.nonNullable D.text)
---    <*> D.column (D.nullable D.text)
---    <*> (fromIntegral <$> D.column (D.nonNullable D.int2))
-
--- oktmoRow :: D.Row OktmoRecord
--- oktmoRow = OktmoRecord
---    <$> D.column (D.nonNullable D.int8)
---    <*> D.column (D.nonNullable D.text)
---    <*> D.column (D.nonNullable D.text)
---    <*> D.column (D.nullable D.text)
-
--- okofRow :: D.Row OkofRecord
--- okofRow = OkofRecord
---    <$> D.column (D.nonNullable D.int8)
---    <*> D.column (D.nonNullable D.text)
---    <*> D.column (D.nonNullable D.text)
---    <*> D.column (D.nullable D.text)
-
--- okpRow :: D.Row OkpRecord
--- okpRow = OkpRecord
---    <$> D.column (D.nonNullable D.int8)
---    <*> D.column (D.nonNullable D.text)
---    <*> D.column (D.nonNullable D.text)
---    <*> D.column (D.nullable D.text)
-
--- okdpRow :: D.Row OkdpRecord
--- okdpRow = OkdpRecord
---    <$> D.column (D.nonNullable D.int8)
---    <*> D.column (D.nonNullable D.text)
---    <*> D.column (D.nonNullable D.text)
---    <*> D.column (D.nullable D.text)
-
--- oksoRow :: D.Row OksoRecord
--- oksoRow = OksoRecord
---    <$> D.column (D.nonNullable D.int8)
---    <*> D.column (D.nonNullable D.text)
---    <*> D.column (D.nonNullable D.text)
---    <*> D.column (D.nullable D.text)
-
--- okunRow :: D.Row OkunRecord
--- okunRow = OkunRecord
---    <$> D.column (D.nonNullable D.int8)
---    <*> D.column (D.nonNullable D.text)
---    <*> D.column (D.nonNullable D.text)
---    <*> D.column (D.nullable D.text)
-
--- okudRow :: D.Row OkudRecord
--- okudRow = OkudRecord
---    <$> D.column (D.nonNullable D.int8)
---    <*> D.column (D.nonNullable D.text)
---    <*> D.column (D.nonNullable D.text)
-
--- okfsRow :: D.Row OkfsRecord
--- okfsRow = OkfsRecord
---    <$> D.column (D.nonNullable D.int8)
---    <*> D.column (D.nonNullable D.text)
---    <*> D.column (D.nonNullable D.text)
-
--- oknpoRow :: D.Row OknpoRecord
--- oknpoRow = OknpoRecord
---    <$> D.column (D.nonNullable D.int8)
---    <*> D.column (D.nonNullable D.text)
---    <*> D.column (D.nonNullable D.text)
+oksmRow :: D.Row OksmRecord
+oksmRow = OksmRecord
+  <$> D.column (D.nonNullable D.int8)
+  <*> D.column (D.nonNullable D.text)
   <*> D.column (D.nonNullable D.text)
   <*> D.column (D.nullable D.text)
   <*> D.column (D.nullable D.text)

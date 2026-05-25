@@ -2,19 +2,21 @@
 
 **Система управления предприятием нового поколения на Haskell с формальной верификацией**
 
-## Current Milestone: v50.0 Codebase Consolidation
+## Current Milestone: v51.0 Build Stabilization & API Modernization
 
-**Goal:** Fix the build, eliminate technical debt, and establish a maintainable foundation.
+**Goal:** Fix remaining build errors in `surypus-api`, resolve deprecation warnings, and establish a reliable build pipeline.
 
 **Target features:**
-- Fix `Surypus.cabal` to match actual modules on disk
-- Remove ~150 stub/concept modules with no real logic
-- Consolidate 14 duplicate circuit breaker implementations into one
-- Remove duplicate Commerce modules
-- Consolidate 40 RBAC migrations
+- Fix Hasql type mismatches in `DAL/Queries.hs` and `API/CRM.hs`
+- Resolve JWT `addClaim`/`unregisteredClaims` deprecation warnings
+- Ensure `stack build` succeeds across all packages
+- Fix `stack test` — get existing test suite passing
+- Update Dockerfile to work with fixed build
+- Verify CI pipeline passes
 
 ## Completed Milestones
 
+- ✅ **v50.0 Codebase Consolidation** — Build repair, duplicate cleanup, module consolidation (shipped 2026-05-25)
 - ✅ **v49.0 Infinite Transcendence** — Phases 157-159 (shipped 2026-05-24)
 - ✅ **v2.0 GUI & New Features** — Dashboard, CRM, QML UI, Notifications, Reports, POs, Docs, Integrations (shipped 2026-05-18)
 - ✅ **v1.0** — Foundation: RBAC, JWT, Hasql/PostgreSQL, LiquidHaskell (shipped 2026-05-18)
@@ -43,6 +45,7 @@ This document evolves at phase transitions and milestone boundaries.
 2. Requirements validated? → Move to Validated with phase reference
 3. New requirements emerged? → Add to Active
 4. Decisions to log? → Add to Key Decisions
+5. "What This Is" still accurate? → Update if drifted
 
 **After each milestone:**
 1. Full review of all sections
