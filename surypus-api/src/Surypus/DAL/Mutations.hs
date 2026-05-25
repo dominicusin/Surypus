@@ -176,6 +176,30 @@ createBill pool input =
     input
     "Bill created successfully"
 
+billUpdateEncoder :: E.Params (Int64, BillInput)
+billUpdateEncoder =
+  (fst >$< E.param (E.nonNullable E.int8))
+    <> ((biCode . snd) >$< E.param (E.nullable E.text))
+    <> ((toInt16 . biType . snd) >$< E.param (E.nonNullable E.int2))
+    <> ((toInt16 . biStatus . snd) >$< E.param (E.nonNullable E.int2))
+    <> ((biDate . snd) >$< E.param (E.nonNullable E.date))
+    <> ((biPersonId . snd) >$< E.param (E.nullable E.int8))
+    <> ((biLocationId . snd) >$< E.param (E.nullable E.int8))
+    <> ((biTotal . snd) >$< E.param (E.nonNullable E.float8))
+    <> ((biDiscount . snd) >$< E.param (E.nonNullable E.float8))
+    <> ((biTax . snd) >$< E.param (E.nonNullable E.float8))
+
+updateBill :: Pool -> Int64 -> BillInput -> IO (QueryResult MutationResult)
+updateBill pool bid input =
+  runMutationReturningId
+    pool
+    "UPDATE bill SET code = $2, bill_type = $3, doc_status = $4, doc_date = $5, \
+    \person_id = $6, location_id = $7, total = $8, discount_amount = $9, tax_amount = $10 \
+    \WHERE id = $1 RETURNING id"
+    billUpdateEncoder
+    (bid, input)
+    "Bill updated successfully"
+
 updateBillStatus :: Pool -> Int64 -> Int -> IO (QueryResult MutationResult)
 updateBillStatus pool bid status =
   runMutationReturningId

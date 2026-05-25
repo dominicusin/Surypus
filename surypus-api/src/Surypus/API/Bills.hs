@@ -31,9 +31,13 @@ createBill = Mut.createBill
 getBill :: Pool -> Int64 -> IO (QueryResult Bill)
 getBill pool bid = getBillById pool bid
 
--- | Update bill - partial implementation
+-- | Update bill using DAL.Mutations
 updateBill :: Pool -> Int64 -> BillInput -> IO (QueryResult Bill)
-updateBill _ _ _ = return $ QueryError "Not implemented - requires full bill update logic"
+updateBill pool bid input = do
+  result <- Mut.updateBill pool bid input
+  case result of
+    QuerySuccess _ -> getBillById pool bid
+    QueryError err -> return $ QueryError err
 
 -- | Delete bill using DAL.Mutations
 deleteBill :: Pool -> Int64 -> IO (QueryResult ())

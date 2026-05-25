@@ -10,7 +10,7 @@ module Surypus.API.Goods
   )
 where
 
-import DAL.Types (Goods (..), GoodsInput (..), QueryResult (..))
+import DAL.Types (Goods (..), GoodsInput (..), QueryResult (..), MutationResult (..))
 import DAL.Database (Pool)
 import DAL.Queries (getGoods, getGoodsById)
 import DAL.Mutations (createGoods, updateGoods, deleteGoods)
@@ -26,11 +26,8 @@ createGood :: Pool -> GoodsInput -> IO (QueryResult Goods)
 createGood pool input = do
   result <- createGoods pool input
   case result of
-    QuerySuccess _ -> do
-      -- Fetch the created good to return full object
-      case input of
-        -- Note: Would need to fetch by code or return the created ID
-        _ -> return $ QueryError "Created but cannot fetch"
+    QuerySuccess (MutationResult _ (Just rid) _) -> getGoodsById pool rid
+    QuerySuccess _ -> return $ QueryError "Created but no ID returned"
     QueryError err -> return $ QueryError err
 
 -- | Get a specific good by ID using DAL.Queries

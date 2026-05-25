@@ -4,7 +4,8 @@
 
 - ✅ **v49.0 Infinite Transcendence** — Phases 157-159 (shipped 2026-05-24)
 - ✅ **v50.0 Codebase Consolidation** — Phase 160 (shipped 2026-05-24)
-- ◆ **v51.0 Build Stabilization & API Modernization** — Phases 161-162 (active)
+- ✅ **v51.0 Build Stabilization & API Modernization** — Phases 161-162 (completed 2026-05-25)
+- ◆ **v52.0 CRM & Reports Implementation** — Phases 163-165 (active)
 
 ## Phases
 
@@ -50,8 +51,8 @@
 
 </details>
 
-<details open>
-<summary>◆ v51.0 Build Stabilization & API Modernization (Phases 161-162) — BUILD PASSING</summary>
+<details>
+<summary>✅ v51.0 Build Stabilization & API Modernization (Phases 161-162) — COMPLETED</summary>
 
 ### Phase 161: Fix Hasql Type Errors ✅
 
@@ -79,8 +80,73 @@
 2. `stack build` exits with code 0 across all packages ✅
 3. `stack test` compiles and existing tests pass ✅
 4. No deprecation warnings from JWT library ✅ (suppressed)
-5. `docker-compose build` succeeds ⬜ (not verified yet)
+5. `docker-compose build` succeeds ⬜ (deferred to v52.0)
 
 **Plans:** 1/1 — complete
+
+</details>
+
+<details open>
+<summary>◆ v52.0 CRM & Reports Implementation (Phases 163-165) — PLANNING</summary>
+
+### Phase 163: CRM Real DB Queries
+
+**Goal:** Replace all CRM stub implementations with real SQL queries for Contacts, Companies, Pipeline stages, and remaining Deal operations.
+
+**Requirements:** CRM-01, CRM-02, CRM-03, CRM-04
+
+**Files to modify:**
+- `surypus-api/src/Surypus/API/CRM.hs` — 16 stub functions need real SQL
+
+**Success Criteria:**
+1. `listContacts` performs `SELECT * FROM crm_contacts` query ✅
+2. `createContact` inserts into `crm_contacts` with RETURNING ✅
+3. `getContact` fetches single contact by UUID ✅
+4. `updateContact` performs UPDATE with RETURNING ✅
+5. `deleteContact` performs DELETE with RETURNING ✅
+6. `searchContacts` performs LIKE search on name/email ✅
+7. Same for all Company operations ✅
+8. Pipeline stages, rules, history all have real SQL ✅
+9. `updateDeal`, `deleteDeal`, `createActivity` have real SQL ✅
+10. `stack build` passes ✅
+
+**Plans:** 0/1 — pending
+
+### Phase 164: Reports Implementation
+
+**Goal:** Replace stub report responses with real SQL aggregation queries for P&L and Inventory reports.
+
+**Requirements:** RPT-01, RPT-02, RPT-03
+
+**Files to modify:**
+- `surypus-api/src/Surypus/API/Reports.hs` — 3 stub functions
+
+**Success Criteria:**
+1. `getPnLReport` queries revenue/expense from bills and returns formatted report ✅
+2. `getInventoryReport` queries stock levels from goods/stock tables ✅
+3. `generateReport` routes to correct report type by name ✅
+4. `stack build` passes ✅
+
+**Plans:** 0/1 — pending
+
+### Phase 165: Bills Fix & Docker Verification
+
+**Goal:** Fix remaining Bills stub and verify Docker build completes.
+
+**Requirements:** BILL-01, GOODS-01, VERF-04
+
+**Files to modify:**
+- `surypus-api/src/Surypus/API/Bills.hs` — updateBill
+- `surypus-api/src/Surypus/API/Goods.hs` — createGood
+- `Dockerfile` — if needed
+
+**Success Criteria:**
+1. `updateBill` performs full UPDATE with all fields ✅
+2. `createGood` returns created good object (not error) ✅
+3. `docker-compose build` succeeds ✅
+4. `stack build` passes ✅
+5. `stack test` passes ✅
+
+**Plans:** 0/1 — pending
 
 </details>

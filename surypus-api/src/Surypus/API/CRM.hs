@@ -269,13 +269,81 @@ listActivities pool dealId = do
     Left err -> return $ QueryError (T.pack $ show err)
 
 updateDeal :: Pool -> Text -> DealInput -> IO (QueryResult Deal)
-updateDeal _ _ _ = return $ QueryError "Not implemented"
+updateDeal pool did input = do
+  let stmt = Statement.Statement
+        "UPDATE crm_deals SET \
+        \  deal_name = $2, deal_value = $3, stage_id = $4::UUID, \
+        \  person_id = $5::UUID, company_id = $6::UUID, \
+        \  expected_close_date = $7::DATE, priority = $8, \
+        \  probability = (SELECT stage_probability FROM crm_pipeline_stages WHERE id = $4::UUID), \
+        \  updated_at = NOW() \
+        \WHERE id = $1::UUID \
+        \RETURNING id::TEXT, $2, $3, \
+        \  (SELECT stage_name FROM crm_pipeline_stages WHERE id = $4::UUID), \
+        \  NULL::TEXT, NULL::TEXT, $7::TEXT, $8, \
+        \  (SELECT stage_probability FROM crm_pipeline_stages WHERE id = $4::UUID), TRUE"
+        (divided
+          ((\_ -> did) >$< E.param (E.nonNullable E.text))
+          (((\(DealInput n _ _ _ _ _ _) -> n) >$< E.param (E.nonNullable E.text))
+           <> ((\(DealInput _ v _ _ _ _ _) -> v) >$< E.param (E.nonNullable E.float8))
+           <> ((\(DealInput _ _ s _ _ _ _) -> s) >$< E.param (E.nonNullable E.text))
+           <> ((\(DealInput _ _ _ p _ _ _) -> p) >$< E.param (E.nullable E.text))
+           <> ((\(DealInput _ _ _ _ c _ _) -> c) >$< E.param (E.nullable E.text))
+           <> ((\(DealInput _ _ _ _ _ d _) -> d) >$< E.param (E.nullable E.text))
+           <> ((\(DealInput _ _ _ _ _ _ pr) -> pr) >$< E.param (E.nonNullable E.text))))
+        (D.singleRow $ Deal
+          <$> D.column (D.nonNullable D.text)
+          <*> D.column (D.nonNullable D.text)
+          <*> D.column (D.nonNullable D.float8)
+          <*> D.column (D.nonNullable D.text)
+          <*> D.column (D.nullable D.text)
+          <*> D.column (D.nullable D.text)
+          <*> D.column (D.nullable D.text)
+          <*> D.column (D.nonNullable D.text)
+          <*> D.column (D.nonNullable D.float8)
+          <*> D.column (D.nonNullable D.bool))
+        True
+  res <- usePool pool $ Session.statement (did, input) stmt
+  case res of
+    Right deal -> return $ QuerySuccess deal
+    Left err -> return $ QueryError (T.pack $ show err)
 
 deleteDeal :: Pool -> Text -> IO (QueryResult ())
-deleteDeal _ _ = return $ QueryError "Not implemented"
+deleteDeal pool did = do
+  let stmt = Statement.Statement
+        "DELETE FROM crm_deals WHERE id = $1::UUID RETURNING id"
+        (E.param (E.nonNullable E.text))
+        (D.singleRow $ D.column (D.nonNullable D.text))
+        True
+  res <- usePool pool $ Session.statement did stmt
+  case res of
+    Right _ -> return $ QuerySuccess ()
+    Left err -> return $ QueryError (T.pack $ show err)
 
 createActivity :: Pool -> ActivityInput -> IO (QueryResult Activity)
-createActivity _ _ = return $ QueryError "Not implemented"
+createActivity pool input = do
+  let stmt = Statement.Statement
+        "INSERT INTO crm_activities (deal_id, activity_type, subject, description, activity_date) \
+        \VALUES ($1::UUID, $2, $3, $4, NOW()) \
+        \RETURNING id::TEXT, deal_id::TEXT, activity_type, subject, \
+        \  description, activity_date::TEXT, is_completed"
+        (((\(ActivityInput d _ _ _) -> d) >$< E.param (E.nonNullable E.text))
+         <> ((\(ActivityInput _ t _ _) -> t) >$< E.param (E.nonNullable E.text))
+         <> ((\(ActivityInput _ _ s _) -> s) >$< E.param (E.nonNullable E.text))
+         <> ((\(ActivityInput _ _ _ d) -> d) >$< E.param (E.nullable E.text)))
+        (D.singleRow $ Activity
+          <$> D.column (D.nonNullable D.text)
+          <*> D.column (D.nonNullable D.text)
+          <*> D.column (D.nonNullable D.text)
+          <*> D.column (D.nonNullable D.text)
+          <*> D.column (D.nullable D.text)
+          <*> D.column (D.nonNullable D.text)
+          <*> D.column (D.nonNullable D.bool))
+        True
+  res <- usePool pool $ Session.statement input stmt
+  case res of
+    Right activity -> return $ QuerySuccess activity
+    Left err -> return $ QueryError (T.pack $ show err)
 
 -- Contact types
 data Contact = Contact
@@ -291,22 +359,99 @@ instance ToJSON ContactInput
 instance FromJSON ContactInput
 
 listContacts :: Pool -> IO (QueryResult [Contact])
-listContacts _ = return $ QuerySuccess []
+listContacts pool = do
+  let stmt = Statement.Statement
+        "SELECT id::TEXT, name, email FROM crm_contacts ORDER BY name"
+        E.noParams
+        (D.rowList $ Contact
+          <$> D.column (D.nonNullable D.text)
+          <*> D.column (D.nonNullable D.text)
+          <*> D.column (D.nullable D.text))
+        True
+  res <- usePool pool $ Session.statement () stmt
+  case res of
+    Right contacts -> return $ QuerySuccess contacts
+    Left err -> return $ QueryError (T.pack $ show err)
 
 createContact :: Pool -> ContactInput -> IO (QueryResult Contact)
-createContact _ _ = return $ QueryError "Not implemented"
+createContact pool input = do
+  let stmt = Statement.Statement
+        "INSERT INTO crm_contacts (name, email) VALUES ($1, $2) \
+        \RETURNING id::TEXT, name, email"
+        (((\(ContactInput n _) -> n) >$< E.param (E.nonNullable E.text))
+         <> ((\(ContactInput _ e) -> e) >$< E.param (E.nullable E.text)))
+        (D.singleRow $ Contact
+          <$> D.column (D.nonNullable D.text)
+          <*> D.column (D.nonNullable D.text)
+          <*> D.column (D.nullable D.text))
+        True
+  res <- usePool pool $ Session.statement input stmt
+  case res of
+    Right contact -> return $ QuerySuccess contact
+    Left err -> return $ QueryError (T.pack $ show err)
 
 getContact :: Pool -> Text -> IO (QueryResult Contact)
-getContact _ _ = return $ QueryError "Not implemented"
+getContact pool cid = do
+  let stmt = Statement.Statement
+        "SELECT id::TEXT, name, email FROM crm_contacts WHERE id = $1::UUID"
+        (E.param (E.nonNullable E.text))
+        (D.singleRow $ Contact
+          <$> D.column (D.nonNullable D.text)
+          <*> D.column (D.nonNullable D.text)
+          <*> D.column (D.nullable D.text))
+        True
+  res <- usePool pool $ Session.statement cid stmt
+  case res of
+    Right contact -> return $ QuerySuccess contact
+    Left err -> return $ QueryError (T.pack $ show err)
 
 updateContact :: Pool -> Text -> ContactInput -> IO (QueryResult Contact)
-updateContact _ _ _ = return $ QueryError "Not implemented"
+updateContact pool cid input = do
+  let stmt = Statement.Statement
+        "UPDATE crm_contacts SET name = $2, email = $3 WHERE id = $1::UUID \
+        \RETURNING id::TEXT, name, email"
+        (divided
+          (E.param (E.nonNullable E.text))
+          (((\(ContactInput n _) -> n) >$< E.param (E.nonNullable E.text))
+           <> ((\(ContactInput _ e) -> e) >$< E.param (E.nullable E.text))))
+        (D.singleRow $ Contact
+          <$> D.column (D.nonNullable D.text)
+          <*> D.column (D.nonNullable D.text)
+          <*> D.column (D.nullable D.text))
+        True
+  res <- usePool pool $ Session.statement (cid, input) stmt
+  case res of
+    Right contact -> return $ QuerySuccess contact
+    Left err -> return $ QueryError (T.pack $ show err)
 
 deleteContact :: Pool -> Text -> IO (QueryResult ())
-deleteContact _ _ = return $ QueryError "Not implemented"
+deleteContact pool cid = do
+  let stmt = Statement.Statement
+        "DELETE FROM crm_contacts WHERE id = $1::UUID RETURNING id"
+        (E.param (E.nonNullable E.text))
+        (D.singleRow $ D.column (D.nonNullable D.text))
+        True
+  res <- usePool pool $ Session.statement cid stmt
+  case res of
+    Right _ -> return $ QuerySuccess ()
+    Left err -> return $ QueryError (T.pack $ show err)
 
 searchContacts :: Pool -> Text -> IO (QueryResult [Contact])
-searchContacts _ _ = return $ QuerySuccess []
+searchContacts pool query = do
+  let searchPattern = "%" <> query <> "%"
+  let stmt = Statement.Statement
+        "SELECT id::TEXT, name, email FROM crm_contacts \
+        \WHERE name ILIKE $1 OR email ILIKE $1 ORDER BY name"
+        (E.param (E.nonNullable E.text))
+        (D.rowList $ Contact
+          <$> D.column (D.nonNullable D.text)
+          <*> D.column (D.nonNullable D.text)
+          <*> D.column (D.nullable D.text))
+        True
+  res <- usePool pool $ Session.statement searchPattern stmt
+  case res of
+    Right contacts -> return $ QuerySuccess contacts
+    Left err -> return $ QueryError (T.pack $ show err)
 
 -- Company types
 data Company = Company
@@ -322,22 +467,92 @@ instance ToJSON CompanyInput
 instance FromJSON CompanyInput
 
 listCompanies :: Pool -> IO (QueryResult [Company])
-listCompanies _ = return $ QuerySuccess []
+listCompanies pool = do
+  let stmt = Statement.Statement
+        "SELECT id::TEXT, company_name FROM crm_companies ORDER BY company_name"
+        E.noParams
+        (D.rowList $ Company
+          <$> D.column (D.nonNullable D.text)
+          <*> D.column (D.nonNullable D.text))
+        True
+  res <- usePool pool $ Session.statement () stmt
+  case res of
+    Right companies -> return $ QuerySuccess companies
+    Left err -> return $ QueryError (T.pack $ show err)
 
 createCompany :: Pool -> CompanyInput -> IO (QueryResult Company)
-createCompany _ _ = return $ QueryError "Not implemented"
+createCompany pool input = do
+  let stmt = Statement.Statement
+        "INSERT INTO crm_companies (company_name) VALUES ($1) \
+        \RETURNING id::TEXT, company_name"
+        ((\(CompanyInput n) -> n) >$< E.param (E.nonNullable E.text))
+        (D.singleRow $ Company
+          <$> D.column (D.nonNullable D.text)
+          <*> D.column (D.nonNullable D.text))
+        True
+  res <- usePool pool $ Session.statement input stmt
+  case res of
+    Right company -> return $ QuerySuccess company
+    Left err -> return $ QueryError (T.pack $ show err)
 
 getCompany :: Pool -> Text -> IO (QueryResult Company)
-getCompany _ _ = return $ QueryError "Not implemented"
+getCompany pool cid = do
+  let stmt = Statement.Statement
+        "SELECT id::TEXT, company_name FROM crm_companies WHERE id = $1::UUID"
+        (E.param (E.nonNullable E.text))
+        (D.singleRow $ Company
+          <$> D.column (D.nonNullable D.text)
+          <*> D.column (D.nonNullable D.text))
+        True
+  res <- usePool pool $ Session.statement cid stmt
+  case res of
+    Right company -> return $ QuerySuccess company
+    Left err -> return $ QueryError (T.pack $ show err)
 
 updateCompany :: Pool -> Text -> CompanyInput -> IO (QueryResult Company)
-updateCompany _ _ _ = return $ QueryError "Not implemented"
+updateCompany pool cid input = do
+  let stmt = Statement.Statement
+        "UPDATE crm_companies SET company_name = $2 WHERE id = $1::UUID \
+        \RETURNING id::TEXT, company_name"
+        (divided
+          (E.param (E.nonNullable E.text))
+          ((\(CompanyInput n) -> n) >$< E.param (E.nonNullable E.text)))
+        (D.singleRow $ Company
+          <$> D.column (D.nonNullable D.text)
+          <*> D.column (D.nonNullable D.text))
+        True
+  res <- usePool pool $ Session.statement (cid, input) stmt
+  case res of
+    Right company -> return $ QuerySuccess company
+    Left err -> return $ QueryError (T.pack $ show err)
 
 deleteCompany :: Pool -> Text -> IO (QueryResult ())
-deleteCompany _ _ = return $ QueryError "Not implemented"
+deleteCompany pool cid = do
+  let stmt = Statement.Statement
+        "DELETE FROM crm_companies WHERE id = $1::UUID RETURNING id"
+        (E.param (E.nonNullable E.text))
+        (D.singleRow $ D.column (D.nonNullable D.text))
+        True
+  res <- usePool pool $ Session.statement cid stmt
+  case res of
+    Right _ -> return $ QuerySuccess ()
+    Left err -> return $ QueryError (T.pack $ show err)
 
 searchCompanies :: Pool -> Text -> IO (QueryResult [Company])
-searchCompanies _ _ = return $ QuerySuccess []
+searchCompanies pool query = do
+  let searchPattern = "%" <> query <> "%"
+  let stmt = Statement.Statement
+        "SELECT id::TEXT, company_name FROM crm_companies \
+        \WHERE company_name ILIKE $1 ORDER BY company_name"
+        (E.param (E.nonNullable E.text))
+        (D.rowList $ Company
+          <$> D.column (D.nonNullable D.text)
+          <*> D.column (D.nonNullable D.text))
+        True
+  res <- usePool pool $ Session.statement searchPattern stmt
+  case res of
+    Right companies -> return $ QuerySuccess companies
+    Left err -> return $ QueryError (T.pack $ show err)
 
 -- Pipeline types
 data PipelineStage = PipelineStage
@@ -359,13 +574,64 @@ instance ToJSON StageTransition
 instance FromJSON StageTransition
 
 listPipelineStages :: Pool -> IO (QueryResult [PipelineStage])
-listPipelineStages _ = return $ QuerySuccess []
+listPipelineStages pool = do
+  let stmt = Statement.Statement
+        "SELECT id::TEXT, stage_name, stage_probability \
+        \FROM crm_pipeline_stages ORDER BY stage_order"
+        E.noParams
+        (D.rowList $ PipelineStage
+          <$> D.column (D.nonNullable D.text)
+          <*> D.column (D.nonNullable D.text)
+          <*> (fromIntegral <$> D.column (D.nonNullable D.int4)))
+        True
+  res <- usePool pool $ Session.statement () stmt
+  case res of
+    Right stages -> return $ QuerySuccess stages
+    Left err -> return $ QueryError (T.pack $ show err)
 
 getStageRules :: Pool -> Text -> IO (QueryResult [StageRule])
-getStageRules _ _ = return $ QuerySuccess []
+getStageRules pool stageId = do
+  let stmt = Statement.Statement
+        "SELECT sr.id::TEXT, sr.name FROM crm_stage_rules sr \
+        \WHERE sr.from_stage_id = $1::UUID OR sr.to_stage_id = $1::UUID \
+        \ORDER BY sr.name"
+        (E.param (E.nonNullable E.text))
+        (D.rowList $ StageRule
+          <$> D.column (D.nonNullable D.text)
+          <*> D.column (D.nonNullable D.text))
+        True
+  res <- usePool pool $ Session.statement stageId stmt
+  case res of
+    Right rules -> return $ QuerySuccess rules
+    Left err -> return $ QueryError (T.pack $ show err)
 
 refreshPipelineForecast :: Pool -> IO (QueryResult ())
-refreshPipelineForecast _ = return $ QuerySuccess ()
+refreshPipelineForecast pool = do
+  let stmt = Statement.Statement
+        "REFRESH MATERIALIZED VIEW mv_crm_pipeline_forecast"
+        E.noParams
+        (D.noResult)
+        True
+  res <- usePool pool $ Session.statement () stmt
+  case res of
+    Right _ -> return $ QuerySuccess ()
+    Left err -> return $ QueryError (T.pack $ show err)
 
 getStageHistory :: Pool -> Text -> IO (QueryResult [StageTransition])
-getStageHistory _ _ = return $ QuerySuccess []
+getStageHistory pool dealId = do
+  let stmt = Statement.Statement
+        "SELECT sh.id::TEXT, \
+        \  COALESCE((SELECT stage_name FROM crm_pipeline_stages WHERE id = sh.from_stage_id), '')::TEXT, \
+        \  COALESCE((SELECT stage_name FROM crm_pipeline_stages WHERE id = sh.to_stage_id), '')::TEXT \
+        \FROM crm_stage_history sh \
+        \WHERE sh.deal_id = $1::UUID ORDER BY sh.changed_at DESC"
+        (E.param (E.nonNullable E.text))
+        (D.rowList $ StageTransition
+          <$> D.column (D.nonNullable D.text)
+          <*> D.column (D.nonNullable D.text)
+          <*> D.column (D.nonNullable D.text))
+        True
+  res <- usePool pool $ Session.statement dealId stmt
+  case res of
+    Right history -> return $ QuerySuccess history
+    Left err -> return $ QueryError (T.pack $ show err)

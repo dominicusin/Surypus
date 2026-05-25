@@ -2,21 +2,25 @@
 
 **Система управления предприятием нового поколения на Haskell с формальной верификацией**
 
-## Current Milestone: v51.0 Build Stabilization & API Modernization
+## Current Milestone: v52.0 CRM & Reports Implementation
 
-**Goal:** Fix remaining build errors in `surypus-api`, resolve deprecation warnings, and establish a reliable build pipeline.
+**Goal:** Replace all CRM and Reports stub implementations with real SQL queries. Fix remaining Bills and Goods stubs. Verify Docker build.
 
 **Target features:**
-- Fix Hasql type mismatches in `DAL/Queries.hs` and `API/CRM.hs`
-- Resolve JWT `addClaim`/`unregisteredClaims` deprecation warnings
-- Ensure `stack build` succeeds across all packages
-- Fix `stack test` — get existing test suite passing
-- Update Dockerfile to work with fixed build
-- Verify CI pipeline passes
+- Real DB queries for Contacts (CRUD + search) in `API/CRM.hs`
+- Real DB queries for Companies (CRUD + search) in `API/CRM.hs`
+- Real DB queries for Pipeline stages, rules, history in `API/CRM.hs`
+- Real DB queries for Deal update/delete, Activity creation in `API/CRM.hs`
+- Real P&L report from bill aggregations in `API/Reports.hs`
+- Real Inventory report from goods/stock in `API/Reports.hs`
+- Fix `updateBill` — remove "Not implemented" stub
+- Fix `createGood` — return created object instead of error
+- Verify Docker build pipeline
 
 ## Completed Milestones
 
-- ✅ **v50.0 Codebase Consolidation** — Build repair, duplicate cleanup, module consolidation (shipped 2026-05-25)
+- ✅ **v51.0 Build Stabilization & API Modernization** — Build passing, tests passing (completed 2026-05-25)
+- ✅ **v50.0 Codebase Consolidation** — Build repair, duplicate cleanup, module consolidation (shipped 2026-05-24)
 - ✅ **v49.0 Infinite Transcendence** — Phases 157-159 (shipped 2026-05-24)
 - ✅ **v2.0 GUI & New Features** — Dashboard, CRM, QML UI, Notifications, Reports, POs, Docs, Integrations (shipped 2026-05-18)
 - ✅ **v1.0** — Foundation: RBAC, JWT, Hasql/PostgreSQL, LiquidHaskell (shipped 2026-05-18)
