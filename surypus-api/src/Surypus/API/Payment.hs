@@ -10,7 +10,7 @@ module Surypus.API.Payment
   )
 where
 
-import DAL.Types (Payment (..), PaymentInput (..), QueryResult (..))
+import DAL.Types (Payment (..), PaymentInput (..), QueryResult (..), MutationResult (..))
 import DAL.Database (Pool)
 import DAL.Queries (getPayments, getPaymentById)
 import qualified DAL.Mutations as Mut
@@ -22,12 +22,8 @@ listPayments :: Pool -> IO (QueryResult [Payment])
 listPayments pool = getPayments pool
 
 -- | Create a new payment using DAL.Mutations
-createPayment :: Pool -> PaymentInput -> IO (QueryResult Payment)
-createPayment pool input = do
-  result <- Mut.createPayment pool input
-  case result of
-    QuerySuccess _ -> getPayments pool
-    QueryError err -> return $ QueryError err
+createPayment :: Pool -> PaymentInput -> IO (QueryResult MutationResult)
+createPayment = Mut.createPayment
 
 -- | Get a specific payment by ID using DAL.Queries
 getPayment :: Pool -> Int64 -> IO (QueryResult Payment)

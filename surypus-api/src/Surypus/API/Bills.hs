@@ -11,7 +11,7 @@ module Surypus.API.Bills
   )
 where
 
-import DAL.Types (Bill (..), BillInput (..), QueryResult (..))
+import DAL.Types (Bill (..), BillInput (..), QueryResult (..), MutationResult (..))
 import DAL.Database (Pool)
 import DAL.Queries (getBills, getBillById)
 import qualified DAL.Mutations as Mut
@@ -24,12 +24,8 @@ listBills :: Pool -> IO (QueryResult [Bill])
 listBills pool = getBills pool
 
 -- | Create bill using DAL.Mutations
-createBill :: Pool -> BillInput -> IO (QueryResult Bill)
-createBill pool input = do
-  result <- Mut.createBill pool input
-  case result of
-    QuerySuccess _ -> getBills pool
-    QueryError err -> return $ QueryError err
+createBill :: Pool -> BillInput -> IO (QueryResult MutationResult)
+createBill = Mut.createBill
 
 -- | Get bill by ID using DAL.Queries
 getBill :: Pool -> Int64 -> IO (QueryResult Bill)

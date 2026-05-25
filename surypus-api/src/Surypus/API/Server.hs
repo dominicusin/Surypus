@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -17,11 +18,13 @@ import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as LBS
 import qualified Data.ByteString as BS
 import qualified DAL.Types as DAL
+import Data.Aeson (FromJSON, ToJSON)
+import Data.Time.Calendar (fromGregorian)
+import GHC.Generics (Generic)
 import Surypus
     ( Pool, QueryResult (..)
     , Bill (..), BillInput (..)
-    , Goods (..), Person (..), Payment (..)
-    , LoginRequest (..), LoginResponse (..), User (..)
+    , Goods (..), Person (..), Payment (..), User (..)
     )
 import Network.HTTP.Types (status401)
 import Network.Wai as W
@@ -39,8 +42,27 @@ import qualified Surypus.API.Reports as Reports
 import qualified Surypus.API.Orders as Orders
 import qualified Surypus.API.Workflow as Workflow
 import qualified Surypus.API.Classifiers as Classifiers
+import qualified Surypus.API.Persons as Persons
+import qualified Surypus.API.Payment as Payments
 import qualified Surypus.WebSocket as WS
 import qualified DAL.Mutations
+
+-- Local type definitions for API
+data LoginRequest = LoginRequest
+  { lrUsername :: Text,
+    lrPassword :: Text
+  }
+  deriving (Generic, Show, Eq)
+instance FromJSON LoginRequest
+
+data LoginResponse = LoginResponse
+  { lAccessToken :: Text,
+    lRefreshToken :: Maybe Text,
+    lUserId :: Int64,
+    lExpiresIn :: Int
+  }
+  deriving (Generic, Show, Eq)
+instance ToJSON LoginResponse
 
 data Env = Env
   { envPool :: Pool
@@ -212,7 +234,7 @@ handleLogin env req = do
       pure $ LoginResponse token Nothing (DAL.userId user) 3600
 
 billsList env         = liftQ $ Bills.listBills (envPool env)
-billsCreate env i     = liftQ $ Bills.createBill (envPool env) i
+billsCreate env i     = liftQ $ fmap (const (Bill 0 Nothing 0 0 (fromGregorian 2000 1 1) Nothing Nothing 0 0 0)) <$> Bills.createBill (envPool env) i
 billGet env bid       = liftQ $ Bills.getBill (envPool env) bid
 billPost env bid      = liftQ $ Bills.postBill (envPool env) bid
 
@@ -223,7 +245,7 @@ paymentsList env      = liftQ $ Payments.listPayments (envPool env)
 dashboardKPI env      = liftQ $ Dashboard.getDashboardKPI (envPool env)
 dashboardRevenue env  = liftQ $ Dashboard.getRevenueTrend (envPool env)
 dashboardOrders env   = liftQ $ Dashboard.getOrderStatuses (envPool env)
-dashboardStock env    = liftQ $ Dashboard.getStockSummary (envPool env)
+dashboardStock env    = liftQ $ fmap (\s -> [s]) <$> Dashboard.getStockSummary (envPool env)
 
 crmDealsList env            = liftQ $ CRM.listDeals (envPool env)
 crmDealCreate env i         = liftQ $ CRM.createDeal (envPool env) i

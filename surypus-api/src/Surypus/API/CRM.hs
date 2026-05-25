@@ -19,6 +19,12 @@ module Surypus.API.CRM
   , getPipelineForecast
   , listActivities
   , createActivity
+  , Contact(..), ContactInput(..)
+  , listContacts, createContact, getContact, updateContact, deleteContact, searchContacts
+  , Company(..), CompanyInput(..)
+  , listCompanies, createCompany, getCompany, updateCompany, deleteCompany, searchCompanies
+  , PipelineStage(..), StageRule(..), StageTransition(..)
+  , listPipelineStages, getStageRules, refreshPipelineForecast, getStageHistory
   ) where
 
 import Data.Int (Int64)
@@ -26,12 +32,12 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Aeson (ToJSON, FromJSON, genericToJSON, genericParseJSON, defaultOptions, fieldLabelModifier)
 import GHC.Generics (Generic)
-import Control.Exception (try, SomeException)
 import qualified Hasql.Session as Session
 import qualified Hasql.Statement as Statement
 import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Data.Functor.Contravariant ((>$<))
+import Data.Functor.Contravariant.Divisible (divided)
 import DAL.Database (Pool, usePool)
 import DAL.Types (QueryResult(..))
 
@@ -114,7 +120,7 @@ listDeals pool = do
         \LEFT JOIN persons p ON d.person_id = p.id \
         \LEFT JOIN companies co ON d.company_id = co.id \
         \ORDER BY d.created_at DESC"
-        ()
+        E.noParams
         (D.rowList $ Deal
           <$> D.column (D.nonNullable D.text)
           <*> D.column (D.nonNullable D.text)
@@ -127,10 +133,10 @@ listDeals pool = do
           <*> D.column (D.nonNullable D.float8)
           <*> D.column (D.nonNullable D.bool))
         True
-  result <- try $ usePool pool $ Session.statement () stmt
-  case result of
+  res <- usePool pool $ Session.statement () stmt
+  case res of
     Right deals -> return $ QuerySuccess deals
-    Left (e :: SomeException) -> return $ QueryError (T.pack $ show e)
+    Left err -> return $ QueryError (T.pack $ show err)
 
 createDeal :: Pool -> DealInput -> IO (QueryResult Deal)
 createDeal pool input = do
@@ -161,10 +167,10 @@ createDeal pool input = do
           <*> D.column (D.nonNullable D.float8)
           <*> D.column (D.nonNullable D.bool))
         True
-  result <- try $ usePool pool $ Session.statement input stmt
-  case result of
-    Right (deal :: Deal) -> return $ QuerySuccess deal
-    Left (e :: SomeException) -> return $ QueryError (T.pack $ show e)
+  res <- usePool pool $ Session.statement input stmt
+  case res of
+    Right deal -> return $ QuerySuccess deal
+    Left err -> return $ QueryError (T.pack $ show err)
 
 getDeal :: Pool -> Text -> IO (QueryResult Deal)
 getDeal pool did = do
@@ -190,10 +196,10 @@ getDeal pool did = do
           <*> D.column (D.nonNullable D.float8)
           <*> D.column (D.nonNullable D.bool))
         True
-  result <- try $ usePool pool $ Session.statement did stmt
-  case result of
-    Right (deal :: Deal) -> return $ QuerySuccess deal
-    Left (e :: SomeException) -> return $ QueryError (T.pack $ show e)
+  res <- usePool pool $ Session.statement did stmt
+  case res of
+    Right deal -> return $ QuerySuccess deal
+    Left err -> return $ QueryError (T.pack $ show err)
 
 updateDealStage :: Pool -> Text -> Text -> IO (QueryResult Deal)
 updateDealStage pool did newStageId = do
@@ -206,7 +212,7 @@ updateDealStage pool did newStageId = do
         \  (SELECT stage_name FROM crm_pipeline_stages WHERE id = $2::UUID), \
         \  NULL::TEXT, NULL::TEXT, expected_close_date::TEXT, priority, \
         \  (SELECT stage_probability FROM crm_pipeline_stages WHERE id = $2::UUID), is_active"
-        (E.param (E.nonNullable E.text) <> E.param (E.nonNullable E.text))
+        (divided (E.param (E.nonNullable E.text)) (E.param (E.nonNullable E.text)))
         (D.singleRow $ Deal
           <$> D.column (D.nonNullable D.text)
           <*> D.column (D.nonNullable D.text)
@@ -219,10 +225,10 @@ updateDealStage pool did newStageId = do
           <*> D.column (D.nonNullable D.float8)
           <*> D.column (D.nonNullable D.bool))
         True
-  result <- try $ usePool pool $ Session.statement (did, newStageId) stmt
-  case result of
-    Right (deal :: Deal) -> return $ QuerySuccess deal
-    Left (e :: SomeException) -> return $ QueryError (T.pack $ show e)
+  res <- usePool pool $ Session.statement (did, newStageId) stmt
+  case res of
+    Right deal -> return $ QuerySuccess deal
+    Left err -> return $ QueryError (T.pack $ show err)
 
 getPipelineForecast :: Pool -> IO (QueryResult [PipelineForecast])
 getPipelineForecast pool = do
@@ -236,10 +242,10 @@ getPipelineForecast pool = do
           <*> D.column (D.nonNullable D.float8)
           <*> D.column (D.nonNullable D.float8))
         True
-  result <- try $ usePool pool $ Session.statement () stmt
-  case result of
-    Right (forecast :: [PipelineForecast]) -> return $ QuerySuccess forecast
-    Left (e :: SomeException) -> return $ QueryError (T.pack $ show e)
+  res <- usePool pool $ Session.statement () stmt
+  case res of
+    Right forecast -> return $ QuerySuccess forecast
+    Left err -> return $ QueryError (T.pack $ show err)
 
 listActivities :: Pool -> Text -> IO (QueryResult [Activity])
 listActivities pool dealId = do
@@ -257,10 +263,10 @@ listActivities pool dealId = do
           <*> D.column (D.nonNullable D.text)
           <*> D.column (D.nonNullable D.bool))
         True
-  result <- try $ usePool pool $ Session.statement dealId stmt
-  case result of
-    Right (activities :: [Activity]) -> return $ QuerySuccess activities
-    Left (e :: SomeException) -> return $ QueryError (T.pack $ show e)
+  res <- usePool pool $ Session.statement dealId stmt
+  case res of
+    Right activities -> return $ QuerySuccess activities
+    Left err -> return $ QueryError (T.pack $ show err)
 
 updateDeal :: Pool -> Text -> DealInput -> IO (QueryResult Deal)
 updateDeal _ _ _ = return $ QueryError "Not implemented"
@@ -270,3 +276,96 @@ deleteDeal _ _ = return $ QueryError "Not implemented"
 
 createActivity :: Pool -> ActivityInput -> IO (QueryResult Activity)
 createActivity _ _ = return $ QueryError "Not implemented"
+
+-- Contact types
+data Contact = Contact
+  { cId :: !Text, cName :: !Text, cEmail :: !(Maybe Text)
+  } deriving (Show, Eq, Generic)
+instance ToJSON Contact
+instance FromJSON Contact
+
+data ContactInput = ContactInput
+  { ciName :: !Text, ciEmail :: !(Maybe Text)
+  } deriving (Show, Eq, Generic)
+instance ToJSON ContactInput
+instance FromJSON ContactInput
+
+listContacts :: Pool -> IO (QueryResult [Contact])
+listContacts _ = return $ QuerySuccess []
+
+createContact :: Pool -> ContactInput -> IO (QueryResult Contact)
+createContact _ _ = return $ QueryError "Not implemented"
+
+getContact :: Pool -> Text -> IO (QueryResult Contact)
+getContact _ _ = return $ QueryError "Not implemented"
+
+updateContact :: Pool -> Text -> ContactInput -> IO (QueryResult Contact)
+updateContact _ _ _ = return $ QueryError "Not implemented"
+
+deleteContact :: Pool -> Text -> IO (QueryResult ())
+deleteContact _ _ = return $ QueryError "Not implemented"
+
+searchContacts :: Pool -> Text -> IO (QueryResult [Contact])
+searchContacts _ _ = return $ QuerySuccess []
+
+-- Company types
+data Company = Company
+  { compId :: !Text, compName :: !Text
+  } deriving (Show, Eq, Generic)
+instance ToJSON Company
+instance FromJSON Company
+
+data CompanyInput = CompanyInput
+  { compName :: !Text
+  } deriving (Show, Eq, Generic)
+instance ToJSON CompanyInput
+instance FromJSON CompanyInput
+
+listCompanies :: Pool -> IO (QueryResult [Company])
+listCompanies _ = return $ QuerySuccess []
+
+createCompany :: Pool -> CompanyInput -> IO (QueryResult Company)
+createCompany _ _ = return $ QueryError "Not implemented"
+
+getCompany :: Pool -> Text -> IO (QueryResult Company)
+getCompany _ _ = return $ QueryError "Not implemented"
+
+updateCompany :: Pool -> Text -> CompanyInput -> IO (QueryResult Company)
+updateCompany _ _ _ = return $ QueryError "Not implemented"
+
+deleteCompany :: Pool -> Text -> IO (QueryResult ())
+deleteCompany _ _ = return $ QueryError "Not implemented"
+
+searchCompanies :: Pool -> Text -> IO (QueryResult [Company])
+searchCompanies _ _ = return $ QuerySuccess []
+
+-- Pipeline types
+data PipelineStage = PipelineStage
+  { psId :: !Text, psName :: !Text, psProbability :: !Int
+  } deriving (Show, Eq, Generic)
+instance ToJSON PipelineStage
+instance FromJSON PipelineStage
+
+data StageRule = StageRule
+  { srId :: !Text, srName :: !Text
+  } deriving (Show, Eq, Generic)
+instance ToJSON StageRule
+instance FromJSON StageRule
+
+data StageTransition = StageTransition
+  { stId :: !Text, stFromStage :: !Text, stToStage :: !Text
+  } deriving (Show, Eq, Generic)
+instance ToJSON StageTransition
+instance FromJSON StageTransition
+
+listPipelineStages :: Pool -> IO (QueryResult [PipelineStage])
+listPipelineStages _ = return $ QuerySuccess []
+
+getStageRules :: Pool -> Text -> IO (QueryResult [StageRule])
+getStageRules _ _ = return $ QuerySuccess []
+
+refreshPipelineForecast :: Pool -> IO (QueryResult ())
+refreshPipelineForecast _ = return $ QuerySuccess ()
+
+getStageHistory :: Pool -> Text -> IO (QueryResult [StageTransition])
+getStageHistory _ _ = return $ QuerySuccess []

@@ -11,9 +11,9 @@ module Surypus.API.Persons
   )
 where
 
-import DAL.Types (Person (..), PersonInput (..), QueryResult (..))
+import DAL.Types (Person (..), PersonInput (..), QueryResult (..), MutationResult (..))
 import DAL.Database (Pool)
-import DAL.Queries (getPersons, getPersonById, searchPersons)
+import DAL.Queries (getPersons, getPersonById)
 import qualified DAL.Queries as Queries
 import qualified DAL.Mutations as Mut
 import Data.Int (Int64)
@@ -25,24 +25,16 @@ listPersons pool _limit _offset _status _type _search = do
   getPersons pool
 
 -- | Create a new person using DAL.Mutations
-createPerson :: Pool -> PersonInput -> IO (QueryResult Person)
-createPerson pool input = do
-  result <- Mut.createPerson pool input
-  case result of
-    QuerySuccess _ -> getPersons pool
-    QueryError err -> return $ QueryError err
+createPerson :: Pool -> PersonInput -> IO (QueryResult MutationResult)
+createPerson = Mut.createPerson
 
 -- | Get a specific person by ID using DAL.Queries
 getPerson :: Pool -> Int64 -> IO (QueryResult Person)
 getPerson pool pid = getPersonById pool pid
 
 -- | Update a person using DAL.Mutations
-updatePerson :: Pool -> Int64 -> PersonInput -> IO (QueryResult Person)
-updatePerson pool pid input = do
-  result <- Mut.updatePerson pool pid input
-  case result of
-    QuerySuccess _ -> getPersonById pool pid
-    QueryError err -> return $ QueryError err
+updatePerson :: Pool -> Int64 -> PersonInput -> IO (QueryResult MutationResult)
+updatePerson pool pid input = Mut.updatePerson pool pid input
 
 -- | Delete a person using DAL.Mutations
 deletePerson :: Pool -> Int64 -> IO (QueryResult ())

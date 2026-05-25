@@ -10,7 +10,7 @@ spec :: Spec
 spec = describe "AI API types" $ do
   it "encodes AIDocumentParseRequest correctly" $ do
     let req = AIDocumentParseRequest "invoice content" "invoice"
-    encode req `shouldBe` object ["aipDocContent" .= ("invoice content" :: T.Text), "aipDocType" .= ("invoice" :: T.Text)]
+    encode req `shouldBe` encode (object ["aipDocContent" .= ("invoice content" :: T.Text), "aipDocType" .= ("invoice" :: T.Text)])
 
   it "decodes AIDocumentParseResponse with all fields" $ do
     let json = object
@@ -22,7 +22,7 @@ spec = describe "AI API types" $ do
           , "aiprLineItems" .= ([] :: [Value])
           , "aiprRawJson" .= object []
           ] :: Value
-    case fromJSON (Object json) of
+    case fromJSON json of
       Error _ -> expectationFailure "Failed to decode"
       Success resp -> do
         aiprVendor resp `shouldBe` Just "Acme Corp"
@@ -31,7 +31,7 @@ spec = describe "AI API types" $ do
 
   it "decodes AIDocumentParseResponse with missing fields" $ do
     let json = object [] :: Value
-    case fromJSON (Object json) of
+    case fromJSON json of
       Error _ -> expectationFailure "Failed to decode"
       Success resp -> do
         aiprVendor resp `shouldBe` Nothing

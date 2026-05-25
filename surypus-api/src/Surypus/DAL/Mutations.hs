@@ -71,8 +71,8 @@ personInputEncoder =
     <> (piName >$< E.param (E.nonNullable E.text))
     <> (piINN >$< E.param (E.nullable E.text))
     <> (piKPP >$< E.param (E.nullable E.text))
-    <> (piPersonType >$< E.param (E.nonNullable E.int2))
-    <> (piStatus >$< E.param (E.nonNullable E.int2))
+    <> ((fromIntegral . piPersonType) >$< E.param (E.nonNullable E.int2))
+    <> ((fromIntegral . piStatus) >$< E.param (E.nonNullable E.int2))
 
 updatePersonEncoder :: E.Params (Int64, PersonInput)
 updatePersonEncoder =
@@ -81,8 +81,8 @@ updatePersonEncoder =
     <> ((piName . snd) >$< E.param (E.nonNullable E.text))
     <> ((piINN . snd) >$< E.param (E.nullable E.text))
     <> ((piKPP . snd) >$< E.param (E.nullable E.text))
-    <> ((piPersonType . snd) >$< E.param (E.nonNullable E.int2))
-    <> ((piStatus . snd) >$< E.param (E.nonNullable E.int2))
+    <> ((fromIntegral . piPersonType . snd) >$< E.param (E.nonNullable E.int2))
+    <> ((fromIntegral . piStatus . snd) >$< E.param (E.nonNullable E.int2))
 
 createPerson :: Pool -> PersonInput -> IO (QueryResult MutationResult)
 createPerson pool input =
@@ -301,9 +301,9 @@ deleteLocation pool lid =
 
 stockQtyEncoder :: E.Params (Double, Int64, Int64)
 stockQtyEncoder =
-  (\t -> let (qty, _, _) = t in qty) >$< E.param (E.nonNullable E.float8)
-    <> (\t -> let (_, goodsId, _) = t in goodsId) >$< E.param (E.nonNullable E.int8)
-    <> (\t -> let (_, _, locationId) = t in locationId) >$< E.param (E.nonNullable E.int8)
+  ((\t -> let (qty, _, _) = t in qty) >$< E.param (E.nonNullable E.float8))
+    <> ((\t -> let (_, goodsId, _) = t in goodsId) >$< E.param (E.nonNullable E.int8))
+    <> ((\t -> let (_, _, locationId) = t in locationId) >$< E.param (E.nonNullable E.int8))
 
 updateStock :: Pool -> Int64 -> Int64 -> Double -> IO (QueryResult MutationResult)
 updateStock pool goodsId locationId qty =
@@ -470,7 +470,6 @@ authenticateUserRowDecoder =
     User
       <$> D.column (D.nonNullable D.int8)
       <*> D.column (D.nonNullable D.text)
-      <*> D.column (D.nullable D.int8)
       <*> D.column (D.nullable D.text)
       <*> D.column (D.nullable D.text)
       <*> D.column (D.nullable D.int8)

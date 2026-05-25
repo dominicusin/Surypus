@@ -4,6 +4,8 @@
 module Surypus.API.Reports
   ( Report(..)
   , generateReport
+  , getPnLReport
+  , getInventoryReport
   ) where
 
 import Data.Text (Text)
@@ -20,3 +22,9 @@ instance ToJSON Report
 
 generateReport :: Pool -> Text -> IO (QueryResult Report)
 generateReport _ _ = return $ QuerySuccess (Report "stub" "{}")
+
+getPnLReport :: Pool -> IO (QueryResult Report)
+getPnLReport _ = return $ QuerySuccess (Report "pnl-stub" "{}")
+
+getInventoryReport :: Pool -> IO (QueryResult Report)
+getInventoryReport _ = return $ QuerySuccess (Report "inventory-stub" "{}")

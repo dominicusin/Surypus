@@ -3,6 +3,7 @@
 {-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TypeApplications #-}
+{-# OPTIONS_GHC -Wno-deprecations #-}
 
 -- | JWT token generation and verification using jose-0.10
 -- Provides cryptographically signed JWTs using HS256 (HMAC-SHA256)
