@@ -37,7 +37,7 @@ module DAL.Classifiers
   ) where
 
 import DAL.Types
-import Data.Int (Int16, Int64)
+import Data.Int (Int64)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Text.Encoding as TE

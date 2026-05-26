@@ -25,7 +25,7 @@ import Data.Int (Int16, Int64)
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
-import Data.Time (Day, fromGregorian)
+import Data.Time (fromGregorian)
 import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import Hasql.Pool (Pool, use)
@@ -445,7 +445,6 @@ userInputEncoder :: E.Params UserInput
 userInputEncoder =
   (uiLogin >$< E.param (E.nonNullable E.text))
     <> (uiPasswordHash >$< E.param (E.nonNullable E.text))
-    <> (uiPersonId >$< E.param (E.nullable E.int8))
     <> ((toInt16 . uiStatus) >$< E.param (E.nonNullable E.int2))
 
 updateUserEncoder :: E.Params (Int64, UserInput)
@@ -453,14 +452,13 @@ updateUserEncoder =
   (fst >$< E.param (E.nonNullable E.int8))
     <> ((uiLogin . snd) >$< E.param (E.nonNullable E.text))
     <> ((uiPasswordHash . snd) >$< E.param (E.nonNullable E.text))
-    <> ((uiPersonId . snd) >$< E.param (E.nullable E.int8))
     <> ((toInt16 . uiStatus . snd) >$< E.param (E.nonNullable E.int2))
 
 createUser :: Pool -> UserInput -> IO (QueryResult MutationResult)
 createUser pool input =
   runMutationReturningId
     pool
-    "INSERT INTO usr (login, password_hash, person_id, status) VALUES ($1, $2, $3, $4) RETURNING id"
+    "INSERT INTO users (username, password_hash, is_active) VALUES ($1, $2, $3::int::boolean) RETURNING id"
     userInputEncoder
     input
     "User created successfully"
@@ -469,7 +467,7 @@ updateUser :: Pool -> Int64 -> UserInput -> IO (QueryResult MutationResult)
 updateUser pool userId input =
   runMutationReturningId
     pool
-    "UPDATE usr SET login = $2, password_hash = $3, person_id = $4, status = $5 WHERE id = $1 RETURNING id"
+    "UPDATE users SET username = $2, password_hash = $3, is_active = $4::int::boolean WHERE id = $1 RETURNING id"
     updateUserEncoder
     (userId, input)
     "User updated successfully"
@@ -498,6 +496,38 @@ authenticateUserRowDecoder =
       <*> D.column (D.nullable D.text)
       <*> D.column (D.nullable D.int8)
       <*> (fromIntegral <$> D.column (D.nonNullable D.int2))
+
+listUsers :: Pool -> IO (QueryResult [User])
+listUsers pool = do
+  let stmt = unpreparable
+        "SELECT id, username, NULL::TEXT, email, NULL::BIGINT, CASE WHEN is_active THEN 0 ELSE 1 END FROM users ORDER BY username"
+        (E.noParams)
+        (D.rowList userRowDecoder)
+  res <- use pool $ Session.statement () stmt
+  case res of
+    Right users -> pure $ QuerySuccess users
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+getUser :: Pool -> Int64 -> IO (QueryResult User)
+getUser pool uid = do
+  let stmt = unpreparable
+        "SELECT id, username, NULL::TEXT, email, NULL::BIGINT, CASE WHEN is_active THEN 0 ELSE 1 END FROM users WHERE id = $1"
+        (E.param (E.nonNullable E.int8))
+        (D.singleRow userRowDecoder)
+  res <- use pool $ Session.statement uid stmt
+  case res of
+    Right user -> pure $ QuerySuccess user
+    Left _ -> pure $ QueryError "Not Found"
+
+userRowDecoder :: D.Row User
+userRowDecoder =
+  User
+    <$> D.column (D.nonNullable D.int8)
+    <*> D.column (D.nonNullable D.text)
+    <*> D.column (D.nullable D.text)
+    <*> D.column (D.nullable D.text)
+    <*> D.column (D.nullable D.int8)
+    <*> (fromIntegral <$> D.column (D.nonNullable D.int2))
 
 priceInputEncoder :: E.Params PriceInput
 priceInputEncoder =

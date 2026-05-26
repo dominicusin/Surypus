@@ -15,7 +15,6 @@ import DAL.Database (Pool)
 import DAL.Queries (getGoods, getGoodsById)
 import DAL.Mutations (createGoods, updateGoods, deleteGoods)
 import Data.Int (Int64)
-import qualified Data.Text as T
 
 -- | List all goods using DAL.Queries
 listGoods :: Pool -> IO (QueryResult [Goods])

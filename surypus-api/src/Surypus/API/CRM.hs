@@ -30,7 +30,7 @@ module Surypus.API.CRM
 import Data.Int (Int64)
 import Data.Text (Text)
 import qualified Data.Text as T
-import Data.Aeson (ToJSON, FromJSON, genericToJSON, genericParseJSON, defaultOptions, fieldLabelModifier)
+import Data.Aeson (ToJSON, FromJSON)
 import GHC.Generics (Generic)
 import qualified Hasql.Session as Session
 import qualified Hasql.Statement as Statement

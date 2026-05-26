@@ -10,13 +10,11 @@ module Surypus.API.Server (apiServer) where
 
 import Control.Monad.IO.Class (liftIO)
 import Data.Int (Int64)
-import Data.Proxy (Proxy (..))
 import Data.Text (Text)
 import qualified Data.Text as DT
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as LBS
-import qualified Data.ByteString as BS
 import qualified DAL.Types as DAL
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Time.Calendar (fromGregorian)
@@ -24,7 +22,8 @@ import GHC.Generics (Generic)
 import Surypus
     ( Pool, QueryResult (..)
     , Bill (..), BillInput (..)
-    , Goods (..), Person (..), Payment (..), User (..)
+    , Goods (..), Person (..), Payment (..)
+    , User (..), UserInput (..), MutationResult (..)
     )
 import Network.HTTP.Types (status401)
 import Network.Wai as W
@@ -157,6 +156,11 @@ type SurypusApi = "api" :> "v1" :>
   :<|> "orders" :> Capture "id" Text :> Get '[JSON] Orders.Order
   :<|> "orders" :> Capture "id" Text :> ReqBody '[JSON] Orders.OrderInput :> Put '[JSON] Orders.Order
   :<|> "orders" :> Capture "id" Text :> "delete" :> Post '[JSON] ()
+  -- Users
+  :<|> "users"    :> Get '[JSON] [User]
+  :<|> "users"    :> ReqBody '[JSON] UserInput :> Post '[JSON] DAL.MutationResult
+  :<|> "users"    :> Capture "id" Int64 :> Get '[JSON] User
+  :<|> "users"    :> Capture "id" Int64 :> ReqBody '[JSON] UserInput :> Put '[JSON] DAL.MutationResult
   -- Integrations
   :<|> "integrations" :> Get '[JSON] [Integrations.Integration]
   :<|> "integrations" :> Capture "id" Int64 :> Get '[JSON] Integrations.Integration
@@ -207,6 +211,7 @@ server env
   :<|> notificationsSendTest env :<|> notificationsSendDigest env
   :<|> reportsPnL env :<|> reportsInventory env
   :<|> ordersList env :<|> ordersCreate env :<|> ordersGet env :<|> ordersUpdate env :<|> ordersDelete env
+  :<|> usersList env :<|> usersCreate env :<|> usersGet env :<|> usersUpdate env
   :<|> integrationsList env :<|> integrationGet env :<|> integrationUpdateStatus env
   :<|> workflowsList env :<|> workflowsCreate env
   :<|> workflowsInstancesList env :<|> workflowsGetInstance env :<|> workflowsCompleteInstance env
@@ -297,6 +302,11 @@ ordersDelete env oid  = liftQ $ Orders.deleteOrder (envPool env) oid
 integrationsList env       = liftQ $ Integrations.listIntegrations (envPool env)
 integrationGet env iid    = liftQ $ Integrations.getIntegration (envPool env) iid
 integrationUpdateStatus env iid status = liftQ $ Integrations.updateIntegrationStatus (envPool env) iid status
+
+usersList env             = liftQ $ DAL.Mutations.listUsers (envPool env)
+usersCreate env i         = liftQ $ DAL.Mutations.createUser (envPool env) i
+usersGet env uid          = liftQ $ DAL.Mutations.getUser (envPool env) uid
+usersUpdate env uid i     = liftQ $ DAL.Mutations.updateUser (envPool env) uid i
 
 workflowsList env     = liftQ $ Workflow.listWorkflows (envPool env)
 workflowsCreate env i = liftQ $ Workflow.createWorkflow (envPool env) i

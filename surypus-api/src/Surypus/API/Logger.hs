@@ -17,7 +17,6 @@ module Surypus.API.Logger
   , logDBQuery
   ) where
 
-import Control.Concurrent.MVar
 import Data.IORef
 import System.IO.Unsafe (unsafePerformIO)
 

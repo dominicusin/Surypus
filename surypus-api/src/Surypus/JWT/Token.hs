@@ -28,9 +28,7 @@ import Crypto.JWT
          defaultJWTValidationSettings,
          decodeCompact,
          NumericDate (..),
-         ClaimsSet,
          SignedJWT,
-         JWTValidationSettings,
          unregisteredClaims,
          JWTError,
        )
@@ -47,7 +45,6 @@ import Data.Time.Clock (addUTCTime, getCurrentTime)
 import Control.Lens ((&), (?~), (^.))
 import System.Environment (lookupEnv)
 import Control.Exception (throwIO)
-import System.IO.Error (userError)
 import Surypus (Pool, User (..))
 
 -- | User claims extracted from a valid JWT

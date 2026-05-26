@@ -17,8 +17,7 @@ import DAL.Queries (getBills, getBillById)
 import qualified DAL.Mutations as Mut
 import qualified DAL.Procedures as Proc
 import Data.Int (Int64)
-import qualified Data.Text as T
-import Data.Time (Day)
+
 
 -- | List bills using DAL.Queries
 listBills :: Pool -> IO (QueryResult [Bill])

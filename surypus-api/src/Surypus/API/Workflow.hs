@@ -17,12 +17,10 @@ module Surypus.API.Workflow
   , completeWorkflow
   ) where
 
-import Data.Int (Int64)
 import Data.Text (Text)
 import qualified Data.Text as T
-import Data.Aeson (ToJSON, FromJSON, parseJSON)
+import Data.Aeson (parseJSON)
 import Data.Aeson.Types (parseMaybe)
-import GHC.Generics (Generic)
 import qualified Hasql.Decoders as D
 import qualified Hasql.Encoders as E
 import qualified Hasql.Session as Session

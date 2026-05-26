@@ -13,7 +13,6 @@ module Surypus.API.Orders
   , deleteOrder
   ) where
 
-import Data.Int (Int64)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Aeson (ToJSON, FromJSON)

@@ -7,6 +7,7 @@
 - ✅ **v51.0 Build Stabilization & API Modernization** — Phases 161-162 (completed 2026-05-25)
 - ✅ **v52.0 CRM & Reports Implementation** — Phases 163-165 (shipped 2026-05-26)
 - ✅ **v53.0 Authentication & Infrastructure** — Phases 166-169 (shipped 2026-05-26)
+- ✅ **v54.0 User Management & Dead Code Cleanup** — Phases 170-172 (shipped 2026-05-26)
 
 ## Phases
 
@@ -221,6 +222,58 @@
 5. Pre-existing OFX parser bugs fixed ✅
 6. `stack build` passes ✅
 7. `stack test` passes ✅
+
+**Plans:** 1/1 — complete
+
+</details>
+
+<details>
+<summary>✅ v54.0 User Management & Dead Code Cleanup (Phases 170-172) — SHIPPED 2026-05-26</summary>
+
+### Phase 170: Fix User CRUD SQL ✅
+
+**Goal:** Fix `createUser`/`updateUser` SQL to use real `users` table instead of non-existent `usr` table.
+
+**Files modified:**
+- `surypus-api/src/Surypus/DAL/Mutations.hs` — SQL and encoders updated
+
+**Success Criteria:**
+1. `createUser` inserts into `users` with `username, password_hash, is_active` ✅
+2. `updateUser` updates `users` with `username, password_hash, is_active` ✅
+3. `stack build` passes ✅
+4. `stack test` passes ✅
+
+**Plans:** 1/1 — complete
+
+### Phase 171: User Management API Routes ✅
+
+**Goal:** Add user CRUD endpoints to the API server.
+
+**Files modified:**
+- `surypus-api/src/Surypus/API/Server.hs` — new routes + handlers
+- `surypus-api/src/Surypus/DAL/Mutations.hs` — added `listUsers`, `getUser`, `userRowDecoder`
+
+**Success Criteria:**
+1. `GET /api/v1/users` returns list of users ✅
+2. `POST /api/v1/users` creates a new user ✅
+3. `GET /api/v1/users/:id` returns single user ✅
+4. `PUT /api/v1/users/:id` updates a user ✅
+5. `stack build` passes ✅
+
+**Plans:** 1/1 — complete
+
+### Phase 172: Dead Code Cleanup ✅
+
+**Goal:** Remove dead stub code that could cause confusion or runtime crashes.
+
+**Files modified:**
+- `surypus-api/surypus-api.cabal` — removed dead `Surypus.API.Auth` module
+- `surypus-api/src/Main.hs` — deleted (dead library module with `undefined`)
+
+**Success Criteria:**
+1. `Surypus.API.Auth` stub removed from build (dead code, nothing imports it) ✅
+2. `src/Main.hs` deleted (had `undefined` pool, not used by executable) ✅
+3. `stack build` passes ✅
 
 **Plans:** 1/1 — complete
 

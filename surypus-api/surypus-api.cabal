@@ -21,7 +21,6 @@ library
     Surypus.API.Persons
     Surypus.API.Goods
     Surypus.API.Classifiers
-    Surypus.API.Auth
     Surypus.API.Logger
     Surypus.JWT.Token
     Surypus.API.AI

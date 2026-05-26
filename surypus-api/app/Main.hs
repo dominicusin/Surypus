@@ -9,7 +9,7 @@ import Surypus.API.Server (apiServer)
 import Surypus.API.Logger (LogLevel(..), initLogger)
 import qualified Surypus.API.Logger as Log
 import Hasql.Connection (settings)
-import Hasql.Pool (Pool, acquire, release)
+import Hasql.Pool (acquire, release)
 
 main :: IO ()
 main = do

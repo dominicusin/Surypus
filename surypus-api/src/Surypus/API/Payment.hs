@@ -15,7 +15,6 @@ import DAL.Database (Pool)
 import DAL.Queries (getPayments, getPaymentById)
 import qualified DAL.Mutations as Mut
 import Data.Int (Int64)
-import qualified Data.Text as T
 
 -- | List all payments using DAL.Queries
 listPayments :: Pool -> IO (QueryResult [Payment])
