@@ -19,6 +19,8 @@ module Surypus.API.Notifications
   ) where
 
 import Data.Int (Int64)
+import Data.Maybe (fromMaybe)
+import Control.Monad (join)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Aeson (ToJSON, FromJSON)
@@ -164,15 +166,29 @@ updatePreferences :: Pool -> NotificationPref -> IO (QueryResult NotificationPre
 updatePreferences _pool prefs =
   return $ QuerySuccess prefs
 
+-- | Look up a user's email by their user ID from the users table
+lookupUserEmail :: Pool -> Int64 -> IO (Maybe Text)
+lookupUserEmail pool userId = do
+  let stmt = Statement
+        "SELECT email FROM users WHERE id = $1"
+        (E.param (E.nonNullable E.int8))
+        (D.rowMaybe (D.column (D.nullable D.text)))
+        True
+  res <- usePool pool $ Session.statement userId stmt
+  case res of
+    Right mbEmail -> pure $ join mbEmail
+    Left _ -> pure Nothing
+
 -- | Send an email notification: persist to DB, then try SMTP if configured
 sendEmailNotification :: Pool -> NotificationInput -> IO (QueryResult ())
 sendEmailNotification pool input = do
   result <- createNotification pool input
   case result of
     QuerySuccess _ -> do
-      -- TODO: look up real email from usr table (usr_id = niUserId input)
+      mbEmail <- lookupUserEmail pool (niUserId input)
+      let email = fromMaybe "user@surypus.local" mbEmail
       _ <- Email.loadEmailConfig >>= \case
-        Right cfg -> Email.sendEmail cfg (T.pack "user@surypus.local")
+        Right cfg -> Email.sendEmail cfg email
           (niTitle input) (niBody input)
         Left _ -> return $ Right ()
       return $ QuerySuccess ()

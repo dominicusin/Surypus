@@ -26,21 +26,21 @@
 
 ### CRM Real DB Queries
 
-- [ ] **CRM-01**: Implement `listContacts`, `createContact`, `getContact`, `updateContact`, `deleteContact`, `searchContacts` with real SQL
-- [ ] **CRM-02**: Implement `listCompanies`, `createCompany`, `getCompany`, `updateCompany`, `deleteCompany`, `searchCompanies` with real SQL
-- [ ] **CRM-03**: Implement `listPipelineStages`, `getStageRules`, `getStageHistory` with real SQL
-- [ ] **CRM-04**: Implement `updateDeal`, `deleteDeal`, `createActivity` with real SQL
+- [x] **CRM-01**: Implement `listContacts`, `createContact`, `getContact`, `updateContact`, `deleteContact`, `searchContacts` with real SQL
+- [x] **CRM-02**: Implement `listCompanies`, `createCompany`, `getCompany`, `updateCompany`, `deleteCompany`, `searchCompanies` with real SQL
+- [x] **CRM-03**: Implement `listPipelineStages`, `getStageRules`, `getStageHistory` with real SQL
+- [x] **CRM-04**: Implement `updateDeal`, `deleteDeal`, `createActivity` with real SQL
 
 ### Reports Implementation
 
-- [ ] **RPT-01**: Implement `getPnLReport` with real SQL aggregation queries
-- [ ] **RPT-02**: Implement `getInventoryReport` with real SQL aggregation queries
-- [ ] **RPT-03**: Implement `generateReport` with dynamic report type routing
+- [x] **RPT-01**: Implement `getPnLReport` with real SQL aggregation queries
+- [x] **RPT-02**: Implement `getInventoryReport` with real SQL aggregation queries
+- [x] **RPT-03**: Implement `generateReport` with dynamic report type routing
 
 ### Bills & Fixes
 
-- [ ] **BILL-01**: Implement `updateBill` with full update logic
-- [ ] **GOODS-01**: Fix `createGood` to return the created good object
+- [x] **BILL-01**: Implement `updateBill` with full update logic
+- [x] **GOODS-01**: Fix `createGood` to return the created good object
 
 ## Out of Scope
 
@@ -65,20 +65,20 @@
 | VERF-01 | Phase 162 | ✅ Complete |
 | VERF-02 | Phase 162 | ✅ Complete |
 | VERF-03 | Phase 162 | ✅ Complete |
-| VERF-04 | Phase 162 | ⬜ Deferred |
-| CRM-01 | v52 Phase 163 | Pending |
-| CRM-02 | v52 Phase 163 | Pending |
-| CRM-03 | v52 Phase 163 | Pending |
-| CRM-04 | v52 Phase 163 | Pending |
-| RPT-01 | v52 Phase 164 | Pending |
-| RPT-02 | v52 Phase 164 | Pending |
-| RPT-03 | v52 Phase 164 | Pending |
-| BILL-01 | v52 Phase 165 | Pending |
-| GOODS-01 | v52 Phase 165 | Pending |
+| VERF-04 | Phase 162 | ✅ Complete |
+| CRM-01 | v52 Phase 163 | ✅ Complete |
+| CRM-02 | v52 Phase 163 | ✅ Complete |
+| CRM-03 | v52 Phase 163 | ✅ Complete |
+| CRM-04 | v52 Phase 163 | ✅ Complete |
+| RPT-01 | v52 Phase 164 | ✅ Complete |
+| RPT-02 | v52 Phase 164 | ✅ Complete |
+| RPT-03 | v52 Phase 164 | ✅ Complete |
+| BILL-01 | v52 Phase 165 | ✅ Complete |
+| GOODS-01 | v52 Phase 165 | ✅ Complete |
 
 **Coverage:**
-- v1 requirements: 11 total, 10 complete, 1 deferred
-- v52.0 requirements: 9 total
+- v1 requirements: 12 total, 12 complete ✅
+- v52.0 requirements: 9 total, 9 complete ✅
 - Unmapped: 0 ✓
 
 ---

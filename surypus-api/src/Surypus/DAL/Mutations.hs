@@ -478,7 +478,7 @@ authenticateUser :: Pool -> Text -> Text -> IO (QueryResult (Maybe User))
 authenticateUser pool login password = do
   let stmt =
         unpreparable
-          "SELECT id, login, person_id, NULL, email, role_id, status FROM usr WHERE login = $1 AND password_hash = $2 AND status = 0"
+          "SELECT id, username, NULL::TEXT AS password_hash, email, NULL::BIGINT AS person_id, CASE WHEN is_active THEN 0 ELSE 1 END AS status FROM users WHERE username = $1 AND password_hash = crypt($2, password_hash)"
           ( (fst >$< E.param (E.nonNullable E.text))
               <> (snd >$< E.param (E.nonNullable E.text))
           )
