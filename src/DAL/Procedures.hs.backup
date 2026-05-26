@@ -1,0 +1,178 @@
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE Arrows #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TupleSections #-}
+
+-- | Stored Procedure Wrappers for PostgreSQL
+module DAL.Procedures where
+
+import Data.Int (Int64)
+import Data.Text (Text)
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
+import Data.Functor.Contravariant ((>$<))
+import Surypus.CoreTypes (Decimal (..))
+import DAL.Database (Pool, runQuery, usePool)
+import DAL.Types (QueryResult(..))
+import qualified Hasql.Encoders as E
+import qualified Hasql.Decoders as D
+import qualified Hasql.Statement as Statement
+import qualified Hasql.Session as Session
+import Data.Maybe (listToMaybe)
+
+-- | Helper to create prepared statements
+preparable :: Text -> E.Params params -> D.Result result -> Statement.Statement params result
+preparable sql encoder decoder = 
+  Statement.Statement (TE.encodeUtf8 sql) encoder decoder True
+
+-- ============================================================================
+-- WAREHOUSE / INVENTORY PROCEDURES
+-- ============================================================================
+
+-- | Calculate stock balance for goods at location
+calcStockBalance :: Pool -> Int64 -> Int64 -> IO (QueryResult Decimal)
+calcStockBalance pool goodsId locationId = do
+    let stmt = Statement.Statement
+          "SELECT calc_stock_balance($1, $2)::NUMERIC"
+          (E.param (E.nonNullable E.int8) <> E.param (E.nonNullable E.int8))
+          (D.column D.numeric)
+          True
+    res <- usePool pool $ Session.statement (goodsId, locationId) stmt
+    case res of
+      Left err -> pure $ QueryError (T.pack $ show err)
+      Right [decimal] -> pure $ QuerySuccess decimal
+      Right _ -> pure $ QueryError "Unexpected result format"
+
+-- | Get lot bounds (min/max dates)
+getLotBounds :: Pool -> Int64 -> Int64 -> IO (QueryResult (Maybe (Text, Text, Decimal)))
+getLotBounds pool goodsId locationId = do
+    let stmt = Statement.Statement
+          "SELECT min_date::text, max_date::text, total_qty FROM get_lot_bounds($1, $2)"
+          ((fst >$< E.param (E.nonNullable E.text)) <> (snd >$< E.param (E.nonNullable E.text)) <> (thd >$< E.param (E.nonNullable E.numeric)))
+          (D.rowList ((,,) <$> D.column D.text <*> D.column D.text <*> D.column D.numeric))
+          True
+    res <- usePool pool $ Session.statement (goodsId, locationId) stmt
+    case res of
+      Left err -> pure $ QueryError (T.pack $ show err)
+      Right [] -> pure $ QuerySuccess Nothing
+      Right [x] -> pure $ QuerySuccess (Just x)
+      Right _ -> pure $ QueryError "Expected zero or one rows from get_lot_bounds"
+
+-- ============================================================================
+-- TAX CALCULATION PROCEDURES
+-- ============================================================================
+
+-- | Calculate VAT amount
+calcVAT :: Pool -> Double -> Double -> IO (QueryResult Double)
+calcVAT pool amount rate = do
+    let stmt = Statement.Statement
+          "SELECT calc_vat($1, $2)::DOUBLE PRECISION"
+          (E.param E.float8 <> E.param E.float8)
+          (D.column D.float8)
+          True
+    res <- usePool pool $ Session.statement (amount, rate) stmt
+    case res of
+      Left err -> pure $ QueryError (T.pack $ show err)
+      Right [x] -> pure $ QuerySuccess x
+      Right _ -> pure $ QueryError "Expected exactly one row"
+
+-- | Calculate VAT-inclusive price
+calcVATInclusive :: Pool -> Double -> Double -> IO (QueryResult Double)
+calcVATInclusive pool amount rate = do
+    let stmt = Statement.Statement
+          "SELECT calc_vat_inclusive($1, $2)::DOUBLE PRECISION"
+          (E.param E.float8 <> E.param E.float8)
+          (D.column D.float8)
+          True
+    res <- usePool pool $ Session.statement (amount, rate) stmt
+    case res of
+      Left err -> pure $ QueryError (T.pack $ show err)
+      Right [x] -> pure $ QuerySuccess x
+      Right _ -> pure $ QueryError "Expected exactly one row"
+
+-- | Calculate price without VAT
+calcPriceWithoutVAT :: Pool -> Double -> Double -> IO (QueryResult Double)
+calcPriceWithoutVAT pool amount rate = do
+    let stmt = Statement.Statement
+          "SELECT calc_price_without_vat($1, $2)::DOUBLE PRECISION"
+          (E.param E.float8 <> E.param E.float8)
+          (D.column D.float8)
+          True
+    res <- usePool pool $ Session.statement (amount, rate) stmt
+    case res of
+      Left err -> pure $ QueryError (T.pack $ show err)
+      Right [x] -> pure $ QuerySuccess x
+      Right _ -> pure $ QueryError "Expected exactly one row"
+
+-- ============================================================================
+-- BILL PROCEDURES
+-- ============================================================================
+
+-- | Post a bill (run full posting logic)
+postBill :: Pool -> Int64 -> IO (QueryResult Bool)
+postBill pool billId = do
+    let stmt = preparable
+          "SELECT post_bill($1)::BOOLEAN"
+          (E.param (E.nonNullable E.int8))
+          (D.singleRow (D.column (D.nonNullable D.bool)))
+    res <- usePool pool $ Session.statement billId stmt
+    case res of
+      Left err -> pure $ QueryError (T.pack $ show err)
+      Right x -> pure $ QuerySuccess x
+
+-- | Cancel a bill
+cancelBill :: Pool -> Int64 -> IO (QueryResult Bool)
+cancelBill pool billId = do
+  let stmt = preparable
+        "SELECT cancel_bill($1)"
+        (E.param (E.nonNullable E.int8))
+        (D.singleRow (D.column (D.nonNullable D.bool)))
+  res <- usePool pool $ Session.statement billId stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- ============================================================================
+-- ACCOUNTING PROCEDURES
+-- ============================================================================
+
+-- | Validate double-entry accounting rules
+validateDoubleEntry :: Pool -> Int64 -> IO (QueryResult Bool)
+validateDoubleEntry pool entryId = do
+  let stmt = preparable
+        "SELECT validate_double_entry($1)"
+        (E.param (E.nonNullable E.int8))
+        (D.singleRow (D.column (D.nonNullable D.bool)))
+  res <- usePool pool $ Session.statement entryId stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- | Calculate account balance
+calcAccountBalance :: Pool -> Int64 -> IO (QueryResult Decimal)
+calcAccountBalance pool accountId = do
+  let stmt = preparable
+        "SELECT calc_account_balance($1)"
+        (E.param (E.nonNullable E.int8))
+        (D.singleRow (fmap (\n -> Decimal (realToFrac n)) (D.column (D.nonNullable D.numeric))))
+  res <- usePool pool $ Session.statement accountId stmt
+  case res of
+    Right v -> pure $ QuerySuccess v
+    Left err -> pure $ QueryError (T.pack $ show err)
+
+-- ============================================================================
+-- REPORT PROCEDURES
+-- ============================================================================
+
+-- | Get sales report for period
+getSalesReport :: Pool -> Text -> Text -> IO (QueryResult [(Text, Double)])
+getSalesReport pool dateFrom dateTo = do
+  let stmt = preparable
+        "SELECT report_date::text, total_amount FROM get_sales_report($1, $2)"
+        ((fst >$< E.param (E.nonNullable E.text)) <> (snd >$< E.param (E.nonNullable E.text)))
+        (D.rowList ((,) <$> D.column (D.nonNullable D.text) <*> D.column (D.nonNullable D.float8)))
+  res <- usePool pool $ Session.statement (dateFrom, dateTo) stmt
+  case res of
+    Right rows -> pure $ QuerySuccess rows
+    Left err -> pure $ QueryError (T.pack $ show err)

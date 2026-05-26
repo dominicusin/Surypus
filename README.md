@@ -72,3 +72,10 @@ Comprehensive API documentation is available in [API_DOCUMENTATION.md](API_DOCUM
 
 ## Status
 Last autonomous cycle: All planned infrastructure phases complete (Phases 160-171)
+
+# Surypus – Canonical RBAC Refactor
+
+Documentation:
+- ARCHITECTURE: sql/docs/ARCHITECTURE.md
+- RBAC canonicalization overview: sql/docs/RBAC_CANON.md
+- Audit/logs: sql/docs/AUDIT.md

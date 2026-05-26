@@ -15,6 +15,7 @@ import DAL.Types (Bill (..), BillInput (..), QueryResult (..), MutationResult (.
 import DAL.Database (Pool)
 import DAL.Queries (getBills, getBillById)
 import qualified DAL.Mutations as Mut
+import qualified DAL.Procedures as Proc
 import Data.Int (Int64)
 import qualified Data.Text as T
 import Data.Time (Day)
@@ -50,7 +51,8 @@ deleteBill pool bid = do
 -- | Post bill - updates status to posted and creates accounting entries
 postBill :: Pool -> Int64 -> IO (QueryResult ())
 postBill pool bid = do
-  result <- Mut.postBill pool bid
+  result <- Proc.postBill pool bid
   case result of
-    QuerySuccess _ -> return $ QuerySuccess ()
+    QuerySuccess True -> return $ QuerySuccess ()
+    QuerySuccess False -> return $ QueryError "Failed to post bill: check bill status"
     QueryError err -> return $ QueryError err

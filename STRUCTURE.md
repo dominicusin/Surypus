@@ -63,7 +63,7 @@ Surypus/
 1. **Moved Service modules**: `src/Service/` → `src/Core/Services/`
 2. **Updated module names**: `Service.*` → `Core.Services.*`
 3. **Updated imports**: All imports updated to use new module paths
-4. **Removed unused directories**: Integration/, OpenPapyrus/, Prometheus/, Database/
+4. **Removed unused directories**: Integration/,  Prometheus/, Database/
 5. **Moved documentation**: Markdown files from root → `docs/`
 6. **Cleaned empty directories**
 7. **Organized SQL files**: Moved root SQL files to `sql/archive/`

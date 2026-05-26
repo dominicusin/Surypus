@@ -1,11 +1,49 @@
 # Surypus TODO — Unified Task List
 
+Первичные (архитектурные инварианты):
+  Ц-1  Доказуемая корректность бизнес-инвариантов
+  Ц-2  Безопасность как свойство типовой системы
+  Ц-5  Haskell-гомогенность стека
+
+Вторичные (бизнес-полнота):
+  Ц-3  Покрытие ERP-контура
+  Ц-4  SLA-связанные API
+
+Третичные (позиционирование):
+  Ц-6  Event Sourcing как аудируемость
+  Ц-7  MPL-2.0 как открытость без GPL-вирусности
+
+bd ready
+
+
+
+# Surypus TODO — Unified Task List
+
 > All tasks from all sessions consolidated in one place.
 > Sources: TODO.md, BACKLOG.md, docs/phase2_phase3_backlog.md, .beads/issues.jsonl
 
 ---
 
 ## Strategic Goals
+
+1. Корректность по конструкции
+   └── LiquidHaskell, рефайнменты, QuickCheck
+
+2. Событийный аудит и воспроизводимость
+   └── Event sourcing для бухгалтерии, склада, CRM
+
+3. Мультиарендность и безопасность
+   └── RBAC, JWT, шифрование, изоляция тенантов
+
+4. Интеграционная открытость
+   └── REST, GraphQL-прокси, EDI, банковские выписки
+
+5. Наблюдаемость в продакшне
+   └── Метрики, трассировка, circuit breaker
+
+6. Производительность через типобезопасность
+   └──  ORM, строгая типизация запросов
+ 
 
 ### Architecture
 - [x] Migrate to proper Hasql parameterized queries (avoid string interpolation for security)

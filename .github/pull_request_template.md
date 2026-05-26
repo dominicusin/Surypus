@@ -22,16 +22,16 @@ The CI pipeline was blocked by:
 - **`Surypus.cabal`**: Added `Surypus.API.OpenApi` to `exposed-modules`.
 
 ### Debug Logging
-- **`src/Surypus/Logging.hs`**: Added `debugLog :: Text -> IO ()` and `debugLogIf :: Bool -> Text -> IO ()` — check `OPENPAPYRUS_DEBUG=1`.
+- **`src/Surypus/Logging.hs`**: Added `debugLog :: Text -> IO ()` and `debugLogIf :: Bool -> Text -> IO ()` — check `SURYPUS_DEBUG=1`.
 - **`src/Surypus/API/AuthMiddleware.hs`**: Replaced local `debugLog` with centralized import from `Surypus.Logging`.
 - **`src/Surypus/API/Server.hs`**: Debug output on login success/failure, health check DB failure, server startup.
 
 ### Test Fixes
-- **`test/RBACSpec.hs`**: Full rewrite — gating via `OPENPAPYRUS_SKIP_RBAC_TESTS` at `main` level; correct `describe "RBAC" $ do` indentation.
+- **`test/RBACSpec.hs`**: Full rewrite — gating via `SURYPUS_SKIP_RBAC_TESTS` at `main` level; correct `describe "RBAC" $ do` indentation.
 - **`test/API/ServerSpec.hs`**: Restored 2 malformed `do` blocks ("active grants", "update dynamic role"); added `/swagger.json` to `publicPaths`; removed Swagger gating.
 
 ### Documentation
-- **`README.md`**: Added "CI gating" and "Debug logging (OPENPAPYRUS_DEBUG)" sections.
+- **`README.md`**: Added "CI gating" and "Debug logging (SURYPUS_DEBUG)" sections.
 
 ## Testing
 
