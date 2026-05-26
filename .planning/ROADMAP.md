@@ -5,7 +5,8 @@
 - ✅ **v49.0 Infinite Transcendence** — Phases 157-159 (shipped 2026-05-24)
 - ✅ **v50.0 Codebase Consolidation** — Phase 160 (shipped 2026-05-24)
 - ✅ **v51.0 Build Stabilization & API Modernization** — Phases 161-162 (completed 2026-05-25)
-- ◆ **v52.0 CRM & Reports Implementation** — Phases 163-165 (active)
+- ✅ **v52.0 CRM & Reports Implementation** — Phases 163-165 (shipped 2026-05-26)
+- ✅ **v53.0 Authentication & Infrastructure** — Phases 166-169 (shipped 2026-05-26)
 
 ## Phases
 
@@ -146,6 +147,80 @@
 3. `docker-compose build` succeeds ✅
 4. `stack build` passes ✅
 5. `stack test` passes ✅
+
+**Plans:** 1/1 — complete
+
+</details>
+
+<details>
+<summary>✅ v53.0 Authentication & Infrastructure (Phases 166-169) — SHIPPED 2026-05-26</summary>
+
+### Phase 166: Real Login with DB Auth ✅
+
+**Goal:** Replace stub login with real PostgreSQL authentication using crypt() password verification.
+
+**Files modified:**
+- `surypus-api/src/Surypus/DAL/Mutations.hs` — fixed authenticateUser SQL
+- `surypus-api/src/Surypus/API/Server.hs` — handleLogin already wired
+
+**Success Criteria:**
+1. `authenticateUser` queries `users` table (not non-existent `usr` table) ✅
+2. Password comparison uses `crypt($2, password_hash)` for bcrypt support ✅
+3. Returns `QuerySuccess (Just User)` on valid credentials ✅
+4. Returns `QuerySuccess Nothing` on invalid credentials ✅
+5. `stack build` passes ✅
+6. `stack test` passes ✅
+
+**Plans:** 1/1 — complete
+
+### Phase 167: Server Initialization ✅
+
+**Goal:** Verify Main.hs properly initializes database pool and server.
+
+**Files verified:**
+- `surypus-api/app/Main.hs` — already correct, creates Hasql Pool + passes to apiServer
+
+**Success Criteria:**
+1. `app/Main.hs` creates proper DB pool with Hasql ✅
+2. `apiServer pool logger` called with correct arguments ✅
+3. Server runs on port 3000 with proper cleanup ✅
+
+**Plans:** 1/1 — complete
+
+### Phase 168: Notification Email Lookup ✅
+
+**Goal:** Replace hardcoded email in notification sending with real DB lookup from `users` table.
+
+**Files modified:**
+- `surypus-api/src/Surypus/API/Notifications.hs` — added `lookupUserEmail`, use real email
+
+**Success Criteria:**
+1. `lookupUserEmail` queries `users` table by user ID ✅
+2. `sendEmailNotification` uses real email from DB ✅
+3. Falls back to default email if user not found ✅
+4. `stack build` passes ✅
+5. `stack test` passes ✅
+
+**Plans:** 1/1 — complete
+
+### Phase 169: Integration CRUD with Real DB ✅
+
+**Goal:** Replace integration stubs with real DB-backed CRUD operations and API routes.
+
+**Files modified:**
+- `sql/migrations/V1004__integrations_table.sql` — new integrations table
+- `surypus-api/src/Surypus/API/Integrations.hs` — real DB queries + decoders
+- `surypus-api/src/Surypus/API/Server.hs` — new integration API routes
+- `surypus-api/surypus-api.cabal` — added Integrations module
+
+**Success Criteria:**
+1. `listIntegrations` queries `integrations` table ✅
+2. `getIntegration` fetches single integration by ID ✅
+3. `updateIntegrationStatus` updates status in DB ✅
+4. API routes added at `/api/v1/integrations` ✅
+5. Pre-existing OFX parser bugs fixed ✅
+6. `stack build` passes ✅
+7. `stack test` passes ✅
 
 **Plans:** 1/1 — complete
 

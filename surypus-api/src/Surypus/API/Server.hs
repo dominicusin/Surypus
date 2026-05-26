@@ -42,6 +42,7 @@ import qualified Surypus.API.Reports as Reports
 import qualified Surypus.API.Orders as Orders
 import qualified Surypus.API.Workflow as Workflow
 import qualified Surypus.API.Classifiers as Classifiers
+import qualified Surypus.API.Integrations as Integrations
 import qualified Surypus.API.Persons as Persons
 import qualified Surypus.API.Payment as Payments
 import qualified Surypus.WebSocket as WS
@@ -156,6 +157,10 @@ type SurypusApi = "api" :> "v1" :>
   :<|> "orders" :> Capture "id" Text :> Get '[JSON] Orders.Order
   :<|> "orders" :> Capture "id" Text :> ReqBody '[JSON] Orders.OrderInput :> Put '[JSON] Orders.Order
   :<|> "orders" :> Capture "id" Text :> "delete" :> Post '[JSON] ()
+  -- Integrations
+  :<|> "integrations" :> Get '[JSON] [Integrations.Integration]
+  :<|> "integrations" :> Capture "id" Int64 :> Get '[JSON] Integrations.Integration
+  :<|> "integrations" :> Capture "id" Int64 :> "status" :> ReqBody '[JSON] Integrations.IntegrationStatus :> Put '[JSON] ()
   -- Workflows
   :<|> "workflows" :> Get '[JSON] [Workflow.Workflow]
   :<|> "workflows" :> ReqBody '[JSON] Workflow.WorkflowInput :> Post '[JSON] Workflow.Workflow
@@ -202,6 +207,7 @@ server env
   :<|> notificationsSendTest env :<|> notificationsSendDigest env
   :<|> reportsPnL env :<|> reportsInventory env
   :<|> ordersList env :<|> ordersCreate env :<|> ordersGet env :<|> ordersUpdate env :<|> ordersDelete env
+  :<|> integrationsList env :<|> integrationGet env :<|> integrationUpdateStatus env
   :<|> workflowsList env :<|> workflowsCreate env
   :<|> workflowsInstancesList env :<|> workflowsGetInstance env :<|> workflowsCompleteInstance env
   :<|> classifiersOksmList env :<|> classifiersOkvList env :<|> classifiersOkeiList env
@@ -287,6 +293,10 @@ ordersCreate env i    = liftQ $ Orders.createOrder (envPool env) i
 ordersGet env oid     = liftQ $ Orders.getOrder (envPool env) oid
 ordersUpdate env oid i = liftQ $ Orders.updateOrder (envPool env) oid i
 ordersDelete env oid  = liftQ $ Orders.deleteOrder (envPool env) oid
+
+integrationsList env       = liftQ $ Integrations.listIntegrations (envPool env)
+integrationGet env iid    = liftQ $ Integrations.getIntegration (envPool env) iid
+integrationUpdateStatus env iid status = liftQ $ Integrations.updateIntegrationStatus (envPool env) iid status
 
 workflowsList env     = liftQ $ Workflow.listWorkflows (envPool env)
 workflowsCreate env i = liftQ $ Workflow.createWorkflow (envPool env) i

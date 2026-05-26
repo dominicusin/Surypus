@@ -26,6 +26,7 @@ library
     Surypus.JWT.Token
     Surypus.API.AI
     Infrastructure.Email
+    Surypus.API.Integrations
   other-modules:
     DAL.Queries
     DAL.Mutations

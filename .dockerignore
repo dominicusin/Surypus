@@ -1,4 +1,5 @@
 .stack-work
+.stack-work-9.6
 dist-newstyle
 *.o
 *.hi
@@ -14,3 +15,20 @@ efactor
 hints.md
 report.html
 os-string-2.0.6.tar.gz
+.planning
+.agents
+.beads
+*.log
+*.dump
+test/
+doc/
+docs/
+examples/
+archive/
+.stack
+.DS_Store
+cabal.project
+cabal.project.local
+cabal.project.freeze
+*.swp
+*.swo

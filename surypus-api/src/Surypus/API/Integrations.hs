@@ -1,6 +1,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 -- | External system integration framework.
@@ -32,10 +33,19 @@ module Surypus.API.Integrations
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Aeson (ToJSON, FromJSON)
+import Data.Maybe (fromMaybe)
+import Control.Applicative ((<|>))
 import GHC.Generics (Generic)
 import Data.Time (UTCTime, getCurrentTime)
 import Data.Int (Int64)
 import Control.Exception (try, SomeException)
+import DAL.Database (Pool, usePool)
+import DAL.Types (QueryResult(..))
+import qualified Hasql.Decoders as D
+import qualified Hasql.Encoders as E
+import qualified Hasql.Session as Session
+import Hasql.Statement (Statement(..))
+import Data.Functor.Contravariant ((>$<))
 
 -- | Supported integration types.
 data IntegrationType
@@ -123,7 +133,7 @@ parseOFX input =
        (Just bank, Just acct, Just currency) ->
          let txns = parseOFXTransactions lines
          in Right $ BankStatement
-              { bsId = T.unpack (T.take 8 bank) <> "-" <> T.unpack (T.take 8 acct)
+               { bsId = T.take 8 bank <> "-" <> T.take 8 acct
               , bsBank = bank
               , bsAccount = acct
               , bsCurrency = currency
@@ -154,27 +164,24 @@ parseSingleOFXTransaction lines =
   let extract tag = fmap (T.drop (T.length tag)) $ find (T.isPrefixOf tag) lines
       find p = foldr (\x acc -> if p x then Just x else acc) Nothing
       trntype = extract "<TRNTYPE>"
-      amount = extract "<TRNAMT>" >>= readMaybe . T.unpack
+      amountStr = extract "<TRNAMT>"
+      amount = amountStr >>= \s -> case reads (T.unpack s) of
+        (x, _):_ -> Just x
+        [] -> Nothing
       name = extract "<NAME>"
       memo = extract "<MEMO>"
-  in BankTransaction
-       <$> (extract "<DTPOSTED" <|> Just "unknown")
-       <*> (parseTransactionType <$> trntype)
-       <*> amount
-       <*> (Just "USD")
-       <*> (name <|> memo <|> Just "")
-       <*> (extract "<REFNUM")
-       <*> (extract "<PAYEEID")
-  where
-    parseTransactionType t
-      | t == Just "CREDIT" = Credit
-      | t == Just "DEBIT"  = Debit
-      | otherwise          = Credit
-    readMaybe = fmap fst . listToMaybe . reads . T.unpack
-    listToMaybe [] = Nothing
-    listToMaybe (x:_) = Just x
-    Nothing <|> y = y
-    Just x <|> _ = Just x
+  in case trntype of
+       Just _ -> Just $ BankTransaction
+         { btId = fromMaybe "unknown" (extract "<DTPOSTED")
+         , btDate = error "parseOFX: date parsing not implemented"
+         , btType = if trntype == Just "CREDIT" then Credit else Debit
+         , btAmount = fromMaybe 0 amount
+         , btCurrency = "USD"
+         , btDescription = fromMaybe "" (name <|> memo)
+         , btReference = extract "<REFNUM"
+         , btCounterparty = extract "<PAYEEID"
+         }
+       Nothing -> Nothing
 
 -- | Parse ISO 20022 XML format (simplified).
 parseISO20022 :: Text -> Either Text BankStatement
@@ -209,17 +216,73 @@ importBankStatement itype content = do
       , irErrors = []
       }
 
--- | List all registered integrations (stub - requires DB).
-listIntegrations :: IO [Integration]
-listIntegrations = pure []
+integrationDecoder :: D.Row Integration
+integrationDecoder =
+  Integration
+    <$> D.column (D.nonNullable D.int8)
+    <*> D.column (D.nonNullable D.text)
+    <*> (D.column (D.nonNullable D.text) >>= \case
+          "BankOFX" -> pure BankOFX
+          "BankISO20022" -> pure BankISO20022
+          "PaymentGateway" -> pure PaymentGateway
+          "AccountingSync" -> pure AccountingSync
+          _ -> pure BankOFX)
+    <*> (D.column (D.nonNullable D.text) >>= \case
+          "StatusActive" -> pure StatusActive
+          "StatusInactive" -> pure StatusInactive
+          "StatusMaintenance" -> pure StatusMaintenance
+          other -> pure (StatusError other))
+    <*> D.column (D.nullable D.text)
+    <*> D.column (D.nullable D.timestamptz)
+    <*> D.column (D.nullable D.text)
+    <*> D.column (D.nonNullable D.timestamptz)
 
--- | Get integration by ID (stub - requires DB).
-getIntegration :: Int64 -> IO (Maybe Integration)
-getIntegration _ = pure Nothing
+-- | List all registered integrations.
+listIntegrations :: Pool -> IO (QueryResult [Integration])
+listIntegrations pool = do
+  let stmt = Statement
+        "SELECT id, name, integration_type, status, endpoint, last_sync, last_error, created_at FROM integrations ORDER BY name"
+        (E.noParams)
+        (D.rowList integrationDecoder)
+        True
+  res <- usePool pool $ Session.statement () stmt
+  case res of
+    Right list -> pure $ QuerySuccess list
+    Left err -> pure $ QueryError (T.pack $ show err)
 
--- | Update integration status (stub - requires DB).
-updateIntegrationStatus :: Int64 -> IntegrationStatus -> IO (Either Text ())
-updateIntegrationStatus _ status = pure $ Right ()
+-- | Get integration by ID.
+getIntegration :: Pool -> Int64 -> IO (QueryResult Integration)
+getIntegration pool intId = do
+  let stmt = Statement
+        "SELECT id, name, integration_type, status, endpoint, last_sync, last_error, created_at FROM integrations WHERE id = $1"
+        (E.param (E.nonNullable E.int8))
+        (D.singleRow integrationDecoder)
+        True
+  res <- usePool pool $ Session.statement intId stmt
+  case res of
+    Right i -> pure $ QuerySuccess i
+    Left _ -> pure $ QueryError "Not Found"
+
+-- | Update integration status.
+updateIntegrationStatus :: Pool -> Int64 -> IntegrationStatus -> IO (QueryResult ())
+updateIntegrationStatus pool intId status = do
+  let statusText = case status of
+        StatusActive -> "StatusActive"
+        StatusInactive -> "StatusInactive"
+        StatusMaintenance -> "StatusMaintenance"
+        StatusError _ -> "StatusInactive"
+      stmt = Statement
+        "UPDATE integrations SET status = $2, last_error = CASE WHEN $2 = 'StatusError' THEN $3 ELSE last_error END WHERE id = $1"
+        ( ((\(i, _, _) -> i) >$< E.param (E.nonNullable E.int8))
+            <> ((\(_, s, _) -> s) >$< E.param (E.nonNullable E.text))
+            <> ((\(_, _, e) -> e) >$< E.param (E.nullable E.text))
+        )
+        D.noResult
+        True
+  res <- usePool pool $ Session.statement (intId, statusText, Nothing) stmt
+  case res of
+    Right _ -> pure $ QuerySuccess ()
+    Left err -> pure $ QueryError (T.pack $ show err)
 
 -- | Run health check on an integration.
 runHealthCheck :: Int64 -> IO HealthCheck

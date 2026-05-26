@@ -4,7 +4,7 @@
 # Multi-stage build for production with optimized caching
 
 # Stage 1: Build environment
-FROM haskell:9.12.4 AS builder
+FROM haskell:9.6 AS builder
 
 # Install build dependencies and PostgreSQL dev libraries
 RUN apt-get update && apt-get install -y \
