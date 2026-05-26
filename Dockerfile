@@ -26,19 +26,19 @@ COPY surypus-api/surypus-api.cabal surypus-api/
 COPY surypus-api-shim/surypus-api-shim.cabal surypus-api-shim/
 
 # Pre-install dependencies (cached)
-RUN stack setup && stack build --only-dependencies
+RUN stack setup --install-ghc && stack build --only-dependencies
 
 # Copy project source files
 COPY surypus-common surypus-common/
+COPY surypus-api surypus-api/
 COPY surypus-api-shim surypus-api-shim/
-COPY Surypus surypus-api-core/
 COPY src ./src
 COPY app ./app
+COPY config ./config
 
 # Build with optimizations
 RUN stack build --install-ghc --copy-bins \
-    --ghc-options="-O2 -j4" \
-    --flag "Surypus:disable-warnings"
+    --ghc-options="-O2 -j4"
 
 # Stage 2: Production runtime (minimal)
 FROM debian:bookworm-slim
@@ -58,7 +58,7 @@ RUN groupadd -r surypus && useradd -r -g surypus surypus
 WORKDIR /app
 
 # Copy binary from builder
-COPY --from=builder /root/.local/bin/surypus /usr/local/bin/
+COPY --from=builder /root/.local/bin/surypus-api /usr/local/bin/surypus
 
 # Create runtime directories
 RUN mkdir -p /app/config /app/logs \

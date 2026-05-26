@@ -2,28 +2,27 @@
 
 **Система управления предприятием нового поколения на Haskell с формальной верификацией**
 
-## Current Milestone: v52.0 CRM & Reports Implementation
+## Current State
 
-**Goal:** Replace all CRM and Reports stub implementations with real SQL queries. Fix remaining Bills and Goods stubs. Verify Docker build.
-
-**Target features:**
-- Real DB queries for Contacts (CRUD + search) in `API/CRM.hs`
-- Real DB queries for Companies (CRUD + search) in `API/CRM.hs`
-- Real DB queries for Pipeline stages, rules, history in `API/CRM.hs`
-- Real DB queries for Deal update/delete, Activity creation in `API/CRM.hs`
-- Real P&L report from bill aggregations in `API/Reports.hs`
-- Real Inventory report from goods/stock in `API/Reports.hs`
-- Fix `updateBill` — remove "Not implemented" stub
-- Fix `createGood` — return created object instead of error
-- Verify Docker build pipeline
+**Shipped: v52.0 CRM & Reports Implementation** (2026-05-26)
+- All CRM functions use real SQL queries against actual DB tables
+- Reports use real SQL aggregation queries
+- Bills API fully wired through DAL.Queries/DAL.Mutations/DAL.Procedures
+- Docker build pipeline verified (surypus-api + surypus-worker images)
+- `stack build` and `stack test` both pass
 
 ## Completed Milestones
 
+- ✅ **v52.0 CRM & Reports Implementation** — CRM real SQL, Reports, Docker fix (shipped 2026-05-26)
 - ✅ **v51.0 Build Stabilization & API Modernization** — Build passing, tests passing (completed 2026-05-25)
 - ✅ **v50.0 Codebase Consolidation** — Build repair, duplicate cleanup, module consolidation (shipped 2026-05-24)
 - ✅ **v49.0 Infinite Transcendence** — Phases 157-159 (shipped 2026-05-24)
 - ✅ **v2.0 GUI & New Features** — Dashboard, CRM, QML UI, Notifications, Reports, POs, Docs, Integrations (shipped 2026-05-18)
 - ✅ **v1.0** — Foundation: RBAC, JWT, Hasql/PostgreSQL, LiquidHaskell (shipped 2026-05-18)
+
+## Next Milestone
+
+Future: TBD — run `/gsd new-milestone` to start next cycle.
 
 ## Vision
 
