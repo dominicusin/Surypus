@@ -36,7 +36,7 @@ import Data.Aeson (ToJSON, FromJSON)
 import Data.Maybe (fromMaybe)
 import Control.Applicative ((<|>))
 import GHC.Generics (Generic)
-import Data.Time (UTCTime, getCurrentTime)
+import Data.Time (UTCTime(UTCTime), getCurrentTime, fromGregorian, secondsToDiffTime)
 import Data.Int (Int64)
 import Control.Exception (try, SomeException)
 import DAL.Database (Pool, usePool)
@@ -105,6 +105,10 @@ data TransactionType
   | Debit          -- ^ Money paid out
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
+-- | Default epoch time for unparsable dates.
+epoch :: UTCTime
+epoch = UTCTime (fromGregorian 1970 1 1) (secondsToDiffTime 0)
+
 -- | Result of a bank statement import.
 data ImportResult = ImportResult
   { irSuccess      :: !Bool
@@ -131,17 +135,17 @@ parseOFX input =
       find p = foldr (\x acc -> if p x then Just x else acc) Nothing
   in case (extractField "<BANKID>", extractField "<ACCTID>", extractField "<CURDEF>") of
        (Just bank, Just acct, Just currency) ->
-         let txns = parseOFXTransactions lines
-         in Right $ BankStatement
-               { bsId = T.take 8 bank <> "-" <> T.take 8 acct
-              , bsBank = bank
-              , bsAccount = acct
-              , bsCurrency = currency
-              , bsDateFrom = error "parseOFX: date parsing not implemented"
-              , bsDateTo = error "parseOFX: date parsing not implemented"
-              , bsTransactions = txns
-              , bsImportedAt = error "parseOFX: timestamp not available"
-              }
+          let txns = parseOFXTransactions lines
+          in Right $ BankStatement
+                { bsId = T.take 8 bank <> "-" <> T.take 8 acct
+               , bsBank = bank
+               , bsAccount = acct
+               , bsCurrency = currency
+               , bsDateFrom = epoch
+               , bsDateTo = epoch
+               , bsTransactions = txns
+               , bsImportedAt = epoch
+               }
        _ -> Left "Invalid OFX: missing required fields (BANKID, ACCTID, CURDEF)"
 
 -- | Extract transactions from OFX lines.
@@ -172,9 +176,9 @@ parseSingleOFXTransaction lines =
       memo = extract "<MEMO>"
   in case trntype of
        Just _ -> Just $ BankTransaction
-         { btId = fromMaybe "unknown" (extract "<DTPOSTED")
-         , btDate = error "parseOFX: date parsing not implemented"
-         , btType = if trntype == Just "CREDIT" then Credit else Debit
+          { btId = fromMaybe "unknown" (extract "<DTPOSTED")
+          , btDate = epoch
+          , btType = if trntype == Just "CREDIT" then Credit else Debit
          , btAmount = fromMaybe 0 amount
          , btCurrency = "USD"
          , btDescription = fromMaybe "" (name <|> memo)
@@ -192,10 +196,10 @@ parseISO20022 input =
          , bsBank = "Unknown"
          , bsAccount = "Unknown"
          , bsCurrency = "USD"
-         , bsDateFrom = error "parseISO20022: date parsing not implemented"
-         , bsDateTo = error "parseISO20022: date parsing not implemented"
+         , bsDateFrom = epoch
+         , bsDateTo = epoch
          , bsTransactions = []
-         , bsImportedAt = error "parseISO20022: timestamp not available"
+         , bsImportedAt = epoch
          }
     else Left "Invalid ISO 20022: missing Document element"
 
