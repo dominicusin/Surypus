@@ -2,17 +2,24 @@
 
 **Система управления предприятием нового поколения на Haskell с формальной верификацией**
 
-## Current State
+## Current Milestone: v55.0 Deep Refactoring & Tooling
 
-**Shipped: v54.0 User Management & Dead Code Cleanup** (2026-05-26)
-- Real login with DB auth using `crypt()` password verification
-- User CRUD API (create, read, update, list) on `users` table
-- Notification email lookup from database
-- Integration CRUD with real DB-backed endpoints
-- Dead code cleanup (removed stub modules)
+**Goal:** Полный рефакторинг — архитектура, стиль, дубликаты, тесты,
+типобезопасность, организация кода. Миграция с raw Hasql на persistent + esqueleto.
+
+**Target features:**
+- Haskell toolchain (ghcid, fourmolu, weeder, stan, cabal-audit, cabal-fmt)
+- Форматирование и статический анализ (fourmolu + hlint + stan)
+- ORM migration: Hasql → persistent + esqueleto
+- Dead code cleanup (weeder)
+- Haskell-стиль: чистые функции, правильные монады
+- Тесты: doctest, property-based testing
+- Типобезопасность: Phantom Types, GADTs, LiquidHaskell
+- Организация кода: cabal-fmt, структура пакетов
 
 ## Completed Milestones
 
+- ✅ **v55.0 Deep Refactoring & Tooling** — total refactoring (current)
 - ✅ **v54.0 User Management & Dead Code Cleanup** — User CRUD API, dead code cleanup (shipped 2026-05-26)
 - ✅ **v53.0 Authentication & Infrastructure** — Real login, server init, notifications, integrations (shipped 2026-05-26)
 - ✅ **v52.0 CRM & Reports Implementation** — CRM real SQL, Reports, Docker fix (shipped 2026-05-26)
@@ -21,10 +28,6 @@
 - ✅ **v49.0 Infinite Transcendence** — Phases 157-159 (shipped 2026-05-24)
 - ✅ **v2.0 GUI & New Features** — Dashboard, CRM, QML UI, Notifications, Reports, POs, Docs, Integrations (shipped 2026-05-18)
 - ✅ **v1.0** — Foundation: RBAC, JWT, Hasql/PostgreSQL, LiquidHaskell (shipped 2026-05-18)
-
-## Next Milestone
-
-Future: TBD — run `/gsd new-milestone` to start next cycle.
 
 ## Vision
 
@@ -39,7 +42,7 @@ Future: TBD — run `/gsd new-milestone` to start next cycle.
 1. Все финансовые расчеты верифицируются LiquidHaskell
 2. Event Sourcing для критических изменений
 3. RBAC с JWT аутентификацией
-4. PostgreSQL 16+ с Hasql/Rel8 ORM
+4. PostgreSQL 16+ с persistent + esqueleto
 
 ## Evolution
 

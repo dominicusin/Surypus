@@ -8,6 +8,7 @@
 - ✅ **v52.0 CRM & Reports Implementation** — Phases 163-165 (shipped 2026-05-26)
 - ✅ **v53.0 Authentication & Infrastructure** — Phases 166-169 (shipped 2026-05-26)
 - ✅ **v54.0 User Management & Dead Code Cleanup** — Phases 170-172 (shipped 2026-05-26)
+- ◆ **v55.0 Deep Refactoring & Tooling** — Phases 173-180 (in progress)
 
 ## Phases
 
@@ -276,5 +277,90 @@
 3. `stack build` passes ✅
 
 **Plans:** 1/1 — complete
+
+</details>
+
+<details open>
+<summary>◆ v55.0 Deep Refactoring & Tooling (Phases 173-180) — IN PROGRESS</summary>
+
+### Phase 173: Toolchain Installation
+
+**Goal:** Install Haskell dev toolchain: ghcid, fourmolu, cabal-fmt, weeder, stan, cabal-audit.
+
+**Success Criteria:**
+1. `cabal install` completes for all tools
+2. All binaries on PATH and work
+3. `stack build` still passes
+
+### Phase 174: Formatting & Linting Pipeline
+
+**Goal:** Configure fourmolu, hlint, stan, cabal-fmt for the project.
+
+**Success Criteria:**
+1. fourmolu formats all .hs files consistently
+2. hlint runs without critical warnings
+3. stan analysis passes
+4. cabal-fmt formats .cabal files
+5. `stack build` passes
+
+### Phase 175: ORM Schema Definitions (persistent + esqueleto)
+
+**Goal:** Define all database schemas via persistent Template Haskell and set up migration infrastructure.
+
+**Success Criteria:**
+1. persistent + esqueleto dependencies added
+2. All tables defined via `persistLowerCase` TH
+3. Migration module created
+4. `stack build` passes
+
+### Phase 176: ORM Migration — DAL Layer
+
+**Goal:** Migrate DAL/Queries.hs, DAL/Mutations.hs, DAL/Classifiers.hs to esqueleto.
+
+**Success Criteria:**
+1. SELECT queries use esqueleto instead of raw Hasql
+2. INSERT/UPDATE/DELETE use persistent API
+3. All DAL functions work with new ORM
+4. `stack build` passes
+
+### Phase 177: Dead Code Cleanup & Architecture
+
+**Goal:** Remove dead code (weeder), refactor module structure, extract pure functions.
+
+**Success Criteria:**
+1. weeder reports zero dead exports
+2. Dead modules removed from .cabal
+3. ReaderT pattern used instead of raw IO where appropriate
+4. No cyclic dependencies
+5. `stack build` passes
+
+### Phase 178: Tests
+
+**Goal:** Add doctest and property-based tests.
+
+**Success Criteria:**
+1. doctest runs on all DAL modules
+2. QuickCheck/Hedgehog properties for business logic
+3. `stack test` passes
+
+### Phase 179: Type Safety
+
+**Goal:** Phantom Types for IDs, GADTs for typed queries, prepare LiquidHaskell.
+
+**Success Criteria:**
+1. UserId, ContactId, etc. as newtype wrappers
+2. GADTs for type-safe query constructors
+3. LiquidHaskell annotations ready on critical paths
+4. `stack build` passes
+
+### Phase 180: Code Organization
+
+**Goal:** Final polish — cabal-fmt, module exports, package structure.
+
+**Success Criteria:**
+1. cabal-fmt applied to all .cabal files
+2. Module exports clean (no internal leakage)
+3. Package structure documented
+4. `stack build` passes
 
 </details>

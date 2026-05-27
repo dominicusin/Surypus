@@ -1,86 +1,76 @@
 # Requirements: Surypus ERP/CRM
 
-**Defined:** 2026-05-25
+**Defined:** 2026-05-27
+**Milestone:** v55.0 — Deep Refactoring & Tooling
 **Core Value:** Современная ERP/CRM система на Haskell с формальной верификацией
 
-## v1 Requirements ✅ Complete
+## v55.0 Requirements
 
-### Build Fixes — surypus-api
+### Toolchain Installation
 
-- [x] **BUILD-01**: Fix Hasql Row type mismatches in `DAL/Queries.hs` (~16 errors from tuple→Row migration)
-- [x] **BUILD-02**: Fix `createTime` out-of-scope errors in `DAL/Queries.hs` (should be `updateTime`)
-- [x] **BUILD-03**: Fix Hasql `Statement` parameter type mismatch in `API/CRM.hs` (needs `Params` not `()`)
-- [x] **BUILD-04**: Fix `Either Hasql.Pool.UsageError` unwrapping in `API/CRM.hs` (list and single-value)
-- [x] **BUILD-05**: Fix JWT `addClaim`/`unregisteredClaims` deprecation warnings in `JWT/Token.hs`
-- [x] **BUILD-06**: `stack build` completes without errors across all packages
-- [x] **BUILD-07**: `stack test` compiles and existing tests pass
+- [ ] **TOOL-01**: Установить ghcid (горячая перезагрузка)
+- [ ] **TOOL-02**: Установить fourmolu (форматирование)
+- [ ] **TOOL-03**: Установить cabal-fmt (форматирование .cabal)
+- [ ] **TOOL-04**: Установить weeder (мёртвый код)
+- [ ] **TOOL-05**: Установить stan (статический анализ)
+- [ ] **TOOL-06**: Установить cabal-audit (уязвимости)
+- [ ] **TOOL-07**: `cabal install` команда отрабатывает без ошибок
 
-### Verification
+### Formatting & Linting
 
-- [x] **VERF-01**: `stack build` exits with code 0
-- [x] **VERF-02**: `stack test` exits with code 0
-- [x] **VERF-03**: No deprecation warnings from JWT library
-- [ ] **VERF-04**: Docker build succeeds with `docker-compose build` ⬜ (deferred)
+- [ ] **LINT-01**: Настроить fourmulo для всего проекта
+- [ ] **LINT-02**: Настроить hlint с проектом правил
+- [ ] **LINT-03**: Настроить stan для статического анализа
+- [ ] **LINT-04**: Внедрить cabal-fmt для .cabal файлов
+- [ ] **LINT-05**: Все файлы проходят fourmolu --check
+- [ ] **LINT-06**: `stack build` проходит после форматирования
 
-## v52.0 Requirements — CRM & Reports Implementation
+### ORM Migration: persistent + esqueleto
 
-### CRM Real DB Queries
+- [ ] **ORM-01**: Добавить persistent, persistent-postgresql, esqueleto в зависимости
+- [ ] **ORM-02**: Определить схемы таблиц через Template Haskell (persistLowerCase)
+- [ ] **ORM-03**: Создать общий модуль миграций
+- [ ] **ORM-04**: Мигрировать DAL/Queries.hs — SELECT запросы
+- [ ] **ORM-05**: Мигрировать DAL/Mutations.hs — INSERT/UPDATE/DELETE
+- [ ] **ORM-06**: Мигрировать DAL/Classifiers.hs — запросы классификаторов
+- [ ] **ORM-07**: Переписать API слой на esqueleto запросы
+- [ ] **ORM-08**: Оставить Hasql pool для обратной совместимости (если нужно)
+- [ ] **ORM-09**: `stack build` проходит после миграции
 
-- [x] **CRM-01**: Implement `listContacts`, `createContact`, `getContact`, `updateContact`, `deleteContact`, `searchContacts` with real SQL
-- [x] **CRM-02**: Implement `listCompanies`, `createCompany`, `getCompany`, `updateCompany`, `deleteCompany`, `searchCompanies` with real SQL
-- [x] **CRM-03**: Implement `listPipelineStages`, `getStageRules`, `getStageHistory` with real SQL
-- [x] **CRM-04**: Implement `updateDeal`, `deleteDeal`, `createActivity` with real SQL
+### Dead Code Cleanup
 
-### Reports Implementation
+- [ ] **DEAD-01**: Запустить weeder для поиска мёртвого кода
+- [ ] **DEAD-02**: Удалить неиспользуемые модули и функции
+- [ ] **DEAD-03**: Удалить неиспользуемые зависимости из .cabal
 
-- [x] **RPT-01**: Implement `getPnLReport` with real SQL aggregation queries
-- [x] **RPT-02**: Implement `getInventoryReport` with real SQL aggregation queries
-- [x] **RPT-03**: Implement `generateReport` with dynamic report type routing
+### Architecture & Haskell Style
 
-### Bills & Fixes
+- [ ] **ARCH-01**: Выделить чистые функции из IO-обвязки
+- [ ] **ARCH-02**: Исправить монадные цепочки (ReaderT вместо raw IO)
+- [ ] **ARCH-03**: Устранить циклические зависимости между модулями
+- [ ] **ARCH-04**: Разделить API-слой на handler + service + DAL
 
-- [x] **BILL-01**: Implement `updateBill` with full update logic
-- [x] **GOODS-01**: Fix `createGood` to return the created good object
+### Tests
 
-## Out of Scope
+- [ ] **TEST-01**: Добавить doctest к модулям DAL
+- [ ] **TEST-02**: Добавить property-based тесты для бизнес-логики
+- [ ] **TEST-03**: `stack test` проходит
 
-| Feature | Reason |
-|---------|--------|
-| Job System implementation | Requires separate background worker process |
-| External API client | No external integrations planned yet |
-| Event Store full implementation | Requires Kafka/Redis infrastructure |
-| RBAC middleware integration | Requires full permission design first |
+### Type Safety
 
-## Traceability
+- [ ] **TYPE-01**: Внедрить Phantom Types для идентификаторов (UserId, ContactId)
+- [ ] **TYPE-02**: Использовать GADTs для типизированных запросов
+- [ ] **TYPE-03**: Подготовить LiquidHaskell аннотации для финансовых расчётов
 
-| Requirement | Phase | Status |
-|-------------|-------|--------|
-| BUILD-01 | Phase 161 | ✅ Complete |
-| BUILD-02 | Phase 161 | ✅ Complete |
-| BUILD-03 | Phase 161 | ✅ Complete |
-| BUILD-04 | Phase 161 | ✅ Complete |
-| BUILD-05 | Phase 162 | ✅ Complete |
-| BUILD-06 | Phase 161 | ✅ Complete |
-| BUILD-07 | Phase 162 | ✅ Complete |
-| VERF-01 | Phase 162 | ✅ Complete |
-| VERF-02 | Phase 162 | ✅ Complete |
-| VERF-03 | Phase 162 | ✅ Complete |
-| VERF-04 | Phase 162 | ✅ Complete |
-| CRM-01 | v52 Phase 163 | ✅ Complete |
-| CRM-02 | v52 Phase 163 | ✅ Complete |
-| CRM-03 | v52 Phase 163 | ✅ Complete |
-| CRM-04 | v52 Phase 163 | ✅ Complete |
-| RPT-01 | v52 Phase 164 | ✅ Complete |
-| RPT-02 | v52 Phase 164 | ✅ Complete |
-| RPT-03 | v52 Phase 164 | ✅ Complete |
-| BILL-01 | v52 Phase 165 | ✅ Complete |
-| GOODS-01 | v52 Phase 165 | ✅ Complete |
+### Code Organization
 
-**Coverage:**
-- v1 requirements: 12 total, 12 complete ✅
-- v52.0 requirements: 9 total, 9 complete ✅
-- Unmapped: 0 ✓
+- [ ] **ORG-01**: Применить cabal-fmt к .cabal файлам
+- [ ] **ORG-02**: Проверить структуру пакетов (surypus-api vs surypus-worker)
+- [ ] **ORG-03**: Упорядочить imports (экспорты из внутренних модулей)
 
----
-*Requirements defined: 2026-05-25*
-*Last updated: 2026-05-25 after milestone completion*
+## Non-goals (Out of Scope for v55.0)
+
+- Event Sourcing implementation
+- New API endpoints (pure refactoring)
+- GUI / QML changes
+- Deployment / CI changes
