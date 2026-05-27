@@ -82,6 +82,7 @@ test-suite surypus-api-test
   main-is:          Spec.hs
   other-modules:
     Surypus.AITest
+    Surypus.API.IntegrationsSpec
     Surypus.JWT.TokenSpec
 
   build-depends:

@@ -119,6 +119,11 @@ data TransactionType
 epoch :: UTCTime
 epoch = UTCTime (fromGregorian 1970 1 1) (secondsToDiffTime 0)
 
+-- | Strip closing XML/OFX tag from content.
+stripCloseTag :: Text -> Text
+stripCloseTag v = case T.breakOn "</" v of
+    (content, _) -> content
+
 -- | Result of a bank statement import.
 data ImportResult = ImportResult
     { irSuccess :: !Bool
@@ -144,7 +149,7 @@ Simplified parser that extracts statement transactions.
 parseOFX :: Text -> Either Text BankStatement
 parseOFX input =
     let lines = T.lines input
-        extractField tag = fmap (T.drop (T.length tag)) $ find (T.isPrefixOf tag) lines
+        extractField tag = fmap stripCloseTag (fmap (T.drop (T.length tag)) $ find (T.isPrefixOf tag) lines)
         find p = foldr (\x acc -> if p x then Just x else acc) Nothing
      in case (extractField "<BANKID>", extractField "<ACCTID>", extractField "<CURDEF>") of
             (Just bank, Just acct, Just currency) ->
@@ -179,30 +184,27 @@ parseOFXTransactions = go []
 -- | Parse a single OFX transaction block.
 parseSingleOFXTransaction :: [Text] -> Maybe BankTransaction
 parseSingleOFXTransaction lines =
-    let extract tag = fmap (T.drop (T.length tag)) $ find (T.isPrefixOf tag) lines
-        find p = foldr (\x acc -> if p x then Just x else acc) Nothing
-        trntype = extract "<TRNTYPE>"
-        amountStr = extract "<TRNAMT>"
-        amount =
-            amountStr >>= \s -> case reads (T.unpack s) of
-                (x, _) : _ -> Just x
-                [] -> Nothing
-        name = extract "<NAME>"
-        memo = extract "<MEMO>"
-     in case trntype of
-            Just _ ->
-                Just $
-                    BankTransaction
-                        { btId = fromMaybe "unknown" (extract "<DTPOSTED")
-                        , btDate = epoch
-                        , btType = if trntype == Just "CREDIT" then Credit else Debit
-                        , btAmount = fromMaybe 0 amount
-                        , btCurrency = "USD"
-                        , btDescription = fromMaybe "" (name <|> memo)
-                        , btReference = extract "<REFNUM"
-                        , btCounterparty = extract "<PAYEEID"
-                        }
-            Nothing -> Nothing
+  let extract tag = fmap stripCloseTag (fmap (T.drop (T.length tag)) $ find (T.isPrefixOf tag) lines)
+      find p = foldr (\x acc -> if p x then Just x else acc) Nothing
+      trntype = extract "<TRNTYPE>"
+      amountStr = extract "<TRNAMT>"
+      amount = amountStr >>= \s -> case reads (T.unpack s) of
+        (x, _):_ -> Just x
+        [] -> Nothing
+      name = extract "<NAME>"
+      memo = extract "<MEMO>"
+  in case trntype of
+       Just _ -> Just $ BankTransaction
+          { btId = fromMaybe "unknown" (extract "<DTPOSTED")
+          , btDate = epoch
+          , btType = if trntype == Just "CREDIT" then Credit else Debit
+          , btAmount = fromMaybe 0 amount
+          , btCurrency = "USD"
+          , btDescription = fromMaybe "" (name <|> memo)
+          , btReference = extract "<REFNUM"
+          , btCounterparty = extract "<PAYEEID"
+          }
+       Nothing -> Nothing
 
 -- | Parse ISO 20022 XML format (simplified).
 parseISO20022 :: Text -> Either Text BankStatement
