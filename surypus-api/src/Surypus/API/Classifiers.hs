@@ -1,25 +1,42 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Surypus.API.Classifiers
-  ( -- * All classifiers
-    listOksm, getOksm, getOksmByCode,
-    listOkv, getOkv,
-    listOkei, getOkei,
-    listOkpd2, getOkpd2,
-    listOkved2, getOkved2,
-    listTnved, getTnved,
-    listOkato, getOkato,
-    listOktmo, getOktmo,
-    listOkof, getOkof,
-    listOkp, getOkp,
-    listOkdp, getOkdp,
-    listOkso, getOkso,
-    listOkun, getOkun,
-    listOkud, getOkud,
-    listOkfs, getOkfs,
-    listOknpo, getOknpo,
-  ) where
+module Surypus.API.Classifiers (
+    -- * All classifiers
+    listOksm,
+    getOksm,
+    getOksmByCode,
+    listOkv,
+    getOkv,
+    listOkei,
+    getOkei,
+    listOkpd2,
+    getOkpd2,
+    listOkved2,
+    getOkved2,
+    listTnved,
+    getTnved,
+    listOkato,
+    getOkato,
+    listOktmo,
+    getOktmo,
+    listOkof,
+    getOkof,
+    listOkp,
+    getOkp,
+    listOkdp,
+    getOkdp,
+    listOkso,
+    getOkso,
+    listOkun,
+    getOkun,
+    listOkud,
+    getOkud,
+    listOkfs,
+    getOkfs,
+    listOknpo,
+    getOknpo,
+) where
 
 import qualified DAL.Classifiers as C
 import DAL.Database (Pool)

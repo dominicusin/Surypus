@@ -1,40 +1,96 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module DAL.Classifiers
-  ( -- * OKSM
-    getOksmAll, getOksmById, getOksmByCode,
+module DAL.Classifiers (
+    -- * OKSM
+    getOksmAll,
+    getOksmById,
+    getOksmByCode,
+
     -- * OKV
-    getOkvAll, getOkvById, getOkvByCode,
+    getOkvAll,
+    getOkvById,
+    getOkvByCode,
+
     -- * OKEI
-    getOkeiAll, getOkeiById, getOkeiByCode,
+    getOkeiAll,
+    getOkeiById,
+    getOkeiByCode,
+
     -- * OKPD2
-    getOkpd2All, getOkpd2ById, getOkpd2ByCode, getOkpd2ByParent,
+    getOkpd2All,
+    getOkpd2ById,
+    getOkpd2ByCode,
+    getOkpd2ByParent,
+
     -- * OKVED2
-    getOkved2All, getOkved2ById, getOkved2ByCode, getOkved2ByParent,
+    getOkved2All,
+    getOkved2ById,
+    getOkved2ByCode,
+    getOkved2ByParent,
+
     -- * TNVED
-    getTnvedAll, getTnvedById, getTnvedByCode, getTnvedByParent,
+    getTnvedAll,
+    getTnvedById,
+    getTnvedByCode,
+    getTnvedByParent,
+
     -- * OKATO
-    getOkatoAll, getOkatoById, getOkatoByCode, getOkatoByParent,
+    getOkatoAll,
+    getOkatoById,
+    getOkatoByCode,
+    getOkatoByParent,
+
     -- * OKTMO
-    getOktmoAll, getOktmoById, getOktmoByCode, getOktmoByParent,
+    getOktmoAll,
+    getOktmoById,
+    getOktmoByCode,
+    getOktmoByParent,
+
     -- * OKOF
-    getOkofAll, getOkofById, getOkofByCode, getOkofByParent,
+    getOkofAll,
+    getOkofById,
+    getOkofByCode,
+    getOkofByParent,
+
     -- * OKP
-    getOkpAll, getOkpById, getOkpByCode, getOkpByParent,
+    getOkpAll,
+    getOkpById,
+    getOkpByCode,
+    getOkpByParent,
+
     -- * OKDP
-    getOkdpAll, getOkdpById, getOkdpByCode, getOkdpByParent,
+    getOkdpAll,
+    getOkdpById,
+    getOkdpByCode,
+    getOkdpByParent,
+
     -- * OKSO
-    getOksoAll, getOksoById, getOksoByCode,
+    getOksoAll,
+    getOksoById,
+    getOksoByCode,
+
     -- * OKUN
-    getOkunAll, getOkunById, getOkunByCode, getOkunByParent,
+    getOkunAll,
+    getOkunById,
+    getOkunByCode,
+    getOkunByParent,
+
     -- * OKUD
-    getOkudAll, getOkudById, getOkudByCode,
+    getOkudAll,
+    getOkudById,
+    getOkudByCode,
+
     -- * OKFS
-    getOkfsAll, getOkfsById, getOkfsByCode,
+    getOkfsAll,
+    getOkfsById,
+    getOkfsByCode,
+
     -- * OKNPO
-    getOknpoAll, getOknpoById, getOknpoByCode,
-  ) where
+    getOknpoAll,
+    getOknpoById,
+    getOknpoByCode,
+) where
 
 import DAL.Types
 import Data.Int (Int64)
@@ -52,157 +108,173 @@ preparable sql encoder decoder = Statement (TE.encodeUtf8 sql) encoder decoder T
 
 queryList :: Pool -> D.Row a -> Text -> IO (QueryResult [a])
 queryList pool rowDecoder sql = do
-  let stmt = preparable sql E.noParams (D.rowList rowDecoder)
-  res <- use pool $ Session.statement () stmt
-  pure $ case res of
-    Right rows -> QuerySuccess rows
-    Left err   -> QueryError (T.pack $ show err)
+    let stmt = preparable sql E.noParams (D.rowList rowDecoder)
+    res <- use pool $ Session.statement () stmt
+    pure $ case res of
+        Right rows -> QuerySuccess rows
+        Left err -> QueryError (T.pack $ show err)
 
 queryById :: Pool -> D.Row a -> Text -> Int64 -> IO (QueryResult a)
 queryById pool rowDecoder sql pid = do
-  let stmt = preparable sql (E.param (E.nonNullable E.int8)) (D.rowMaybe rowDecoder)
-  res <- use pool $ Session.statement pid stmt
-  pure $ case res of
-    Right (Just v)  -> QuerySuccess v
-    Right Nothing   -> QueryError "Not Found"
-    Left err        -> QueryError (T.pack $ show err)
+    let stmt = preparable sql (E.param (E.nonNullable E.int8)) (D.rowMaybe rowDecoder)
+    res <- use pool $ Session.statement pid stmt
+    pure $ case res of
+        Right (Just v) -> QuerySuccess v
+        Right Nothing -> QueryError "Not Found"
+        Left err -> QueryError (T.pack $ show err)
 
 queryByCode :: Pool -> D.Row a -> Text -> Text -> IO (QueryResult a)
 queryByCode pool rowDecoder sql code = do
-  let stmt = preparable sql (E.param (E.nonNullable E.text)) (D.rowMaybe rowDecoder)
-  res <- use pool $ Session.statement code stmt
-  pure $ case res of
-    Right (Just v)  -> QuerySuccess v
-    Right Nothing   -> QueryError "Not Found"
-    Left err        -> QueryError (T.pack $ show err)
+    let stmt = preparable sql (E.param (E.nonNullable E.text)) (D.rowMaybe rowDecoder)
+    res <- use pool $ Session.statement code stmt
+    pure $ case res of
+        Right (Just v) -> QuerySuccess v
+        Right Nothing -> QueryError "Not Found"
+        Left err -> QueryError (T.pack $ show err)
 
 queryByParent :: Pool -> D.Row a -> Text -> Text -> IO (QueryResult [a])
 queryByParent pool rowDecoder sql parentCode = do
-  let stmt = preparable sql (E.param (E.nonNullable E.text)) (D.rowList rowDecoder)
-  res <- use pool $ Session.statement parentCode stmt
-  pure $ case res of
-    Right rows -> QuerySuccess rows
-    Left err   -> QueryError (T.pack $ show err)
+    let stmt = preparable sql (E.param (E.nonNullable E.text)) (D.rowList rowDecoder)
+    res <- use pool $ Session.statement parentCode stmt
+    pure $ case res of
+        Right rows -> QuerySuccess rows
+        Left err -> QueryError (T.pack $ show err)
 
 -- ── Row Decoders ────────────────────────────────────────────────────────────
 
 oksmRow :: D.Row OksmRecord
-oksmRow = OksmRecord
-  <$> D.column (D.nonNullable D.int8)
-  <*> D.column (D.nonNullable D.text)
-  <*> D.column (D.nonNullable D.text)
-  <*> D.column (D.nullable D.text)
-  <*> D.column (D.nullable D.text)
-  <*> D.column (D.nullable D.text)
+oksmRow =
+    OksmRecord
+        <$> D.column (D.nonNullable D.int8)
+        <*> D.column (D.nonNullable D.text)
+        <*> D.column (D.nonNullable D.text)
+        <*> D.column (D.nullable D.text)
+        <*> D.column (D.nullable D.text)
+        <*> D.column (D.nullable D.text)
 
 okvRow :: D.Row OkvRecord
-okvRow = OkvRecord
-  <$> D.column (D.nonNullable D.int8)
-  <*> D.column (D.nonNullable D.text)
-  <*> D.column (D.nullable D.text)
-  <*> D.column (D.nonNullable D.text)
-  <*> D.column (D.nullable D.text)
+okvRow =
+    OkvRecord
+        <$> D.column (D.nonNullable D.int8)
+        <*> D.column (D.nonNullable D.text)
+        <*> D.column (D.nullable D.text)
+        <*> D.column (D.nonNullable D.text)
+        <*> D.column (D.nullable D.text)
 
 okeiRow :: D.Row OkeiRecord
-okeiRow = OkeiRecord
-  <$> D.column (D.nonNullable D.int8)
-  <*> D.column (D.nonNullable D.text)
-  <*> D.column (D.nonNullable D.text)
-  <*> D.column (D.nullable D.text)
-  <*> D.column (D.nullable D.text)
-  <*> D.column (D.nullable D.text)
-  <*> D.column (D.nullable D.text)
-  <*> D.column (D.nullable D.text)
+okeiRow =
+    OkeiRecord
+        <$> D.column (D.nonNullable D.int8)
+        <*> D.column (D.nonNullable D.text)
+        <*> D.column (D.nonNullable D.text)
+        <*> D.column (D.nullable D.text)
+        <*> D.column (D.nullable D.text)
+        <*> D.column (D.nullable D.text)
+        <*> D.column (D.nullable D.text)
+        <*> D.column (D.nullable D.text)
 
 okpd2Row :: D.Row Okpd2Record
-okpd2Row = Okpd2Record
-  <$> D.column (D.nonNullable D.int8)
-  <*> D.column (D.nonNullable D.text)
-  <*> D.column (D.nonNullable D.text)
-  <*> D.column (D.nullable D.text)
+okpd2Row =
+    Okpd2Record
+        <$> D.column (D.nonNullable D.int8)
+        <*> D.column (D.nonNullable D.text)
+        <*> D.column (D.nonNullable D.text)
+        <*> D.column (D.nullable D.text)
 
 okved2Row :: D.Row Okved2Record
-okved2Row = Okved2Record
-  <$> D.column (D.nonNullable D.int8)
-  <*> D.column (D.nonNullable D.text)
-  <*> D.column (D.nonNullable D.text)
-  <*> D.column (D.nullable D.text)
+okved2Row =
+    Okved2Record
+        <$> D.column (D.nonNullable D.int8)
+        <*> D.column (D.nonNullable D.text)
+        <*> D.column (D.nonNullable D.text)
+        <*> D.column (D.nullable D.text)
 
 tnvedRow :: D.Row TnvedRecord
-tnvedRow = TnvedRecord
-  <$> D.column (D.nonNullable D.int8)
-  <*> D.column (D.nonNullable D.text)
-  <*> D.column (D.nonNullable D.text)
-  <*> D.column (D.nullable D.text)
-  <*> D.column (D.nullable D.text)
-  <*> D.column (D.nullable D.text)
+tnvedRow =
+    TnvedRecord
+        <$> D.column (D.nonNullable D.int8)
+        <*> D.column (D.nonNullable D.text)
+        <*> D.column (D.nonNullable D.text)
+        <*> D.column (D.nullable D.text)
+        <*> D.column (D.nullable D.text)
+        <*> D.column (D.nullable D.text)
 
 okatoRow :: D.Row OkatoRecord
-okatoRow = OkatoRecord
-  <$> D.column (D.nonNullable D.int8)
-  <*> D.column (D.nonNullable D.text)
-  <*> D.column (D.nonNullable D.text)
-  <*> D.column (D.nullable D.text)
-  <*> (fromIntegral <$> D.column (D.nonNullable D.int2))
+okatoRow =
+    OkatoRecord
+        <$> D.column (D.nonNullable D.int8)
+        <*> D.column (D.nonNullable D.text)
+        <*> D.column (D.nonNullable D.text)
+        <*> D.column (D.nullable D.text)
+        <*> (fromIntegral <$> D.column (D.nonNullable D.int2))
 
 oktmoRow :: D.Row OktmoRecord
-oktmoRow = OktmoRecord
-  <$> D.column (D.nonNullable D.int8)
-  <*> D.column (D.nonNullable D.text)
-  <*> D.column (D.nonNullable D.text)
-  <*> D.column (D.nullable D.text)
+oktmoRow =
+    OktmoRecord
+        <$> D.column (D.nonNullable D.int8)
+        <*> D.column (D.nonNullable D.text)
+        <*> D.column (D.nonNullable D.text)
+        <*> D.column (D.nullable D.text)
 
 okofRow :: D.Row OkofRecord
-okofRow = OkofRecord
-  <$> D.column (D.nonNullable D.int8)
-  <*> D.column (D.nonNullable D.text)
-  <*> D.column (D.nonNullable D.text)
-  <*> D.column (D.nullable D.text)
+okofRow =
+    OkofRecord
+        <$> D.column (D.nonNullable D.int8)
+        <*> D.column (D.nonNullable D.text)
+        <*> D.column (D.nonNullable D.text)
+        <*> D.column (D.nullable D.text)
 
 okpRow :: D.Row OkpRecord
-okpRow = OkpRecord
-  <$> D.column (D.nonNullable D.int8)
-  <*> D.column (D.nonNullable D.text)
-  <*> D.column (D.nonNullable D.text)
-  <*> D.column (D.nullable D.text)
+okpRow =
+    OkpRecord
+        <$> D.column (D.nonNullable D.int8)
+        <*> D.column (D.nonNullable D.text)
+        <*> D.column (D.nonNullable D.text)
+        <*> D.column (D.nullable D.text)
 
 okdpRow :: D.Row OkdpRecord
-okdpRow = OkdpRecord
-  <$> D.column (D.nonNullable D.int8)
-  <*> D.column (D.nonNullable D.text)
-  <*> D.column (D.nonNullable D.text)
-  <*> D.column (D.nullable D.text)
+okdpRow =
+    OkdpRecord
+        <$> D.column (D.nonNullable D.int8)
+        <*> D.column (D.nonNullable D.text)
+        <*> D.column (D.nonNullable D.text)
+        <*> D.column (D.nullable D.text)
 
 oksoRow :: D.Row OksoRecord
-oksoRow = OksoRecord
-  <$> D.column (D.nonNullable D.int8)
-  <*> D.column (D.nonNullable D.text)
-  <*> D.column (D.nonNullable D.text)
+oksoRow =
+    OksoRecord
+        <$> D.column (D.nonNullable D.int8)
+        <*> D.column (D.nonNullable D.text)
+        <*> D.column (D.nonNullable D.text)
 
 okunRow :: D.Row OkunRecord
-okunRow = OkunRecord
-  <$> D.column (D.nonNullable D.int8)
-  <*> D.column (D.nonNullable D.text)
-  <*> D.column (D.nonNullable D.text)
-  <*> D.column (D.nullable D.text)
+okunRow =
+    OkunRecord
+        <$> D.column (D.nonNullable D.int8)
+        <*> D.column (D.nonNullable D.text)
+        <*> D.column (D.nonNullable D.text)
+        <*> D.column (D.nullable D.text)
 
 okudRow :: D.Row OkudRecord
-okudRow = OkudRecord
-  <$> D.column (D.nonNullable D.int8)
-  <*> D.column (D.nonNullable D.text)
-  <*> D.column (D.nonNullable D.text)
+okudRow =
+    OkudRecord
+        <$> D.column (D.nonNullable D.int8)
+        <*> D.column (D.nonNullable D.text)
+        <*> D.column (D.nonNullable D.text)
 
 okfsRow :: D.Row OkfsRecord
-okfsRow = OkfsRecord
-  <$> D.column (D.nonNullable D.int8)
-  <*> D.column (D.nonNullable D.text)
-  <*> D.column (D.nonNullable D.text)
+okfsRow =
+    OkfsRecord
+        <$> D.column (D.nonNullable D.int8)
+        <*> D.column (D.nonNullable D.text)
+        <*> D.column (D.nonNullable D.text)
 
 oknpoRow :: D.Row OknpoRecord
-oknpoRow = OknpoRecord
-  <$> D.column (D.nonNullable D.int8)
-  <*> D.column (D.nonNullable D.text)
-  <*> D.column (D.nonNullable D.text)
+oknpoRow =
+    OknpoRecord
+        <$> D.column (D.nonNullable D.int8)
+        <*> D.column (D.nonNullable D.text)
+        <*> D.column (D.nonNullable D.text)
 
 -- ── Query functions ─────────────────────────────────────────────────────────
 

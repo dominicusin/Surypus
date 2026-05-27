@@ -1,28 +1,28 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Surypus.API.Persons
-  ( listPersons,
+module Surypus.API.Persons (
+    listPersons,
     createPerson,
     getPerson,
     updatePerson,
     deletePerson,
     searchPersons,
-  )
+)
 where
 
-import DAL.Types (Person (..), PersonInput (..), QueryResult (..), MutationResult (..))
 import DAL.Database (Pool)
-import DAL.Queries (getPersons, getPersonById)
-import qualified DAL.Queries as Queries
 import qualified DAL.Mutations as Mut
+import DAL.Queries (getPersonById, getPersons)
+import qualified DAL.Queries as Queries
+import DAL.Types (MutationResult (..), Person (..), PersonInput (..), QueryResult (..))
 import Data.Int (Int64)
 import qualified Data.Text as T
 
 -- | List persons using DAL.Queries
 listPersons :: Pool -> Maybe String -> Maybe String -> Maybe Int -> Maybe Int -> Maybe Int -> IO (QueryResult [Person])
 listPersons pool _limit _offset _status _type _search = do
-  getPersons pool
+    getPersons pool
 
 -- | Create a new person using DAL.Mutations
 createPerson :: Pool -> PersonInput -> IO (QueryResult MutationResult)
@@ -39,10 +39,10 @@ updatePerson pool pid input = Mut.updatePerson pool pid input
 -- | Delete a person using DAL.Mutations
 deletePerson :: Pool -> Int64 -> IO (QueryResult ())
 deletePerson pool pid = do
-  result <- Mut.deletePerson pool pid
-  case result of
-    QuerySuccess _ -> return $ QuerySuccess ()
-    QueryError err -> return $ QueryError err
+    result <- Mut.deletePerson pool pid
+    case result of
+        QuerySuccess _ -> return $ QuerySuccess ()
+        QueryError err -> return $ QueryError err
 
 -- | Search persons using DAL.Queries
 searchPersons :: Pool -> String -> IO (QueryResult [Person])

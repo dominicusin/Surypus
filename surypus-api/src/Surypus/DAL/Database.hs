@@ -1,12 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
-module DAL.Database
-  ( Pool,
+
+module DAL.Database (
+    Pool,
     usePool,
     UsageError,
-  )
+)
 where
 
-import Hasql.Pool (Pool, use, UsageError)
+import Hasql.Pool (Pool, UsageError, use)
 import qualified Hasql.Session as Session
 
 -- | Alias for Hasql's use function with proper naming for this codebase

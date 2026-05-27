@@ -9,14 +9,14 @@ toInternalLoginInput (LoginRequest u p) = Auth.LoginRequest u p
 
 fromInternalLoginOutput :: Auth.LoginResponse -> LoginResponse
 fromInternalLoginOutput ir =
-  LoginResponse
-    { accessToken = Auth.respAccessToken ir,
-      refreshToken = Auth.respRefreshToken ir,
-      expiresIn = 3600,
-      userId = Auth.respUserId ir,
-      userName = Auth.respUserName ir,
-      role = Auth.respRole ir
-    }
+    LoginResponse
+        { accessToken = Auth.respAccessToken ir
+        , refreshToken = Auth.respRefreshToken ir
+        , expiresIn = 3600
+        , userId = Auth.respUserId ir
+        , userName = Auth.respUserName ir
+        , role = Auth.respRole ir
+        }
 
 toInternalRefreshInput :: Root.RefreshRequest -> Auth.RefreshRequest
 toInternalRefreshInput (Root.RefreshRequest rt) = Auth.RefreshRequest rt

@@ -1,19 +1,19 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Surypus.API.Payment
-  ( listPayments,
+module Surypus.API.Payment (
+    listPayments,
     createPayment,
     getPayment,
     updatePayment,
     deletePayment,
-  )
+)
 where
 
-import DAL.Types (Payment (..), PaymentInput (..), QueryResult (..), MutationResult (..))
 import DAL.Database (Pool)
-import DAL.Queries (getPayments, getPaymentById)
 import qualified DAL.Mutations as Mut
+import DAL.Queries (getPaymentById, getPayments)
+import DAL.Types (MutationResult (..), Payment (..), PaymentInput (..), QueryResult (..))
 import Data.Int (Int64)
 
 -- | List all payments using DAL.Queries
@@ -31,15 +31,15 @@ getPayment pool pid = getPaymentById pool pid
 -- | Update a payment using DAL.Mutations
 updatePayment :: Pool -> Int64 -> PaymentInput -> IO (QueryResult Payment)
 updatePayment pool pid input = do
-  result <- Mut.updatePayment pool pid input
-  case result of
-    QuerySuccess _ -> getPaymentById pool pid
-    QueryError err -> return $ QueryError err
+    result <- Mut.updatePayment pool pid input
+    case result of
+        QuerySuccess _ -> getPaymentById pool pid
+        QueryError err -> return $ QueryError err
 
 -- | Delete a payment using DAL.Mutations
 deletePayment :: Pool -> Int64 -> IO (QueryResult ())
 deletePayment pool pid = do
-  result <- Mut.deletePayment pool pid
-  case result of
-    QuerySuccess _ -> return $ QuerySuccess ()
-    QueryError err -> return $ QueryError err
+    result <- Mut.deletePayment pool pid
+    case result of
+        QuerySuccess _ -> return $ QuerySuccess ()
+        QueryError err -> return $ QueryError err

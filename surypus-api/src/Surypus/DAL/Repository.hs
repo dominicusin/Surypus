@@ -6,15 +6,15 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module DAL.Repository
-  ( AppError (..),
+module DAL.Repository (
+    AppError (..),
     RepositoryError (..),
     HasRepository (..),
     RepositoryT,
     Id,
     isNotFoundMessage,
     module DAL.Types,
-  )
+)
 where
 
 import Control.Monad.Trans.Except (ExceptT)
@@ -25,14 +25,14 @@ import qualified Data.Text as T
 data AppError = AppError Text deriving (Show, Eq)
 
 data RepositoryError
-  = NotFound Text
-  | DatabaseError Text
-  | ValidationError Text
-  | ConstraintError Text
-  deriving (Show, Eq)
+    = NotFound Text
+    | DatabaseError Text
+    | ValidationError Text
+    | ConstraintError Text
+    deriving (Show, Eq)
 
 class HasRepository repo pool | repo -> pool where
-  getPool :: repo -> pool
+    getPool :: repo -> pool
 
 type RepositoryT m a = ExceptT RepositoryError m a
 

@@ -1,21 +1,21 @@
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 -- | Structured logging module (stub implementation)
-module Surypus.API.Logger
-  ( LogLevel(..)
-  , LogField
-  , Logger
-  , initLogger
-  , logMessage
-  , logDebug
-  , logInfo
-  , logWarn
-  , logError
-  , withCorrelationId
-  , getCorrelationId
-  , logDBQuery
-  ) where
+module Surypus.API.Logger (
+    LogLevel (..),
+    LogField,
+    Logger,
+    initLogger,
+    logMessage,
+    logDebug,
+    logInfo,
+    logWarn,
+    logError,
+    withCorrelationId,
+    getCorrelationId,
+    logDBQuery,
+) where
 
 import Data.IORef
 import System.IO.Unsafe (unsafePerformIO)
@@ -25,10 +25,10 @@ data LogLevel = Debug | Info | Warn | Error deriving (Show, Eq, Ord, Enum, Bound
 type LogField = (String, String)
 
 data Logger = Logger
-  { loggerLevel :: LogLevel
-  , loggerFields :: IORef [LogField]
-  , loggerCorrId :: IORef (Maybe String)
-  }
+    { loggerLevel :: LogLevel
+    , loggerFields :: IORef [LogField]
+    , loggerCorrId :: IORef (Maybe String)
+    }
 
 {-# NOINLINE theLogger #-}
 theLogger :: Logger
@@ -36,9 +36,9 @@ theLogger = Logger Info (unsafePerformIO (newIORef [])) (unsafePerformIO (newIOR
 
 initLogger :: LogLevel -> IO Logger
 initLogger level = do
-  fields <- newIORef []
-  corrId <- newIORef Nothing
-  return $ Logger level fields corrId
+    fields <- newIORef []
+    corrId <- newIORef Nothing
+    return $ Logger level fields corrId
 
 logMessage :: Logger -> LogLevel -> String -> [LogField] -> IO ()
 logMessage _ _ _ _ = return ()

@@ -1,10 +1,10 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Surypus.API.Auth
-  ( login,
+module Surypus.API.Auth (
+    login,
     logout,
-  )
+)
 where
 
 import Surypus (Pool)
