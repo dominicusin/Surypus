@@ -4,15 +4,17 @@
 
 ## Current State
 
-**Shipped: v52.0 CRM & Reports Implementation** (2026-05-26)
-- All CRM functions use real SQL queries against actual DB tables
-- Reports use real SQL aggregation queries
-- Bills API fully wired through DAL.Queries/DAL.Mutations/DAL.Procedures
-- Docker build pipeline verified (surypus-api + surypus-worker images)
-- `stack build` and `stack test` both pass
+**Shipped: v54.0 User Management & Dead Code Cleanup** (2026-05-26)
+- Real login with DB auth using `crypt()` password verification
+- User CRUD API (create, read, update, list) on `users` table
+- Notification email lookup from database
+- Integration CRUD with real DB-backed endpoints
+- Dead code cleanup (removed stub modules)
 
 ## Completed Milestones
 
+- ✅ **v54.0 User Management & Dead Code Cleanup** — User CRUD API, dead code cleanup (shipped 2026-05-26)
+- ✅ **v53.0 Authentication & Infrastructure** — Real login, server init, notifications, integrations (shipped 2026-05-26)
 - ✅ **v52.0 CRM & Reports Implementation** — CRM real SQL, Reports, Docker fix (shipped 2026-05-26)
 - ✅ **v51.0 Build Stabilization & API Modernization** — Build passing, tests passing (completed 2026-05-25)
 - ✅ **v50.0 Codebase Consolidation** — Build repair, duplicate cleanup, module consolidation (shipped 2026-05-24)
