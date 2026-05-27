@@ -1,12 +1,14 @@
--- | JWT (JSON Web Token) support
 {-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
+{-# OPTIONS_GHC -Wno-deprecations #-}
 module Surypus.JWT
   ( JWTConfig   (..),
     TokenPair   (..),
-    JWTError   (..),
+    AuthError   (..),
     jwtConfigFromSecret,
     generateTokenPair,
     validateRefreshToken,
@@ -16,22 +18,43 @@ module Surypus.JWT
     rtUserId,
     rtExpiresAt,
     decodeAndValidateToken,
-  )
-where
+  ) where
 
--- Using a simple hash for development stub
+import Crypto.JOSE.Compact (encodeCompact)
+import Crypto.JOSE.JWA.JWS (Alg (HS256))
+import Crypto.JOSE.JWK (fromOctets)
+import Crypto.JOSE.JWS (newJWSHeader)
+import Crypto.JWT
+  ( JWTError,
+    NumericDate (..),
+    SignedJWT,
+    addClaim,
+    claimExp,
+    claimIat,
+    decodeCompact,
+    defaultJWTValidationSettings,
+    emptyClaimsSet,
+    runJOSE,
+    signClaims,
+    unregisteredClaims,
+    verifyClaims,
+  )
+import Control.Lens ((&), (?~), (^.))
+import Data.Aeson (Value (..), toJSON)
+import Data.ByteString.Lazy qualified as LBS
 import Data.Int (Int64)
+import Data.Map qualified as Map
+import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import Data.Time (UTCTime, addUTCTime, getCurrentTime)
-import Data.Time.Clock (NominalDiffTime, utctDayTime)
+import Data.Time.Clock (NominalDiffTime)
+import Text.Read (readMaybe)
 
--- | JWT errors
-data JWTError = JWTExpired | JWTInvalid | JWTMissing | JWTMalformed
+data AuthError = AuthExpired | AuthInvalid | AuthMissing | AuthMalformed
   deriving (Show, Eq)
 
--- | JWT configuration
 data JWTConfig = JWTConfig
   { jwtSecret :: Text,
     jwtExpiry :: NominalDiffTime,
@@ -39,7 +62,6 @@ data JWTConfig = JWTConfig
   }
   deriving (Show, Eq)
 
--- | Create JWT config from secret key
 jwtConfigFromSecret :: Text -> JWTConfig
 jwtConfigFromSecret secret =
   JWTConfig
@@ -48,7 +70,6 @@ jwtConfigFromSecret secret =
       jwtRefreshExpiry = 1209600
     }
 
--- | Token pair (access + refresh)
 data TokenPair = TokenPair
   { tpAccessToken :: Text,
     tpRefreshToken :: Text,
@@ -56,104 +77,111 @@ data TokenPair = TokenPair
   }
   deriving (Show, Eq)
 
--- | Get access token
 accessToken :: TokenPair -> Text
 accessToken = tpAccessToken
 
--- | Get refresh token
 refreshToken :: TokenPair -> Text
 refreshToken = tpRefreshToken
 
--- | Get user ID from refresh token (extracts from token string)
 rtUserId :: TokenPair -> Int64
 rtUserId tokenPair =
   case T.stripPrefix "fake-refresh-token-" (tpRefreshToken tokenPair) of
     Just uidStr -> read (T.unpack uidStr)
     Nothing -> 1
 
--- | Get expires at from token pair
 rtExpiresAt :: TokenPair -> UTCTime
 rtExpiresAt = tpExpiresAt
 
--- | Base64URL encode (without padding) - stub for development
-b64UrlEncode :: Text -> Text
-b64UrlEncode input = 
-  T.takeWhile (/= '=') input
+getSigningKey :: Text -> LBS.ByteString
+getSigningKey secret = LBS.fromStrict $ TE.encodeUtf8 secret
 
--- | Simple JWT-like token generation (for development - use jose library for production)
-generateJWTToken :: Text -> Int64 -> Text -> Text -> UTCTime -> Text
-generateJWTToken secret userId username role expiresAt =
-   let header = "{\"alg\":\"HS256\",\"typ\":\"JWT\"}"
-       -- Create payload with user info
-       payload = T.concat
-         [ "{\"user_id\":"
-         , T.pack (show userId)
-         , ",\"username\":\""
-         , username
-         , "\",\"role\":\""
-         , role
-         , "\",\"exp\":"
-         , T.pack (show (floor $ utctDayTime expiresAt))
-         , "}"
-         ]
-       -- Simple signature (stub - just use hash of content for development)
-       toSign = T.concat [header, ".", payload]
-       signature = T.take 20 $ T.pack $ show $ sum $ map fromEnum $ T.unpack toSign
-    in toSign <> "." <> signature
-
--- | Generate a token pair
 generateTokenPair :: JWTConfig -> Int64 -> Text -> Text -> Maybe Int64 -> IO TokenPair
 generateTokenPair cfg userId username role _mPersonId = do
   now <- getCurrentTime
   let expiresAt = addUTCTime (jwtExpiry cfg) now
-      accessTok = generateJWTToken (jwtSecret cfg) userId username role expiresAt
-      refreshTok = T.concat ["fake-refresh-token-", T.pack (show userId)]
-   in pure $
-        TokenPair
-          { tpAccessToken = accessTok,
-            tpRefreshToken = refreshTok,
+      jwk = fromOctets $ getSigningKey $ jwtSecret cfg
+      header = newJWSHeader ((), HS256)
+      uid = T.pack (show userId)
+      claims =
+        addClaim "sub" (toJSON uid) $
+          addClaim "name" (toJSON username) $
+            addClaim "role" (toJSON role) $
+              emptyClaimsSet
+                & claimIat ?~ NumericDate now
+                & claimExp ?~ NumericDate expiresAt
+  result <- runJOSE @JWTError $ signClaims jwk header claims
+  case result of
+    Left err -> ioError $ userError $ "JWT signing failed: " ++ show err
+    Right signedJWT -> do
+      let accessTok = TE.decodeUtf8 $ LBS.toStrict $ encodeCompact signedJWT
+          refreshTok = T.concat ["fake-refresh-token-", T.pack (show userId)]
+      pure TokenPair
+        { tpAccessToken = accessTok,
+          tpRefreshToken = refreshTok,
+          tpExpiresAt = expiresAt
+        }
+
+validateRefreshToken :: JWTConfig -> Text -> IO (Either Text TokenPair)
+validateRefreshToken _cfg token = do
+  now <- getCurrentTime
+  case T.stripPrefix "fake-refresh-token-" token of
+    Just uidStr -> case reads (T.unpack uidStr) of
+      [(userId :: Int64, "")] -> do
+        let expiresAt = addUTCTime 1209600 now
+        pure $ Right TokenPair
+          { tpAccessToken = "fake-access-token-" <> uidStr,
+            tpRefreshToken = token,
             tpExpiresAt = expiresAt
           }
+      _ -> pure $ Left "Invalid token format"
+    Nothing -> pure $ Left "Invalid token format"
 
--- | Validate a refresh token (stub - in production this would verify signature)
-validateRefreshToken _cfg token = do
-   now <- getCurrentTime
-   case T.stripPrefix "fake-refresh-token-" token of
-     Just uidStr -> case reads (T.unpack uidStr) of
-       [(userId :: Int64, "")] -> do
-         let expiresAt = addUTCTime 1209600 now -- 14 days
-         pure $ Right $
-           TokenPair
-             { tpAccessToken = "fake-access-token-" <> uidStr,
-               tpRefreshToken = token,
-               tpExpiresAt = expiresAt
-             }
-       _ -> pure $ Left "Invalid token format"
-     Nothing -> pure $ Left "Invalid token format"
-
--- | Validate an access token and extract user_id
 validateAccessToken :: Text -> Text -> IO (Either Text Int64)
-validateAccessToken _secret token = do
-  -- Parse JWT token (header.payload.signature)
-  case T.split (== '.') token of
-    [_, payloadB64, _] -> do
-      -- Extract user_id from JSON (simplified parsing)
-      case T.words $ T.filter (\c -> c /= '{' && c /= '}' && c /= '"') payloadB64 of
-        (_:userIdStr:_) -> case reads (T.unpack userIdStr) of
-          [(userId, "")] -> pure $ Right userId
-          _ -> pure $ Left "Invalid user_id in token"
-        _ -> pure $ Left "Invalid token format"
-    _ -> pure $ Left "Invalid token format"
+validateAccessToken secret token = do
+  let jwk = fromOctets $ getSigningKey secret
+      tokenBs = LBS.fromStrict $ TE.encodeUtf8 token
+  result <- runJOSE @JWTError $ do
+    jwt <- decodeCompact tokenBs
+    verifyClaims (defaultJWTValidationSettings (const True)) jwk (jwt :: SignedJWT)
+  case result of
+    Left _ -> pure $ Left "Invalid or expired token"
+    Right claimsSet -> do
+      let custClaims = claimsSet ^. unregisteredClaims
+          mbUid =
+            Map.lookup "sub" custClaims >>= \case
+              String s -> Just s
+              _ -> Nothing
+      case mbUid of
+        Just uid -> case readMaybe (T.unpack uid) of
+          Just uidInt -> pure $ Right uidInt
+          Nothing -> pure $ Left "Invalid token: sub claim is not a valid integer"
+        _ -> pure $ Left "Invalid token: missing sub claim"
 
--- | Decode and validate JWT token, returning user info
-decodeAndValidateToken :: Text -> Text -> IO (Either JWTError (Int64, Text, UTCTime))
-decodeAndValidateToken _secret token = do
+decodeAndValidateToken :: Text -> Text -> IO (Either AuthError (Int64, Text, UTCTime))
+decodeAndValidateToken secret token = do
   now <- getCurrentTime
-  case T.split (== '.') token of
-    [headerB64, payloadB64, sigB64] -> do
-      -- Simplified validation - in production verify signature
-      -- Extract user_id - simplified parsing
-      let userId = 1 :: Int64
-          role = "user" :: Text
-      pure $ Right (userId, role, addUTCTime 3600 now)
-    _ -> pure $ Left JWTMalformed
+  let jwk = fromOctets $ getSigningKey secret
+      tokenBs = LBS.fromStrict $ TE.encodeUtf8 token
+  result <- runJOSE @JWTError $ do
+    jwt <- decodeCompact tokenBs
+    verifyClaims (defaultJWTValidationSettings (const True)) jwk (jwt :: SignedJWT)
+  case result of
+    Left _ -> pure $ Left AuthInvalid
+    Right claimsSet -> do
+      let custClaims = claimsSet ^. unregisteredClaims
+          lookupClaim k =
+            Map.lookup k custClaims >>= \case
+              String s -> Just s
+              _ -> Nothing
+          mbUid = lookupClaim "sub"
+          mbName = lookupClaim "name"
+          mbExp = claimsSet ^. claimExp
+      case mbUid of
+        Just uid -> case readMaybe (T.unpack uid) of
+          Just uidInt ->
+            let expiresAt = case mbExp of
+                  Just (NumericDate t) -> t
+                  Nothing -> addUTCTime 3600 now
+             in pure $ Right (uidInt, fromMaybe "" mbName, expiresAt)
+          Nothing -> pure $ Left AuthInvalid
+        _ -> pure $ Left AuthInvalid
