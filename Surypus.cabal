@@ -16,7 +16,9 @@ library
       Core.Services.Accounting
       DAL.Database
       DAL.EventStore
+      DAL.Migration
       DAL.Procedures
+      DAL.Schema
       DAL.Types
       Finance.Accounting
       Infrastructure.EventStore.Accounting
@@ -77,6 +79,11 @@ library
       , postgresql-simple >= 0.7
       , ekg-core >=0.1.1
       , contravariant >=1.5
+      , persistent >=2.14
+      , persistent-postgresql >=2.14
+      , persistent-template >=2.14
+      , esqueleto >=3.5
+      , resource-pool >=0.2
 
      , ekg >=0.4.0
      , jose >=0.10 && <0.11
