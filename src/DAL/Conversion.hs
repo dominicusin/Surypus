@@ -63,7 +63,7 @@ userFromEntity :: Entity UserEntity -> T.User
 userFromEntity (Entity pid e) = T.User
   { T.userId = keyToInt pid
   , T.userName = userEntityUsername e
-   , T.userPasswordHash = Just (userEntityPasswordHash e)
+   , T.userPassword = Just (userEntityPasswordHash e)
   , T.userEmail = userEntityEmail e
   , T.userPersonId = userEntityPersonId e
   , T.userStatus = userEntityStatus e
@@ -116,6 +116,16 @@ accPlanFromEntity (Entity pid e) = T.AccPlan
   , T.accPlanCode = accPlanEntityCode e
   , T.accPlanName = accPlanEntityName e
   , T.accPlanType = accPlanEntityAccType e
+  }
+
+accTurnFromEntity :: Entity AccTurnEntity -> T.AccTurn
+accTurnFromEntity (Entity pid e) = T.AccTurn
+  { T.accTurnId = keyToInt pid
+  , T.accTurnDocId = accTurnEntityDocId e
+  , T.accTurnAccId = accTurnEntityDbtAccId e
+  , T.accTurnCorrId = accTurnEntityCrdAccId e
+  , T.accTurnAmount = accTurnEntityAmount e
+  , T.accTurnDate = accTurnEntityDate e
   }
 
 employeeFromEntity :: Entity EmployeeEntity -> T.Employee

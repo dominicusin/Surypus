@@ -26,17 +26,17 @@ import Network.HTTP.Types (status401)
 import Network.Wai as W
 import Servant
 import Surypus (
-    Bill (..),
-    BillInput (..),
-    Goods (..),
-    MutationResult (..),
-    Payment (..),
-    Person (..),
-    Pool,
-    QueryResult (..),
-    User (..),
-    UserInput (..),
- )
+     Bill (..),
+     BillInput (..),
+     Goods (..),
+     MutationResult (..),
+     Payment (..),
+     Person (..),
+     QueryResult (..),
+     User (..),
+     UserInput (..),
+     ConnectionPool
+    )
 import qualified Surypus.API.Bills as Bills
 import qualified Surypus.API.CRM as CRM
 import qualified Surypus.API.Classifiers as Classifiers
@@ -71,10 +71,10 @@ data LoginResponse = LoginResponse
 instance ToJSON LoginResponse
 
 data Env = Env
-    { envPool :: Pool
-    , envLogger :: Log.Logger
-    , envWSHandler :: Maybe WS.WebSocketHandler
-    }
+     { envPool :: ConnectionPool
+     , envLogger :: Log.Logger
+     , envWSHandler :: Maybe WS.WebSocketHandler
+     }
 
 correlationMiddleware :: Log.Logger -> Application -> Application
 correlationMiddleware logger app req respond = do

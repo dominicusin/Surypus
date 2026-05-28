@@ -18,7 +18,7 @@ module DAL.Repository (
 where
 
 import Control.Monad.Trans.Except (ExceptT)
-import DAL.Types (Pagination (..))
+import Surypus.DAL.Types (Pagination (..))
 import Data.Text (Text)
 import qualified Data.Text as T
 

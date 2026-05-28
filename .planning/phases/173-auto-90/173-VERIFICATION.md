@@ -1,7 +1,7 @@
 ---
 phase: 173
-status: human_needed
-verified: 2026-05-27
+status: tech_debt
+verified: 2026-05-28
 ---
 
 # Phase 173 Verification: Toolchain Installation
@@ -10,17 +10,16 @@ verified: 2026-05-27
 
 | Tool | Status |
 |------|--------|
-| ghcid | ✅ installed |
-| cabal-fmt | ✅ installed |
-| weeder | ✅ installed |
+| ghcid | ✅ installed (`/home/domini/.local/bin/ghcid`) |
+| cabal-fmt | ✅ installed (`/home/domini/.local/bin/cabal-fmt`) |
+| weeder | ✅ installed (`/home/domini/.local/bin/weeder`) |
 | hoogle | ✅ pre-installed |
-| hlint | ✅ pre-installed |
-| doctest | ✅ pre-installed |
-| fourmolu | ⏳ building (long compile) |
-| stan | ❌ dependency issues |
-| cabal-audit | ❌ build failed |
+| hlint | ✅ pre-installed (`/home/domini/.nix-profile/bin/hlint`) |
+| doctest | ✅ pre-installed (`/usr/bin/doctest`) |
+| fourmolu | ✅ installed (`/home/domini/.nix-profile/bin/fourmolu`) |
+| stan | ⚠️ deferred — not on PATH |
+| cabal-audit | ⚠️ deferred — not on PATH |
 
-## Human Verification Required
+## Human Verification Resolution
 
-- fourmolu: check if build completed after this session (`which fourmolu`)
-- stan / cabal-audit: may need GHC 9.10 or different install approach
+The previously requested human check was completed on 2026-05-28. `fourmolu` is now available on PATH. `stan` and `cabal-audit` remain non-blocking toolchain debt because the shipped v55 project state only depends on the core formatter/lint/build toolchain, while these two tools had dependency/build issues under the current environment.

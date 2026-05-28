@@ -11,95 +11,90 @@ build-type:     Simple
 library
   default-language: Haskell2010
   hs-source-dirs: src
-exposed-modules:
-        API.Integration.REST
-        Core.Services.Accounting
-        DAL.ClassifiersORM
-        DAL.Conversion
-        DAL.Database
-        DAL.EventStore
-        DAL.Migration
-        DAL.MutationsORM
-        DAL.ORMPool
-        DAL.Procedures
-        DAL.QueriesORM
-        DAL.Schema
-        DAL.Types
-      Finance.Accounting
-      Infrastructure.EventStore.Accounting
-      Infrastructure.EventStore.Inventory
-      Infrastructure.Redis.TaskQueue
-      Infrastructure.WebSocket.InventoryBroadcast
-      Integration.Adapter
-      Integration.Health
-      Inventory.Stock
-      Science.ML.DemandForecasting
-      Science.ML.Features
-      Security.Quantum.Crypto
-      Service.InventoryService
-      Surypus
-      Surypus.Core
-      Surypus.CoreTypes
-      Surypus.Foreign.QML
-      Surypus.JWT
-      Surypus.Metrics
-      Surypus.RBAC
-      Surypus.Refined
-      Surypus.Reports.Conversion.CrystalToPdfSlave
-      Surypus.Reports.Conversion.CrystalTypes
-      Surypus.Reports.Templates
-      Surypus.WebSocket
-      System.CircuitBreaker
+  exposed-modules:
+    API.Integration.REST
+    Core.Services.Accounting
+    DAL.ClassifiersORM
+    DAL.Conversion
+    DAL.Database
+    DAL.EventStore
+    DAL.Migration
+    DAL.MutationsORM
+    DAL.ORMPool
+    DAL.Procedures
+    DAL.QueriesORM
+    DAL.Schema
+    DAL.Types
+    Finance.Accounting
+    Infrastructure.EventStore.Accounting
+    Infrastructure.EventStore.Inventory
+    Infrastructure.Redis.TaskQueue
+    Infrastructure.WebSocket.InventoryBroadcast
+    Integration.Adapter
+    Integration.Health
+    Inventory.Stock
+    Science.ML.DemandForecasting
+    Science.ML.Features
+    Security.Quantum.Crypto
+    Service.InventoryService
+    Surypus
+    Surypus.Core
+    Surypus.CoreTypes
+    Surypus.Foreign.QML
+    Surypus.JWT
+    Surypus.Metrics
+    Surypus.RBAC
+    Surypus.Refined
+    Surypus.Reports.Conversion.CrystalToPdfSlave
+    Surypus.Reports.Conversion.CrystalTypes
+    Surypus.Reports.Templates
+    Surypus.WebSocket
+    System.CircuitBreaker
+  build-depends:
+    base >=4.12 && <5
+    , text >=1.2
+    , time >=1.8
+    , uuid >=1.3
+    , aeson >=2.2
+    , containers >=0.6
+    , vector >=0.12
+    , transformers >=0.5
+    , mtl >=2.3
+    , QuickCheck >=2.14
+    , Decimal >=0.5
+    , stm >=2.5
+    , directory >=1.3
+    , filepath >=1.4
+    , wai >=3.2
+    , warp >=3.3
+    , servant >=0.20
+    , servant-server >=0.20
+    , http-types >=0.12
+    , fast-logger >=3.2
+    , random >=1.2
+    , bytestring >=0.11
+    , http-client >=0.7
+    , lens >=5.2
+    , hspec >=2.11
+    , hasql >= 1.6
+    , hasql-pool >= 0.10
+    , resource-pool >=0.2 && <0.3
+    , persistent >=2.14
+    , persistent-postgresql >=2.14
+    , persistent-template >=2.14
+    , esqueleto >=3.5
+    , monad-logger >=0.3
+    , surypus-common >=0.1
+    , scotty >=0.12
+    , wai-extra >=3.1
+    , jose >=0.10 && <0.11
+    , websockets >=0.12
+    , cryptonite >=0.30
+    , ekg >=0.4.0
+    , messagepack >=0.5
+    , cborg >=0.2
+    , hedis >=0.14
 
-build-depends:
-         base >=4.12 && <5
-       , text >=1.2
-       , time >=1.8
-       , uuid >=1.3
-       , aeson >=2.2
-       , containers >=0.6
-       , vector >=0.12
-       , transformers >=0.5
-       , mtl >=2.3
-       , QuickCheck >=2.14
-       , Decimal >=0.5
-       , stm >=2.5
-       , directory >=1.3
-       , filepath >=1.4
-       , wai >=3.2
-       , warp >=3.3
-       , servant >=0.20
-       , servant-server >=0.20
-       , http-types >=0.12
-       , fast-logger >=3.2
-       , random >=1.2
-       , bytestring >=0.11
-       , http-client >=0.7
-       , lens >=5.2
-       , hspec >=2.11
-       , hasql >= 1.6
-       , hasql-pool >=0.10
-       , opaleye >= 0.10
-       , product-profunctors >= 0.11
-       , postgresql-simple >= 0.7
-       , ekg-core >=0.1.1
-       , contravariant >=1.5
-       , monad-logger >=0.3
-       , persistent >=2.14
-       , persistent-postgresql >=2.14
-       , persistent-template >=2.14
-       , esqueleto >=3.5
-       , resource-pool >=0.2
-       , ekg >=0.4.0
-       , jose >=0.10 && <0.11
-       , cryptonite >=0.30
-       , cborg >=0.2
-       , messagepack >=0.5
-       , websockets >=0.12
-       , hedis >=0.14
-       , surypus-common >=0.1
-       , scotty >=0.12
-       , wai-extra >=3.1
 
 test-suite surypus-test
   type: exitcode-stdio-1.0
@@ -107,16 +102,15 @@ test-suite surypus-test
   main-is: Test.hs
   build-depends:
       base >=4.12 && <5
-    , Surypus
-    , hspec
-    , QuickCheck
-    , text
-    , time
-    , aeson
-    , bytestring
-    , hasql
-    , hasql-pool
-    , stm
-    , containers
+      , Surypus
+      , hspec
+      , QuickCheck
+      , text
+      , time
+      , aeson
+      , bytestring
+      , hasql
+      , hasql-pool
+      , stm
+      , containers
   default-language: Haskell2010
-    
