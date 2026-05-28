@@ -70,24 +70,22 @@ goodsKey n = toSqlKey n
 billKey :: Int64 -> P.Key BillEntity
 billKey n = toSqlKey n
 
+billLineKey :: Int64 -> P.Key BillLineEntity
+billLineKey n = toSqlKey n
+
 locationKey :: Int64 -> P.Key LocationEntity
 locationKey n = toSqlKey n
 
 stockToKey :: Int64 -> Int64 -> P.Key StockEntity
 stockToKey _ _ = error "stockToKey: composite key not supported, use stockByGoodsLocationId"
 
-runDbMutation :: ConnectionPool -> P.PersistStoreWrite backend => P.Statement backend a -> IO (QueryResult a)
+runDbMutation :: ConnectionPool -> SqlPersistT IO a -> IO (QueryResult a)
 runDbMutation pool stmt = do
     result <- liftIO $ runSqlPool stmt pool
     return $ QuerySuccess result
 
-insertReturning :: ConnectionPool -> P.EntityDef record -> IO (QueryResult (P.Key record))
-insertReturning pool entityDef = do
-    key <- liftIO $ runSqlPool (P.insertEntity entityDef) pool
-    return $ QuerySuccess key
-
 runMutation :: ConnectionPool -> Text -> IO (QueryResult MutationResult)
-runMutation pool msg = return $ QuerySuccess (MutationResult True Nothing msg)
+runMutation _ msg = return $ QuerySuccess (MutationResult True Nothing msg)
 
 createPerson :: ConnectionPool -> PersonInput -> IO (QueryResult MutationResult)
 createPerson pool input = do
@@ -105,7 +103,7 @@ updatePerson :: ConnectionPool -> Int64 -> PersonInput -> IO (QueryResult Mutati
 updatePerson pool pid input = do
     _ <- liftIO $ runSqlPool (P.update (personKey pid)
         [ PersonEntityCode P.=. piCode input
-        , PersonEntityName P.=. Just (piName input)
+        , PersonEntityName P.=. piName input
         , PersonEntityInn P.=. piINN input
         , PersonEntityKpp P.=. piKPP input
         , PersonEntityPersonType P.=. piPersonType input
@@ -142,7 +140,7 @@ updateGoods :: ConnectionPool -> Int64 -> GoodsInput -> IO (QueryResult Mutation
 updateGoods pool gid input = do
     _ <- liftIO $ runSqlPool (P.update (goodsKey gid)
         [ GoodsEntityCode P.=. giCode input
-        , GoodsEntityName P.=. Just (giName input)
+        , GoodsEntityName P.=. giName input
         , GoodsEntityBarcode P.=. giBarcode input
         , GoodsEntityUnitId P.=. Just (giUnitId input)
         , GoodsEntityCategoryId P.=. giParentId input
@@ -240,7 +238,7 @@ addBillLine pool bid input = do
 
 deleteBillLine :: ConnectionPool -> Int64 -> IO (QueryResult MutationResult)
 deleteBillLine pool blid = do
-    _ <- liftIO $ runSqlPool (P.delete (P.toSqlKey (P.persistInt64 blid))) pool
+    _ <- liftIO $ runSqlPool (P.delete (billLineKey blid)) pool
     return $ QuerySuccess (MutationResult True (Just blid) "Bill line deleted")
 
 deleteBill :: ConnectionPool -> Int64 -> IO (QueryResult MutationResult)
@@ -273,27 +271,44 @@ deleteLocation pool lid = do
 
 updateStock :: ConnectionPool -> Int64 -> Int64 -> Double -> IO (QueryResult MutationResult)
 updateStock pool goodsId locationId qty = do
-    _ <- liftIO $ runSqlPool (P.updateWhere
-        [ StockEntityQtty P.=. qty ]
-        [ StockEntityGoodsId P.=. goodsId, StockEntityLocationId P.=. locationId ]) pool
+    _ <- liftIO $ runSqlPool
+        (P.updateWhere
+            [ StockEntityGoodsId P.==. goodsId
+            , StockEntityLocationId P.==. locationId
+            ]
+            [ StockEntityQtty P.=. qty ]) pool
     return $ QuerySuccess (MutationResult True Nothing "Stock updated")
 
 reserveStock :: ConnectionPool -> Int64 -> Int64 -> Double -> IO (QueryResult MutationResult)
 reserveStock pool goodsId locationId qty = do
-    _ <- liftIO $ runSqlPool (P.updateWhere
-        [ StockEntityResrvQtty P.=. (StockEntityResrvQtty +. val qty) ]
-        [ StockEntityGoodsId P.=. goodsId, StockEntityLocationId P.=. locationId ]) pool
-    return $ QuerySuccess (MutationResult True Nothing "Stock reserved")
+    current <- liftIO $ runSqlPool
+        (P.selectFirst
+            [ StockEntityGoodsId P.==. goodsId
+            , StockEntityLocationId P.==. locationId
+            ] []) pool
+    case current of
+        Just (P.Entity sid stock) -> do
+            _ <- liftIO $ runSqlPool
+                (P.update sid [ StockEntityResrvQtty P.=. (stockEntityResrvQtty stock + qty) ]) pool
+            return $ QuerySuccess (MutationResult True Nothing "Stock reserved")
+        Nothing ->
+            return $ QuerySuccess (MutationResult True Nothing "Stock reserved")
 
 releaseStock :: ConnectionPool -> Int64 -> Int64 -> Double -> IO (QueryResult MutationResult)
 releaseStock pool goodsId locationId qty = do
-    _ <- liftIO $ runSqlPool (P.updateWhere
-        [ StockEntityResrvQtty P.=. (StockEntityResrvQtty -. val qty) ]
-        [ StockEntityGoodsId P.=. goodsId
-        , StockEntityLocationId P.=. locationId
-        , StockEntityResrvQtty P.>=. qty
-        ]) pool
-    return $ QuerySuccess (MutationResult True Nothing "Stock released")
+    current <- liftIO $ runSqlPool
+        (P.selectFirst
+            [ StockEntityGoodsId P.==. goodsId
+            , StockEntityLocationId P.==. locationId
+            , StockEntityResrvQtty P.>=. qty
+            ] []) pool
+    case current of
+        Just (P.Entity sid stock) -> do
+            _ <- liftIO $ runSqlPool
+                (P.update sid [ StockEntityResrvQtty P.=. (stockEntityResrvQtty stock - qty) ]) pool
+            return $ QuerySuccess (MutationResult True Nothing "Stock released")
+        Nothing ->
+            return $ QuerySuccess (MutationResult True Nothing "Stock released")
 
 createOrder :: ConnectionPool -> OrderInput -> IO (QueryResult MutationResult)
 createOrder pool input = do
@@ -384,7 +399,7 @@ createPrice pool input = do
         , goodsPriceEntityPriceType = priPriceType input
         , goodsPriceEntityPrice = priPrice input
         , goodsPriceEntityMinPrice = 0
-        , goodsPriceEntityStartDate = priFromDate input
+        , goodsPriceEntityStartDate = Just (priFromDate input)
         , goodsPriceEntityEndDate = priToDate input
         }
     key <- liftIO $ runSqlPool (P.insert entity) pool

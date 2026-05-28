@@ -92,7 +92,7 @@ module DAL.Classifiers (
     getOknpoByCode,
 ) where
 
-import Surypus.DAL.Types
+import DAL.Types
 import Data.Int (Int64)
 import Data.Text (Text)
 import qualified Data.Text as T

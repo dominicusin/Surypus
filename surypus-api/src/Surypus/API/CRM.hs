@@ -45,7 +45,7 @@ module Surypus.API.CRM (
 ) where
 
 import DAL.Database (Pool, usePool)
-import Surypus.DAL.Types (QueryResult (..))
+import DAL.Types (QueryResult (..))
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Functor.Contravariant ((>$<))
 import Data.Functor.Contravariant.Divisible (divided)

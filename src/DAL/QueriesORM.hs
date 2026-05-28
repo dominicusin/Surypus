@@ -19,20 +19,6 @@ import DAL.Schema
 import DAL.Types
 import DAL.Conversion
 
--- | Helper to run a query and wrap in QueryResult
-runDb :: ConnectionPool -> SqlQuery (E.Value a) -> IO (QueryResult a)
-runDb pool query = do
-  result <- liftIO $ runSqlPool (select query) pool
-  case result of
-    [] -> return $ QueryError "Not Found"
-    [x] -> return $ QuerySuccess (unValue x)
-    _ -> return $ QuerySuccess (unValue (head result))
-
-runDbList :: ConnectionPool -> SqlQuery (E.Value a) -> IO (QueryResult [a])
-runDbList pool query = do
-  results <- liftIO $ runSqlPool (select query) pool
-  return $ QuerySuccess (map unValue results)
-
 -- | Key helpers
 personKey :: Int64 -> P.Key PersonEntity
 personKey n = toSqlKey n
@@ -143,10 +129,10 @@ searchPersons pool query = do
   entities <- liftIO $ runSqlPool
     (select $ do
       p <- from $ table @PersonEntity
-      let pattern = "%" <> query <> "%"
-      where_ $ (p ^. PersonEntityName `ilike` val pattern
-               ) ||. (p ^. PersonEntityInn `ilike` val pattern
-               ) ||. (p ^. PersonEntityCode `ilike` val pattern)
+      let valPattern = "%" <> query <> "%"
+      where_ $ (p ^. PersonEntityName `ilike` val valPattern
+               ) ||. (p ^. PersonEntityInn `ilike` val (Just valPattern)
+               ) ||. (p ^. PersonEntityCode `ilike` val (Just valPattern))
       orderBy [asc $ p ^. PersonEntityId]
       return p)
     pool
@@ -182,10 +168,10 @@ searchGoods pool query = do
   entities <- liftIO $ runSqlPool
     (select $ do
       g <- from $ table @GoodsEntity
-      let pattern = "%" <> query <> "%"
-      where_ $ (g ^. GoodsEntityName `ilike` val pattern
-               ) ||. (g ^. GoodsEntityCode `ilike` val pattern
-               ) ||. (g ^. GoodsEntityBarcode `ilike` val pattern)
+      let valPattern = "%" <> query <> "%"
+      where_ $ (g ^. GoodsEntityName `ilike` val valPattern
+               ) ||. (g ^. GoodsEntityCode `ilike` val (Just valPattern)
+               ) ||. (g ^. GoodsEntityBarcode `ilike` val (Just valPattern))
       orderBy [asc $ g ^. GoodsEntityId]
       return g)
     pool

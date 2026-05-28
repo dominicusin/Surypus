@@ -22,7 +22,7 @@ These are composed using Applicative style for clarity.
 -}
 module DAL.Queries where
 
-import Surypus.DAL.Types
+import DAL.Types
 import Data.Functor.Contravariant ((>$<))
 import Data.Int (Int16, Int64)
 import Data.Text (Text, splitOn)

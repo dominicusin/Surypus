@@ -35,7 +35,7 @@ import Surypus (
      QueryResult (..),
      User (..),
      UserInput (..),
-     ConnectionPool
+     Pool
     )
 import qualified Surypus.API.Bills as Bills
 import qualified Surypus.API.CRM as CRM
@@ -71,7 +71,7 @@ data LoginResponse = LoginResponse
 instance ToJSON LoginResponse
 
 data Env = Env
-     { envPool :: ConnectionPool
+     { envPool :: Pool
      , envLogger :: Log.Logger
      , envWSHandler :: Maybe WS.WebSocketHandler
      }

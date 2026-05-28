@@ -20,7 +20,7 @@ module Surypus.API.Notifications (
 
 import Control.Monad (join)
 import DAL.Database (Pool, usePool)
-import Surypus.DAL.Types (QueryResult (..))
+import DAL.Types (QueryResult (..))
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Functor.Contravariant ((>$<))
 import Data.Int (Int64)

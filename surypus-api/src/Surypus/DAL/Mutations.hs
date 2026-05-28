@@ -36,7 +36,7 @@ import Hasql.Statement (Statement (..))
 -- Import types from the main Surypus package
 
 import qualified DAL.Queries as Queries
-import Surypus.DAL.Types
+import DAL.Types
 
 -- | Helper to create non-prepared statements (old hasql API compatibility)
 unpreparable :: T.Text -> E.Params params -> D.Result result -> Statement params result

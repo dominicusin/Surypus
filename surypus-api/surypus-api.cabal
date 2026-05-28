@@ -105,6 +105,7 @@ executable surypus-api
   main-is:            Main.hs
   build-depends:
     , base
+    , bytestring
     , hasql
     , hasql-pool
     , Surypus

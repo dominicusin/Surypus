@@ -16,7 +16,7 @@ module Surypus.API.Dashboard (
 ) where
 
 import DAL.Database (Pool, usePool)
-import Surypus.DAL.Types (QueryResult (..))
+import DAL.Types (QueryResult (..))
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Int (Int64)
 import Data.Text (Text)

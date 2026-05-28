@@ -14,7 +14,7 @@ module Surypus.API.Orders (
 ) where
 
 import DAL.Database (Pool, usePool)
-import Surypus.DAL.Types (QueryResult (..))
+import DAL.Types (QueryResult (..))
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Functor.Contravariant ((>$<))
 import Data.Text (Text)
