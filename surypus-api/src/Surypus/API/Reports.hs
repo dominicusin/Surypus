@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Surypus.API.Reports (
     Report (..),
@@ -8,19 +9,17 @@ module Surypus.API.Reports (
     getInventoryReport,
 ) where
 
-import DAL.Database (Pool, usePool)
+import Control.Monad.IO.Class (liftIO)
 import DAL.Types (QueryResult (..))
 import Data.Aeson (ToJSON, object, (.=))
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
+import Data.Int (Int64)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Text.Encoding (decodeUtf8)
+import Database.Persist.Sql (ConnectionPool, rawSql, runSqlPool, Single (..))
 import GHC.Generics (Generic)
-import qualified Hasql.Decoders as D
-import qualified Hasql.Encoders as E
-import qualified Hasql.Session as Session
-import qualified Hasql.Statement as Statement
 
 data Report = Report
     { rptName :: !Text
@@ -51,36 +50,27 @@ data InvItem = InvItem
 
 instance ToJSON InvItem
 
-generateReport :: Pool -> Text -> IO (QueryResult Report)
+generateReport :: ConnectionPool -> Text -> IO (QueryResult Report)
 generateReport pool reportName = case reportName of
     "pnl" -> getPnLReport pool
     "inventory" -> getInventoryReport pool
     _ -> return $ QuerySuccess (Report reportName "{}")
 
-getPnLReport :: Pool -> IO (QueryResult Report)
+getPnLReport :: ConnectionPool -> IO (QueryResult Report)
 getPnLReport pool = do
-    let stmt =
-            Statement.Statement
-                "SELECT \
-                \  COALESCE((SELECT SUM(total) FROM bill WHERE doc_date >= date_trunc('month', CURRENT_DATE)), 0)::float8, \
-                \  COALESCE((SELECT SUM(qtty * unit_cost) FROM stock_movement \
-                \             WHERE movement_date >= date_trunc('month', CURRENT_DATE)), 0)::float8, \
-                \  COALESCE((SELECT SUM(total) FROM bill WHERE doc_date >= date_trunc('month', CURRENT_DATE) \
-                \             AND total > 0), 0)::float8, \
-                \  COALESCE((SELECT SUM(total) FROM bill WHERE doc_date >= date_trunc('month', CURRENT_DATE) \
-                \             AND total < 0), 0)::float8"
-                E.noParams
-                ( D.singleRow $
-                    PnLRow
-                        <$> D.column (D.nonNullable D.float8)
-                        <*> D.column (D.nonNullable D.float8)
-                        <*> D.column (D.nonNullable D.float8)
-                        <*> D.column (D.nonNullable D.float8)
-                )
-                True
-    res <- usePool pool $ Session.statement () stmt
-    case res of
-        Right (PnLRow revenue cogs income expenses) -> do
+    result <- liftIO $ runSqlPool
+        (rawSql
+            "SELECT \
+            \  COALESCE((SELECT SUM(total_amount) FROM bill WHERE doc_date >= date_trunc('month', CURRENT_DATE)), 0), \
+            \  COALESCE((SELECT SUM(qtty * unit_cost) FROM stock_movement \
+            \             WHERE movement_date >= date_trunc('month', CURRENT_DATE)), 0), \
+            \  COALESCE((SELECT SUM(total_amount) FROM bill WHERE doc_date >= date_trunc('month', CURRENT_DATE) \
+            \             AND total_amount > 0), 0), \
+            \  COALESCE((SELECT SUM(total_amount) FROM bill WHERE doc_date >= date_trunc('month', CURRENT_DATE) \
+            \             AND total_amount < 0), 0)"
+            []) pool
+    case result of
+        [(Single (revenue :: Double), Single (cogs :: Double), Single (income :: Double), Single (expenses :: Double))] -> do
             let jsonData =
                     decodeUtf8 . BL.toStrict $
                         Aeson.encode $
@@ -94,40 +84,30 @@ getPnLReport pool = do
                                 , "currency" .= ("RUB" :: Text)
                                 ]
             return $ QuerySuccess (Report "P&L Statement" jsonData)
-        Left err -> return $ QueryError (T.pack $ show err)
+        _ -> return $ QuerySuccess (Report "P&L Statement" "{}")
 
-getInventoryReport :: Pool -> IO (QueryResult Report)
+getInventoryReport :: ConnectionPool -> IO (QueryResult Report)
 getInventoryReport pool = do
-    let stmt =
-            Statement.Statement
-                "SELECT g.name::TEXT, g.code::TEXT, COALESCE(s.qtty, 0)::float8, \
-                \  COALESCE(s.unit_cost, 0)::float8, \
-                \  COALESCE(s.qtty * s.unit_cost, 0)::float8 \
-                \FROM goods g \
-                \LEFT JOIN stock s ON s.goods_id = g.id \
-                \ORDER BY g.name"
-                E.noParams
-                ( D.rowList $
-                    InvItem
-                        <$> D.column (D.nonNullable D.text)
-                        <*> D.column (D.nonNullable D.text)
-                        <*> D.column (D.nonNullable D.float8)
-                        <*> D.column (D.nonNullable D.float8)
-                        <*> D.column (D.nonNullable D.float8)
-                )
-                True
-    res <- usePool pool $ Session.statement () stmt
-    case res of
-        Right rows -> do
-            let totalValue = sum (map invTotalValue rows)
-            let jsonData =
-                    decodeUtf8 . BL.toStrict $
-                        Aeson.encode $
-                            object
-                                [ "items" .= rows
-                                , "totalValue" .= totalValue
-                                , "itemCount" .= length rows
-                                , "currency" .= ("RUB" :: Text)
-                                ]
-            return $ QuerySuccess (Report "Inventory Report" jsonData)
-        Left err -> return $ QueryError (T.pack $ show err)
+    result <- liftIO $ runSqlPool
+        (rawSql
+            "SELECT g.name, g.code, COALESCE(s.qtty, 0), \
+            \  COALESCE(s.unit_cost, 0), \
+            \  COALESCE(s.qtty * s.unit_cost, 0) \
+            \FROM goods g \
+            \LEFT JOIN stock s ON s.goods_id = g.id \
+            \ORDER BY g.name"
+            []) pool
+    let rows = [ InvItem name code qty unitCost totalValue
+               | (Single (name :: Text), Single (code :: Text), Single (qty :: Double), Single (unitCost :: Double), Single (totalValue :: Double)) <- result
+               ]
+    let totalValue = sum (map invTotalValue rows)
+    let jsonData =
+            decodeUtf8 . BL.toStrict $
+                Aeson.encode $
+                    object
+                        [ "items" .= rows
+                        , "totalValue" .= totalValue
+                        , "itemCount" .= length rows
+                        , "currency" .= ("RUB" :: Text)
+                        ]
+    return $ QuerySuccess (Report "Inventory Report" jsonData)

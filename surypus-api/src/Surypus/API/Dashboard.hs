@@ -1,31 +1,26 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 
 module Surypus.API.Dashboard (
     DashboardKPI (..),
     RevenuePoint (..),
     OrderStatus (..),
     StockSummary (..),
-    PartnerSummary (..),
     getDashboardKPI,
     getRevenueTrend,
     getOrderStatuses,
     getStockSummary,
 ) where
 
-import DAL.Database (Pool, usePool)
+import Control.Monad.IO.Class (liftIO)
 import DAL.Types (QueryResult (..))
-import Data.Aeson (FromJSON, ToJSON)
+import Data.Aeson (ToJSON)
 import Data.Int (Int64)
 import Data.Text (Text)
 import qualified Data.Text as T
+import Database.Persist.Sql (ConnectionPool, rawSql, runSqlPool, Single (..))
 import GHC.Generics (Generic)
-import qualified Hasql.Decoders as D
-import qualified Hasql.Encoders as E
-import qualified Hasql.Session as Session
-import qualified Hasql.Statement as Statement
 
 data DashboardKPI = DashboardKPI
     { kpiRevenue :: !Double
@@ -64,98 +59,60 @@ data StockSummary = StockSummary
 
 instance ToJSON StockSummary
 
-data PartnerSummary = PartnerSummary
-    { psType :: !Text
-    , psCount :: !Int64
-    , psActive :: !Int64
-    }
-    deriving (Show, Eq, Generic)
-
-instance ToJSON PartnerSummary
-
-getDashboardKPI :: Pool -> IO (QueryResult DashboardKPI)
+getDashboardKPI :: ConnectionPool -> IO (QueryResult DashboardKPI)
 getDashboardKPI pool = do
-    let stmt =
-            Statement.Statement
-                "SELECT \
-                \  COALESCE((SELECT SUM(total_amount) FROM bills WHERE status = 'POSTED'), 0), \
-                \  COALESCE((SELECT COUNT(*) FROM bills), 0), \
-                \  COALESCE((SELECT COUNT(*) FROM goods WHERE is_active), 0), \
-                \  COALESCE((SELECT COUNT(*) FROM persons), 0)"
-                E.noParams
-                ( D.singleRow $
-                    DashboardKPI
-                        <$> D.column (D.nonNullable D.float8)
-                        <*> (fromIntegral <$> D.column (D.nonNullable D.int8))
-                        <*> (fromIntegral <$> D.column (D.nonNullable D.int8))
-                        <*> (fromIntegral <$> D.column (D.nonNullable D.int8))
-                )
-                True
-    result <- usePool pool $ Session.statement () stmt
+    result <- liftIO $ runSqlPool
+        (rawSql
+            "SELECT \
+            \  COALESCE((SELECT SUM(total_amount) FROM bills WHERE status = 'POSTED'), 0), \
+            \  COALESCE((SELECT COUNT(*) FROM bills), 0), \
+            \  COALESCE((SELECT COUNT(*) FROM goods WHERE is_active), 0), \
+            \  COALESCE((SELECT COUNT(*) FROM persons), 0)"
+            []) pool
     case result of
-        Right kpi -> return $ QuerySuccess kpi
-        Left err -> return $ QueryError (T.pack $ show err)
+        [(Single rev, Single ord, Single goods, Single parts)] ->
+            return $ QuerySuccess (DashboardKPI rev ord goods parts)
+        _ -> return $ QuerySuccess (DashboardKPI 0 0 0 0)
 
-getRevenueTrend :: Pool -> IO (QueryResult [RevenuePoint])
+getRevenueTrend :: ConnectionPool -> IO (QueryResult [RevenuePoint])
 getRevenueTrend pool = do
-    let stmt =
-            Statement.Statement
-                "SELECT \
-                \  TO_CHAR(bill_date, 'YYYY-MM'), \
-                \  SUM(total_amount), \
-                \  COUNT(*) \
-                \FROM bills \
-                \WHERE bill_date >= NOW() - INTERVAL '12 months' \
-                \GROUP BY TO_CHAR(bill_date, 'YYYY-MM') \
-                \ORDER BY 1"
-                E.noParams
-                ( D.rowList $
-                    RevenuePoint
-                        <$> D.column (D.nonNullable D.text)
-                        <*> D.column (D.nonNullable D.float8)
-                        <*> (fromIntegral <$> D.column (D.nonNullable D.int8))
-                )
-                True
-    result <- usePool pool $ Session.statement () stmt
-    case result of
-        Right points -> return $ QuerySuccess points
-        Left err -> return $ QueryError (T.pack $ show err)
+    result <- liftIO $ runSqlPool
+        (rawSql
+            "SELECT \
+            \  TO_CHAR(bill_date, 'YYYY-MM'), \
+            \  SUM(total_amount), \
+            \  COUNT(*) \
+            \FROM bills \
+            \WHERE bill_date >= NOW() - INTERVAL '12 months' \
+            \GROUP BY TO_CHAR(bill_date, 'YYYY-MM') \
+            \ORDER BY 1"
+            []) pool
+    return $ QuerySuccess
+        [ RevenuePoint month total count
+        | (Single month, Single total, Single count) <- result
+        ]
 
-getOrderStatuses :: Pool -> IO (QueryResult [OrderStatus])
+getOrderStatuses :: ConnectionPool -> IO (QueryResult [OrderStatus])
 getOrderStatuses pool = do
-    let stmt =
-            Statement.Statement
-                "SELECT status, COUNT(*), SUM(total_amount) \
-                \FROM bills GROUP BY status"
-                E.noParams
-                ( D.rowList $
-                    OrderStatus
-                        <$> D.column (D.nonNullable D.text)
-                        <*> (fromIntegral <$> D.column (D.nonNullable D.int8))
-                        <*> D.column (D.nonNullable D.float8)
-                )
-                True
-    result <- usePool pool $ Session.statement () stmt
-    case result of
-        Right statuses -> return $ QuerySuccess statuses
-        Left err -> return $ QueryError (T.pack $ show err)
+    result <- liftIO $ runSqlPool
+        (rawSql
+            "SELECT status, COUNT(*), SUM(total_amount) \
+            \FROM bills GROUP BY status"
+            []) pool
+    return $ QuerySuccess
+        [ OrderStatus status count total
+        | (Single status, Single count, Single total) <- result
+        ]
 
-getStockSummary :: Pool -> IO (QueryResult StockSummary)
+getStockSummary :: ConnectionPool -> IO (QueryResult StockSummary)
 getStockSummary pool = do
-    let stmt =
-            Statement.Statement
-                "SELECT COUNT(*), SUM(CASE WHEN is_active THEN 1 ELSE 0 END), \
-                \  COUNT(DISTINCT category_id) \
-                \FROM goods"
-                E.noParams
-                ( D.singleRow $
-                    StockSummary
-                        <$> (fromIntegral <$> D.column (D.nonNullable D.int8))
-                        <*> (fromIntegral <$> D.column (D.nonNullable D.int8))
-                        <*> (fromIntegral <$> D.column (D.nonNullable D.int8))
-                )
-                True
-    result <- usePool pool $ Session.statement () stmt
+    result <- liftIO $ runSqlPool
+        (rawSql
+            "SELECT COUNT(*), SUM(CASE WHEN is_active THEN 1 ELSE 0 END), \
+            \  COUNT(DISTINCT category_id) \
+            \FROM goods"
+            []) pool
     case result of
-        Right summary -> return $ QuerySuccess summary
-        Left err -> return $ QueryError (T.pack $ show err)
+        [(Single total, Single active, Single categories)] ->
+            return $ QuerySuccess (StockSummary total active categories)
+        _ -> return $ QueryError "Failed to get stock summary"

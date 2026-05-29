@@ -312,10 +312,10 @@ goodsList env = liftQ $ Goods.listGoods (envConnectionPool env)
 personsList env = liftQ $ Persons.listPersons (envConnectionPool env) Nothing Nothing Nothing Nothing Nothing
 paymentsList env = liftQ $ Payments.listPayments (envConnectionPool env)
 
-dashboardKPI env = liftQ $ Dashboard.getDashboardKPI (envPool env)
-dashboardRevenue env = liftQ $ Dashboard.getRevenueTrend (envPool env)
-dashboardOrders env = liftQ $ Dashboard.getOrderStatuses (envPool env)
-dashboardStock env = liftQ $ fmap (\s -> [s]) <$> Dashboard.getStockSummary (envPool env)
+dashboardKPI env = liftQ $ Dashboard.getDashboardKPI (envConnectionPool env)
+dashboardRevenue env = liftQ $ Dashboard.getRevenueTrend (envConnectionPool env)
+dashboardOrders env = liftQ $ Dashboard.getOrderStatuses (envConnectionPool env)
+dashboardStock env = liftQ $ fmap (\s -> [s]) <$> Dashboard.getStockSummary (envConnectionPool env)
 
 crmDealsList env = liftQ $ CRM.listDeals (envPool env)
 crmDealCreate env i = liftQ $ CRM.createDeal (envPool env) i
@@ -352,8 +352,8 @@ notificationsSendTest env =
             (Notifications.NotificationInput 1 "Test" "Test notification" "test")
 notificationsSendDigest env f = liftQ $ Notifications.sendDigestNotification (envPool env) 1 f
 
-reportsPnL env = liftQ $ Reports.getPnLReport (envPool env)
-reportsInventory env = liftQ $ Reports.getInventoryReport (envPool env)
+reportsPnL env = liftQ $ Reports.getPnLReport (envConnectionPool env)
+reportsInventory env = liftQ $ Reports.getInventoryReport (envConnectionPool env)
 
 ordersList env = liftQ $ Orders.listOrders (envPool env)
 ordersCreate env i = liftQ $ Orders.createOrder (envPool env) i
