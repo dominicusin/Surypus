@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -10,34 +11,49 @@ module Surypus.API.Payment (
 )
 where
 
-import DAL.Database (Pool)
+import Control.Monad.IO.Class (liftIO)
+import DAL.Database (ConnectionPool)
 import qualified DAL.Mutations as Mut
-import DAL.Queries (getPaymentById, getPayments)
 import DAL.Types (MutationResult (..), Payment (..), PaymentInput (..), QueryResult (..))
 import Data.Int (Int64)
+import Database.Esqueleto.Experimental
+import Database.Persist.Sql (runSqlPool, toSqlKey)
+import DAL.Conversion (paymentFromEntity)
+import DAL.Schema
 
--- | List all payments using DAL.Queries
-listPayments :: Pool -> IO (QueryResult [Payment])
-listPayments pool = getPayments pool
+listPayments :: ConnectionPool -> IO (QueryResult [Payment])
+listPayments pool = do
+    entities <- liftIO $ runSqlPool
+        (select $ do
+            p <- from $ table @PaymentEntity
+            orderBy [desc $ p ^. PaymentEntityDate, desc $ p ^. PaymentEntityId]
+            return p
+        ) pool
+    return $ QuerySuccess (map paymentFromEntity entities)
 
--- | Create a new payment using DAL.Mutations
-createPayment :: Pool -> PaymentInput -> IO (QueryResult MutationResult)
+createPayment :: ConnectionPool -> PaymentInput -> IO (QueryResult MutationResult)
 createPayment = Mut.createPayment
 
--- | Get a specific payment by ID using DAL.Queries
-getPayment :: Pool -> Int64 -> IO (QueryResult Payment)
-getPayment pool pid = getPaymentById pool pid
+getPayment :: ConnectionPool -> Int64 -> IO (QueryResult Payment)
+getPayment pool pid = do
+    result <- liftIO $ runSqlPool
+        (selectOne $ do
+            p <- from $ table @PaymentEntity
+            where_ $ p ^. PaymentEntityId ==. val (toSqlKey pid)
+            return p
+        ) pool
+    case result of
+        Nothing -> return $ QueryError "Not Found"
+        Just entity -> return $ QuerySuccess (paymentFromEntity entity)
 
--- | Update a payment using DAL.Mutations
-updatePayment :: Pool -> Int64 -> PaymentInput -> IO (QueryResult Payment)
+updatePayment :: ConnectionPool -> Int64 -> PaymentInput -> IO (QueryResult Payment)
 updatePayment pool pid input = do
     result <- Mut.updatePayment pool pid input
     case result of
-        QuerySuccess _ -> getPaymentById pool pid
+        QuerySuccess _ -> getPayment pool pid
         QueryError err -> return $ QueryError err
 
--- | Delete a payment using DAL.Mutations
-deletePayment :: Pool -> Int64 -> IO (QueryResult ())
+deletePayment :: ConnectionPool -> Int64 -> IO (QueryResult ())
 deletePayment pool pid = do
     result <- Mut.deletePayment pool pid
     case result of

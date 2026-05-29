@@ -11,6 +11,7 @@ module Surypus.API.Server (apiServer) where
 import Control.Monad.IO.Class (liftIO)
 import qualified DAL.Mutations
 import qualified DAL.Types as DAL
+import DAL.Database (Pool, ConnectionPool)
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Int (Int64)
 import Data.Text (Text)
@@ -34,8 +35,7 @@ import Surypus (
      Person (..),
      QueryResult (..),
      User (..),
-     UserInput (..),
-     Pool
+     UserInput (..)
     )
 import qualified Surypus.API.Bills as Bills
 import qualified Surypus.API.CRM as CRM
@@ -72,6 +72,7 @@ instance ToJSON LoginResponse
 
 data Env = Env
      { envPool :: Pool
+     , envConnectionPool :: ConnectionPool
      , envLogger :: Log.Logger
      , envWSHandler :: Maybe WS.WebSocketHandler
      }
@@ -100,9 +101,9 @@ authMiddleware app req respond = do
                             Left _ -> respond $ W.responseLBS status401 [("Content-Type", "text/plain")] "Invalid token"
                             Right _ -> app req respond
 
-apiServer :: Pool -> Log.Logger -> Application
-apiServer pool logger =
-    let env = Env pool logger Nothing
+apiServer :: Pool -> ConnectionPool -> Log.Logger -> Application
+apiServer pool connPool logger =
+    let env = Env pool connPool logger Nothing
      in correlationMiddleware logger $ authMiddleware (serve (Proxy @SurypusApi) (server env))
 
 -- ── API type ────────────────────────────────────────────────────────────────
@@ -294,22 +295,22 @@ liftQ action = liftIO action >>= \r -> ok r pure
 
 handleLogin :: Env -> LoginRequest -> Handler LoginResponse
 handleLogin env req = do
-    result <- liftIO $ DAL.Mutations.authenticateUser (envPool env) (lrUsername req) (lrPassword req)
+    result <- liftIO $ DAL.Mutations.authenticateUser (envConnectionPool env) (lrUsername req) (lrPassword req)
     case result of
         QueryError e -> throwError $ err500{errBody = LBS.encodeUtf8 (TL.fromStrict e)}
         QuerySuccess Nothing -> throwError err401
         QuerySuccess (Just user) -> do
-            token <- liftIO $ JWT.generateToken (envPool env) user
+            token <- liftIO $ JWT.generateToken (envConnectionPool env) user
             pure $ LoginResponse token Nothing (DAL.userId user) 3600
 
-billsList env = liftQ $ Bills.listBills (envPool env)
-billsCreate env i = liftQ $ fmap (const (Bill 0 Nothing 0 0 (fromGregorian 2000 1 1) Nothing Nothing 0 0 0)) <$> Bills.createBill (envPool env) i
-billGet env bid = liftQ $ Bills.getBill (envPool env) bid
+billsList env = liftQ $ Bills.listBills (envConnectionPool env)
+billsCreate env i = liftQ $ fmap (const (Bill 0 Nothing 0 0 (fromGregorian 2000 1 1) Nothing Nothing 0 0 0)) <$> Bills.createBill (envConnectionPool env) i
+billGet env bid = liftQ $ Bills.getBill (envConnectionPool env) bid
 billPost env bid = liftQ $ Bills.postBill (envPool env) bid
 
-goodsList env = liftQ $ Goods.listGoods (envPool env)
-personsList env = liftQ $ Persons.listPersons (envPool env) Nothing Nothing Nothing Nothing Nothing
-paymentsList env = liftQ $ Payments.listPayments (envPool env)
+goodsList env = liftQ $ Goods.listGoods (envConnectionPool env)
+personsList env = liftQ $ Persons.listPersons (envConnectionPool env) Nothing Nothing Nothing Nothing Nothing
+paymentsList env = liftQ $ Payments.listPayments (envConnectionPool env)
 
 dashboardKPI env = liftQ $ Dashboard.getDashboardKPI (envPool env)
 dashboardRevenue env = liftQ $ Dashboard.getRevenueTrend (envPool env)
@@ -364,10 +365,10 @@ integrationsList env = liftQ $ Integrations.listIntegrations (envPool env)
 integrationGet env iid = liftQ $ Integrations.getIntegration (envPool env) iid
 integrationUpdateStatus env iid status = liftQ $ Integrations.updateIntegrationStatus (envPool env) iid status
 
-usersList env = liftQ $ DAL.Mutations.listUsers (envPool env)
-usersCreate env i = liftQ $ DAL.Mutations.createUser (envPool env) i
-usersGet env uid = liftQ $ DAL.Mutations.getUser (envPool env) uid
-usersUpdate env uid i = liftQ $ DAL.Mutations.updateUser (envPool env) uid i
+usersList env = liftQ $ DAL.Mutations.listUsers (envConnectionPool env)
+usersCreate env i = liftQ $ DAL.Mutations.createUser (envConnectionPool env) i
+usersGet env uid = liftQ $ DAL.Mutations.getUser (envConnectionPool env) uid
+usersUpdate env uid i = liftQ $ DAL.Mutations.updateUser (envConnectionPool env) uid i
 
 workflowsList env = liftQ $ Workflow.listWorkflows (envPool env)
 workflowsCreate env i = liftQ $ Workflow.createWorkflow (envPool env) i

@@ -45,7 +45,7 @@ import Data.Text qualified as T
 import Data.Text.Encoding qualified as TE
 import Data.Time.Clock (addUTCTime, getCurrentTime)
 import DAL.Types (User (..))
-import DAL.Database (Pool)
+import DAL.Database (ConnectionPool)
 import System.Environment (lookupEnv)
 import Text.Read (readMaybe)
 
@@ -70,7 +70,7 @@ getSigningKey = do
 {- | Generate a signed JWT token for the given user
 The Pool parameter is reserved for future use (e.g., token revocation DB checks)
 -}
-generateToken :: Pool -> User -> IO Text
+generateToken :: ConnectionPool -> User -> IO Text
 generateToken _pool user = do
     now <- getCurrentTime
     let uid = T.pack $ show $ userId user

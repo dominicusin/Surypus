@@ -10,41 +10,36 @@ module Surypus.API.Goods (
 )
 where
 
-import DAL.Database (Pool)
-import DAL.Mutations (createGoods, deleteGoods, updateGoods)
-import DAL.Queries (getGoods, getGoodsById)
+import DAL.Database (ConnectionPool)
+import qualified DAL.Mutations as Mut
+import qualified DAL.QueriesORM as ORM
 import DAL.Types (Goods (..), GoodsInput (..), MutationResult (..), QueryResult (..))
 import Data.Int (Int64)
 
--- | List all goods using DAL.Queries
-listGoods :: Pool -> IO (QueryResult [Goods])
-listGoods pool = getGoods pool
+listGoods :: ConnectionPool -> IO (QueryResult [Goods])
+listGoods = ORM.getGoods
 
--- | Create a new good using DAL.Mutations
-createGood :: Pool -> GoodsInput -> IO (QueryResult Goods)
+createGood :: ConnectionPool -> GoodsInput -> IO (QueryResult Goods)
 createGood pool input = do
-    result <- createGoods pool input
+    result <- Mut.createGoods pool input
     case result of
-        QuerySuccess (MutationResult _ (Just rid) _) -> getGoodsById pool rid
+        QuerySuccess (MutationResult _ (Just rid) _) -> ORM.getGoodsById pool rid
         QuerySuccess _ -> return $ QueryError "Created but no ID returned"
         QueryError err -> return $ QueryError err
 
--- | Get a specific good by ID using DAL.Queries
-getGood :: Pool -> Int64 -> IO (QueryResult Goods)
-getGood pool gid = getGoodsById pool gid
+getGood :: ConnectionPool -> Int64 -> IO (QueryResult Goods)
+getGood = ORM.getGoodsById
 
--- | Update a good using DAL.Mutations
-updateGood :: Pool -> Int64 -> GoodsInput -> IO (QueryResult Goods)
+updateGood :: ConnectionPool -> Int64 -> GoodsInput -> IO (QueryResult Goods)
 updateGood pool gid input = do
-    result <- updateGoods pool gid input
+    result <- Mut.updateGoods pool gid input
     case result of
-        QuerySuccess _ -> getGoodsById pool gid -- Return updated object
+        QuerySuccess _ -> ORM.getGoodsById pool gid
         QueryError err -> return $ QueryError err
 
--- | Delete a good using DAL.Mutations
-deleteGood :: Pool -> Int64 -> IO (QueryResult ())
+deleteGood :: ConnectionPool -> Int64 -> IO (QueryResult ())
 deleteGood pool gid = do
-    result <- deleteGoods pool gid
+    result <- Mut.deleteGoods pool gid
     case result of
         QuerySuccess _ -> return $ QuerySuccess ()
         QueryError err -> return $ QueryError err

@@ -11,42 +11,36 @@ module Surypus.API.Bills (
 )
 where
 
-import DAL.Database (Pool)
+import DAL.Database (Pool, ConnectionPool)
 import qualified DAL.Mutations as Mut
 import qualified DAL.Procedures as Proc
-import DAL.Queries (getBillById, getBills)
+import qualified DAL.QueriesORM as ORM
 import DAL.Types (Bill (..), BillInput (..), MutationResult (..), QueryResult (..))
 import Data.Int (Int64)
 
--- | List bills using DAL.Queries
-listBills :: Pool -> IO (QueryResult [Bill])
-listBills pool = getBills pool
+listBills :: ConnectionPool -> IO (QueryResult [Bill])
+listBills = ORM.getBills
 
--- | Create bill using DAL.Mutations
-createBill :: Pool -> BillInput -> IO (QueryResult MutationResult)
+createBill :: ConnectionPool -> BillInput -> IO (QueryResult MutationResult)
 createBill = Mut.createBill
 
--- | Get bill by ID using DAL.Queries
-getBill :: Pool -> Int64 -> IO (QueryResult Bill)
-getBill pool bid = getBillById pool bid
+getBill :: ConnectionPool -> Int64 -> IO (QueryResult Bill)
+getBill = ORM.getBillById
 
--- | Update bill using DAL.Mutations
-updateBill :: Pool -> Int64 -> BillInput -> IO (QueryResult Bill)
+updateBill :: ConnectionPool -> Int64 -> BillInput -> IO (QueryResult Bill)
 updateBill pool bid input = do
     result <- Mut.updateBill pool bid input
     case result of
-        QuerySuccess _ -> getBillById pool bid
+        QuerySuccess _ -> ORM.getBillById pool bid
         QueryError err -> return $ QueryError err
 
--- | Delete bill using DAL.Mutations
-deleteBill :: Pool -> Int64 -> IO (QueryResult ())
+deleteBill :: ConnectionPool -> Int64 -> IO (QueryResult ())
 deleteBill pool bid = do
     result <- Mut.deleteBill pool bid
     case result of
         QuerySuccess _ -> return $ QuerySuccess ()
         QueryError err -> return $ QueryError err
 
--- | Post bill - updates status to posted and creates accounting entries
 postBill :: Pool -> Int64 -> IO (QueryResult ())
 postBill pool bid = do
     result <- Proc.postBill pool bid
