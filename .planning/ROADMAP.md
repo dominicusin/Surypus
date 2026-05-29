@@ -380,7 +380,9 @@
 <summary>✅ v57.0 ORM Implementation — Phases 181-184 (complete 2026-05-29)</summary>
 
 ### Phase 181: ORM Schema Foundations
+
 **Goal:** Define core database schemas using persistent Template Haskell for Users, Contacts, and Companies.
+
 **Success Criteria:**
 1. persistent + esqueleto dependencies added to cabal file
 2. User, Contact, Company tables defined via persistLowerCase TH
@@ -388,7 +390,9 @@
 4. stack build passes
 
 ### Phase 182: ORM Migration - Queries Layer
+
 **Goal:** Migrate DAL/Queries.hs to use esqueleto instead of raw Hasql.
+
 **Success Criteria:**
 1. SELECT queries use esqueleto syntax
 2. JOIN operations properly typed
@@ -396,18 +400,91 @@
 4. stack test passes for query-related tests
 
 ### Phase 183: ORM Mutation - Commands Layer
+
 **Goal:** Migrate DAL/Mutations.hs to use persistent INSERT/UPDATE/DELETE.
+
 **Success Criteria:**
 1. INSERT/UPDATE/DELETE use persistent API
 2. Transactions properly handled
 3. stack build passes
 
 ### Phase 184: Dead Code Cleanup & Testing
+
 **Goal:** Remove dead code (weeder), add doctests for ORM layer.
+
 **Success Criteria:**
 1. weeder reports zero dead exports in new ORM modules
 2. doctest runs on all DAL modules
 3. stack test passes
+
+</details>
+
+## ▶️ **v58.0 Migrate surypus-api to Persistent** — (planning)
+
+- [ ] Phase 185: Pool type unification (Server.hs, Main.hs, Token.hs)
+- [ ] Phase 186: Migrate surypus-api DAL modules to use ORM wrappers
+- [ ] Phase 187: Update API handlers for ConnectionPool
+- [ ] Phase 188: Remove Hasql dependencies and dead code
+
+<details open>
+<summary>▶️ v58.0 Migrate surypus-api to Persistent — Phases 185-188 (planning)</summary>
+
+### Phase 185: Pool Type Unification
+
+**Goal:** Change surypus-api from Hasql Pool to persistent ConnectionPool across Server.hs, Main.hs, Token.hs.
+
+**Files to modify:**
+- `surypus-api/app/Main.hs` — use `DAL.ORMPool.createPool` instead of Hasql Pool
+- `surypus-api/src/Surypus/API/Server.hs` — envPool :: ConnectionPool
+- `surypus-api/src/Surypus/JWT/Token.hs` — accept ConnectionPool
+- `surypus-api/src/Surypus/API/*.hs` — all handler functions change Pool→ConnectionPool
+
+**Success Criteria:**
+1. Server.hs envPool uses ConnectionPool
+2. Main.hs creates persistent pool via ORMPool.createPool
+3. All handler type signatures updated
+4. stack build passes
+
+### Phase 186: Migrate surypus-api DAL to use ORM
+
+**Goal:** Replace Hasql-based DAL modules with persistent/esqueleto equivalents.
+
+**Files to modify:**
+- `surypus-api/src/Surypus/DAL/Mutations.hs` — delegate to DAL.MutationsORM
+- `surypus-api/src/Surypus/DAL/Queries.hs` — delegate to DAL.QueriesORM
+- `surypus-api/src/Surypus/DAL/Classifiers.hs` — delegate to esqueleto
+- `surypus-api/src/Surypus/DAL/Repository.hs` — update for persistent
+
+**Success Criteria:**
+1. No Hasql imports in DAL modules
+2. All queries use esqueleto/persistent
+3. stack build passes
+
+### Phase 187: Update API Handlers
+
+**Goal:** Ensure all API handlers work correctly with the new DAL.
+
+**Files to verify:**
+- All handlers in `surypus-api/src/Surypus/API/*.hs`
+
+**Success Criteria:**
+1. All handlers compile against new DAL
+2. stack build passes
+3. stack test passes
+
+### Phase 188: Remove Hasql Dependencies
+
+**Goal:** Clean up Hasql from the project.
+
+**Files to modify:**
+- `surypus-api/surypus-api.cabal` — remove hasql, hasql-pool
+- `Surypus.cabal` — remove hasql, hasql-pool, hasql-transaction
+- `src/DAL/Database.hs` — archive or rewrite for persistent
+
+**Success Criteria:**
+1. No hasql references in any .cabal file
+2. No Hasql imports in any source file
+3. stack build passes
 
 </details>
 
