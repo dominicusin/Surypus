@@ -30,12 +30,12 @@ Mode routing:
 </routing>
 
 <execution_context>
-@~/.copilot/get-shit-done/workflows/add-todo.md
-@~/.copilot/get-shit-done/workflows/note.md
-@~/.copilot/get-shit-done/workflows/add-backlog.md
-@~/.copilot/get-shit-done/workflows/plant-seed.md
-@~/.copilot/get-shit-done/workflows/check-todos.md
-@~/.copilot/get-shit-done/references/ui-brand.md
+@.github/get-shit-done/workflows/add-todo.md
+@.github/get-shit-done/workflows/note.md
+@.github/get-shit-done/workflows/add-backlog.md
+@.github/get-shit-done/workflows/plant-seed.md
+@.github/get-shit-done/workflows/check-todos.md
+@.github/get-shit-done/references/ui-brand.md
 </execution_context>
 
 <context>

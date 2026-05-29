@@ -23,8 +23,8 @@ Clarify phase requirements through structured Socratic questioning with quantita
 </objective>
 
 <execution_context>
-@~/.copilot/get-shit-done/workflows/spec-phase.md
-@~/.copilot/get-shit-done/templates/spec.md
+@.github/get-shit-done/workflows/spec-phase.md
+@.github/get-shit-done/templates/spec.md
 </execution_context>
 
 <runtime_note>

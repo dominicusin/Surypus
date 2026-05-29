@@ -28,9 +28,8 @@ When the workflow needs to spawn a subagent:
 </cursor_skill_adapter>
 
 <objective>
-Manage the runtime skill surface without reinstall. Reads/writes `/home/domini/src/My/Surypus/.cursor/.gsd-surface.json`
-(sibling to `/home/domini/src/My/Surypus/.cursor/.gsd-profile`) and re-stages the active skills directory in place.
-Skill dirs live at `/home/domini/src/My/Surypus/.cursor/skills/gsd-*/`.
+Manage the runtime skill surface without reinstall. Reads/writes `/home/domini/src/My/Surypus/.cursor/skills/.gsd-surface.json`
+(sibling to `.gsd-profile`) and re-stages the active commands/gsd directory in place.
 
 Sub-commands: list · status · profile · disable · enable · reset
 </objective>
@@ -83,11 +82,7 @@ Install profile: standard  (from .gsd-profile)
 1. Read current surface: `readSurface(runtimeConfigDir)` → if null, seed from `readActiveProfile(runtimeConfigDir)`.
 2. Set `surfaceState.baseProfile = name`.
 3. `writeSurface(runtimeConfigDir, surfaceState)`.
-4. Resolve and re-apply:
-   ```js
-   const layout = resolveRuntimeArtifactLayout(runtime, runtimeConfigDir, scope);
-   applySurface(runtimeConfigDir, layout, manifest, CLUSTERS);
-   ```
+4. Resolve and re-apply: `applySurface(runtimeConfigDir, commandsDir, agentsDir, manifest, CLUSTERS)`.
 5. Confirm: "Surface updated to profile `<name>`. N skills enabled."
 
 ---
@@ -100,11 +95,7 @@ Valid cluster names: `core_loop`, `audit_review`, `milestone`, `research_ideate`
 1. Validate cluster name against `Object.keys(CLUSTERS)`.
 2. Read or initialize surface state.
 3. Add cluster to `surfaceState.disabledClusters` (deduplicate).
-4. `writeSurface` → resolve layout → `applySurface`:
-   ```js
-   const layout = resolveRuntimeArtifactLayout(runtime, runtimeConfigDir, scope);
-   applySurface(runtimeConfigDir, layout, manifest, CLUSTERS);
-   ```
+4. `writeSurface` → `applySurface`.
 5. Confirm: "Disabled cluster `<cluster>`. N skills removed from surface."
 
 ---
@@ -113,11 +104,7 @@ Valid cluster names: `core_loop`, `audit_review`, `milestone`, `research_ideate`
 
 1. Read surface state; if null, nothing to enable — print "No surface delta active."
 2. Remove cluster from `surfaceState.disabledClusters`.
-3. `writeSurface` → resolve layout → `applySurface`:
-   ```js
-   const layout = resolveRuntimeArtifactLayout(runtime, runtimeConfigDir, scope);
-   applySurface(runtimeConfigDir, layout, manifest, CLUSTERS);
-   ```
+3. `writeSurface` → `applySurface`.
 4. Confirm: "Enabled cluster `<cluster>`. N skills added back to surface."
 
 ---
@@ -133,26 +120,14 @@ Valid cluster names: `core_loop`, `audit_review`, `milestone`, `research_ideate`
 
 ## runtimeConfigDir resolution
 
-The `runtimeConfigDir` for `applySurface` is the **base Claude config directory**
-(`~/.claude`), NOT the skills sub-directory (`/home/domini/src/My/Surypus/.cursor/skills`).
-
-This matches `installRuntimeArtifacts` and `uninstallRuntimeArtifacts`, which also
-receive `~/.claude` as `configDir`. The skill dirs themselves live at
-`/home/domini/src/My/Surypus/.cursor/skills/gsd-*/` because the `claude global` layout has `destSubpath =
-'skills'` — they are derived from `configDir`, not the root for it.
-
 ```bash
-# Cursor — global install
-RUNTIME_CONFIG_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
-SCOPE="global"
+# Cursor
+RUNTIME_CONFIG_DIR=/home/domini/src/My/Surypus/.cursor/skills
 
-# Artifact destinations are derived from runtime layout
-# via resolveRuntimeArtifactLayout(runtime, RUNTIME_CONFIG_DIR, SCOPE)
-# then applySurface(RUNTIME_CONFIG_DIR, layout, manifest, CLUSTERS)
+# Resolve commandsDir and agentsDir
+COMMANDS_DIR=/home/domini/src/My/Surypus/.cursor/commands/gsd
+AGENTS_DIR=/home/domini/src/My/Surypus/.cursor/agents
 ```
-
-Surface state is stored at `${RUNTIME_CONFIG_DIR}/.gsd-surface.json`
-(i.e. `/home/domini/src/My/Surypus/.cursor/.gsd-surface.json`).
 
 All paths can be overridden by reading the `CLAUDE_CONFIG_DIR` env var if set.
 
@@ -165,9 +140,8 @@ All paths can be overridden by reading the `CLAUDE_CONFIG_DIR` env var if set.
 - Missing `surface.cjs` → prompt: "Run `npm i -g get-shit-done` to reinstall GSD."
 
 <execution_context>
-Surface state file: `/home/domini/src/My/Surypus/.cursor/.gsd-surface.json`
-Install profile marker: `/home/domini/src/My/Surypus/.cursor/.gsd-profile`
-Skill dirs: `/home/domini/src/My/Surypus/.cursor/skills/gsd-*/`
+Surface state file: `/home/domini/src/My/Surypus/.cursor/skills/.gsd-surface.json`
+Install profile marker: `/home/domini/src/My/Surypus/.cursor/skills/.gsd-profile`
 Engine module: `/home/domini/src/My/Surypus/.cursor/get-shit-done/bin/lib/surface.cjs`
 Cluster definitions: `/home/domini/src/My/Surypus/.cursor/get-shit-done/bin/lib/clusters.cjs`
 </execution_context>

@@ -20,10 +20,10 @@ Auto-synthesizes most conflicts using the precedence rule `ADR > SPEC > PRD > DO
 </objective>
 
 <execution_context>
-@~/.copilot/get-shit-done/workflows/ingest-docs.md
-@~/.copilot/get-shit-done/references/ui-brand.md
-@~/.copilot/get-shit-done/references/gate-prompts.md
-@~/.copilot/get-shit-done/references/doc-conflict-engine.md
+@.github/get-shit-done/workflows/ingest-docs.md
+@.github/get-shit-done/references/ui-brand.md
+@.github/get-shit-done/references/gate-prompts.md
+@.github/get-shit-done/references/doc-conflict-engine.md
 </execution_context>
 
 <context>

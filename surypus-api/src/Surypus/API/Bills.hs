@@ -11,7 +11,7 @@ module Surypus.API.Bills (
 )
 where
 
-import DAL.Database (Pool, ConnectionPool)
+import DAL.Database (ConnectionPool)
 import qualified DAL.Mutations as Mut
 import qualified DAL.Procedures as Proc
 import qualified DAL.QueriesORM as ORM
@@ -41,7 +41,7 @@ deleteBill pool bid = do
         QuerySuccess _ -> return $ QuerySuccess ()
         QueryError err -> return $ QueryError err
 
-postBill :: Pool -> Int64 -> IO (QueryResult ())
+postBill :: ConnectionPool -> Int64 -> IO (QueryResult ())
 postBill pool bid = do
     result <- Proc.postBill pool bid
     case result of

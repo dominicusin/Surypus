@@ -15,7 +15,7 @@ Output: .planning/codebase/ folder with 7 structured documents about the codebas
 </objective>
 
 <execution_context>
-@~/.copilot/get-shit-done/workflows/map-codebase.md
+@.github/get-shit-done/workflows/map-codebase.md
 </execution_context>
 
 <flags>

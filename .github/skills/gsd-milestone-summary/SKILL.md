@@ -14,7 +14,7 @@ Output: MILESTONE_SUMMARY written to `.planning/reports/`, presented inline, opt
 </objective>
 
 <execution_context>
-@~/.copilot/get-shit-done/workflows/milestone-summary.md
+@.github/get-shit-done/workflows/milestone-summary.md
 </execution_context>
 
 <context>

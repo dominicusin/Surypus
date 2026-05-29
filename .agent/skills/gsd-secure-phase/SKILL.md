@@ -13,7 +13,7 @@ Output: updated SECURITY.md.
 </objective>
 
 <execution_context>
-@~/.gemini/antigravity/get-shit-done/workflows/secure-phase.md
+@.agent/get-shit-done/workflows/secure-phase.md
 </execution_context>
 
 <context>

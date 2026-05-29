@@ -17,8 +17,8 @@ Uses ROADMAP.md phase discovery and Skill() flat invocations for each phase comm
 </objective>
 
 <execution_context>
-@~/.gemini/antigravity/get-shit-done/workflows/autonomous.md
-@~/.gemini/antigravity/get-shit-done/references/ui-brand.md
+@.agent/get-shit-done/workflows/autonomous.md
+@.agent/get-shit-done/references/ui-brand.md
 </execution_context>
 
 <context>

@@ -23,7 +23,7 @@ Output: {padded_phase}-REVIEW.md in phase directory + inline summary of findings
 </objective>
 
 <execution_context>
-@~/.gemini/antigravity/get-shit-done/workflows/code-review.md
+@.agent/get-shit-done/workflows/code-review.md
 </execution_context>
 
 <context>

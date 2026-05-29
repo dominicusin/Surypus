@@ -13,7 +13,7 @@ planning via /gsd-plan-phase --reviews.
 </objective>
 
 <execution_context>
-@~/.gemini/antigravity/get-shit-done/workflows/review.md
+@.agent/get-shit-done/workflows/review.md
 </execution_context>
 
 <context>

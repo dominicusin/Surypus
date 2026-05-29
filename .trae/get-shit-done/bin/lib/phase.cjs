@@ -9,7 +9,6 @@ const { platformWriteSync, platformReadSync, platformEnsureDir } = require('./sh
 const { planningDir, withPlanningLock } = require('./planning-workspace.cjs');
 const { extractFrontmatter } = require('./frontmatter.cjs');
 const { writeStateMd, readModifyWriteStateMd, stateExtractField, stateReplaceField, stateReplaceFieldWithFallback, updatePerformanceMetricsSection } = require('./state.cjs');
-const { formatGsdSlash, resolveRuntime } = require('./runtime-slash.cjs');
 
 // #2893 — strict canonical filter: `{padded_phase}-{NN}-PLAN.md` or `PLAN.md`.
 // Documented in agents/gsd-planner.md (write_phase_prompt step). The wider
@@ -607,7 +606,7 @@ function cmdPhaseAdd(cwd, description, raw, customId) {
       let m;
       while ((m = phasePattern.exec(content)) !== null) {
         const num = parseInt(m[1], 10);
-        if (num === 999) continue; // backlog phases use 999.x numbering
+        if (num >= 999) continue; // backlog phases use 999.x numbering
         if (num > maxPhase) maxPhase = num;
       }
 
@@ -621,7 +620,7 @@ function cmdPhaseAdd(cwd, description, raw, customId) {
           const match = entry.match(dirNumPattern);
           if (!match) continue;
           const num = parseInt(match[1], 10);
-          if (num === 999) continue; // skip backlog orphans
+          if (num >= 999) continue; // skip backlog orphans
           if (num > maxPhase) maxPhase = num;
         }
       }
@@ -639,7 +638,7 @@ function cmdPhaseAdd(cwd, description, raw, customId) {
 
     // Build phase entry
     const dependsOn = config.phase_naming === 'custom' ? '' : `\n**Depends on:** Phase ${typeof _newPhaseId === 'number' ? _newPhaseId - 1 : 'TBD'}`;
-    const phaseEntry = `\n### Phase ${_newPhaseId}: ${description}\n\n**Goal:** [To be planned]\n**Requirements**: TBD${dependsOn}\n**Plans:** 0 plans\n\nPlans:\n- [ ] TBD (run ${formatGsdSlash('plan-phase', resolveRuntime(cwd))} ${_newPhaseId} to break down)\n`;
+    const phaseEntry = `\n### Phase ${_newPhaseId}: ${description}\n\n**Goal:** [To be planned]\n**Requirements**: TBD${dependsOn}\n**Plans:** 0 plans\n\nPlans:\n- [ ] TBD (run /gsd-plan-phase ${_newPhaseId} to break down)\n`;
 
     // Find insertion point: before last "---" or at end
     let updatedContent;
@@ -685,7 +684,7 @@ function cmdPhaseAddBatch(cwd, descriptions, raw) {
       let m;
       while ((m = phasePattern.exec(content)) !== null) {
         const num = parseInt(m[1], 10);
-        if (num === 999) continue;
+        if (num >= 999) continue;
         if (num > maxPhase) maxPhase = num;
       }
       const phasesOnDisk = path.join(planningDir(cwd), 'phases');
@@ -695,7 +694,7 @@ function cmdPhaseAddBatch(cwd, descriptions, raw) {
           const match = entry.match(dirNumPattern);
           if (!match) continue;
           const num = parseInt(match[1], 10);
-          if (num === 999) continue;
+          if (num >= 999) continue;
           if (num > maxPhase) maxPhase = num;
         }
       }
@@ -716,7 +715,7 @@ function cmdPhaseAddBatch(cwd, descriptions, raw) {
       platformEnsureDir(dirPath);
       platformWriteSync(path.join(dirPath, '.gitkeep'), '');
       const dependsOn = config.phase_naming === 'custom' ? '' : `\n**Depends on:** Phase ${typeof newPhaseId === 'number' ? newPhaseId - 1 : 'TBD'}`;
-      const phaseEntry = `\n### Phase ${newPhaseId}: ${description}\n\n**Goal:** [To be planned]\n**Requirements**: TBD${dependsOn}\n**Plans:** 0 plans\n\nPlans:\n- [ ] TBD (run ${formatGsdSlash('plan-phase', resolveRuntime(cwd))} ${newPhaseId} to break down)\n`;
+      const phaseEntry = `\n### Phase ${newPhaseId}: ${description}\n\n**Goal:** [To be planned]\n**Requirements**: TBD${dependsOn}\n**Plans:** 0 plans\n\nPlans:\n- [ ] TBD (run /gsd-plan-phase ${newPhaseId} to break down)\n`;
       const lastSeparator = rawContent.lastIndexOf('\n---');
       rawContent = lastSeparator > 0
         ? rawContent.slice(0, lastSeparator) + phaseEntry + rawContent.slice(lastSeparator)
@@ -759,32 +758,8 @@ function cmdPhaseInsert(cwd, afterPhase, description, raw) {
     const normalizedAfter = normalizePhaseName(afterPhase);
     const afterPhaseEscaped = phaseMarkdownRegexSource(normalizedAfter);
     const targetPattern = new RegExp(`#{2,4}\\s*Phase\\s+${afterPhaseEscaped}:`, 'i');
-    const headingMatch = targetPattern.test(content);
-
-    // #3815: also recognise the checked-bullet phase format used by projects
-    // that list phases as `- [ ] **Phase N: name**` or `- [ ] Phase N: name`
-    // (both bold and plain variants).  Mirrors phaseRemove / phaseComplete.
-    //
-    // Bullet-style only activates when there are NO heading-style phases in the
-    // milestone content.  A bullet entry in a hybrid (headings + bullets) ROADMAP
-    // means the detail section is missing — that is the #3098 case and must keep
-    // producing the "missing a detail section" error.
-    const bulletPattern = new RegExp(
-      `-\\s*\\[[ x]\\]\\s*(?:\\*\\*)?Phase\\s+${afterPhaseEscaped}[:\\s]`,
-      'i',
-    );
-    const anyHeadingPattern = /#{2,4}\s*Phase\s+\d/i;
-    const roadmapHasHeadingPhases = anyHeadingPattern.test(content);
-    const isBulletStyle = !headingMatch && bulletPattern.test(content) && !roadmapHasHeadingPhases;
-
-    if (!headingMatch && !isBulletStyle) {
-      // Bug #3098 parity: when the ROADMAP uses heading-style phases and only
-      // the summary checklist exists for this phase (no `### Phase N:` detail
-      // section), point the user at the missing detail section.
-      const checklistPattern = new RegExp(
-        `-\\s*\\[[ x]\\]\\s*(?:\\*\\*)?Phase\\s+${afterPhaseEscaped}[:\\s]`,
-        'i',
-      );
+    if (!targetPattern.test(content)) {
+      const checklistPattern = new RegExp(`-\\s*\\[[ x]\\]\\s*\\*\\*Phase\\s+${afterPhaseEscaped}:`, 'i');
       if (checklistPattern.test(content)) {
         error(`Phase ${afterPhase} exists in roadmap summary but is missing a detail section (### Phase ${afterPhase}: ...).`);
       }
@@ -830,72 +805,28 @@ function cmdPhaseInsert(cwd, afterPhase, description, raw) {
     platformEnsureDir(dirPath);
     platformWriteSync(path.join(dirPath, '.gitkeep'), '');
 
-    let updatedContent;
+    // Build phase entry
+    const phaseEntry = `\n### Phase ${_decimalPhase}: ${description} (INSERTED)\n\n**Goal:** [Urgent work - to be planned]\n**Requirements**: TBD\n**Depends on:** Phase ${afterPhase}\n**Plans:** 0 plans\n\nPlans:\n- [ ] TBD (run /gsd-plan-phase ${_decimalPhase} to break down)\n`;
 
-    if (isBulletStyle) {
-      // #3815: Insert in checked-bullet format, mirroring the style of the
-      // surrounding entries.  Detect whether the matched bullet uses bold
-      // (`**Phase N: …**`) to preserve file-internal format consistency.
-      const boldBulletPattern = new RegExp(
-        `-\\s*\\[[ x]\\]\\s*\\*\\*Phase\\s+${afterPhaseEscaped}:`,
-        'i',
-      );
-      const useBold = boldBulletPattern.test(content);
-      const phaseLabel = useBold
-        ? `**Phase ${_decimalPhase}: ${description}**`
-        : `Phase ${_decimalPhase}: ${description}`;
-      const bulletEntry = `\n- [ ] ${phaseLabel}`;
-
-      // Locate the target bullet line in the raw content
-      const targetBulletPattern = new RegExp(
-        `(-\\s*\\[[ x]\\]\\s*(?:\\*\\*)?Phase\\s+${afterPhaseEscaped}[:\\s][^\\n]*)`,
-        'i',
-      );
-      const bulletMatchResult = rawContent.match(targetBulletPattern);
-      if (!bulletMatchResult) {
-        error(`Could not find Phase ${afterPhase} bullet line`);
-      }
-
-      const bulletLineEnd = rawContent.indexOf(bulletMatchResult[0]) + bulletMatchResult[0].length;
-      const afterBullet = rawContent.slice(bulletLineEnd);
-      const nextBulletMatch = afterBullet.match(/\n-\s*\[[ x]\]\s*(?:\*\*)?Phase\s+\d/i);
-
-      let insertIdx;
-      if (nextBulletMatch) {
-        insertIdx = bulletLineEnd + nextBulletMatch.index;
-      } else {
-        insertIdx = bulletLineEnd;
-      }
-
-      updatedContent = rawContent.slice(0, insertIdx) + bulletEntry + rawContent.slice(insertIdx);
-    } else {
-      // Heading-style insert (original path)
-      // Build phase entry
-      const phaseEntry = `\n### Phase ${_decimalPhase}: ${description} (INSERTED)\n\n**Goal:** [Urgent work - to be planned]\n**Requirements**: TBD\n**Depends on:** Phase ${afterPhase}\n**Plans:** 0 plans\n\nPlans:\n- [ ] TBD (run ${formatGsdSlash('plan-phase', resolveRuntime(cwd))} ${_decimalPhase} to break down)\n`;
-
-      // Insert after the target phase section
-      const headerPattern = new RegExp(`(#{2,4}\\s*Phase\\s+${afterPhaseEscaped}:[^\\n]*\\n)`, 'i');
-      const headerMatch = rawContent.match(headerPattern);
-      if (!headerMatch) {
-        error(`Could not find Phase ${afterPhase} header`);
-      }
-
-      const headerIdx = rawContent.indexOf(headerMatch[0]);
-      const afterHeader = rawContent.slice(headerIdx + headerMatch[0].length);
-      // #3691: `\d` → `\d[\d.]*` so decimal phase headings (e.g. `### Phase 02.3:`) are
-      // recognised as section boundaries.
-      const nextPhaseMatch = afterHeader.match(/\n#{2,4}\s+Phase\s+\d[\d.]*/i);
-
-      let insertIdx;
-      if (nextPhaseMatch) {
-        insertIdx = headerIdx + headerMatch[0].length + nextPhaseMatch.index;
-      } else {
-        insertIdx = rawContent.length;
-      }
-
-      updatedContent = rawContent.slice(0, insertIdx) + phaseEntry + rawContent.slice(insertIdx);
+    // Insert after the target phase section
+    const headerPattern = new RegExp(`(#{2,4}\\s*Phase\\s+${afterPhaseEscaped}:[^\\n]*\\n)`, 'i');
+    const headerMatch = rawContent.match(headerPattern);
+    if (!headerMatch) {
+      error(`Could not find Phase ${afterPhase} header`);
     }
 
+    const headerIdx = rawContent.indexOf(headerMatch[0]);
+    const afterHeader = rawContent.slice(headerIdx + headerMatch[0].length);
+    const nextPhaseMatch = afterHeader.match(/\n#{2,4}\s+Phase\s+\d/i);
+
+    let insertIdx;
+    if (nextPhaseMatch) {
+      insertIdx = headerIdx + headerMatch[0].length + nextPhaseMatch.index;
+    } else {
+      insertIdx = rawContent.length;
+    }
+
+    const updatedContent = rawContent.slice(0, insertIdx) + phaseEntry + rawContent.slice(insertIdx);
     platformWriteSync(roadmapPath, updatedContent);
     return { decimalPhase: _decimalPhase, dirName: _dirName };
   });

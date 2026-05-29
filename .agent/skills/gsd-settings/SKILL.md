@@ -16,7 +16,7 @@ Routes to the settings workflow which handles:
 </objective>
 
 <execution_context>
-@~/.gemini/antigravity/get-shit-done/workflows/settings.md
+@.agent/get-shit-done/workflows/settings.md
 </execution_context>
 
 <process>

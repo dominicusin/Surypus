@@ -13,7 +13,7 @@ Accepts an optional topic argument: `/gsd-explore authentication strategy`
 </objective>
 
 <execution_context>
-@~/.copilot/get-shit-done/workflows/explore.md
+@.github/get-shit-done/workflows/explore.md
 </execution_context>
 
 <process>

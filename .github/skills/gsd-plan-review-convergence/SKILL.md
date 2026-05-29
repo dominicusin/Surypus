@@ -18,10 +18,10 @@ Replaces gsd-plan-phase's internal gsd-plan-checker with external AI reviewers (
 </objective>
 
 <execution_context>
-@$HOME/.copilot/get-shit-done/workflows/plan-review-convergence.md
-@$HOME/.copilot/get-shit-done/references/revision-loop.md
-@$HOME/.copilot/get-shit-done/references/gates.md
-@$HOME/.copilot/get-shit-done/references/agent-contracts.md
+@.github/get-shit-done/workflows/plan-review-convergence.md
+@.github/get-shit-done/references/revision-loop.md
+@.github/get-shit-done/references/gates.md
+@.github/get-shit-done/references/agent-contracts.md
 </execution_context>
 
 <runtime_note>

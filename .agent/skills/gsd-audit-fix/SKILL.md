@@ -15,7 +15,7 @@ Flags:
 </objective>
 
 <execution_context>
-@~/.gemini/antigravity/get-shit-done/workflows/audit-fix.md
+@.agent/get-shit-done/workflows/audit-fix.md
 </execution_context>
 
 <process>

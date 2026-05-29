@@ -122,7 +122,7 @@ If you're using Qwen Code with OpenRouter, a local model, or any non-Anthropic p
 
 ```bash
 # Via settings command
-/gsd-settings
+/gsd:settings
 # → Select "Inherit" for model profile
 
 # Or manually in .planning/config.json

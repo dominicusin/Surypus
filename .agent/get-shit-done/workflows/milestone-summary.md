@@ -53,18 +53,7 @@ Read all files that exist. Missing files are fine — the summary adapts to what
 Find all phase directories:
 
 ```bash
-# SDK resolution: prefer local gsd-tools.cjs, fall back to global gsd-sdk (#3668)
-GSD_TOOLS="${RUNTIME_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}/get-shit-done/bin/gsd-tools.cjs"
-if [ -f "$GSD_TOOLS" ]; then
-  GSD_SDK="node $GSD_TOOLS"
-elif command -v gsd-sdk >/dev/null 2>&1; then
-  GSD_SDK="gsd-sdk"
-else
-  echo "ERROR: gsd-sdk not found on PATH and $GSD_TOOLS does not exist." >&2
-  echo "Run: npx get-shit-done-cc@latest --claude --local" >&2
-  exit 1
-fi
-$GSD_SDK query init.progress
+gsd-sdk query init.progress
 ```
 
 This returns phase metadata. For each phase in the milestone scope:
@@ -200,7 +189,7 @@ mkdir -p .planning/reports
 
 Write the summary, then commit:
 ```bash
-$GSD_SDK query commit "docs(v${VERSION}): generate milestone summary for onboarding" --files \
+gsd-sdk query commit "docs(v${VERSION}): generate milestone summary for onboarding" --files \
   ".planning/reports/MILESTONE_SUMMARY-v${VERSION}.md"
 ```
 
@@ -228,7 +217,7 @@ If the user is done:
 ## Step 9: Update STATE.md
 
 ```bash
-$GSD_SDK query state.record-session "" \
+gsd-sdk query state.record-session "" \
   "Milestone v${VERSION} summary generated" \
   ".planning/reports/MILESTONE_SUMMARY-v${VERSION}.md"
 ```

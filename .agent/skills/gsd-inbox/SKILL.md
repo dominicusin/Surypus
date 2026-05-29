@@ -13,7 +13,7 @@ and optionally applies labels or closes non-compliant submissions.
 </objective>
 
 <execution_context>
-@~/.gemini/antigravity/get-shit-done/workflows/inbox.md
+@.agent/get-shit-done/workflows/inbox.md
 </execution_context>
 
 <context>

@@ -29,11 +29,11 @@ Initialize a new project through unified flow: questioning → research (optiona
 </objective>
 
 <execution_context>
-@~/.copilot/get-shit-done/workflows/new-project.md
-@~/.copilot/get-shit-done/references/questioning.md
-@~/.copilot/get-shit-done/references/ui-brand.md
-@~/.copilot/get-shit-done/templates/project.md
-@~/.copilot/get-shit-done/templates/requirements.md
+@.github/get-shit-done/workflows/new-project.md
+@.github/get-shit-done/references/questioning.md
+@.github/get-shit-done/references/ui-brand.md
+@.github/get-shit-done/templates/project.md
+@.github/get-shit-done/templates/requirements.md
 </execution_context>
 
 <process>

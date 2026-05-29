@@ -15,7 +15,7 @@ and optionally applies labels or closes non-compliant submissions.
 </objective>
 
 <execution_context>
-@~/.copilot/get-shit-done/workflows/inbox.md
+@.github/get-shit-done/workflows/inbox.md
 </execution_context>
 
 <context>

@@ -17,7 +17,7 @@ Routes to the settings workflow which handles:
 </objective>
 
 <execution_context>
-@~/.copilot/get-shit-done/workflows/settings.md
+@.github/get-shit-done/workflows/settings.md
 </execution_context>
 
 <process>

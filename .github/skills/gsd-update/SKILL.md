@@ -19,7 +19,7 @@ Routes to the update workflow which handles:
 </objective>
 
 <execution_context>
-@~/.copilot/get-shit-done/workflows/update.md
+@.github/get-shit-done/workflows/update.md
 </execution_context>
 
 <flags>
@@ -37,6 +37,6 @@ Parse the first token of $ARGUMENTS:
 </process>
 
 <execution_context_extended>
-@~/.copilot/get-shit-done/workflows/sync-skills.md
-@~/.copilot/get-shit-done/workflows/reapply-patches.md
+@.github/get-shit-done/workflows/sync-skills.md
+@.github/get-shit-done/workflows/reapply-patches.md
 </execution_context_extended>

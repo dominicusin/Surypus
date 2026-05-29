@@ -181,18 +181,7 @@ blockers, todos) is preserved across the switch — symmetric with
 `milestone.complete`.
 
 ```bash
-# SDK resolution: prefer local gsd-tools.cjs, fall back to global gsd-sdk (#3668)
-GSD_TOOLS="${RUNTIME_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}/get-shit-done/bin/gsd-tools.cjs"
-if [ -f "$GSD_TOOLS" ]; then
-  GSD_SDK="node $GSD_TOOLS"
-elif command -v gsd-sdk >/dev/null 2>&1; then
-  GSD_SDK="gsd-sdk"
-else
-  echo "ERROR: gsd-sdk not found on PATH and $GSD_TOOLS does not exist." >&2
-  echo "Run: npx get-shit-done-cc@latest --claude --local" >&2
-  exit 1
-fi
-$GSD_SDK query state.milestone-switch --milestone "v[X.Y]" --name "[Name]"
+gsd-sdk query state.milestone-switch --milestone "v[X.Y]" --name "[Name]"
 ```
 
 The resulting Current Position section looks like:
@@ -219,21 +208,21 @@ Delete MILESTONE-CONTEXT.md if exists (consumed).
 Clear leftover phase directories from the previous milestone:
 
 ```bash
-$GSD_SDK query phases.clear --confirm
+gsd-sdk query phases.clear --confirm
 ```
 
 ```bash
-$GSD_SDK query commit "docs: start milestone v[X.Y] [Name]" --files .planning/PROJECT.md .planning/STATE.md
+gsd-sdk query commit "docs: start milestone v[X.Y] [Name]" --files .planning/PROJECT.md .planning/STATE.md
 ```
 
 ## 7. Load Context and Resolve Models
 
 ```bash
-INIT=$($GSD_SDK query init.new-milestone)
+INIT=$(gsd-sdk query init.new-milestone)
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
-AGENT_SKILLS_RESEARCHER=$($GSD_SDK query agent-skills gsd-project-researcher)
-AGENT_SKILLS_SYNTHESIZER=$($GSD_SDK query agent-skills gsd-research-synthesizer)
-AGENT_SKILLS_ROADMAPPER=$($GSD_SDK query agent-skills gsd-roadmapper)
+AGENT_SKILLS_RESEARCHER=$(gsd-sdk query agent-skills gsd-project-researcher)
+AGENT_SKILLS_SYNTHESIZER=$(gsd-sdk query agent-skills gsd-research-synthesizer)
+AGENT_SKILLS_ROADMAPPER=$(gsd-sdk query agent-skills gsd-roadmapper)
 ```
 
 Extract from init JSON: `researcher_model`, `synthesizer_model`, `roadmapper_model`, `commit_docs`, `research_enabled`, `current_milestone`, `project_exists`, `roadmap_exists`, `latest_completed_milestone`, `phase_dir_count`, `phase_archive_path`, `agents_installed`, `missing_agents`.
@@ -246,7 +235,7 @@ Extract from init JSON: `researcher_model`, `synthesizer_model`, `roadmapper_mod
 Subagent spawns (gsd-project-researcher, gsd-research-synthesizer, gsd-roadmapper) will fail
 with "agent type not found". Run the installer with --global to make agents available:
 
-  npx @opengsd/get-shit-done-redux@latest --global
+  npx get-shit-done-cc@latest --global
 
 Proceeding without research subagents — roadmap will be generated inline.
 ```
@@ -455,7 +444,7 @@ If "adjust": Return to scoping.
 
 **Commit requirements:**
 ```bash
-$GSD_SDK query commit "docs: define milestone v[X.Y] requirements" --files .planning/REQUIREMENTS.md
+gsd-sdk query commit "docs: define milestone v[X.Y] requirements" --files .planning/REQUIREMENTS.md
 ```
 
 ## 10. Create Roadmap
@@ -541,7 +530,7 @@ Success criteria:
 
 **Commit roadmap** (after approval):
 ```bash
-$GSD_SDK query commit "docs: create milestone v[X.Y] roadmap ([N] phases)" --files .planning/ROADMAP.md .planning/STATE.md .planning/REQUIREMENTS.md
+gsd-sdk query commit "docs: create milestone v[X.Y] roadmap ([N] phases)" --files .planning/ROADMAP.md .planning/STATE.md .planning/REQUIREMENTS.md
 ```
 
 ## 10.5. Link Pending Todos to Roadmap Phases
@@ -584,7 +573,7 @@ files: [existing]
 
 **If any todos were linked:**
 ```bash
-$GSD_SDK query commit "docs: tag [count] pending todos with resolves_phase after milestone v[X.Y] roadmap" --files .planning/todos/pending/*.md
+gsd-sdk query commit "docs: tag [count] pending todos with resolves_phase after milestone v[X.Y] roadmap" --files .planning/todos/pending/*.md
 ```
 
 Print a summary:

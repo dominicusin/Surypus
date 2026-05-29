@@ -19,9 +19,9 @@ Does not require prior new-project setup — auto-creates `.planning/spikes/` if
 </objective>
 
 <execution_context>
-@~/.copilot/get-shit-done/workflows/spike.md
-@~/.copilot/get-shit-done/workflows/spike-wrap-up.md
-@~/.copilot/get-shit-done/references/ui-brand.md
+@.github/get-shit-done/workflows/spike.md
+@.github/get-shit-done/workflows/spike-wrap-up.md
+@.github/get-shit-done/references/ui-brand.md
 </execution_context>
 
 <runtime_note>

@@ -11,7 +11,7 @@ module Surypus.API.Server (apiServer) where
 import Control.Monad.IO.Class (liftIO)
 import qualified DAL.Mutations
 import qualified DAL.Types as DAL
-import DAL.Database (Pool, ConnectionPool)
+import DAL.Database (ConnectionPool)
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Int (Int64)
 import Data.Text (Text)
@@ -71,8 +71,7 @@ data LoginResponse = LoginResponse
 instance ToJSON LoginResponse
 
 data Env = Env
-     { envPool :: Pool
-     , envConnectionPool :: ConnectionPool
+     { envConnectionPool :: ConnectionPool
      , envLogger :: Log.Logger
      , envWSHandler :: Maybe WS.WebSocketHandler
      }
@@ -101,9 +100,9 @@ authMiddleware app req respond = do
                             Left _ -> respond $ W.responseLBS status401 [("Content-Type", "text/plain")] "Invalid token"
                             Right _ -> app req respond
 
-apiServer :: Pool -> ConnectionPool -> Log.Logger -> Application
-apiServer pool connPool logger =
-    let env = Env pool connPool logger Nothing
+apiServer :: ConnectionPool -> Log.Logger -> Application
+apiServer connPool logger =
+    let env = Env connPool logger Nothing
      in correlationMiddleware logger $ authMiddleware (serve (Proxy @SurypusApi) (server env))
 
 -- ── API type ────────────────────────────────────────────────────────────────
@@ -306,7 +305,7 @@ handleLogin env req = do
 billsList env = liftQ $ Bills.listBills (envConnectionPool env)
 billsCreate env i = liftQ $ fmap (const (Bill 0 Nothing 0 0 (fromGregorian 2000 1 1) Nothing Nothing 0 0 0)) <$> Bills.createBill (envConnectionPool env) i
 billGet env bid = liftQ $ Bills.getBill (envConnectionPool env) bid
-billPost env bid = liftQ $ Bills.postBill (envPool env) bid
+billPost env bid = liftQ $ Bills.postBill (envConnectionPool env) bid
 
 goodsList env = liftQ $ Goods.listGoods (envConnectionPool env)
 personsList env = liftQ $ Persons.listPersons (envConnectionPool env) Nothing Nothing Nothing Nothing Nothing

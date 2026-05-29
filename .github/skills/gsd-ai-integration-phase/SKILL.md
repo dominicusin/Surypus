@@ -12,9 +12,9 @@ Flow: Select Framework → Research Docs → Research Domain → Design Eval Str
 </objective>
 
 <execution_context>
-@~/.copilot/get-shit-done/workflows/ai-integration-phase.md
-@~/.copilot/get-shit-done/references/ai-frameworks.md
-@~/.copilot/get-shit-done/references/ai-evals.md
+@.github/get-shit-done/workflows/ai-integration-phase.md
+@.github/get-shit-done/references/ai-frameworks.md
+@.github/get-shit-done/references/ai-evals.md
 </execution_context>
 
 <context>

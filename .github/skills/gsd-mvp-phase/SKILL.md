@@ -17,9 +17,9 @@ Phase 1 of the vertical-mvp-slice PRD shipped the planner-side machinery; this c
 </objective>
 
 <execution_context>
-@~/.copilot/get-shit-done/workflows/mvp-phase.md
-@~/.copilot/get-shit-done/references/spidr-splitting.md
-@~/.copilot/get-shit-done/references/user-story-template.md
+@.github/get-shit-done/workflows/mvp-phase.md
+@.github/get-shit-done/references/spidr-splitting.md
+@.github/get-shit-done/references/user-story-template.md
 </execution_context>
 
 <runtime_note>
@@ -33,6 +33,6 @@ The phase must already exist in ROADMAP.md (created via `/gsd new-project`, `/gs
 </context>
 
 <process>
-Execute the mvp-phase workflow from @~/.copilot/get-shit-done/workflows/mvp-phase.md end-to-end.
+Execute the mvp-phase workflow from @.github/get-shit-done/workflows/mvp-phase.md end-to-end.
 Preserve all gates: phase existence, status guard (refuse in_progress/completed), user-story format validation, SPIDR splitting check, ROADMAP write confirmation, plan-phase delegation.
 </process>

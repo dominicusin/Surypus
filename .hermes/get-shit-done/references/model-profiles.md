@@ -122,7 +122,7 @@ If you're using Hermes Agent with OpenRouter, a local model, or any non-Anthropi
 
 ```bash
 # Via settings command
-/gsd-settings
+/gsd:settings
 # → Select "Inherit" for model profile
 
 # Or manually in .planning/config.json

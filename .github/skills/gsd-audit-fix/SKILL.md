@@ -17,7 +17,7 @@ Flags:
 </objective>
 
 <execution_context>
-@~/.copilot/get-shit-done/workflows/audit-fix.md
+@.github/get-shit-done/workflows/audit-fix.md
 </execution_context>
 
 <process>

@@ -16,8 +16,8 @@ Output: Milestone archived (roadmap + requirements), PROJECT.md evolved, git tag
 <execution_context>
 **Load these files NOW (before proceeding):**
 
-- @~/.copilot/get-shit-done/workflows/complete-milestone.md (main workflow)
-- @~/.copilot/get-shit-done/templates/milestone-archive.md (archive template)
+- @.github/get-shit-done/workflows/complete-milestone.md (main workflow)
+- @.github/get-shit-done/templates/milestone-archive.md (archive template)
   </execution_context>
 
 <context>

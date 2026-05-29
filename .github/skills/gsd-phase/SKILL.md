@@ -28,10 +28,10 @@ Mode routing:
 </routing>
 
 <execution_context>
-@~/.copilot/get-shit-done/workflows/add-phase.md
-@~/.copilot/get-shit-done/workflows/insert-phase.md
-@~/.copilot/get-shit-done/workflows/remove-phase.md
-@~/.copilot/get-shit-done/workflows/edit-phase.md
+@.github/get-shit-done/workflows/add-phase.md
+@.github/get-shit-done/workflows/insert-phase.md
+@.github/get-shit-done/workflows/remove-phase.md
+@.github/get-shit-done/workflows/edit-phase.md
 </execution_context>
 
 <context>

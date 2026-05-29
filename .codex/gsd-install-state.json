@@ -12,6 +12,12 @@
       "appliedAt": "2026-05-24T02:25:45.567Z",
       "journal": "gsd-migration-journal/2026-05-24T02-25-45-567Z-e6f7d16e99b9c404.json",
       "checksum": "sha256:41f1545704dc72dfc3ab019207677a8652e389b200e8c450d52317df5bc198da"
+    },
+    {
+      "id": "2026-05-11-legacy-orphan-files",
+      "appliedAt": "2026-05-29T04:58:42.276Z",
+      "journal": null,
+      "checksum": "sha256:4488e38c127a5225b31016918bcbc85ba3fd3139291ad407b94e76c03c0b89d3"
     }
   ]
 }

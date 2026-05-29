@@ -23,10 +23,10 @@ Three modes:
 </flags>
 
 <execution_context>
-@~/.copilot/get-shit-done/workflows/progress.md
-@~/.copilot/get-shit-done/workflows/next.md
-@~/.copilot/get-shit-done/workflows/do.md
-@~/.copilot/get-shit-done/references/ui-brand.md
+@.github/get-shit-done/workflows/progress.md
+@.github/get-shit-done/workflows/next.md
+@.github/get-shit-done/workflows/do.md
+@.github/get-shit-done/references/ui-brand.md
 </execution_context>
 
 <process>

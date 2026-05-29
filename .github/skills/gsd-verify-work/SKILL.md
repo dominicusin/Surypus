@@ -14,8 +14,8 @@ Output: {phase_num}-UAT.md tracking all test results. If issues found: diagnosed
 </objective>
 
 <execution_context>
-@~/.copilot/get-shit-done/workflows/verify-work.md
-@~/.copilot/get-shit-done/templates/UAT.md
+@.github/get-shit-done/workflows/verify-work.md
+@.github/get-shit-done/templates/UAT.md
 </execution_context>
 
 <context>

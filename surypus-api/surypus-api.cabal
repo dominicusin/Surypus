@@ -39,7 +39,6 @@ library
     , base               >=4.16    && <4.18
     , bytestring
     , containers
-    , contravariant
     , cryptonite         >=0.30
     , fast-logger        >=3.2
     , hasql
@@ -56,8 +55,6 @@ library
     , persistent-postgresql >=2.14
     , persistent-template >=2.14
     , esqueleto           >=3.5
-    , postgresql-binary
-    , postgresql-simple  >=0.6     && <0.8
     , resource-pool      >=0.2     && <0.3
     , servant            >=0.20
     , servant-server     >=0.20

@@ -16,9 +16,9 @@ Three modes:
 </objective>
 
 <execution_context>
-@~/.copilot/get-shit-done/workflows/undo.md
-@~/.copilot/get-shit-done/references/ui-brand.md
-@~/.copilot/get-shit-done/references/gate-prompts.md
+@.github/get-shit-done/workflows/undo.md
+@.github/get-shit-done/references/ui-brand.md
+@.github/get-shit-done/references/gate-prompts.md
 </execution_context>
 
 <context>

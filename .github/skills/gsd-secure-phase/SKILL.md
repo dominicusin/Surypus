@@ -15,7 +15,7 @@ Output: updated SECURITY.md.
 </objective>
 
 <execution_context>
-@~/.copilot/get-shit-done/workflows/secure-phase.md
+@.github/get-shit-done/workflows/secure-phase.md
 </execution_context>
 
 <context>

@@ -14,7 +14,7 @@ Output: Forensic report saved to `.planning/forensics/`, presented inline, with 
 </objective>
 
 <execution_context>
-@~/.copilot/get-shit-done/workflows/forensics.md
+@.github/get-shit-done/workflows/forensics.md
 </execution_context>
 
 <context>

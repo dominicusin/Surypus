@@ -13,7 +13,7 @@ changes that are irrelevant to code review.
 </objective>
 
 <execution_context>
-@~/.gemini/antigravity/get-shit-done/workflows/pr-branch.md
+@.agent/get-shit-done/workflows/pr-branch.md
 </execution_context>
 
 <process>

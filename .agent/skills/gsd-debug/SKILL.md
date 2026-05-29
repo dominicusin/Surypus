@@ -22,7 +22,7 @@ Valid GSD subagent types (use exact names — do not fall back to 'general-purpo
 </available_agent_types>
 
 <execution_context>
-@~/.gemini/antigravity/get-shit-done/workflows/debug.md
+@.agent/get-shit-done/workflows/debug.md
 </execution_context>
 
 <context>

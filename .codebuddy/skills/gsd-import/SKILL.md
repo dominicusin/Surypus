@@ -24,7 +24,7 @@ Import external plan files into the GSD planning system with conflict detection 
 
 <process>
 If `--from-gsd2` is in {{GSD_ARGS}}:
-Run: `node "$HOME/.codebuddy/get-shit-done/bin/gsd-tools.cjs" from-gsd2`
+Run: `node "/home/domini/src/My/Surypus/.codebuddy/get-shit-done/bin/gsd-tools.cjs" from-gsd2`
 Pass `--path <dir>` if provided. Present the migration result to the user.
 Stop here (do not run the standard import workflow).
 

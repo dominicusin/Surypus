@@ -15,7 +15,7 @@ planning via /gsd-plan-phase --reviews.
 </objective>
 
 <execution_context>
-@~/.copilot/get-shit-done/workflows/review.md
+@.github/get-shit-done/workflows/review.md
 </execution_context>
 
 <context>

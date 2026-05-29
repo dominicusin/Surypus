@@ -35,7 +35,7 @@ Write machine-parseable, evidence-based intelligence. Every claim references act
 - **Always include file paths.** Every claim must reference the actual code location.
 - **Write current state only.** No temporal language ("recently added", "will be changed").
 - **Evidence-based.** Read the actual files. Do not guess from file names or directory structures.
-- **Cross-platform.** Use Glob, Read, and Grep tools for filesystem work — never raw OS commands (`ls`, `find`, `cat`); they fail on Windows. CLI invocations go through `gsd-tools intel <subcommand>`, which routes through the Shell Command Projection Module that formats per-OS automatically.
+- **Cross-platform.** Use Glob, Read, and Grep tools -- not Bash `ls`, `find`, or `cat`. Bash file commands fail on Windows. Only use Bash for `gsd-sdk query intel` CLI calls.
 - **ALWAYS use the Write tool to create files** — never use `launch-process(cat << 'EOF')` or heredoc commands for file creation.
 </role>
 
@@ -57,11 +57,11 @@ The /gsd-map-codebase --query command has already confirmed that intel.enabled i
 
 <!-- Layout detection: only meaningful when analysing the GSD framework's own repo (#3290). -->
 
-**Runtime layout detection (GSD framework repo only):** If `package.json` `"name"` equals `"get-shit-done-redux"`, this project IS the GSD framework. In that case, detect the runtime root to choose canonical paths:
+**Runtime layout detection (GSD framework repo only):** If `package.json` `"name"` equals `"get-shit-done-cc"`, this project IS the GSD framework. In that case, detect the runtime root to choose canonical paths:
 
 ```bash
 # Only run layout detection when analysing the GSD framework repo itself.
-if [[ "$(jq -r '.name // ""' package.json 2>/dev/null)" == "get-shit-done-redux" ]]; then
+if [[ "$(jq -r '.name // ""' package.json 2>/dev/null)" == "get-shit-done-cc" ]]; then
   ls -d .kilo 2>/dev/null && echo "kilo" || (ls -d .claude/get-shit-done 2>/dev/null && echo "claude") || echo "unknown"
 fi
 ```
@@ -121,7 +121,7 @@ All JSON files include a `_meta` object with `updated_at` (ISO timestamp) and `v
 }
 ```
 
-**exports constraint:** Array of ACTUAL exported symbol names extracted from `module.exports` or `export` statements. MUST be real identifiers (e.g., `"configLoad"`, `"stateUpdate"`), NOT descriptions (e.g., `"config operations"`). If an export string contains a space, it is wrong -- extract the actual symbol name instead. Use `gsd-tools intel extract-exports <file>` to get accurate exports.
+**exports constraint:** Array of ACTUAL exported symbol names extracted from `module.exports` or `export` statements. MUST be real identifiers (e.g., `"configLoad"`, `"stateUpdate"`), NOT descriptions (e.g., `"config operations"`). If an export string contains a space, it is wrong -- extract the actual symbol name instead. Use `gsd-sdk query intel.extract-exports <file>` to get accurate exports.
 
 Types: `entry-point`, `module`, `config`, `test`, `script`, `type-def`, `style`, `template`, `data`.
 
@@ -217,7 +217,7 @@ Glob for project structure indicators:
 
 Read package.json, configs, and build files. Write `stack.json`. Then patch its timestamp:
 ```bash
-gsd-tools intel patch-meta .planning/intel/stack.json 
+gsd-sdk query intel.patch-meta .planning/intel/stack.json --cwd <project_root>
 ```
 
 ### Step 3: File Graph
@@ -226,7 +226,7 @@ Glob source files (`**/*.ts`, `**/*.js`, `**/*.py`, etc., excluding node_modules
 Read key files (entry points, configs, core modules) for imports/exports.
 Write `files.json`. Then patch its timestamp:
 ```bash
-gsd-tools intel patch-meta .planning/intel/files.json 
+gsd-sdk query intel.patch-meta .planning/intel/files.json --cwd <project_root>
 ```
 
 Focus on files that matter -- entry points, core modules, configs. Skip test files and generated code unless they reveal architecture.
@@ -237,7 +237,7 @@ Grep for route definitions, endpoint declarations, CLI command registrations.
 Patterns to search: `app.get(`, `router.post(`, `@GetMapping`, `def route`, express route patterns.
 Write `apis.json`. If no API endpoints found, write an empty entries object. Then patch its timestamp:
 ```bash
-gsd-tools intel patch-meta .planning/intel/apis.json 
+gsd-sdk query intel.patch-meta .planning/intel/apis.json --cwd <project_root>
 ```
 
 ### Step 5: Dependencies
@@ -246,7 +246,7 @@ Read package.json (dependencies, devDependencies), requirements.txt, go.mod, Car
 Cross-reference with actual imports to populate `used_by`.
 Write `deps.json`. Then patch its timestamp:
 ```bash
-gsd-tools intel patch-meta .planning/intel/deps.json 
+gsd-sdk query intel.patch-meta .planning/intel/deps.json --cwd <project_root>
 ```
 
 ### Step 6: Architecture
@@ -256,7 +256,7 @@ Write `arch.md`.
 
 ### Step 6.5: Self-Check
 
-Run: `gsd-tools intel validate`
+Run: `gsd-sdk query intel.validate --cwd <project_root>`
 
 Review the output:
 
@@ -268,7 +268,7 @@ This step is MANDATORY -- do not skip it.
 
 ### Step 7: Snapshot
 
-Run: `gsd-tools intel snapshot`
+Run: `gsd-sdk query intel.snapshot --cwd <project_root>`
 
 This writes `.last-refresh.json` with accurate timestamps and hashes. Do NOT write `.last-refresh.json` manually.
 </execution_flow>

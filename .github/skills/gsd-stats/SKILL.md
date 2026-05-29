@@ -9,7 +9,7 @@ Display comprehensive project statistics including phase progress, plan executio
 </objective>
 
 <execution_context>
-@~/.copilot/get-shit-done/workflows/stats.md
+@.github/get-shit-done/workflows/stats.md
 </execution_context>
 
 <process>

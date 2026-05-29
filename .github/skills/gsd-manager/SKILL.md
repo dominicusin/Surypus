@@ -18,8 +18,8 @@ Designed for power users who want to parallelize work across phases from one ter
 </objective>
 
 <execution_context>
-@~/.copilot/get-shit-done/workflows/manager.md
-@~/.copilot/get-shit-done/references/ui-brand.md
+@.github/get-shit-done/workflows/manager.md
+@.github/get-shit-done/references/ui-brand.md
 </execution_context>
 
 <context>
@@ -30,7 +30,7 @@ Project context, phase list, dependencies, and recommendations are resolved insi
 
 <process>
 If `--analyze-deps` is in $ARGUMENTS:
-Read and execute `~/.copilot/get-shit-done/workflows/analyze-dependencies.md` end-to-end.
+Read and execute `.github/get-shit-done/workflows/analyze-dependencies.md` end-to-end.
 
 Execute end-to-end.
 Maintain the dashboard refresh loop until the user exits or all phases complete.

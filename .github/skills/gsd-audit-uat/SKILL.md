@@ -9,7 +9,7 @@ Scan all phases for pending, skipped, blocked, and human_needed UAT items. Cross
 </objective>
 
 <execution_context>
-@~/.copilot/get-shit-done/workflows/audit-uat.md
+@.github/get-shit-done/workflows/audit-uat.md
 </execution_context>
 
 <context>
