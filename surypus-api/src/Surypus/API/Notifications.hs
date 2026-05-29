@@ -1,6 +1,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Surypus.API.Notifications (
     NotificationPref (..),
@@ -16,22 +17,19 @@ module Surypus.API.Notifications (
     updateNotificationPrefs,
     sendEmailNotification,
     sendDigestNotification,
+    sendTestNotification,
 ) where
 
 import Control.Monad (join)
-import DAL.Database (Pool, usePool)
+import Control.Monad.IO.Class (liftIO)
 import DAL.Types (QueryResult (..))
 import Data.Aeson (FromJSON, ToJSON)
-import Data.Functor.Contravariant ((>$<))
 import Data.Int (Int64)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import qualified Data.Text as T
+import Database.Persist.Sql (ConnectionPool, PersistValue (..), rawExecute, rawSql, runSqlPool, Single (..))
 import GHC.Generics (Generic)
-import qualified Hasql.Decoders as D
-import qualified Hasql.Encoders as E
-import qualified Hasql.Session as Session
-import Hasql.Statement (Statement (..))
 import qualified Infrastructure.Email as Email
 
 data NotificationPref = NotificationPref
@@ -71,136 +69,82 @@ data NotificationPrefInput = NotificationPrefInput
 instance ToJSON NotificationPrefInput
 instance FromJSON NotificationPrefInput
 
-notifDecoder :: D.Row Notification
-notifDecoder =
-    Notification
-        <$> D.column (D.nonNullable D.text)
-        <*> D.column (D.nonNullable D.text)
-        <*> D.column (D.nullable D.text)
-        <*> D.column (D.nonNullable D.text)
+parseNotification :: (Single Text, Single Text, Single (Maybe Text), Single Text) -> Notification
+parseNotification (Single i, Single t, Single b, Single s) = Notification i t b s
 
-listNotifications :: Pool -> Int64 -> IO (QueryResult [Notification])
+parsePref :: (Single Bool, Single Bool, Single Text) -> NotificationPref
+parsePref (Single e, Single p, Single d) = NotificationPref e p d
+
+listNotifications :: ConnectionPool -> Int64 -> IO (QueryResult [Notification])
 listNotifications pool recipientId = do
-    let stmt =
-            Statement
-                "SELECT id::TEXT, subject, body, \
-                \  CASE status WHEN 0 THEN 'draft' WHEN 1 THEN 'pending' WHEN 2 THEN 'sent' \
-                \    WHEN 3 THEN 'delivered' WHEN 4 THEN 'read' ELSE 'archived' END \
-                \FROM notification WHERE recipient_id = $1 ORDER BY created_at DESC LIMIT 100"
-                (E.param (E.nonNullable E.int8))
-                (D.rowList notifDecoder)
-                True
-    res <- usePool pool $ Session.statement recipientId stmt
-    case res of
-        Right ns -> return $ QuerySuccess ns
-        Left err -> return $ QueryError (T.pack $ show err)
+    result <- liftIO $ runSqlPool
+        (rawSql
+            "SELECT id, subject, body, \
+            \  CASE status WHEN 0 THEN 'draft' WHEN 1 THEN 'pending' WHEN 2 THEN 'sent' \
+            \    WHEN 3 THEN 'delivered' WHEN 4 THEN 'read' ELSE 'archived' END \
+            \FROM notification WHERE recipient_id = ? ORDER BY created_at DESC LIMIT 100"
+            [PersistInt64 recipientId]) pool
+    return $ QuerySuccess (map parseNotification result)
 
-createNotification :: Pool -> NotificationInput -> IO (QueryResult Notification)
+createNotification :: ConnectionPool -> NotificationInput -> IO (QueryResult Notification)
 createNotification pool input = do
-    let stmt =
-            Statement
-                "INSERT INTO notification (ntype, priority, recipient_id, subject, body, status) \
-                \VALUES (1, 3, $1, $2, $3, 1) \
-                \RETURNING id::TEXT, subject, body, 'pending'"
-                ( (niUserId >$< E.param (E.nonNullable E.int8))
-                    <> (niTitle >$< E.param (E.nonNullable E.text))
-                    <> (niBody >$< E.param (E.nonNullable E.text))
-                )
-                (D.singleRow notifDecoder)
-                True
-    res <- usePool pool $ Session.statement input stmt
-    case res of
-        Right n -> return $ QuerySuccess n
-        Left err -> return $ QueryError (T.pack $ show err)
+    let sql = "INSERT INTO notification (ntype, priority, recipient_id, subject, body, status) \
+              \VALUES (1, 3, ?, ?, ?, 1) \
+              \RETURNING id, subject, body, 'pending'"
+    let params = [ PersistInt64 (niUserId input), PersistText (niTitle input), PersistText (niBody input) ]
+    result <- liftIO $ runSqlPool (rawSql sql params) pool
+    case result of
+        (row:_) -> return $ QuerySuccess (parseNotification row)
+        _ -> return $ QueryError "Failed to create notification"
 
-markNotificationRead :: Pool -> Text -> IO (QueryResult ())
+markNotificationRead :: ConnectionPool -> Text -> IO (QueryResult ())
 markNotificationRead pool nId = do
-    let stmt =
-            Statement
-                "UPDATE notification SET status = 4, read_at = NOW() WHERE id = $1::BIGINT"
-                (E.param (E.nonNullable E.text))
-                D.noResult
-                True
-    res <- usePool pool $ Session.statement nId stmt
-    case res of
-        Right _ -> return $ QuerySuccess ()
-        Left err -> return $ QueryError (T.pack $ show err)
+    liftIO $ runSqlPool
+        (rawExecute "UPDATE notification SET status = 4, read_at = NOW() WHERE id = ?" [PersistText nId]) pool
+    return $ QuerySuccess ()
 
-prefDecoder :: D.Row NotificationPref
-prefDecoder =
-    NotificationPref
-        <$> D.column (D.nonNullable D.bool)
-        <*> D.column (D.nonNullable D.bool)
-        <*> D.column (D.nonNullable D.text)
-
--- | Fetch preferences from notification_prefs by user id; return defaults if none found
-getNotificationPrefs :: Pool -> Int64 -> IO (QueryResult NotificationPref)
+getNotificationPrefs :: ConnectionPool -> Int64 -> IO (QueryResult NotificationPref)
 getNotificationPrefs pool userId = do
-    let stmt =
-            Statement
-                "SELECT notify_email, notify_push, digest_frequency \
-                \FROM notification_prefs WHERE usr_id = $1"
-                (E.param (E.nonNullable E.int8))
-                (D.rowMaybe prefDecoder)
-                True
-    res <- usePool pool $ Session.statement userId stmt
-    case res of
-        Right (Just prefs) -> return $ QuerySuccess prefs
-        Right Nothing -> return $ QuerySuccess (NotificationPref True True "daily")
-        Left err -> return $ QueryError (T.pack $ show err)
+    result <- liftIO $ runSqlPool
+        (rawSql "SELECT notify_email, notify_push, digest_frequency FROM notification_prefs WHERE usr_id = ?" [PersistInt64 userId]) pool
+    case result of
+        (row:_) -> return $ QuerySuccess (parsePref row)
+        _ -> return $ QuerySuccess (NotificationPref True True "daily")
 
--- | Upsert notification_prefs by user id using CTE to handle insert-vs-update atomically
-updateNotificationPrefs :: Pool -> Int64 -> NotificationPrefInput -> IO (QueryResult NotificationPref)
+updateNotificationPrefs :: ConnectionPool -> Int64 -> NotificationPrefInput -> IO (QueryResult NotificationPref)
 updateNotificationPrefs pool userId input = do
-    let stmt =
-            Statement
-                ( "WITH updated AS ("
-                    <> "UPDATE notification_prefs SET notify_email = $2, notify_push = $3, digest_frequency = $4 "
-                    <> "WHERE usr_id = $1 "
-                    <> "RETURNING notify_email, notify_push, digest_frequency "
-                    <> ") "
-                    <> "INSERT INTO notification_prefs (usr_id, notify_email, notify_push, digest_frequency) "
-                    <> "SELECT $1, $2, $3, $4 "
-                    <> "WHERE NOT EXISTS (SELECT 1 FROM updated) "
-                    <> "RETURNING notify_email, notify_push, digest_frequency"
-                )
-                ( ((\(uid, _, _, _) -> uid) >$< E.param (E.nonNullable E.int8))
-                    <> ((\(_, em, _, _) -> em) >$< E.param (E.nonNullable E.bool))
-                    <> ((\(_, _, pu, _) -> pu) >$< E.param (E.nonNullable E.bool))
-                    <> ((\(_, _, _, dg) -> dg) >$< E.param (E.nonNullable E.text))
-                )
-                (D.singleRow prefDecoder)
-                True
-    res <- usePool pool $ Session.statement (userId, npiEmail input, npiPush input, npiDigest input) stmt
-    case res of
-        Right prefs -> return $ QuerySuccess prefs
-        Left err -> return $ QueryError (T.pack $ show err)
+    let sql = "WITH updated AS ("
+              <> "UPDATE notification_prefs SET notify_email = ?, notify_push = ?, digest_frequency = ? "
+              <> "WHERE usr_id = ? "
+              <> "RETURNING notify_email, notify_push, digest_frequency "
+              <> ") "
+              <> "INSERT INTO notification_prefs (usr_id, notify_email, notify_push, digest_frequency) "
+              <> "SELECT ?, ?, ?, ? "
+              <> "WHERE NOT EXISTS (SELECT 1 FROM updated) "
+              <> "RETURNING notify_email, notify_push, digest_frequency"
+    let params = [ PersistBool (npiEmail input), PersistBool (npiPush input), PersistText (npiDigest input), PersistInt64 userId
+                 , PersistInt64 userId, PersistBool (npiEmail input), PersistBool (npiPush input), PersistText (npiDigest input)
+                 ]
+    result <- liftIO $ runSqlPool (rawSql sql params) pool
+    case result of
+        (row:_) -> return $ QuerySuccess (parsePref row)
+        _ -> return $ QueryError "Failed to update notification prefs"
 
--- | Legacy convenience wrapper — no user context available, returns defaults
-getPreferences :: Pool -> IO (QueryResult NotificationPref)
+getPreferences :: ConnectionPool -> IO (QueryResult NotificationPref)
 getPreferences _pool = return $ QuerySuccess $ NotificationPref True True "daily"
 
--- | Legacy convenience wrapper — uses the real implementation
-updatePreferences :: Pool -> NotificationPref -> IO (QueryResult NotificationPref)
-updatePreferences _pool prefs =
-    return $ QuerySuccess prefs
+updatePreferences :: ConnectionPool -> NotificationPref -> IO (QueryResult NotificationPref)
+updatePreferences _pool prefs = return $ QuerySuccess prefs
 
--- | Look up a user's email by their user ID from the users table
-lookupUserEmail :: Pool -> Int64 -> IO (Maybe Text)
+lookupUserEmail :: ConnectionPool -> Int64 -> IO (Maybe Text)
 lookupUserEmail pool userId = do
-    let stmt =
-            Statement
-                "SELECT email FROM users WHERE id = $1"
-                (E.param (E.nonNullable E.int8))
-                (D.rowMaybe (D.column (D.nullable D.text)))
-                True
-    res <- usePool pool $ Session.statement userId stmt
-    case res of
-        Right mbEmail -> pure $ join mbEmail
-        Left _ -> pure Nothing
+    result <- liftIO $ runSqlPool
+        (rawSql "SELECT email FROM users WHERE id = ?" [PersistInt64 userId]) pool
+    return $ case result of
+        [(Single (mbEmail :: Maybe Text))] -> mbEmail
+        _ -> Nothing
 
--- | Send an email notification: persist to DB, then try SMTP if configured
-sendEmailNotification :: Pool -> NotificationInput -> IO (QueryResult ())
+sendEmailNotification :: ConnectionPool -> NotificationInput -> IO (QueryResult ())
 sendEmailNotification pool input = do
     result <- createNotification pool input
     case result of
@@ -219,8 +163,7 @@ sendEmailNotification pool input = do
             return $ QuerySuccess ()
         QueryError err -> return $ QueryError err
 
--- | Create a digest notification summary for the user
-sendDigestNotification :: Pool -> Int64 -> Text -> IO (QueryResult ())
+sendDigestNotification :: ConnectionPool -> Int64 -> Text -> IO (QueryResult ())
 sendDigestNotification pool userId frequency = do
     let input =
             NotificationInput
@@ -228,6 +171,14 @@ sendDigestNotification pool userId frequency = do
                 ("Digest: " <> frequency)
                 ("Your " <> frequency <> " digest notification")
                 "digest"
+    result <- createNotification pool input
+    case result of
+        QuerySuccess _ -> return $ QuerySuccess ()
+        QueryError err -> return $ QueryError err
+
+sendTestNotification :: ConnectionPool -> IO (QueryResult ())
+sendTestNotification pool = do
+    let input = NotificationInput 1 "Test Notification" "This is a test notification" "test"
     result <- createNotification pool input
     case result of
         QuerySuccess _ -> return $ QuerySuccess ()

@@ -317,64 +317,60 @@ dashboardRevenue env = liftQ $ Dashboard.getRevenueTrend (envConnectionPool env)
 dashboardOrders env = liftQ $ Dashboard.getOrderStatuses (envConnectionPool env)
 dashboardStock env = liftQ $ fmap (\s -> [s]) <$> Dashboard.getStockSummary (envConnectionPool env)
 
-crmDealsList env = liftQ $ CRM.listDeals (envPool env)
-crmDealCreate env i = liftQ $ CRM.createDeal (envPool env) i
-crmDealGet env did = liftQ $ CRM.getDeal (envPool env) did
-crmDealStageUpdate env d s = liftQ $ CRM.updateDealStage (envPool env) d s
-crmPipelineForecast env = liftQ $ CRM.getPipelineForecast (envPool env)
-crmDealActivities env did = liftQ $ CRM.listActivities (envPool env) did
-crmContactsList env = liftQ $ CRM.listContacts (envPool env)
-crmContactCreate env i = liftQ $ CRM.createContact (envPool env) i
-crmContactGet env cid = liftQ $ CRM.getContact (envPool env) cid
-crmContactUpdate env cid i = liftQ $ CRM.updateContact (envPool env) cid i
-crmContactDelete env cid = liftQ $ CRM.deleteContact (envPool env) cid
-crmContactSearch env q = liftQ $ CRM.searchContacts (envPool env) q
-crmCompaniesList env = liftQ $ CRM.listCompanies (envPool env)
-crmCompanyCreate env i = liftQ $ CRM.createCompany (envPool env) i
-crmCompanyGet env coid = liftQ $ CRM.getCompany (envPool env) coid
-crmCompanyUpdate env coid i = liftQ $ CRM.updateCompany (envPool env) coid i
-crmCompanyDelete env coid = liftQ $ CRM.deleteCompany (envPool env) coid
-crmCompanySearch env q = liftQ $ CRM.searchCompanies (envPool env) q
-crmPipelineStagesList env = liftQ $ CRM.listPipelineStages (envPool env)
-crmPipelineStageRules env s = liftQ $ CRM.getStageRules (envPool env) s
-crmPipelineForecastRefresh env = liftQ $ CRM.refreshPipelineForecast (envPool env)
-crmDealStageHistory env did = liftQ $ CRM.getStageHistory (envPool env) did
+crmDealsList env = liftQ $ CRM.listDeals (envConnectionPool env)
+crmDealCreate env i = liftQ $ CRM.createDeal (envConnectionPool env) i
+crmDealGet env did = liftQ $ CRM.getDeal (envConnectionPool env) did
+crmDealStageUpdate env d s = liftQ $ CRM.updateDealStage (envConnectionPool env) d s
+crmPipelineForecast env = liftQ $ CRM.getPipelineForecast (envConnectionPool env)
+crmDealActivities env did = liftQ $ CRM.listActivities (envConnectionPool env) did
+crmContactsList env = liftQ $ CRM.listContacts (envConnectionPool env)
+crmContactCreate env i = liftQ $ CRM.createContact (envConnectionPool env) i
+crmContactGet env cid = liftQ $ CRM.getContact (envConnectionPool env) cid
+crmContactUpdate env cid i = liftQ $ CRM.updateContact (envConnectionPool env) cid i
+crmContactDelete env cid = liftQ $ CRM.deleteContact (envConnectionPool env) cid
+crmContactSearch env q = liftQ $ CRM.searchContacts (envConnectionPool env) q
+crmCompaniesList env = liftQ $ CRM.listCompanies (envConnectionPool env)
+crmCompanyCreate env i = liftQ $ CRM.createCompany (envConnectionPool env) i
+crmCompanyGet env coid = liftQ $ CRM.getCompany (envConnectionPool env) coid
+crmCompanyUpdate env coid i = liftQ $ CRM.updateCompany (envConnectionPool env) coid i
+crmCompanyDelete env coid = liftQ $ CRM.deleteCompany (envConnectionPool env) coid
+crmCompanySearch env q = liftQ $ CRM.searchCompanies (envConnectionPool env) q
+crmPipelineStagesList env = liftQ $ CRM.listPipelineStages (envConnectionPool env)
+crmPipelineStageRules env s = liftQ $ CRM.getStageRules (envConnectionPool env) s
+crmPipelineForecastRefresh env = liftQ $ CRM.refreshPipelineForecast (envConnectionPool env)
+crmDealStageHistory env did = liftQ $ CRM.getStageHistory (envConnectionPool env) did
 
-notificationsList env = liftQ $ Notifications.listNotifications (envPool env) 1
-notificationsCreate env i = liftQ $ Notifications.createNotification (envPool env) i
-notificationsMarkRead env nid = liftQ $ Notifications.markNotificationRead (envPool env) nid
-notificationsGetPrefs env = liftQ $ Notifications.getNotificationPrefs (envPool env) 1
-notificationsUpdatePrefs env i = liftQ $ Notifications.updateNotificationPrefs (envPool env) 1 i
-notificationsSendTest env =
-    liftQ $
-        Notifications.sendEmailNotification
-            (envPool env)
-            (Notifications.NotificationInput 1 "Test" "Test notification" "test")
-notificationsSendDigest env f = liftQ $ Notifications.sendDigestNotification (envPool env) 1 f
+notificationsList env = liftQ $ Notifications.listNotifications (envConnectionPool env) 1
+notificationsCreate env i = liftQ $ Notifications.createNotification (envConnectionPool env) i
+notificationsMarkRead env nid = liftQ $ Notifications.markNotificationRead (envConnectionPool env) nid
+notificationsGetPrefs env = liftQ $ Notifications.getNotificationPrefs (envConnectionPool env) 1
+notificationsUpdatePrefs env i = liftQ $ Notifications.updateNotificationPrefs (envConnectionPool env) 1 i
+notificationsSendTest env = liftQ $ Notifications.sendTestNotification (envConnectionPool env)
+notificationsSendDigest env f = liftQ $ Notifications.sendDigestNotification (envConnectionPool env) 1 f
 
 reportsPnL env = liftQ $ Reports.getPnLReport (envConnectionPool env)
 reportsInventory env = liftQ $ Reports.getInventoryReport (envConnectionPool env)
 
-ordersList env = liftQ $ Orders.listOrders (envPool env)
-ordersCreate env i = liftQ $ Orders.createOrder (envPool env) i
-ordersGet env oid = liftQ $ Orders.getOrder (envPool env) oid
-ordersUpdate env oid i = liftQ $ Orders.updateOrder (envPool env) oid i
-ordersDelete env oid = liftQ $ Orders.deleteOrder (envPool env) oid
+ordersList env = liftQ $ Orders.listOrders (envConnectionPool env)
+ordersCreate env i = liftQ $ Orders.createOrder (envConnectionPool env) i
+ordersGet env oid = liftQ $ Orders.getOrder (envConnectionPool env) oid
+ordersUpdate env oid i = liftQ $ Orders.updateOrder (envConnectionPool env) oid i
+ordersDelete env oid = liftQ $ Orders.deleteOrder (envConnectionPool env) oid
 
-integrationsList env = liftQ $ Integrations.listIntegrations (envPool env)
-integrationGet env iid = liftQ $ Integrations.getIntegration (envPool env) iid
-integrationUpdateStatus env iid status = liftQ $ Integrations.updateIntegrationStatus (envPool env) iid status
+integrationsList env = liftQ $ Integrations.listIntegrations (envConnectionPool env)
+integrationGet env iid = liftQ $ Integrations.getIntegration (envConnectionPool env) iid
+integrationUpdateStatus env iid status = liftQ $ Integrations.updateIntegrationStatus (envConnectionPool env) iid status
 
 usersList env = liftQ $ DAL.Mutations.listUsers (envConnectionPool env)
 usersCreate env i = liftQ $ DAL.Mutations.createUser (envConnectionPool env) i
 usersGet env uid = liftQ $ DAL.Mutations.getUser (envConnectionPool env) uid
 usersUpdate env uid i = liftQ $ DAL.Mutations.updateUser (envConnectionPool env) uid i
 
-workflowsList env = liftQ $ Workflow.listWorkflows (envPool env)
-workflowsCreate env i = liftQ $ Workflow.createWorkflow (envPool env) i
-workflowsInstancesList env = liftQ $ Workflow.listWorkflowInstances (envPool env)
-workflowsGetInstance env iid = liftQ $ Workflow.getWorkflowInstance (envPool env) iid
-workflowsCompleteInstance env iid = liftQ $ Workflow.completeWorkflow (envPool env) iid
+workflowsList env = liftQ $ Workflow.listWorkflows (envConnectionPool env)
+workflowsCreate env i = liftQ $ Workflow.createWorkflow (envConnectionPool env) i
+workflowsInstancesList env = liftQ $ Workflow.listWorkflowInstances (envConnectionPool env)
+workflowsGetInstance env iid = liftQ $ Workflow.getWorkflowInstance (envConnectionPool env) iid
+workflowsCompleteInstance env iid = liftQ $ Workflow.completeWorkflow (envConnectionPool env) iid
 
 -- ── Classifier handlers ──────────────────────────────────────────────────────
 classifiersOksmList env = liftQ $ Classifiers.listOksm (envConnectionPool env)

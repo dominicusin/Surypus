@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Surypus.API.Workflow (
     Workflow (..),
@@ -17,156 +18,84 @@ module Surypus.API.Workflow (
     completeWorkflow,
 ) where
 
-import DAL.Database (Pool, usePool)
+import Control.Monad.IO.Class (liftIO)
 import DAL.Types (QueryResult (..), Workflow (..), WorkflowInput (..), WorkflowInstance (..), WorkflowStatus (..))
-import Data.Aeson (parseJSON)
-import Data.Aeson.Types (parseMaybe)
-import Data.Functor.Contravariant ((>$<))
+import Data.Aeson (decode, encode)
+import qualified Data.ByteString.Lazy as BL
+import Data.Int (Int64)
 import Data.Text (Text)
 import qualified Data.Text as T
-import qualified Hasql.Decoders as D
-import qualified Hasql.Encoders as E
-import qualified Hasql.Session as Session
-import qualified Hasql.Statement as Stmt
+import Data.Text.Encoding (decodeUtf8, encodeUtf8)
+import qualified Data.Text as T
+import Data.Time.Clock (UTCTime)
+import Database.Persist.Sql (ConnectionPool, PersistValue (..), rawExecute, rawSql, runSqlPool, Single (..))
 
-workflowDecoder :: D.Row Workflow
-workflowDecoder =
-    Workflow
-        <$> (fromIntegral <$> D.column (D.nonNullable D.int8))
-        <*> D.column (D.nonNullable D.text)
-        <*> D.column (D.nullable D.text)
-        <*> D.column (D.nonNullable D.text)
-        <*> D.column (D.nonNullable D.bool)
-        <*> D.column (D.nonNullable D.text)
+-- | RawSql doesn't support WorkflowStatus directly, decode manually
+parseInstance :: (Single Int64, Single Text, Single Int, Single (Maybe Text), Single (Maybe Text), Single (Maybe UTCTime), Single (Maybe UTCTime)) -> WorkflowInstance
+parseInstance (Single i, Single wn, Single st, Single cs, Single ctx, Single sa, Single ca) =
+    WorkflowInstance i 0 status cs input sa ca
+  where
+    status = case st of
+        0 -> WorkflowPending
+        1 -> WorkflowRunning
+        2 -> WorkflowCompleted
+        _ -> WorkflowFailed
+    input = ctx >>= decode . BL.fromStrict . encodeUtf8
 
-workflowInstanceDecoder :: D.Row WorkflowInstance
-workflowInstanceDecoder =
-    WorkflowInstance
-        <$> (fromIntegral <$> D.column (D.nonNullable D.int8)) -- wiId - will need int8 from db
-        <*> (fromIntegral <$> D.column (D.nonNullable D.int8)) -- wiWorkflowId
-        <*> ( ( \n -> case n of
-                    0 -> WorkflowPending
-                    1 -> WorkflowRunning
-                    2 -> WorkflowCompleted
-                    _ -> WorkflowFailed
-              )
-                <$> D.column (D.nonNullable D.int2)
-            )
-        <*> D.column (D.nullable D.text) -- wiCurrentStep
-        <*> ((>>= parseMaybe parseJSON) <$> D.column (D.nullable D.jsonb)) -- wiInput - nullable JSONB
-        <*> D.column (D.nullable D.timestamptz) -- wiStartedAt
-        <*> D.column (D.nullable D.timestamptz) -- wiCompletedAt
+parseWorkflow :: (Single Int64, Single Text, Single (Maybe Text), Single Text, Single Bool, Single Text) -> Workflow
+parseWorkflow (Single i, Single c, Single n, Single d, Single a, Single def) =
+    Workflow i c n d a def
 
--- | List all workflows
-listWorkflows :: Pool -> IO (QueryResult [Workflow])
+listWorkflows :: ConnectionPool -> IO (QueryResult [Workflow])
 listWorkflows pool = do
-    let stmt =
-            Stmt.Statement
-                "SELECT id, code, name, description, is_active, definition::TEXT FROM workflows ORDER BY created_at DESC"
-                E.noParams
-                (D.rowList workflowDecoder)
-                True
-    res <- usePool pool $ Session.statement () stmt
-    case res of
-        Right workflows -> return $ QuerySuccess workflows
-        Left err -> return $ QueryError (T.pack $ show err)
+    result <- liftIO $ runSqlPool
+        (rawSql "SELECT id, code, name, description, is_active, definition::TEXT FROM workflows ORDER BY created_at DESC" []) pool
+    return $ QuerySuccess (map parseWorkflow result)
 
--- | Create a new workflow definition
-createWorkflow :: Pool -> WorkflowInput -> IO (QueryResult Workflow)
+createWorkflow :: ConnectionPool -> WorkflowInput -> IO (QueryResult Workflow)
 createWorkflow pool input = do
-    let stmt =
-            Stmt.Statement
-                "INSERT INTO workflows (code, name, description, definition) VALUES ($1, $2, $3, $4::JSONB) RETURNING id, code, name, description, is_active, definition::TEXT"
-                ( ((\(code, _, _, _) -> code) >$< E.param (E.nonNullable E.text))
-                    <> ((\(_, name, _, _) -> name) >$< E.param (E.nullable E.text))
-                    <> ((\(_, _, desc, _) -> desc) >$< E.param (E.nullable E.text))
-                    <> ((\(_, _, _, def) -> def) >$< E.param (E.nonNullable E.text))
-                )
-                (D.singleRow workflowDecoder)
-                True
-    let params = case wiInputData input of
+    let (code, name, desc, def) = case wiInputData input of
             Just txt -> (txt, Nothing, Nothing, "{}")
             Nothing -> ("default", Nothing, Nothing, "{}")
-    res <- usePool pool $ Session.statement params stmt
-    case res of
-        Right workflow -> return $ QuerySuccess workflow
-        Left err -> return $ QueryError (T.pack $ show err)
+    let params = [ PersistText code, maybe PersistNull PersistText name, maybe PersistNull PersistText desc, PersistText def ]
+    result <- liftIO $ runSqlPool
+        (rawSql "INSERT INTO workflows (code, name, description, definition) VALUES (?, ?, ?, ?::JSONB) RETURNING id, code, name, description, is_active, definition::TEXT" params) pool
+    case result of
+        (row:_) -> return $ QuerySuccess (parseWorkflow row)
+        _ -> return $ QueryError "Failed to create workflow"
 
--- | Start a workflow instance
-startWorkflow :: Pool -> Text -> Text -> IO (QueryResult WorkflowInstance)
+startWorkflow :: ConnectionPool -> Text -> Text -> IO (QueryResult WorkflowInstance)
 startWorkflow pool workflowName initialContext = do
-    let stmt =
-            Stmt.Statement
-                "SELECT workflow_start($1, $2::JSONB)::TEXT"
-                ( ((\(n, _) -> n) >$< E.param (E.nonNullable E.text))
-                    <> ((\(_, c) -> c) >$< E.param (E.nonNullable E.text))
-                )
-                (D.singleRow (D.column (D.nonNullable D.text)))
-                True
-    let params = (workflowName, initialContext)
-    res <- usePool pool $ Session.statement params stmt
-    case res of
-        Right instId -> do
-            -- Fetch full instance
+    result <- liftIO $ runSqlPool
+        (rawSql "SELECT workflow_start(?, ?::JSONB)" [PersistText workflowName, PersistText initialContext]) pool
+    case result of
+        [(Single (instId :: Text))] -> do
+            let instanceId = "00000000-0000-0000-0000-000000000000"
             getWorkflowInstance pool instId
-        Left err -> return $ QueryError (T.pack $ show err)
+        _ -> return $ QueryError "Failed to start workflow"
 
--- | Get workflow instance by ID
-getWorkflowInstance :: Pool -> Text -> IO (QueryResult WorkflowInstance)
+getWorkflowInstance :: ConnectionPool -> Text -> IO (QueryResult WorkflowInstance)
 getWorkflowInstance pool iid = do
-    let stmt =
-            Stmt.Statement
-                "SELECT id::UUID, workflow_name::TEXT, status::INT, current_step::TEXT, context::JSONB, started_at, completed_at FROM workflow_instances WHERE id = $1::UUID"
-                (E.param (E.nonNullable E.text))
-                (D.singleRow workflowInstanceDecoder)
-                True
-    res <- usePool pool $ Session.statement iid stmt
-    case res of
-        Right instance' -> return $ QuerySuccess instance'
-        Left err -> return $ QueryError (T.pack $ show err)
+    result <- liftIO $ runSqlPool
+        (rawSql "SELECT id, workflow_name::TEXT, status, current_step::TEXT, context::TEXT, started_at, completed_at FROM workflow_instances WHERE id = ?" [PersistText iid]) pool
+    case result of
+        (row:_) -> return $ QuerySuccess (parseInstance row)
+        _ -> return $ QueryError "Not Found"
 
--- | List workflow instances
-listWorkflowInstances :: Pool -> IO (QueryResult [WorkflowInstance])
+listWorkflowInstances :: ConnectionPool -> IO (QueryResult [WorkflowInstance])
 listWorkflowInstances pool = do
-    let stmt =
-            Stmt.Statement
-                "SELECT id::UUID, workflow_name::TEXT, status::INT, current_step::TEXT, context::JSONB, started_at, completed_at FROM workflow_instances ORDER BY started_at DESC"
-                E.noParams
-                (D.rowList workflowInstanceDecoder)
-                True
-    res <- usePool pool $ Session.statement () stmt
-    case res of
-        Right instances -> return $ QuerySuccess instances
-        Left err -> return $ QueryError (T.pack $ show err)
+    result <- liftIO $ runSqlPool
+        (rawSql "SELECT id, workflow_name::TEXT, status, current_step::TEXT, context::TEXT, started_at, completed_at FROM workflow_instances ORDER BY started_at DESC" []) pool
+    return $ QuerySuccess (map parseInstance result)
 
--- | Complete workflow step
-completeWorkflowStep :: Pool -> Text -> Int -> Text -> IO (QueryResult ())
+completeWorkflowStep :: ConnectionPool -> Text -> Int -> Text -> IO (QueryResult ())
 completeWorkflowStep pool iid nextStep contextUpdate = do
-    let stmt =
-            Stmt.Statement
-                "SELECT workflow_step_complete($1::UUID, $2, $3::JSONB)"
-                ( ((\(i, _, _) -> i) >$< E.param (E.nonNullable E.text))
-                    <> ((\(_, s, _) -> fromIntegral s) >$< E.param (E.nonNullable E.int4))
-                    <> ((\(_, _, c) -> c) >$< E.param (E.nonNullable E.text))
-                )
-                D.noResult
-                True
-    let params = (iid, nextStep, contextUpdate)
-    res <- usePool pool $ Session.statement params stmt
-    case res of
-        Right _ -> return $ QuerySuccess ()
-        Left err -> return $ QueryError (T.pack $ show err)
+    liftIO $ runSqlPool
+        (rawExecute "SELECT workflow_step_complete(?, ?, ?::JSONB)" [PersistText iid, PersistInt64 (fromIntegral nextStep), PersistText contextUpdate]) pool
+    return $ QuerySuccess ()
 
--- | Complete workflow
-completeWorkflow :: Pool -> Text -> IO (QueryResult ())
+completeWorkflow :: ConnectionPool -> Text -> IO (QueryResult ())
 completeWorkflow pool iid = do
-    let stmt =
-            Stmt.Statement
-                "SELECT workflow_complete($1::UUID)"
-                (E.param (E.nonNullable E.text))
-                D.noResult
-                True
-    res <- usePool pool $ Session.statement iid stmt
-    case res of
-        Right _ -> return $ QuerySuccess ()
-        Left err -> return $ QueryError (T.pack $ show err)
+    liftIO $ runSqlPool
+        (rawExecute "SELECT workflow_complete(?)" [PersistText iid]) pool
+    return $ QuerySuccess ()

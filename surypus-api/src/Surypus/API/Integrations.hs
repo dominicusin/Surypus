@@ -1,13 +1,8 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-{- | External system integration framework.
-Provides bank statement import (OFX/ISO 20022), adapter pattern for
-external systems, and health monitoring for integration endpoints.
--}
 module Surypus.API.Integrations (
     -- * Types
     IntegrationType (..),
@@ -33,34 +28,25 @@ module Surypus.API.Integrations (
 
 import Control.Applicative ((<|>))
 import Control.Exception (SomeException, try)
-import DAL.Database (Pool, usePool)
+import Control.Monad.IO.Class (liftIO)
 import DAL.Types (QueryResult (..))
 import Data.Aeson (FromJSON, ToJSON)
-import Data.Functor.Contravariant ((>$<))
 import Data.Int (Int64)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Time (UTCTime (UTCTime), fromGregorian, getCurrentTime, secondsToDiffTime)
+import Data.Time.Format (defaultTimeLocale, parseTimeM)
+import Database.Persist.Sql (ConnectionPool, PersistValue (..), rawExecute, rawSql, runSqlPool, Single (..))
 import GHC.Generics (Generic)
-import qualified Hasql.Decoders as D
-import qualified Hasql.Encoders as E
-import qualified Hasql.Session as Session
-import Hasql.Statement (Statement (..))
 
--- | Supported integration types.
 data IntegrationType
-    = -- | OFX bank statement format
-      BankOFX
-    | -- | ISO 20022 XML bank format
-      BankISO20022
-    | -- | External payment processor
-      PaymentGateway
-    | -- | External accounting system
-      AccountingSync
+    = BankOFX
+    | BankISO20022
+    | PaymentGateway
+    | AccountingSync
     deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
--- | Integration health status.
 data IntegrationStatus
     = StatusActive
     | StatusInactive
@@ -68,7 +54,6 @@ data IntegrationStatus
     | StatusMaintenance
     deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
--- | Registered external integration.
 data Integration = Integration
     { intId :: !Int64
     , intName :: !Text
@@ -81,7 +66,6 @@ data Integration = Integration
     }
     deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
--- | Imported bank statement.
 data BankStatement = BankStatement
     { bsId :: !Text
     , bsBank :: !Text
@@ -94,7 +78,6 @@ data BankStatement = BankStatement
     }
     deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
--- | Single bank transaction.
 data BankTransaction = BankTransaction
     { btId :: !Text
     , btDate :: !UTCTime
@@ -107,24 +90,18 @@ data BankTransaction = BankTransaction
     }
     deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
--- | Transaction direction.
 data TransactionType
-    = -- | Money received
-      Credit
-    | -- | Money paid out
-      Debit
+    = Credit
+    | Debit
     deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
--- | Default epoch time for unparsable dates.
 epoch :: UTCTime
 epoch = UTCTime (fromGregorian 1970 1 1) (secondsToDiffTime 0)
 
--- | Strip closing XML/OFX tag from content.
 stripCloseTag :: Text -> Text
 stripCloseTag v = case T.breakOn "</" v of
     (content, _) -> content
 
--- | Result of a bank statement import.
 data ImportResult = ImportResult
     { irSuccess :: !Bool
     , irImported :: !Int
@@ -133,7 +110,6 @@ data ImportResult = ImportResult
     }
     deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
--- | Health check result for an integration.
 data HealthCheck = HealthCheck
     { hcIntegrationId :: !Int64
     , hcHealthy :: !Bool
@@ -143,9 +119,6 @@ data HealthCheck = HealthCheck
     }
     deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
-{- | Parse OFX (Open Financial Exchange) format.
-Simplified parser that extracts statement transactions.
--}
 parseOFX :: Text -> Either Text BankStatement
 parseOFX input =
     let lines = T.lines input
@@ -167,7 +140,6 @@ parseOFX input =
                             }
             _ -> Left "Invalid OFX: missing required fields (BANKID, ACCTID, CURDEF)"
 
--- | Extract transactions from OFX lines.
 parseOFXTransactions :: [Text] -> [BankTransaction]
 parseOFXTransactions = go []
   where
@@ -181,7 +153,6 @@ parseOFXTransactions = go []
                     Nothing -> go acc remaining
         | otherwise = go acc rest
 
--- | Parse a single OFX transaction block.
 parseSingleOFXTransaction :: [Text] -> Maybe BankTransaction
 parseSingleOFXTransaction lines =
   let extract tag = fmap stripCloseTag (fmap (T.drop (T.length tag)) $ find (T.isPrefixOf tag) lines)
@@ -206,7 +177,6 @@ parseSingleOFXTransaction lines =
           }
        Nothing -> Nothing
 
--- | Parse ISO 20022 XML format (simplified).
 parseISO20022 :: Text -> Either Text BankStatement
 parseISO20022 input =
     if "<Document" `T.isPrefixOf` T.dropWhile (== ' ') input
@@ -224,7 +194,6 @@ parseISO20022 input =
                     }
         else Left "Invalid ISO 20022: missing Document element"
 
--- | Import a bank statement and return results.
 importBankStatement :: IntegrationType -> Text -> IO ImportResult
 importBankStatement itype content = do
     let result = case itype of
@@ -243,80 +212,70 @@ importBankStatement itype content = do
                     , irErrors = []
                     }
 
-integrationDecoder :: D.Row Integration
-integrationDecoder =
+parseIntegrationType :: Text -> IntegrationType
+parseIntegrationType "BankOFX" = BankOFX
+parseIntegrationType "BankISO20022" = BankISO20022
+parseIntegrationType "PaymentGateway" = PaymentGateway
+parseIntegrationType "AccountingSync" = AccountingSync
+parseIntegrationType _ = BankOFX
+
+parseIntegrationStatus :: Text -> IntegrationStatus
+parseIntegrationStatus "StatusActive" = StatusActive
+parseIntegrationStatus "StatusInactive" = StatusInactive
+parseIntegrationStatus "StatusMaintenance" = StatusMaintenance
+parseIntegrationStatus other = StatusError other
+
+parseUTCTime :: Text -> Maybe UTCTime
+parseUTCTime t = parseTimeM True defaultTimeLocale "%FT%T%Q%z" (T.unpack t)
+           <|> parseTimeM True defaultTimeLocale "%FT%T%QZ" (T.unpack t)
+
+integrationFromRow :: (Single Int64, Single Text, Single Text, Single Text, Single (Maybe Text), Single (Maybe Text), Single (Maybe Text), Single (Maybe Text)) -> Integration
+integrationFromRow (Single i, Single n, Single t, Single s, Single e, Single ls, Single le, Single ca) =
     Integration
-        <$> D.column (D.nonNullable D.int8)
-        <*> D.column (D.nonNullable D.text)
-        <*> ( D.column (D.nonNullable D.text) >>= \case
-                "BankOFX" -> pure BankOFX
-                "BankISO20022" -> pure BankISO20022
-                "PaymentGateway" -> pure PaymentGateway
-                "AccountingSync" -> pure AccountingSync
-                _ -> pure BankOFX
-            )
-        <*> ( D.column (D.nonNullable D.text) >>= \case
-                "StatusActive" -> pure StatusActive
-                "StatusInactive" -> pure StatusInactive
-                "StatusMaintenance" -> pure StatusMaintenance
-                other -> pure (StatusError other)
-            )
-        <*> D.column (D.nullable D.text)
-        <*> D.column (D.nullable D.timestamptz)
-        <*> D.column (D.nullable D.text)
-        <*> D.column (D.nonNullable D.timestamptz)
+        { intId = i
+        , intName = n
+        , intType = parseIntegrationType t
+        , intStatus = parseIntegrationStatus s
+        , intEndpoint = e
+        , intLastSync = ls >>= parseUTCTime
+        , intLastError = le
+        , intCreatedAt = fromMaybe epoch (ca >>= parseUTCTime)
+        }
 
--- | List all registered integrations.
-listIntegrations :: Pool -> IO (QueryResult [Integration])
+listIntegrations :: ConnectionPool -> IO (QueryResult [Integration])
 listIntegrations pool = do
-    let stmt =
-            Statement
-                "SELECT id, name, integration_type, status, endpoint, last_sync, last_error, created_at FROM integrations ORDER BY name"
-                (E.noParams)
-                (D.rowList integrationDecoder)
-                True
-    res <- usePool pool $ Session.statement () stmt
-    case res of
-        Right list -> pure $ QuerySuccess list
-        Left err -> pure $ QueryError (T.pack $ show err)
+    rows <- liftIO $ runSqlPool
+        (rawSql
+            "SELECT id, name, integration_type, status, endpoint, last_sync::TEXT, last_error, created_at::TEXT FROM integrations ORDER BY name"
+            [])
+        pool
+    return $ QuerySuccess (map integrationFromRow rows)
 
--- | Get integration by ID.
-getIntegration :: Pool -> Int64 -> IO (QueryResult Integration)
+getIntegration :: ConnectionPool -> Int64 -> IO (QueryResult Integration)
 getIntegration pool intId = do
-    let stmt =
-            Statement
-                "SELECT id, name, integration_type, status, endpoint, last_sync, last_error, created_at FROM integrations WHERE id = $1"
-                (E.param (E.nonNullable E.int8))
-                (D.singleRow integrationDecoder)
-                True
-    res <- usePool pool $ Session.statement intId stmt
-    case res of
-        Right i -> pure $ QuerySuccess i
-        Left _ -> pure $ QueryError "Not Found"
+    rows <- liftIO $ runSqlPool
+        (rawSql
+            "SELECT id, name, integration_type, status, endpoint, last_sync::TEXT, last_error, created_at::TEXT FROM integrations WHERE id = ?"
+            [PersistInt64 intId])
+        pool
+    case rows of
+        (row:_) -> return $ QuerySuccess (integrationFromRow row)
+        _ -> return $ QueryError "Not Found"
 
--- | Update integration status.
-updateIntegrationStatus :: Pool -> Int64 -> IntegrationStatus -> IO (QueryResult ())
+updateIntegrationStatus :: ConnectionPool -> Int64 -> IntegrationStatus -> IO (QueryResult ())
 updateIntegrationStatus pool intId status = do
     let statusText = case status of
             StatusActive -> "StatusActive"
             StatusInactive -> "StatusInactive"
             StatusMaintenance -> "StatusMaintenance"
             StatusError _ -> "StatusInactive"
-        stmt =
-            Statement
-                "UPDATE integrations SET status = $2, last_error = CASE WHEN $2 = 'StatusError' THEN $3 ELSE last_error END WHERE id = $1"
-                ( ((\(i, _, _) -> i) >$< E.param (E.nonNullable E.int8))
-                    <> ((\(_, s, _) -> s) >$< E.param (E.nonNullable E.text))
-                    <> ((\(_, _, e) -> e) >$< E.param (E.nullable E.text))
-                )
-                D.noResult
-                True
-    res <- usePool pool $ Session.statement (intId, statusText, Nothing) stmt
-    case res of
-        Right _ -> pure $ QuerySuccess ()
-        Left err -> pure $ QueryError (T.pack $ show err)
+    liftIO $ runSqlPool
+        (rawExecute
+            "UPDATE integrations SET status = ?, last_error = CASE WHEN ? = 'StatusError' THEN ? ELSE last_error END WHERE id = ?"
+            [PersistText statusText, PersistText statusText, PersistNull, PersistInt64 intId])
+        pool
+    return $ QuerySuccess ()
 
--- | Run health check on an integration.
 runHealthCheck :: Int64 -> IO HealthCheck
 runHealthCheck intId = do
     now <- getCurrentTime
