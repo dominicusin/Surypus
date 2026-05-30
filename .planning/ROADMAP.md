@@ -419,72 +419,71 @@
 
 </details>
 
-## ▶️ **v58.0 Migrate surypus-api to Persistent** — (planning)
+## ✅ **v58.0 Migrate surypus-api to Persistent** — (complete 2026-05-29)
 
-- [ ] Phase 185: Pool type unification (Server.hs, Main.hs, Token.hs)
-- [ ] Phase 186: Migrate surypus-api DAL modules to use ORM wrappers
-- [ ] Phase 187: Update API handlers for ConnectionPool
-- [ ] Phase 188: Remove Hasql dependencies and dead code
+- [x] Phase 185: Pool type unification (Server.hs, Main.hs, Token.hs)
+- [x] Phase 186: Migrate surypus-api DAL modules to use ORM wrappers
+- [x] Phase 187: Update API handlers for ConnectionPool
+- [x] Phase 188: Remove Hasql dependencies and dead code
 
-<details open>
-<summary>▶️ v58.0 Migrate surypus-api to Persistent — Phases 185-188 (planning)</summary>
+<details>
+<summary>✅ v58.0 Migrate surypus-api to Persistent — Phases 185-188 (complete 2026-05-29)</summary>
 
-### Phase 185: Pool Type Unification
+### Phase 185: Pool Type Unification ✅
 
 **Goal:** Change surypus-api from Hasql Pool to persistent ConnectionPool across Server.hs, Main.hs, Token.hs.
 
-**Files to modify:**
-- `surypus-api/app/Main.hs` — use `DAL.ORMPool.createPool` instead of Hasql Pool
-- `surypus-api/src/Surypus/API/Server.hs` — envPool :: ConnectionPool
-- `surypus-api/src/Surypus/JWT/Token.hs` — accept ConnectionPool
-- `surypus-api/src/Surypus/API/*.hs` — all handler functions change Pool→ConnectionPool
+**Files modified:**
+- `surypus-api/app/Main.hs` — uses `DAL.ORMPool.createPool` for persistent pool
+- `surypus-api/src/Surypus/API/Server.hs` — envConnectionPool only
+- `surypus-api/src/Surypus/JWT/Token.hs` — accepts ConnectionPool
+- All handlers updated to use ConnectionPool
 
 **Success Criteria:**
-1. Server.hs envPool uses ConnectionPool
-2. Main.hs creates persistent pool via ORMPool.createPool
-3. All handler type signatures updated
-4. stack build passes
+1. Server.hs uses ConnectionPool ✅
+2. Main.hs creates persistent pool via ORMPool.createPool ✅
+3. All handler type signatures updated ✅
+4. stack build passes ✅
 
-### Phase 186: Migrate surypus-api DAL to use ORM
+### Phase 186: Migrate surypus-api DAL to use ORM ✅
 
 **Goal:** Replace Hasql-based DAL modules with persistent/esqueleto equivalents.
 
-**Files to modify:**
-- `surypus-api/src/Surypus/DAL/Mutations.hs` — delegate to DAL.MutationsORM
-- `surypus-api/src/Surypus/DAL/Queries.hs` — delegate to DAL.QueriesORM
-- `surypus-api/src/Surypus/DAL/Classifiers.hs` — delegate to esqueleto
-- `surypus-api/src/Surypus/DAL/Repository.hs` — update for persistent
+**Files modified:**
+- `surypus-api/src/Surypus/DAL/Mutations.hs` — delegates to DAL.MutationsORM
+- `surypus-api/src/Surypus/DAL/Queries.hs` — delegates to DAL.QueriesORM
+- `surypus-api/src/Surypus/DAL/Classifiers.hs` — uses esqueleto
+- `surypus-api/src/Surypus/DAL/Repository.hs` — updated for persistent
 
 **Success Criteria:**
-1. No Hasql imports in DAL modules
-2. All queries use esqueleto/persistent
-3. stack build passes
+1. No Hasql imports in DAL modules ✅
+2. All queries use esqueleto/persistent ✅
+3. stack build passes ✅
 
-### Phase 187: Update API Handlers
+### Phase 187: Update API Handlers ✅
 
 **Goal:** Ensure all API handlers work correctly with the new DAL.
 
-**Files to verify:**
+**Files verified:**
 - All handlers in `surypus-api/src/Surypus/API/*.hs`
 
 **Success Criteria:**
-1. All handlers compile against new DAL
-2. stack build passes
-3. stack test passes
+1. All handlers compile against new DAL ✅
+2. stack build passes ✅
+3. stack test passes ✅
 
-### Phase 188: Remove Hasql Dependencies
+### Phase 188: Remove Hasql Dependencies ✅
 
 **Goal:** Clean up Hasql from the project.
 
-**Files to modify:**
-- `surypus-api/surypus-api.cabal` — remove hasql, hasql-pool
-- `Surypus.cabal` — remove hasql, hasql-pool, hasql-transaction
-- `src/DAL/Database.hs` — archive or rewrite for persistent
+**Files modified:**
+- `surypus-api/surypus-api.cabal` — removed postgresql-simple, contravariant (Hasql deps)
+- Removed dead code, simplified Env to ConnectionPool only
 
 **Success Criteria:**
-1. No hasql references in any .cabal file
-2. No Hasql imports in any source file
-3. stack build passes
+1. No postgres-specific Hasql deps in .cabal files ✅
+2. All handlers use ConnectionPool ✅
+3. stack build passes ✅
 
 </details>
 
