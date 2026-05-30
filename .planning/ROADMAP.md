@@ -426,8 +426,48 @@
 - [x] Phase 187: Update API handlers for ConnectionPool
 - [x] Phase 188: Remove Hasql dependencies and dead code
 
-<details>
-<summary>✅ v58.0 Migrate surypus-api to Persistent — Phases 185-188 (complete 2026-05-29)</summary>
+## ◼️ **v59.0 Bill Posting & Event Sourcing** — (planning)
+
+- [ ] Phase 191: Complete Bill posting end-to-end flow
+- [ ] Phase 192: LiquidHaskell invariants for financial correctness
+- [ ] Phase 193: Event Store integration for accounting
+
+<details open>
+<summary>▶️ v59.0 Bill Posting & Event Sourcing — Phases 191-193 (planning)</summary>
+
+### Phase 191: Complete Bill Posting Flow
+
+**Goal:** Implement complete postBill flow: validate → calcAmount → AccTurn → Stock → status update.
+
+**Success Criteria:**
+1. `postBill` validates bill state before posting
+2. `postBill` creates double-entry AccTurn records
+3. `postBill` updates stock levels
+4. Bill status transitions correctly
+5. All steps in single transaction
+6. stack build passes
+
+### Phase 192: LiquidHaskell Financial Invariants
+
+**Goal:** Add refinement types for VAT and accounting invariants.
+
+**Success Criteria:**
+1. `calcVAT` has NonNeg result proof
+2. Double-entry invariant: Σ Debit = Σ Credit
+3. Stock invariant: Rest = Initial + Receipt - Issue
+4. LiquidHaskell verification passes
+
+### Phase 193: Event Store Integration
+
+**Goal:** Wire Event Store for bill posting operations.
+
+**Success Criteria:**
+1. Bill events emitted to event_store
+2. Outbox pattern implemented
+3. Event replay reconstructs accounting state
+4. stack build passes
+
+</details>
 
 ### Phase 185: Pool Type Unification ✅
 
