@@ -6,7 +6,7 @@
 module DAL.DB where
 import qualified Data.List as L
 
-import Data.IORef (IORef, newIORef, readIORef, modifyIORef', writeIORef)
+import Data.IORef (IORef, newIORef, readIORef, modifyIORef, modifyIORef', writeIORef)
 import Data.Int (Int64)
 import Data.List (find)
 import Data.Text (Text)
@@ -54,8 +54,8 @@ data Stock = StockStub
   { sId :: Int64
   , sGoodsId :: Int64
   , sLocationId :: Int64
-  , sQtty :: Int
-  , sResrvQtty :: Int
+  , sQtty :: Double
+  , sResrvQtty :: Double
   } deriving (Show, Eq)
 
 data Database = Database
@@ -105,9 +105,9 @@ testBills =
 
 testStock :: [Stock]
 testStock =
-  [ StockStub {sId = 1, sGoodsId = 1, sLocationId = 1, sQtty = 100, sResrvQtty = 0},
-    StockStub {sId = 2, sGoodsId = 2, sLocationId = 1, sQtty = 50, sResrvQtty = 0},
-    StockStub {sId = 3, sGoodsId = 1, sLocationId = 2, sQtty = 200, sResrvQtty = 0}
+  [ StockStub {sId = 1, sGoodsId = 1, sLocationId = 1, sQtty = 100.0, sResrvQtty = 0.0},
+    StockStub {sId = 2, sGoodsId = 2, sLocationId = 1, sQtty = 50.0, sResrvQtty = 0.0},
+    StockStub {sId = 3, sGoodsId = 1, sLocationId = 2, sQtty = 200.0, sResrvQtty = 0.0}
   ]
 
 -- ============================================================================
