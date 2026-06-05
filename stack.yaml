@@ -13,8 +13,6 @@ nix:
 
 packages:
   - .
-  - surypus-common
-  - surypus-api
 
 ghc-options:
   "$locals": -Wall -Wcompat

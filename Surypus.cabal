@@ -14,18 +14,24 @@ library
   exposed-modules:
     API.Integration.REST
     Core.Services.Accounting
+    DAL.Classifiers
     DAL.ClassifiersORM
     DAL.Conversion
     DAL.Database
     DAL.EventStore
+    DAL.Hasql.Database
     DAL.Migration
+    DAL.Mutations
     DAL.MutationsORM
     DAL.ORMPool
     DAL.Procedures
+    DAL.Queries
     DAL.QueriesORM
+    DAL.Repository
     DAL.Schema
     DAL.Types
     Finance.Accounting
+    Infrastructure.Email
     Infrastructure.EventStore.Accounting
     Infrastructure.EventStore.Inventory
     Infrastructure.Redis.TaskQueue
@@ -36,23 +42,55 @@ library
     Science.ML.DemandForecasting
     Science.ML.Features
     Security.Quantum.Crypto
+    Service.InventoryLifecycleService
     Service.InventoryService
     Surypus
+    Surypus.AI.Anthropic
+    Surypus.AI.OpenAI
+    Surypus.Api
+    Surypus.API.AI
+    Surypus.API.Bills
+    Surypus.API.Bridge
+    Surypus.API.Bridge.AuthBridge
+    Surypus.API.Classifiers
+    Surypus.API.CRM
+    Surypus.API.Dashboard
+    Surypus.API.Documents.InventoryDocs
+    Surypus.API.Goods
+    Surypus.API.Integrations
+    Surypus.API.Logger
+    Surypus.API.Notifications
+    Surypus.API.Orders
+    Surypus.API.Payment
+    Surypus.API.Persons
+    Surypus.API.Production
+    Surypus.API.Reports
+    Surypus.API.Server
+    Surypus.API.Workflow
+    Surypus.Codecs
     Surypus.Core
     Surypus.CoreTypes
+    Surypus.EventBridge
     Surypus.Foreign.QML
     Surypus.JWT
+    Surypus.JWT.Token
     Surypus.Metrics
+    Surypus.PDF
     Surypus.RBAC
     Surypus.Refined
     Surypus.Reports.Conversion.CrystalToPdfSlave
     Surypus.Reports.Conversion.CrystalTypes
     Surypus.Reports.Templates
+    Surypus.Types
+    Surypus.Types.Auth
+    Surypus.Types.Bill
+    Surypus.Types.Common
+    Surypus.Types.Goods
+    Surypus.Types.Legacy
+    Surypus.Types.Payment
+    Surypus.Types.Person
+    Surypus.Types.Stock
     Surypus.WebSocket
-    Service.InventoryLifecycleService
-    Surypus.API.Bridge
-    Surypus.API.Documents.InventoryDocs
-    Surypus.EventBridge
     System.CircuitBreaker
   build-depends:
     base >=4.12 && <5
@@ -86,11 +124,11 @@ library
     , persistent-template >=2.14
     , esqueleto >=3.5
     , monad-logger >=0.3
-    , surypus-common >=0.1
     , scotty >=0.12
     , wai-extra >=3.1
     , jose >=0.10 && <0.11
     , websockets >=0.12
+    , wai-websockets >=0.2
     , cryptonite >=0.30
     , ekg >=0.4.0
     , messagepack >=0.5
@@ -98,6 +136,12 @@ library
     , hedis >=0.14
     , hasql >=1.6
     , hasql-pool >=0.8
+    , http-conduit >=2.3
+    , mime-mail >=0.5
+    , smtp-mail >=0.3
+    , network-uri >=2.6
+    , unordered-containers >=0.2
+    , deriving-aeson >=0.2
 
 
 executable surypus-server

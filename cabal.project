@@ -1,9 +1,7 @@
 packages:
   ./
-  ./surypus-common/surypus-common.cabal
-  ./surypus-api/surypus-api.cabal
 
--- Package constraints (Cabal only; stack.yaml does not support this field)
+-- Package constraints
 constraints:
   base >= 4.16 && < 4.22,
   text >= 2.0,
