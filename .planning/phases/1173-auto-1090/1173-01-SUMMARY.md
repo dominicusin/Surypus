@@ -1,6 +1,0 @@
----
-phase: 1173
-completed: "2026-05-21"
----
-
-# Phase 1173 Complete

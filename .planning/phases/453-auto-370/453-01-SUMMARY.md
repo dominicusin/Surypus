@@ -1,6 +1,0 @@
----
-phase: 453
-completed: "2026-05-21"
----
-
-# Phase 453 Complete

@@ -70,5 +70,8 @@ target/
 coverage/
 .cache/
 tmp/
+logs/
+
+# GSD planning artifacts
+.planning/
 src/.planning/
-.planning/STATE.md.lock
