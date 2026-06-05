@@ -1,7 +1,0 @@
-Summary,Issue Type,Priority,Story Points,Epic Link,Description,Labels
-Phase 2: Accounts CRUD,Story,Medium,5,EPIC-Phase2-Accounts,Create, read, update, delete accounts with RBAC; ensure ACID transactions, Accounts endpoint tests, and basic RBAC.,Phase2,Accounts
-Phase 2: JournalEntry CRUD,Story,Medium,5,EPIC-Phase2-Journal,CRUD for journal entries; ensure balance read-model updates after writes.,Phase2,JournalEntries
-Phase 2: Health & Readiness,Story,Medium,3,EPIC-Phase2-Health,Implement health/readiness endpoints and Swagger/OpenAPI docs.,Phase2,Health
-Phase 3: Accounts ES (Audit),Epic,High,8,EPIC-Phase3-AccountsES,Introduce accounting_events and replay for accounts balances; prepare read-model projections.,Phase3,ES,Accounts
-Phase 3: Read Models & CQRS,Story,High,5,EPIC-Phase3-ReadModels,Add account_balances and ledger_projection read models; implement caching.,Phase3,ReadModels
-Phase 3: GraphQL Proxy,Story,High,5,EPIC-Phase3-GraphQL,Introduce GraphQL proxy (REST → GraphQL bridge) for phased frontend adoption.,Phase3,GraphQL
