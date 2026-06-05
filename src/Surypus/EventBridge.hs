@@ -41,7 +41,7 @@ newEventBridge :: IO EventBridge
 newEventBridge = do
   subs <- atomically newTQueue
   events <- atomically newTQueue
-  pure $ EventBridge ebSubscribers subs ebEventQueue events
+  pure $ EventBridge subs events
 
 startEventBridge :: IO EventBridge
 startEventBridge = do

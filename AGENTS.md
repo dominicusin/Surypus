@@ -7,6 +7,9 @@ This repository contains:
 
 Primary development focus is on the Haskell codebase (Surypus).
 
+### Language Constraint
+**Haskell** — основной язык проекта. Только в крайнем случае допускается **OCaml**, возможно **Clojure**. Никаких других языков без явного согласования.
+
 ---
 
 ## Build Commands

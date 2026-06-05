@@ -34,7 +34,7 @@ import GHC.Generics (Generic)
 import qualified Data.Aeson as A
 import qualified Data.Aeson.KeyMap as KM
 import qualified DAL.EventStore as ES
-import DAL.Database (Pool)
+import DAL.ORMPool (ConnectionPool)
 
 -- ============================================================================
 -- READ MODEL TYPES
@@ -191,7 +191,7 @@ mkInitialModel accountId events =
     }
 
 -- | Replay events from the event store to build read model
-replayAccountEvents :: Pool -> Int64 -> Text -> IO (Either Text AccountReadModel)
+replayAccountEvents :: ConnectionPool -> Int64 -> Text -> IO (Either Text AccountReadModel)
 replayAccountEvents pool accountId aggType = do
   result <- ES.getEvents pool accountId aggType
   case result of
@@ -203,7 +203,7 @@ replayAccountEvents pool accountId aggType = do
       pure (Right finalModel)
 
 -- | Rebuild account balance from event stream
-rebuildAccountBalance :: Pool -> Int64 -> Text -> IO (Either Text Double)
+rebuildAccountBalance :: ConnectionPool -> Int64 -> Text -> IO (Either Text Double)
 rebuildAccountBalance pool accountId aggType = do
   result <- replayAccountEvents pool accountId aggType
   case result of
@@ -211,12 +211,13 @@ rebuildAccountBalance pool accountId aggType = do
     Right model -> pure (Right (bsCurrentBalance (armBalanceState model)))
 
 -- | Get current balance for an account
-getCurrentBalance :: Pool -> Int64 -> Text -> IO (Either Text Double)
+getCurrentBalance :: ConnectionPool -> Int64 -> Text -> IO (Either Text Double)
 getCurrentBalance pool = rebuildAccountBalance pool
 
 -- | Get full account read model
-getAccountReadModel :: Pool -> Int64 -> Text -> IO (Either Text AccountReadModel)
+getAccountReadModel :: ConnectionPool -> Int64 -> Text -> IO (Either Text AccountReadModel)
 getAccountReadModel pool = replayAccountEvents pool
+
 
 -- ============================================================================
 -- VALIDATION

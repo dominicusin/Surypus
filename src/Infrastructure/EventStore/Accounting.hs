@@ -32,7 +32,7 @@ import qualified Data.List as L
 import GHC.Generics (Generic)
 import Data.Aeson (ToJSON, FromJSON, toJSON, fromJSON, Result  (..))
 import Data.Aeson.TH (deriveJSON, defaultOptions)
-import DAL.Database (Pool)
+import DAL.ORMPool (ConnectionPool)
 import qualified DAL.EventStore as ES
 
 -- | Account created event payload
@@ -126,28 +126,28 @@ data AccountSnapshot = AccountSnapshot
   , asEntryCount :: Int
   } deriving (Show, Eq, Generic)
 
+-- | Helper to extract metadata from accounting event
+getEventInfo :: AccountingEvent -> (Int64, Text, Text)
+getEventInfo (AccountCreatedEvent ev) = (acAccountId ev, "account", "AccountCreated")
+getEventInfo (JournalEntryPostedEvent ev) = (jepEntryId ev, "journal_entry", "JournalEntryPosted")
+getEventInfo (EntryRevertedEvent ev) = (ervOriginalEntryId ev, "journal_entry", "EntryReverted")
+getEventInfo (EntryCancelledEvent ev) = (ecOriginalEntryId ev, "journal_entry", "EntryCancelled")
+getEventInfo (AccountFrozenEvent ev) = (afAccountId ev, "account", "AccountFrozen")
+getEventInfo (AccountUnfrozenEvent ev) = (ufAccountId ev, "account", "AccountUnfrozen")
+
 -- | Event store for accounting events using PostgreSQL back-end
 data AccountingEventStore = AccountingEventStore
-  { aesPool :: Pool
+  { aesPool :: ConnectionPool
   , aesStreamName :: Text
   }
 
 -- | Create a new accounting event store
-mkAccountingEventStore :: Pool -> Text -> AccountingEventStore
+mkAccountingEventStore :: ConnectionPool -> Text -> AccountingEventStore
 mkAccountingEventStore pool streamName =
   AccountingEventStore
     { aesPool = pool
     , aesStreamName = streamName
     }
-
--- | Helper to extract metadata from event
-getEventInfo :: AccountingEvent -> (Int64, Text, Text)
-getEventInfo (AccountCreatedEvent ev) = (acAccountId ev, "account", "AccountCreated")
-getEventInfo (JournalEntryPostedEvent ev) = (jepDebitAcc ev, "account", "JournalEntryPosted")
-getEventInfo (EntryRevertedEvent ev) = (ervOriginalEntryId ev, "journal_entry", "EntryReverted")
-getEventInfo (EntryCancelledEvent ev) = (ecOriginalEntryId ev, "journal_entry", "EntryCancelled")
-getEventInfo (AccountFrozenEvent ev) = (afAccountId ev, "account", "AccountFrozen")
-getEventInfo (AccountUnfrozenEvent ev) = (ufAccountId ev, "account", "AccountUnfrozen")
 
 -- | Append an event to the store
 appendAccountingEvent :: AccountingEventStore -> AccountingEvent -> IO (Either Text ())
@@ -181,6 +181,7 @@ readAccountEvents store accountId = do
     decodeEvent e = case fromJSON (ES.eventEventData e) of
       Success ev -> ev
       Error err -> error $ "Failed to decode accounting event: " ++ err
+
 
 -- | Replay events to reconstruct account state
 replayAccountEvents :: [AccountingEvent] -> Map Int64 AccountSnapshot

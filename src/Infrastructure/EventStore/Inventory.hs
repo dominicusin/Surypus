@@ -29,7 +29,7 @@ import qualified Data.List as L
 import GHC.Generics (Generic)
 import Data.Aeson (ToJSON, FromJSON, toJSON, fromJSON, Result  (..))
 import Data.Aeson.TH (deriveJSON, defaultOptions)
-import DAL.Database (Pool)
+import DAL.ORMPool (ConnectionPool)
 import qualified DAL.EventStore as ES
 
 -- | Stock received event payload
@@ -107,12 +107,12 @@ data StockSnapshot = StockSnapshot
 
 -- | Event store for inventory events
 data InventoryEventStore = InventoryEventStore
-  { iesPool :: Pool
+  { iesPool :: ConnectionPool
   , iesStreamName :: Text
   }
 
 -- | Create a new inventory event store
-mkInventoryEventStore :: Pool -> Text -> InventoryEventStore
+mkInventoryEventStore :: ConnectionPool -> Text -> InventoryEventStore
 mkInventoryEventStore pool streamName =
   InventoryEventStore
     { iesPool = pool

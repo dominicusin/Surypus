@@ -14,7 +14,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Aeson (Value, object, (.=))
 import qualified API.Integration.REST as REST
-import DAL.Database (Pool)
+import DAL.ORMPool (ConnectionPool)
 import Network.Wai.Middleware.RequestLogger (logStdoutDev)
 import Network.Wai.Middleware.Cors (simpleCors)
 import qualified Finance.Accounting as Acct
@@ -24,14 +24,14 @@ import qualified Reports.Report as Report
 
 -- | Integration API configuration
 data IntegrationAPIConfig = IntegrationAPIConfig
-  { iacPool :: Pool
+  { iacPool :: ConnectionPool
   , iacJWTSecret :: Text
   , iacTokenExpiry :: Int
   , iacAllowedOrigins :: [Text]
   }
 
 -- | Run the web application
-runApp :: Pool -> Text -> Int -> IO ()
+runApp :: ConnectionPool -> Text -> Int -> IO ()
 runApp pool jwtSecret port = do
   let config = REST.createIntegrationAPI pool jwtSecret 3600 ["*"]
   scottyOpts defaultOptions { settings = (defaultSettings { settingsPort = port }) } $ do

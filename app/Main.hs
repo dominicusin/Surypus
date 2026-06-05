@@ -2,105 +2,51 @@
 
 module Main where
 
-import Control.Exception (bracket)
-import Control.Monad.Trans.Except (runExceptT)
-import qualified DAL.Repository.RBAC as RBACRepo
+import Network.Wai (Application, responseFile, responseLBS, pathInfo, requestMethod, Response, ResponseReceived)
+import Network.Wai.Middleware.Gzip (gzip, def)
+import Network.Wai.Middleware.RequestLogger (logStdoutDev)
+import Network.HTTP.Types (status200, status404)
+import Network.Wai.Handler.Warp (run)
+import Data.Aeson (encode, object, (.=))
 import Data.Text (Text)
 import qualified Data.Text as T
-import qualified Data.Text.Encoding as TE
-import DAL.Database (Pool)
-import Network.Wai
-import Network.Wai.Handler.Warp
-import Network.Wai.Handler.WebSockets
-import qualified Network.WebSockets as WS
-import Surypus.API.AuthMiddleware (withAuthzResolverAdvanced)
-import Surypus.API.Authorization (requiredPermissionForPathMethod)
-import Surypus.API.MetricsMiddleware (MetricsMiddlewareConfig (..), withMetricsCollection)
-import Surypus.API.Server
-import Surypus.Database.Pool (createDatabasePool, databasePoolConfigFromEnv, pingDatabasePool, releaseDatabasePool, runMigrations)
-import Surypus.JWT (jwtConfigFromSecret)
-import Surypus.Metrics (initMetrics)
-import Surypus.RBAC (Permission)
-import Surypus.RBAC.Store (listGrants, listRoles, newRBACStore, writeAuditEntry)
-import Surypus.WebSocket (WebSocketHandler, initWebSocketHandler, handleWebSocket)
-import Text.Read (readMaybe)
+import System.Environment (lookupEnv)
+import System.IO (hFlush, stdout)
+import System.FilePath ((</>))
+import System.Directory (doesFileExist)
 
-websocketApp :: WebSocketHandler -> WS.ServerApp
-websocketApp handler pending = do
-  conn <- WS.acceptRequest pending
-  handleWebSocket handler conn
+staticDir :: FilePath
+staticDir = "web"
 
-isWsRequest :: Request -> Bool
-isWsRequest req = rawPathInfo req == "/ws"
+app :: Application
+app req respond = do
+  let path = T.intercalate "/" (pathInfo req)
+  if requestMethod req == "GET"
+    then case path of
+      "api/health" -> respond $ responseLBS status200
+        [("Content-Type", "application/json")]
+        (encode $ object ["status" .= ("ok" :: Text), "service" .= ("surypus" :: Text)])
+      "api/version" -> respond $ responseLBS status200
+        [("Content-Type", "application/json")]
+        (encode $ object ["version" .= ("0.1.0.0" :: Text)])
+      _ -> serveFile path respond
+    else respond $ responseLBS status404 [("Content-Type", "text/plain")] "Not found"
 
-requiredPermissionFor :: Request -> Maybe Permission
-requiredPermissionFor req = requiredPermissionForPathMethod (requestMethod req) (TE.decodeUtf8 (rawPathInfo req))
+serveFile :: Text -> (Response -> IO ResponseReceived) -> IO ResponseReceived
+serveFile path respond = do
+  let filePath = staticDir </> T.unpack path
+  exists <- doesFileExist filePath
+  if exists
+    then respond $ responseFile status200 [] filePath Nothing
+    else do
+      indexExists <- doesFileExist (staticDir </> "index.html")
+      if indexExists
+        then respond $ responseFile status200 [] (staticDir </> "index.html") Nothing
+        else respond $ responseLBS status404 [("Content-Type", "text/plain")] "Not found"
 
 main :: IO ()
 main = do
-  putStrLn "========================================="
-  putStrLn "  Surypus ERP/CRM v0.2.0 (Servant)"
-  putStrLn "========================================="
-
-  let jwtSecret = "surypus-secret-key-2024" :: Text
-      jwtCfg = jwtConfigFromSecret jwtSecret
-      port = 8080
-
-  dbCfg <- databasePoolConfigFromEnv
-  bracket (createDatabasePool dbCfg) releaseDatabasePool $ \pool -> do
-    dbOk <- pingDatabasePool pool
-    putStrLn $ "Database connectivity: " <> if dbOk then "ok" else "failed"
-    if dbOk
-      then runMigrations pool
-      else pure ()
-
-    rbacStore <- newRBACStore $ \entry -> putStrLn $ "RBAC audit: " <> show entry
-
-    metrics <- initMetrics
-    wsHandler <- initWebSocketHandler
-
-    let authPublicPaths =
-          [ "/api/v1/login",
-            "/api/v1/refresh",
-            "/api/v1/health",
-            "/api/v1/metrics",
-            "/swagger.json",
-            "/ws"
-          ]
-        metricsCfg = MetricsMiddlewareConfig metrics authPublicPaths
-
-    putStrLn $ "Starting Servant server on port " <> show port
-    putStrLn "API available at: http://localhost:8080/api/v1"
-    putStrLn "WebSocket: ws://localhost:8080/ws"
-
-    let servantApp = apiServer pool jwtCfg rbacStore metrics
-        securedApp =
-          withAuthzResolverAdvanced
-            jwtCfg
-            authPublicPaths
-            requiredPermissionFor
-            (listRoles rbacStore)
-            (listGrants rbacStore)
-            (checkPermissionInDatabase pool)
-            (writeAuditEntry rbacStore)
-            servantApp
-        metricsApp = withMetricsCollection metricsCfg securedApp
-
-    let combinedApp :: Application
-        combinedApp req respond
-          | isWsRequest req = do
-              websocketsOr WS.defaultConnectionOptions (websocketApp wsHandler) metricsApp req respond
-          | otherwise = metricsApp req respond
-
-    run port combinedApp
-
-checkPermissionInDatabase :: Pool -> Text -> Permission -> Maybe Text -> IO Bool
-checkPermissionInDatabase pool principal permission _mResource = do
-  let repo = RBACRepo.mkRBACRepository pool
-  case readMaybe (T.unpack principal) of
-    Nothing -> pure False
-    Just userId -> do
-      result <- runExceptT $ RBACRepo.checkUserAppPermissionRepo repo userId permission
-      pure $ case result of
-        Right allowed -> allowed
-        Left _ -> False
+  port <- fmap (maybe 8080 read) (lookupEnv "PORT")
+  putStrLn $ "Starting Surypus server on http://0.0.0.0:" ++ show port
+  hFlush stdout
+  run port $ logStdoutDev $ gzip def app

@@ -21,7 +21,7 @@ import qualified Data.Text as T
 import Data.Aeson (ToJSON, FromJSON, Value)
 import GHC.Generics (Generic)
 import Data.Time (UTCTime, getCurrentTime)
-import DAL.Database (Pool, usePool)
+import DAL.ORMPool (ConnectionPool)
 import DAL.Types (QueryResult(..))
 
 -- ============================================================================
@@ -56,7 +56,7 @@ class IntegrationAdapter a where
   transform :: a -> [ExternalData] -> [DomainEntity]
   
   -- | Persist domain entities to database
-  persist :: Pool -> [DomainEntity] -> IO (Either Text ())
+  persist :: ConnectionPool -> [DomainEntity] -> IO (Either Text ())
   
   -- | Get adapter type identifier
   adapterType :: a -> Text
@@ -163,7 +163,7 @@ toDomainEntity adapter extData = DomainEntity
   }
 
 -- | Persist domain entity to database
-persistEntity :: Pool -> DomainEntity -> IO ()
+persistEntity :: ConnectionPool -> DomainEntity -> IO ()
 persistEntity pool entity = do
   -- Stub implementation - would persist to appropriate table based on entity type
   return ()

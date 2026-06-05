@@ -25,7 +25,7 @@ import GHC.Generics (Generic)
 import System.IO.Unsafe (unsafePerformIO)
 import Control.Concurrent.MVar (MVar, newMVar, putMVar, readMVar)
 import qualified Data.ByteString.Lazy as LBS
-import DAL.Database (Pool, usePool)
+import DAL.ORMPool (ConnectionPool)
 
 -- | Domain Event data structure matching the event_store table
 data Event = Event
@@ -71,15 +71,15 @@ setWebSocketBroadcaster callback = putMVar globalBroadcaster (Just callback)
 -- getLatestSequenceQuery :: OE.Query ... -- Removed Opaleye dependency
 
 -- | Get the latest sequence number for an aggregate (stub implementation)
-getLatestSequence :: Pool -> Int64 -> Text -> IO (Either Text (Maybe Int64))
+getLatestSequence :: ConnectionPool -> Int64 -> Text -> IO (Either Text (Maybe Int64))
 getLatestSequence pool aggId aggType = pure $ Right Nothing  -- Stub implementation
 
 -- | Append event to store with optional broadcast (stub implementation)
-appendEvent :: Pool -> Int64 -> Text -> Text -> Int -> Value -> Maybe Value -> Int64 -> IO (Either Text ())
+appendEvent :: ConnectionPool -> Int64 -> Text -> Text -> Int -> Value -> Maybe Value -> Int64 -> IO (Either Text ())
 appendEvent pool aggId aggType evType evVer evData evMeta seqNum = pure $ Right ()  -- Stub implementation
 
 -- | Append event and broadcast to WebSocket room (stub implementation)
-appendEventBroadcast :: Pool -> Int64 -> Text -> Text -> Int -> Value -> Maybe Value -> Int64 -> Text -> IO (Either Text ())
+appendEventBroadcast :: ConnectionPool -> Int64 -> Text -> Text -> Int -> Value -> Maybe Value -> Int64 -> Text -> IO (Either Text ())
 appendEventBroadcast pool aggId aggType evType evVer evData evMeta seqNum room = do
   -- Broadcast to WebSocket room via global broadcaster
   broadcaster <- readMVar globalBroadcaster
@@ -90,13 +90,13 @@ appendEventBroadcast pool aggId aggType evType evVer evData evMeta seqNum room =
     Nothing -> pure $ Right () -- No broadcaster set, skip broadcast
 
 -- | Get all events for an aggregate (stub implementation)
-getEvents :: Pool -> Int64 -> Text -> IO (Either Text [Event])
+getEvents :: ConnectionPool -> Int64 -> Text -> IO (Either Text [Event])
 getEvents pool aggId aggType = pure $ Right []  -- Stub implementation
 
 -- | Get events for an aggregate from a specific sequence number (stub implementation)
-getEventsFrom :: Pool -> Int64 -> Text -> Int64 -> IO (Either Text [Event])
+getEventsFrom :: ConnectionPool -> Int64 -> Text -> Int64 -> IO (Either Text [Event])
 getEventsFrom pool aggId aggType seqFrom = pure $ Right []  -- Stub implementation
 
 -- | Replay account from events (stub implementation)
-replayAccount :: Pool -> Int64 -> IO (Either Text [Event])
+replayAccount :: ConnectionPool -> Int64 -> IO (Either Text [Event])
 replayAccount pool accountId = pure $ Right []  -- Stub implementation

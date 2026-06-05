@@ -2,6 +2,7 @@
 # Surypus ERP/CRM Docker Configuration
 # ============================================================================
 # Multi-stage build for production with optimized caching
+# Library first, then executable linked against it
 
 # Stage 1: Build environment
 FROM haskell:9.6 AS builder
@@ -23,7 +24,6 @@ COPY stack.yaml stack.yaml.lock* ./
 COPY Surypus.cabal ./
 COPY surypus-common/surypus-common.cabal surypus-common/
 COPY surypus-api/surypus-api.cabal surypus-api/
-COPY surypus-api-shim/surypus-api-shim.cabal surypus-api-shim/
 
 # Pre-install dependencies (cached)
 RUN stack setup --install-ghc && stack build --only-dependencies
@@ -31,10 +31,10 @@ RUN stack setup --install-ghc && stack build --only-dependencies
 # Copy project source files
 COPY surypus-common surypus-common/
 COPY surypus-api surypus-api/
-COPY surypus-api-shim surypus-api-shim/
 COPY src ./src
 COPY app ./app
 COPY config ./config
+COPY web ./web
 
 # Build with optimizations
 RUN stack build --install-ghc --copy-bins \
@@ -58,34 +58,21 @@ RUN groupadd -r surypus && useradd -r -g surypus surypus
 WORKDIR /app
 
 # Copy binary from builder
-COPY --from=builder /root/.local/bin/surypus-api /usr/local/bin/surypus
+COPY --from=builder /root/.local/bin/surypus-server /usr/local/bin/surypus-server
 
-# Create runtime directories
-RUN mkdir -p /app/config /app/logs \
-    && chown -R surypus:surypus /app
-
-# Copy OPA policies if exists
-RUN test -d opa/policies && cp -r opa/policies /app/opa/ || true
-
-# Switch to non-root user
-USER surypus
+# Copy web assets
+COPY --from=builder /build/web ./web
 
 # Environment variables
-ENV PORT=3000
-ENV DB_HOST=postgres
-ENV DB_PORT=5432
-ENV DB_NAME=surypus
-ENV DB_USER=surypus
-ENV DB_PASSWORD=surypus_secret
-ENV OPA_URL=http://opa:8181
+ENV PORT=8080
 
 # Expose port
-EXPOSE 3000
+EXPOSE 8080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:3000/health || exit 1
+    CMD curl -f http://localhost:8080/api/health || exit 1
 
 # Run with dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["surypus"]
+CMD ["surypus-server"]

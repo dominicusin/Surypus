@@ -1,13 +1,13 @@
 module DAL.Repository.RBAC where
 
 import Data.Text (Text)
-import DAL.Database (Pool)
+import DAL.ORMPool (ConnectionPool)
 import Control.Monad.Trans.Except (ExceptT)
 import Surypus.RBAC (Permission)
 
-data RBACRepository = RBACRepository { repoPool :: Pool }
+data RBACRepository = RBACRepository { repoPool :: ConnectionPool }
 
-mkRBACRepository :: Pool -> RBACRepository
+mkRBACRepository :: ConnectionPool -> RBACRepository
 mkRBACRepository = RBACRepository
 
 checkUserAppPermissionRepo :: RBACRepository -> Int -> Permission -> ExceptT Text IO Bool
