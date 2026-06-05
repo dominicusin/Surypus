@@ -1,9 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Surypus ERP
-Comment=Enterprise Resource Planning and CRM system
-Exec=surypus-dashboard
-Icon=surypus-dashboard
-Categories=Office;Finance;Management;
-Terminal=false
-StartupNotify=true
