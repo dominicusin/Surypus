@@ -1,19 +1,22 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Main where
-
-import Network.Wai (Application, responseFile, responseLBS, pathInfo, requestMethod, Response, ResponseReceived)
+import Network.Wai (Application, Request, responseFile, responseLBS, pathInfo, requestMethod, queryString, Response, ResponseReceived)
 import Network.Wai.Middleware.Gzip (gzip, def)
 import Network.Wai.Middleware.RequestLogger (logStdoutDev)
-import Network.HTTP.Types (status200, status404)
+import Network.HTTP.Types (status200, status400, status404)
 import Network.Wai.Handler.Warp (run)
 import Data.Aeson (encode, object, (.=))
 import Data.Text (Text)
 import qualified Data.Text as T
+import Data.Text.Encoding (decodeUtf8)
+import Data.Decimal (Decimal)
 import System.Environment (lookupEnv)
 import System.IO (hFlush, stdout)
 import System.FilePath ((</>))
 import System.Directory (doesFileExist)
+
+import Finance.Tax (mkTaxRate, calcVAT, calcPriceWithVAT, calcVATFromInclusive, calcPriceWithoutVAT)
 
 staticDir :: FilePath
 staticDir = "web"
@@ -29,8 +32,72 @@ app req respond = do
       "api/version" -> respond $ responseLBS status200
         [("Content-Type", "application/json")]
         (encode $ object ["version" .= ("0.1.0.0" :: Text)])
+      "api/tax/calc-vat" -> handleCalcVAT req respond
+      "api/tax/calc-from-inclusive" -> handleCalcFromInclusive req respond
       _ -> serveFile path respond
     else respond $ responseLBS status404 [("Content-Type", "text/plain")] "Not found"
+
+handleCalcVAT :: Request -> (Response -> IO ResponseReceived) -> IO ResponseReceived
+handleCalcVAT req respond = do
+  let params = parseParams req
+  case (lookup "amount" params, lookup "rate" params) of
+    (Just amountStr, Just rateStr) ->
+      case (readMaybeDecimal amountStr, readMaybeDecimal rateStr) of
+        (Just amount, Just rate) ->
+          case mkTaxRate rate of
+            Just tr ->
+              respond $ responseLBS status200 [("Content-Type", "application/json")] $
+                encode $ object
+                  [ "amount" .= (realToFrac amount :: Double)
+                  , "rate" .= (realToFrac rate :: Double)
+                  , "vat" .= (realToFrac (calcVAT amount tr) :: Double)
+                  , "inclusive" .= (realToFrac (calcPriceWithVAT amount tr) :: Double)
+                  ]
+            Nothing ->
+              respond $ responseLBS status400 [("Content-Type", "application/json")] $
+                encode $ object ["error" .= ("Invalid tax rate (must be 0-100)" :: Text)]
+        _ ->
+          respond $ responseLBS status400 [("Content-Type", "application/json")] $
+            encode $ object ["error" .= ("Invalid amount or rate" :: Text)]
+    _ ->
+      respond $ responseLBS status400 [("Content-Type", "application/json")] $
+        encode $ object ["error" .= ("Missing 'amount' or 'rate' query parameter" :: Text)]
+
+handleCalcFromInclusive :: Request -> (Response -> IO ResponseReceived) -> IO ResponseReceived
+handleCalcFromInclusive req respond = do
+  let params = parseParams req
+  case (lookup "amount" params, lookup "rate" params) of
+    (Just amountStr, Just rateStr) ->
+      case (readMaybeDecimal amountStr, readMaybeDecimal rateStr) of
+        (Just amount, Just rate) ->
+          case mkTaxRate rate of
+            Just tr ->
+              respond $ responseLBS status200 [("Content-Type", "application/json")] $
+                encode $ object
+                  [ "inclusive" .= (realToFrac amount :: Double)
+                  , "rate" .= (realToFrac rate :: Double)
+                  , "vat" .= (realToFrac (calcVATFromInclusive amount tr) :: Double)
+                  , "exclusive" .= (realToFrac (calcPriceWithoutVAT amount tr) :: Double)
+                  ]
+            Nothing ->
+              respond $ responseLBS status400 [("Content-Type", "application/json")] $
+                encode $ object ["error" .= ("Invalid tax rate (must be 0-100)" :: Text)]
+        _ ->
+          respond $ responseLBS status400 [("Content-Type", "application/json")] $
+            encode $ object ["error" .= ("Invalid amount or rate" :: Text)]
+    _ ->
+      respond $ responseLBS status400 [("Content-Type", "application/json")] $
+        encode $ object ["error" .= ("Missing 'amount' or 'rate' query parameter" :: Text)]
+
+-- | Parse query string parameters: [(Text, Maybe Text)]
+parseParams :: Request -> [(Text, Text)]
+parseParams req = [(decodeUtf8 k, decodeUtf8 v) | (k, Just v) <- queryString req]
+
+-- | Safely parse a Decimal from Text
+readMaybeDecimal :: Text -> Maybe Decimal
+readMaybeDecimal t = case reads (T.unpack t) of
+  [(d, "")] -> Just d
+  _         -> Nothing
 
 serveFile :: Text -> (Response -> IO ResponseReceived) -> IO ResponseReceived
 serveFile path respond = do

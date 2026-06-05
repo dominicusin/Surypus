@@ -30,7 +30,8 @@ library
     DAL.Repository
     DAL.Schema
     DAL.Types
-    Finance.Accounting
+     Finance.Accounting
+     Finance.Tax
     Infrastructure.Email
     Infrastructure.EventStore.Accounting
     Infrastructure.EventStore.Inventory
@@ -161,6 +162,7 @@ executable surypus-server
     , time
     , directory
     , filepath
+    , Decimal
   default-extensions: OverloadedStrings
 
 test-suite surypus-test
