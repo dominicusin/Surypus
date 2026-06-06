@@ -4,9 +4,12 @@
 module Main where
 
 import Test.Hspec
+import qualified Finance.TaxSpec
 
 main :: IO ()
 main = hspec $ do
+  Finance.TaxSpec.spec
+
   describe "Integration Tests" $ do
     describe "Setup" $ do
       it "Database connection available" $ True `shouldBe` True

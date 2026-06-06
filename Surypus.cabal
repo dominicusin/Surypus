@@ -169,6 +169,8 @@ test-suite surypus-test
   type: exitcode-stdio-1.0
   hs-source-dirs: test
   main-is: Test.hs
+  other-modules:
+      Finance.TaxSpec
   build-depends:
       base >=4.12 && <5
       , Surypus
@@ -180,4 +182,5 @@ test-suite surypus-test
       , bytestring
       , stm
       , containers
+      , Decimal
   default-language: Haskell2010
