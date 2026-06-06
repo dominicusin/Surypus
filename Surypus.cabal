@@ -39,8 +39,9 @@ library
     Infrastructure.WebSocket.InventoryBroadcast
     Integration.Adapter
     Integration.Health
-    Inventory.Stock
-    Science.ML.DemandForecasting
+     Inventory.Stock
+     Production.Types
+     Science.ML.DemandForecasting
     Science.ML.Features
     Security.Quantum.Crypto
     Service.InventoryLifecycleService
