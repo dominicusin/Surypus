@@ -201,7 +201,7 @@ calcVAT amount rate = amount * (rate / 100.0)
 Heavy computations should live in PostgreSQL:
 - Use stored procedures for: `calc_vat()`, `calc_bill_totals()`, `get_lot_bounds()`
 - Validate in Haskell, compute in SQL
-- Use `hasql` library for type-safe queries
+- Use `persistent` + `esqueleto` for type-safe database queries
 
 ---
 

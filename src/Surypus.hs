@@ -6,8 +6,7 @@ module Surypus
     module Surypus.RBAC,
     module DAL.Types,
     module DAL.Database,
-    module DAL.EventStore,
-    module DAL.ORMPool
+    module DAL.EventStore
   ) where
 
 import Surypus.Core
@@ -17,4 +16,3 @@ import Surypus.RBAC
 import DAL.Types
 import DAL.Database
 import DAL.EventStore
-import DAL.ORMPool

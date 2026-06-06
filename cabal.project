@@ -12,8 +12,6 @@ constraints:
   servant-server >= 0.20,
   wai >= 3.2,
   warp >= 3.3,
-  hasql >= 1.6,
-  hasql-pool >= 0.10,
   postgresql-binary >= 0.12,
   crypton -any,
   cryptonite ==0.30,

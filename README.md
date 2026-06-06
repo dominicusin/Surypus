@@ -32,7 +32,7 @@ Comprehensive API documentation is available in [API_DOCUMENTATION.md](API_DOCUM
 - `Surypus.RBAC` - Role-based access control (33 permissions)
 
 ### Database Layer
-- `DAL.Database` - Connection pool management (Hasql)
+- `DAL.Database` - Connection pool management (Persistent)
 - `DAL.EventStore` - Event sourcing
 - `DAL.Types` - Shared data types
 
@@ -58,7 +58,7 @@ Comprehensive API documentation is available in [API_DOCUMENTATION.md](API_DOCUM
 
 ## Tech Stack
 - Haskell (GHC 9.6.5)
-- Hasql 1.10 + PostgreSQL
+- Persistent 2.18 + Esqueleto 3.6 + PostgreSQL
 - Scotty web framework
 - Aeson for JSON serialization
 - LiquidHaskell (optional verification)

@@ -8,7 +8,7 @@
 
 1.  **Domain/**: Чистые доменные модели, типы данных и инварианты. Не зависят от БД или API.
 2.  **Core/ (Service Layer)**: Бизнес-логика (расчет налогов, проведение документов, учет). Оркестрирует работу между DAL и внешними интерфейсами.
-3.  **DAL/ (Data Access Layer)**: Доступ к PostgreSQL через Hasql и Rel8. Содержит репозитории и Event Store.
+3.  **DAL/ (Data Access Layer)**: Доступ к PostgreSQL через Persistent + Esqueleto. Содержит репозитории и Event Store.
 4.  **API/ (Handlers)**: REST эндпоинты (Scotty), преобразование JSON (Aeson) и Swagger спецификация.
 5.  **Infra/**: Утилиты, логирование, работа с JWT, WebSocket и интеграции.
 

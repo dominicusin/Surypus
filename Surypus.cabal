@@ -136,8 +136,6 @@ library
     , messagepack >=0.5
     , cborg >=0.2
     , hedis >=0.14
-    , hasql >=1.6
-    , hasql-pool >=0.8
     , http-conduit >=2.3
     , mime-mail >=0.5
     , smtp-mail >=0.3

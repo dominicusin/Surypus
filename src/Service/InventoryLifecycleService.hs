@@ -3,13 +3,12 @@
 module Service.InventoryLifecycleService where
 
 import qualified Data.Text as T
-import Hasql.Pool (Pool)
 import qualified Surypus.API.Documents.InventoryDocs as InventoryDocs
 
 data InventoryLifecycleService = InventoryLifecycleService
 
-createInventoryLifecycleService :: Pool -> InventoryLifecycleService
-createInventoryLifecycleService _ = InventoryLifecycleService
+createInventoryLifecycleService :: InventoryLifecycleService
+createInventoryLifecycleService = InventoryLifecycleService
 
 postInventoryDocument :: InventoryLifecycleService -> T.Text -> IO (Either T.Text InventoryDocs.InventoryDoc)
 postInventoryDocument _ t
