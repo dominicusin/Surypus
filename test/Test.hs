@@ -5,10 +5,12 @@ module Main where
 
 import Test.Hspec
 import qualified Finance.TaxSpec
+import qualified Finance.AccountingSpec
 
 main :: IO ()
 main = hspec $ do
   Finance.TaxSpec.spec
+  Finance.AccountingSpec.spec
 
   describe "Integration Tests" $ do
     describe "Setup" $ do

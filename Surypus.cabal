@@ -172,6 +172,7 @@ test-suite surypus-test
   main-is: Test.hs
   other-modules:
       Finance.TaxSpec
+      Finance.AccountingSpec
   build-depends:
       base >=4.12 && <5
       , Surypus
