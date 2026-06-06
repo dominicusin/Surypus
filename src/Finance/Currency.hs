@@ -2,7 +2,7 @@
 module Finance.Currency where
 
 import Data.Int (Int64)
-import Data.Ratio   (..))
+import Data.Ratio ((%))
 import Data.Text (Text)
 import qualified Data.Text as T
 import Test.QuickCheck

@@ -1,4 +1,3 @@
-import Inventory.Types
 -- | Inventory Module - Stock management
 -- Re-exports all inventory types
 module Inventory.Inventory

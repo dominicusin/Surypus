@@ -39,6 +39,7 @@ import Data.Int (Int64)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Maybe (mapMaybe, fromMaybe)
+import Control.Applicative ((<|>))
 import GHC.Generics (Generic)
 import Data.Aeson (FromJSON, ToJSON)
 
@@ -220,8 +221,8 @@ updateGoods goods gid req = case readGoods goods gid of
   GoodsSuccess g ->
     let updated = g
           { gName = fromMaybe (gName g) (ugrName req)
-          , gDescription = fromMaybe (gDescription g) (ugrDescription req)
-          , gBarcode = fromMaybe (gBarcode g) (ugrBarcode req)
+          , gDescription = ugrDescription req <|> gDescription g
+          , gBarcode = ugrBarcode req <|> gBarcode g
           , gStatus = fromMaybe (gStatus g) (ugrStatus req)
           , gMinStock = fromMaybe (gMinStock g) (ugrMinStock req)
           , gMaxStock = fromMaybe (gMaxStock g) (ugrMaxStock req)
@@ -265,8 +266,8 @@ discontinueGoods g = GoodsSuccess $ g
   }
 
 -- | Query by status
-goodsByStatus :: [Goods] -> GoodsStatus -> [Goods]
-goodsByStatus goods status = [g | g <- goods, gStatus g == status]
+goodsByStatus :: GoodsStatus -> [Goods] -> [Goods]
+goodsByStatus status goods = [g | g <- goods, gStatus g == status]
 
 -- | Query by kind
 goodsByKind :: [Goods] -> GoodsKind -> [Goods]

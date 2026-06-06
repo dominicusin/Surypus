@@ -241,9 +241,10 @@ runApp pool jwtSecret port = do
             , REST.irMethod = "POST"
             , REST.irBody = Just body
             , REST.irHeaders = []
+            , REST.irQueryParams = []
             }
       response <- liftIO $ REST.handleIntegrationRequest config "default-tenant" request
-      json $ REST.irData response
+      json $ REST.irespBody response
     
     get "/api/v1/integrations/health" $ do
       let request = REST.IntegrationRequest
@@ -251,9 +252,10 @@ runApp pool jwtSecret port = do
             , REST.irMethod = "GET"
             , REST.irBody = Nothing
             , REST.irHeaders = []
+            , REST.irQueryParams = []
             }
       response <- liftIO $ REST.handleIntegrationRequest config "default-tenant" request
-      json $ REST.irData response
+      json $ REST.irespBody response
     
     get "/api/v1/integrations/status" $ do
       let request = REST.IntegrationRequest
@@ -261,6 +263,7 @@ runApp pool jwtSecret port = do
             , REST.irMethod = "GET"
             , REST.irBody = Nothing
             , REST.irHeaders = []
+            , REST.irQueryParams = []
             }
       response <- liftIO $ REST.handleIntegrationRequest config "default-tenant" request
-      json $ REST.irData response
+      json $ REST.irespBody response

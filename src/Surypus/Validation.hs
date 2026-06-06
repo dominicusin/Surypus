@@ -1,6 +1,7 @@
 -- | Validation module - Input validation utilities
 {-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 module Surypus.Validation
   ( ValidationError   (..),
     validatePersonInput,
@@ -22,7 +23,7 @@ module Surypus.Validation
   )
 where
 
-import Data.Int (Int64)
+import DAL.Types (AccTurnInput(..))
 import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Time (Day)

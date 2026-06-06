@@ -25,13 +25,59 @@ library
     DAL.MutationsORM
     DAL.ORMPool
     DAL.Procedures
+    Commerce.AdvanceBill
+    Commerce.AdvanceInvoice
+    Commerce.BillLine
+    Commerce.BillStatusEx
+    Commerce.BillTaxDiffs
+    Commerce.Bonus
+    Commerce.BonusPoints
+    Commerce.Bundle
+    Commerce.CashOperation
+    Commerce.CashRegister
+    Commerce.CashSessionTemp
+    Commerce.Combo
+    Commerce.Commerce
+    Commerce.Contract
+    Commerce.Discount
+    Commerce.GiftCard
+    Commerce.Invoice
+    Commerce.Loyalty
+    Commerce.Package
+    Commerce.Payment
+    Commerce.PaymentCard
+    Commerce.Price
+    Commerce.PriceByAgent
+    Commerce.PriceByQtty
+    Commerce.PriceByTime
+    Commerce.PriceList
+    Commerce.PriceRule
+    Commerce.Promo
+    Commerce.RetBill
+    Commerce.Return
+    Commerce.ServiceBill
+    Commerce.Shipment
+    Core.Payroll.Calculation
+    CRM.Activity
+    CRM.Company
+    CRM.Contact
+    CRM.Deal
+    CRM.Pipeline
+    CRM.Types
     DAL.Queries
     DAL.QueriesORM
     DAL.Repository
     DAL.Schema
     DAL.Types
+     Finance.Account
      Finance.Accounting
+     Finance.Asset
+     Finance.Bank
+     Finance.BankAccount
+     Finance.Currency
+     Finance.Journal
      Finance.Tax
+     Finance.Types
     Infrastructure.Email
     Infrastructure.EventStore.Accounting
     Infrastructure.EventStore.Inventory
@@ -39,7 +85,19 @@ library
     Infrastructure.WebSocket.InventoryBroadcast
     Integration.Adapter
     Integration.Health
+    HR.Employee
+    HR.Salary
+    HR.Types
+     Inventory.Category
+     Inventory.Goods
+     Inventory.Inventory
+     Inventory.Location
+     Inventory.Lot
+     Inventory.Operations
      Inventory.Stock
+     Inventory.Types
+     Inventory.Unit
+     Inventory.Warehouse
      Production.Types
      Science.ML.DemandForecasting
     Science.ML.Features
@@ -92,6 +150,7 @@ library
     Surypus.Types.Payment
     Surypus.Types.Person
     Surypus.Types.Stock
+    Surypus.Validation
     Surypus.WebSocket
     System.CircuitBreaker
   build-depends:
