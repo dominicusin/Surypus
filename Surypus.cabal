@@ -154,12 +154,7 @@ library
     Surypus.Validation
     Surypus.WebSocket
     System.CircuitBreaker
-    API.API
-    API.GraphQL.Proxy
-    API.Integration.BankStatement
-    API.Server
     API.Types
-    API.V1
     Analytics
     Analytics.Analytics
     Analytics.Chart
@@ -242,7 +237,6 @@ library
     Infrastructure.Notification
     Infrastructure.Serializer
     Integration
-    Integration.API.API
     Integration.API.EventBusAdvanced
     Integration.API.EventProcessor
     Integration.API.EventStore
@@ -441,7 +435,6 @@ library
     , persistent-template >=2.14
     , esqueleto >=3.5
     , monad-logger >=0.3
-    , scotty >=0.12
     , wai-extra >=3.1
     , jose >=0.10 && <0.11
     , websockets >=0.12

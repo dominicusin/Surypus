@@ -2,8 +2,6 @@
 module Analytics.Dashboard where
 
 import Data.Text (Text)
-import Data.Map.Strict (Map)
-import qualified Data.Map.Strict as Map
 import Data.Int (Int64)
 
 -- | Dashboard widget type
@@ -28,7 +26,7 @@ data DataPoint = DataPoint
 
 -- | Get KPI data
 getKPIData :: Text -> IO [(Text, Double)]
-getKPIData kpiName = do
+getKPIData _kpiName = do
   -- TODO: Implement actual KPI queries
   return [("placeholder", 0.0)]
 

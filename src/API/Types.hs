@@ -9,7 +9,6 @@ module API.Types
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Int (Int16, Int64)
 import Data.Text (Text)
-import qualified Data.Text as T
 import Data.Time (Day, UTCTime)
 import GHC.Generics (Generic)
 import qualified Servant.API as Servant
@@ -88,8 +87,6 @@ err404 = mkErrorResponse 404
 
 err409 :: Text -> ErrorResponse
 err409 = mkErrorResponse 409
-
-mkErrorResponseWithDetails' = mkErrorResponseWithDetails
 
 data LoginRequest = LoginRequest
   { lrUsername :: Text,
