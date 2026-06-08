@@ -345,6 +345,9 @@ library
     Surypus.API.MetricsMiddleware
     Surypus.App.Main
     Surypus.Database.Pool
+    Surypus.DB.Pool
+    Surypus.DB.Queries
+    Surypus.DB.Schema
     Surypus.Domain.Concurrency.Domain
     Surypus.Domain.Config.Config
     Surypus.Domain.Observability.API
