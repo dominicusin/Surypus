@@ -89,7 +89,7 @@ checkConstraint !con !vars =
 optimize :: Objective -> [Constraint] -> M.Map Text Double -> OptimizationState
 optimize !obj !constraints !initialVars
   | M.null initialVars = defOptimizationState M.empty
-  | not (all (\c -> checkConstraint c initialVars) constraints) =
+  | not (all (`checkConstraint` initialVars) constraints) =
     defOptimizationState initialVars
   | otherwise =
     let val = evaluateObjective obj initialVars

@@ -21,6 +21,7 @@ import Control.Monad.Logger (runNoLoggingT)
 import System.Environment (lookupEnv)
 import Text.Read (readMaybe)
 import Data.ByteString.Char8 (pack)
+import Data.Maybe (fromMaybe)
 
 -- | Database configuration
 data DBConfig = DBConfig
@@ -34,21 +35,21 @@ data DBConfig = DBConfig
   } deriving (Show, Eq)
 
 -- | Connection pool (thin wrapper)
-data Pool = Pool
-  { poolConn :: !PG.ConnectionPool
+newtype Pool = Pool
+  { poolConn :: PG.ConnectionPool
   }
 
 -- | Default DB config from environment or defaults
 mkDBConfig :: IO DBConfig
 mkDBConfig = do
   host <- maybe "localhost" T.pack <$> lookupEnv "DB_HOST"
-  port <- maybe 5432 id . (>>= readMaybe) <$> lookupEnv "DB_PORT"
+  port <- fromMaybe 5432 . (>>= readMaybe) <$> lookupEnv "DB_PORT"
   name <- maybe "surypus" T.pack <$> lookupEnv "DB_NAME"
   user <- maybe "surypus" T.pack <$> lookupEnv "DB_USER"
   password <- maybe "surypus_password" T.pack <$> lookupEnv "DB_PASSWORD"
-  poolSize <- maybe 10 id . (>>= readMaybe) <$> lookupEnv "DB_POOL_SIZE"
+  poolSize <- fromMaybe 10 . (>>= readMaybe) <$> lookupEnv "DB_POOL_SIZE"
   let timeout = secondsToNominalDiffTime 30
-  return DBConfig
+  pure DBConfig
     { dbHost = host
     , dbPort = port
     , dbName = name
@@ -59,6 +60,7 @@ mkDBConfig = do
     }
 
 -- | Connection string from config
+
 connString :: DBConfig -> Text
 connString cfg =
   "host=" <> dbHost cfg
@@ -74,7 +76,7 @@ createPool = do
   pool <- runNoLoggingT $ PG.createPostgresqlPool
     (pack (T.unpack (connString cfg)))
     (dbPoolSize cfg)
-  return (Pool pool)
+  pure (Pool pool)
 
 -- | Close pool
 closePool :: Pool -> IO ()
@@ -86,4 +88,4 @@ runQuery (Pool p) action = PS.runSqlPool action p
 
 -- | Pool statistics (placeholder)
 poolStats :: Pool -> IO (Int64, Int64)
-poolStats _pool = return (0, 0)
+poolStats _pool = pure (0, 0)

@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module Surypus.DB.Queries
   ( listPersons
   , getPersonById
@@ -34,8 +32,7 @@ getBillById pool bid =
   runSqlPool (P.get (toSqlKey bid)) pool
 
 listTaxRates :: ConnectionPool -> IO [P.Entity TaxEntity]
-listTaxRates pool =
-  runSqlPool (P.selectList [] []) pool
+listTaxRates = runSqlPool (P.selectList [] [])
 
 getTaxRateById :: ConnectionPool -> Int64 -> IO (Maybe TaxEntity)
 getTaxRateById pool tid =
