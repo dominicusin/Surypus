@@ -53,6 +53,7 @@ import qualified Surypus.API.Reports as Reports
 import qualified Surypus.API.Workflow as Workflow
 import qualified Surypus.JWT.Token as JWT
 import qualified Surypus.WebSocket as WS
+import Surypus.API.AuthMiddleware (withAuthzResolverAdvanced)
 
 -- Local type definitions for API
 data LoginRequest = LoginRequest
@@ -101,14 +102,15 @@ authMiddleware app req respond = do
                             Left _ -> respond $ W.responseLBS status401 [("Content-Type", "text/plain")] "Invalid token"
                             Right _ -> app req respond
 
-apiServer :: ConnectionPool -> Log.Logger -> IO Application
-apiServer connPool logger = do
+apiServer :: ConnectionPool -> Log.Logger -> [Text] -> (Int64 -> Text -> IO Bool) -> IO Application
+apiServer connPool logger publicPaths checkPermission = do
     rateLimiter <- RL.initSlidingWindow 100 60
     let env = Env connPool logger Nothing
         app = metricsEndpoint
             $ rateLimiting rateLimiter
             $ correlationMiddleware logger
             $ authMiddleware
+            $ withAuthzResolverAdvanced publicPaths checkPermission
             $ serve (Proxy @SurypusApi) (server env)
     return app
 
