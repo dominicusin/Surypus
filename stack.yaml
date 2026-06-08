@@ -1,6 +1,9 @@
 # stack.yaml for Surypus
 resolver: lts-22.21
 
+# nix: enabled but blocked — local nixpkgs lacks ghc965.
+# To enable: pin nixpkgs to 24.05+ (nixpkgsUnstable has ghc965).
+# For now, system libs are available via apt (libpq-dev, zlib1g-dev, etc.)
 nix:
   enable: false
   packages:
@@ -10,12 +13,13 @@ nix:
     - libffi
     - ncurses
     - postgresql
+    - openssl
 
 packages:
   - .
 
 ghc-options:
-  "$locals": -Wall -Wcompat
+  "$locals": -Wall -Werror -Wincomplete-patterns -Wmissing-signatures
 
 allow-newer: true
 allow-different-user: true
