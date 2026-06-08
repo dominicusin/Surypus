@@ -27,14 +27,14 @@ services:
       dockerfile: Dockerfile
     container_name: surypus-api
     environment:
-      PORT: 8080
+      PORT: 443
       DB_HOST: db
       DB_PORT: 5432
       DB_NAME: surypus
       DB_USER: surypus
       DB_PASSWORD: surypus_password
     ports:
-      - "8080:8080"
+      - "8080:443"
     depends_on:
       db:
         condition: service_healthy

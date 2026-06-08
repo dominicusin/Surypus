@@ -61,14 +61,14 @@ COPY --from=builder /root/.local/bin/surypus-server /usr/local/bin/surypus-serve
 COPY --from=builder /build/web ./web
 
 # Environment variables
-ENV PORT=8080
+ENV PORT=443
 
 # Expose port
-EXPOSE 8080
+EXPOSE 443
 
-# Health check
+# Health check (liveness + readiness)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8080/api/health || exit 1
+    CMD curl -f http://localhost:443/api/v1/health || exit 1
 
 # Run with dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]

@@ -108,5 +108,5 @@ jobs:
           docker compose -f docker-compose.yml build api
           docker compose -f docker-compose.yml up -d api
           sleep 10
-          curl -f http://localhost:8080/api/health || echo "Health check skipped (DB not fully initialized)"
+          curl -f http://localhost:8080/api/v1/health || echo "Health check skipped (DB not fully initialized)"
           docker compose -f docker-compose.yml down -v
