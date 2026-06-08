@@ -182,6 +182,8 @@ library
     Core.Accounting.ReadModel
     Core.Accounting.RedisCache
     Core.Core
+    Core.Tax
+    Core.Optimization
     DAL.Agent
     DAL.Attachment
     DAL.Blockchain
