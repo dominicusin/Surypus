@@ -6,7 +6,7 @@
 -- This module provides type-safe ledger operations with formal verification
 module Finance.Ledger where
 
-import Finance.Account (Account   (..), AccountId, AccountCode, AccountClass   (..))
+import Finance.Account (Account   (..), AccountId, AccountCode (..), AccountClass   (..))
 import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Time (Day)
@@ -90,17 +90,62 @@ validateAccountingEquation ledger =
       creditTotal = sum [unAmount (turnAmount t) | t <- M.elems (ledgerEntries ledger), isCreditAccount (turnCreditAcc t)]
   in abs (debitTotal - creditTotal) < 0.001  -- Tolerance for floating point
 
--- | Check if account is debit nature
--- isDebitAccount :: AccountCode -> Bool
--- isDebitAccount code = unAccountCode code `elem` ["1010", "5010", "6010"]  -- Simplified
+-- | Check if account is debit nature based on account code.
+-- Active accounts (Asset, Expense): debit nature
+-- Based on Russian Accounting Standards:
+--   01-19: Asset (debit)
+--   20-29, 44: Expense (debit)
+--   30-39: Asset/Expense mixed (debit by default)
+--   40-43: Production (debit)
+--   50-59: Asset/cash (debit)
+--   60-79: Liability (credit)
+--   80-89: Equity (credit)
+--   90-99: Revenue (credit)
 isDebitAccount :: AccountCode -> Bool
-isDebitAccount _ = False  -- Stub
+isDebitAccount code =
+  let t = unAccountCode code
+      prefix = if T.length t >= 2 then T.take 2 t else t
+   in case prefix of
+        -- Active accounts (debit nature)
+        "01" -> True  -- Fixed assets
+        "02" -> True  -- Depreciation
+        "03" -> True  -- Investments
+        "04" -> True  -- Intangible assets
+        "07" -> True  -- Equipment
+        "08" -> True  -- Construction
+        "09" -> True  -- Deferred tax
+        "10" -> True  -- Materials
+        "11" -> True  -- Animals
+        "14" -> True  -- Reserves
+        "15" -> True  -- Procurement
+        "16" -> True  -- Variance
+        "19" -> True  -- VAT
+        "20" -> True  -- Production
+        "21" -> True  -- Semi-finished
+        "23" -> True  -- Auxiliary
+        "25" -> True  -- Overhead
+        "26" -> True  -- General expenses
+        "28" -> True  -- Defects
+        "29" -> True  -- Service
+        "40" -> True  -- Output
+        "41" -> True  -- Goods
+        "42" -> True  -- Margin
+        "43" -> True  -- Finished goods
+        "44" -> True  -- Selling costs
+        "45" -> True  -- Shipped goods
+        "46" -> True  -- Work in progress
+        "50" -> True  -- Cash
+        "51" -> True  -- Bank accounts
+        "52" -> True  -- Currency accounts
+        "55" -> True  -- Special accounts
+        "57" -> True  -- Transfers
+        "58" -> True  -- Investments
+        -- All others: credit nature (default passive)
+        _    -> False
 
--- | Check if account is credit nature
--- isCreditAccount :: AccountCode -> Bool
--- isCreditAccount code = unAccountCode code `elem` ["2010", "3010", "7010"]  -- Simplified
+-- | Check if account is credit nature (opposite of debit)
 isCreditAccount :: AccountCode -> Bool
-isCreditAccount _ = False  -- Stub
+isCreditAccount = not . isDebitAccount
 
 -- | Post entry to ledger
 postTurn :: AccTurn -> Ledger -> Maybe Ledger

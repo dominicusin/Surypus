@@ -1,37 +1,65 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Audit.Persistence where
- 
-import Audit.Trail
-import Control.Monad.IO.Class (liftIO)
-import DAL.ORMPool (ConnectionPool)
-import Data.Text (Text)
-import qualified Data.Text as T
+
+import Audit.Trail (AuditEntry (..))
+import DAL.Database (ConnectionPool, runDb)
+import DAL.Schema
+  ( AuditLogEntity (..)
+  , EntityField
+    ( AuditLogEntityUserId
+    , AuditLogEntityCreatedAt
+    )
+  )
 import Data.Int (Int64)
-import Data.Time (UTCTime)
-import qualified Data.ByteString.Lazy as LBS
+import Data.Text (Text)
 import Data.Aeson (encode)
- 
--- | Insert audit entry into database
+import Database.Persist.Sql (Key, Entity (..), selectList, (==.), entityVal, entityKey, fromSqlKey, insert, deleteWhere, SelectOpt (Desc))
+import qualified Data.ByteString.Lazy as LBS
+
+entityWithKeyToEntry :: Key AuditLogEntity -> AuditLogEntity -> AuditEntry
+entityWithKeyToEntry key entity =
+  AuditEntry
+    { aeId = Just (fromSqlKey key)
+    , aeTimestamp = auditLogEntityCreatedAt entity
+    , aeUserId = auditLogEntityUserId entity
+    , aeAction = auditLogEntityAction entity
+    , aeResourceType = auditLogEntityResourceType entity
+    , aeResourceId = auditLogEntityResourceId entity
+    , aeOldValues = auditLogEntityOldValues entity
+    , aeNewValues = auditLogEntityNewValues entity
+    , aeIpAddress = auditLogEntityIpAddress entity
+    }
+
+entryToEntity :: AuditEntry -> AuditLogEntity
+entryToEntity entry =
+  AuditLogEntity
+    { auditLogEntityUserId = aeUserId entry
+    , auditLogEntityAction = aeAction entry
+    , auditLogEntityResourceType = aeResourceType entry
+    , auditLogEntityResourceId = aeResourceId entry
+    , auditLogEntityOldValues = aeOldValues entry
+    , auditLogEntityNewValues = aeNewValues entry
+    , auditLogEntityIpAddress = aeIpAddress entry
+    , auditLogEntityCreatedAt = aeTimestamp entry
+    }
+
 insertAuditEntry :: ConnectionPool -> AuditEntry -> IO (Either Text Int64)
 insertAuditEntry pool entry = do
-   -- TODO: Implement actual database insert using Opaleye
-   -- For now, return a mock success
-   return (Right 1)
- 
--- | Query audit entries by user
+  let entity = entryToEntity entry
+  key <- runDb pool $ insert entity
+  pure $ Right (fromSqlKey key)
+
 queryAuditByUser :: ConnectionPool -> Int64 -> IO [AuditEntry]
 queryAuditByUser pool userId = do
-   -- TODO: Implement query using Opaleye
-   return []
- 
--- | GDPR export - all user data
+  entities <- runDb pool $ selectList [AuditLogEntityUserId ==. userId] [Desc AuditLogEntityCreatedAt]
+  pure $ map (\e -> entityWithKeyToEntry (entityKey e) (entityVal e)) entities
+
 exportUserData :: ConnectionPool -> Int64 -> IO LBS.ByteString
 exportUserData pool userId = do
-   -- TODO: Implement GDPR export using Opaleye
-   return LBS.empty
- 
--- | GDPR delete - anonymize user data
+  entries <- queryAuditByUser pool userId
+  pure $ encode entries
+
 anonymizeUserData :: ConnectionPool -> Int64 -> IO ()
 anonymizeUserData pool userId = do
-   -- TODO: Implement anonymization using Opaleye
-   return ()
+  runDb pool $ deleteWhere [AuditLogEntityUserId ==. userId]
+  pure ()

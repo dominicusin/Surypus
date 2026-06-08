@@ -376,4 +376,15 @@ EventStoreEntity sql=event_store
   occurredAt UTCTime
   createdAt UTCTime
   deriving Show Eq
+
+AuditLogEntity sql=audit_log
+  userId Int64
+  action Text
+  resourceType Text
+  resourceId Int64
+  oldValues Text Maybe
+  newValues Text Maybe
+  ipAddress Text
+  createdAt UTCTime
+  deriving Show Eq
 |]
