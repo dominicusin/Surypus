@@ -1,10 +1,15 @@
+{-# LANGUAGE OverloadedStrings #-}
 module System.SchedulerJob where
 
 import Control.Concurrent.STM (TVar, atomically, newTVarIO, readTVar, writeTVar)
+import Data.Int (Int64)
 import Data.Time.Calendar (Day, addDays)
 import Data.Time.Clock (UTCTime, addUTCTime, getCurrentTime, utctDay)
-import System.HealthCheckCheck (HealthResult)
+import Data.Text (Text)
+import qualified Data.Text as T
+import System.HealthCheck (HealthResult)
 import System.JobQueue (JobQueue)
+import System.Random (randomIO)
 
 -- | Job types
 data JobType
@@ -38,8 +43,18 @@ data ScheduledJob = ScheduledJob
 data JobSchedule
   = Once UTCTime
   | Recurring (Day -> Bool)
-  | Interval Seconds
-  deriving (Show, Eq)
+  | Interval Int64
+
+instance Show JobSchedule where
+  show (Once t) = "Once " ++ show t
+  show (Recurring _) = "Recurring <fn>"
+  show (Interval n) = "Interval " ++ show n
+
+instance Eq JobSchedule where
+  Once t1 == Once t2 = t1 == t2
+  Recurring _ == Recurring _ = True
+  Interval n1 == Interval n2 = n1 == n2
+  _ == _ = False
 
 -- | Job status
 data JobStatus
@@ -61,13 +76,14 @@ initJobScheduler = do
 scheduleHealthCheck :: JobQueue -> UTCTime -> IO Text
 scheduleHealthCheck queue time = do
   jobId <- generateJobId
+  statusVar <- newTVarIO Pending
   let job =
         ScheduledJob
           { jobId = jobId,
             jobType = HealthCheckJob,
             jobQueue = queue,
             jobSchedule = Once time,
-            jobStatus = newTVarIO Pending,
+            jobStatus = statusVar,
             jobRetries = 0,
             jobMaxRetries = 3
           }
@@ -75,9 +91,10 @@ scheduleHealthCheck queue time = do
   return jobId
 
 -- | Schedule metrics export
-scheduleMetricsExport :: JobQueue -> UTCTime -> Interval -> IO Text
-scheduleMetricsExport queue time interval = do
+scheduleMetricsExport :: JobQueue -> UTCTime -> Int64 -> IO Text
+scheduleMetricsExport queue time intervalSec = do
   jobId <- generateJobId
+  statusVar <- newTVarIO Pending
   let recurring = Recurring (\_ -> True) -- Every day
       job =
         ScheduledJob
@@ -85,7 +102,7 @@ scheduleMetricsExport queue time interval = do
             jobType = MetricsExportJob,
             jobQueue = queue,
             jobSchedule = recurring,
-            jobStatus = newTVarIO Pending,
+            jobStatus = statusVar,
             jobRetries = 0,
             jobMaxRetries = 5
           }
@@ -96,13 +113,14 @@ scheduleMetricsExport queue time interval = do
 scheduleWorkflowJob :: JobQueue -> Text -> UTCTime -> IO Text
 scheduleWorkflowJob queue workflowId time = do
   jobId <- generateJobId
+  statusVar <- newTVarIO Pending
   let job =
         ScheduledJob
           { jobId = jobId,
             jobType = WorkflowJob workflowId,
             jobQueue = queue,
             jobSchedule = Once time,
-            jobStatus = newTVarIO Pending,
+            jobStatus = statusVar,
             jobRetries = 0,
             jobMaxRetries = 2
           }
@@ -116,28 +134,28 @@ executeJob job = do
   result <- executeJobAction (jobType job)
   case result of
     JobSuccess _ -> do
-      writeTVar (jobStatus job) (Completed now)
+      atomically $ writeTVar (jobStatus job) (Completed now)
       return $ JobSuccess now
     JobRetry _ -> do
       let retries = jobRetries job + 1
-      writeTVar (jobStatus job) (Failed "retry" now)
+      atomically $ writeTVar (jobStatus job) (Failed "retry" now)
       if retries < jobMaxRetries job
         then do
-          let nextTime = calculateRetryTime retries
+          nextTime <- calculateRetryTime retries
           return $ JobRetry nextTime
         else return $ JobFailure "max retries exceeded" now
     JobFailure err _ -> do
-      writeTVar (jobStatus job) (Failed err now)
+      atomically $ writeTVar (jobStatus job) (Failed err now)
       return $ JobFailure err now
   where
-     executeJobAction HealthCheckJob = return $ JobSuccess =<< getCurrentTime
-     executeJobAction MetricsExportJob = return $ JobSuccess =<< getCurrentTime
-     executeJobAction (WorkflowJob wid) = return $ JobSuccess =<< getCurrentTime
-     executeJobAction NotificationJob = return $ JobSuccess =<< getCurrentTime
-     executeJobAction CacheCleanupJob = return $ JobSuccess =<< getCurrentTime
-     executeJobAction AuditFlushJob = return $ JobSuccess =<< getCurrentTime
+    executeJobAction HealthCheckJob = JobSuccess <$> getCurrentTime
+    executeJobAction MetricsExportJob = JobSuccess <$> getCurrentTime
+    executeJobAction (WorkflowJob wid) = JobSuccess <$> getCurrentTime
+    executeJobAction NotificationJob = JobSuccess <$> getCurrentTime
+    executeJobAction CacheCleanupJob = JobSuccess <$> getCurrentTime
+    executeJobAction AuditFlushJob = JobSuccess <$> getCurrentTime
 
-    calculateRetryTime retries = addUTCTime (fromIntegral (retries * 60)) =<< getCurrentTime
+    calculateRetryTime retries = addUTCTime (fromIntegral (retries * 60)) <$> getCurrentTime
 
 -- | Cancel job
 cancelJob :: ScheduledJob -> IO ()
@@ -146,12 +164,12 @@ cancelJob job = atomically $ do
   case status of
     Pending -> writeTVar (jobStatus job) Cancelled
     Scheduled _ -> writeTVar (jobStatus job) Cancelled
-    Running _ _ -> writeTVar (jobStatus job) Cancelled
+    Running _ -> writeTVar (jobStatus job) Cancelled
     _ -> return ()
 
 -- | Generate job ID
 generateJobId :: IO Text
-generateJobId = T.pack . show <$> randomIO
+generateJobId = T.pack . show <$> (randomIO :: IO Int)
 
 -- | Enqueue job
 enqueueJob :: JobQueue -> ScheduledJob -> IO ()

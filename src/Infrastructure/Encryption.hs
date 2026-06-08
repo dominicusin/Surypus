@@ -46,9 +46,9 @@ hashPassword password = do
       hash = simpleHash pwBs salt iterations
   return $ T.intercalate "$" 
     [ "pbkdf2"
-    , show iterations
-    , salt
-    , hash
+    , T.pack (show iterations)
+    , T.pack salt
+    , T.pack hash
     ]
 
 -- | Verify password against stored hash
@@ -66,7 +66,7 @@ simpleHash :: ByteString -> String -> Int -> String
 simpleHash pw salt iter = 
   let combined = BS.append pw (TE.encodeUtf8 $ T.pack salt)
       hash = foldr (\_ acc -> BS.map (`xor` fromIntegral iter) acc) combined [1..min iter 1000]
-  in showHex hash ""
+  in showHex hash
 
 -- | XOR helper
 xor :: Word8 -> Word8 -> Word8

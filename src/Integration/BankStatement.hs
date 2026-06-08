@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 -- | Bank statement import — OFX and ISO 20022 (camt.053) parsing with auto-matching
 module Integration.BankStatement
@@ -15,15 +16,11 @@ module Integration.BankStatement
 
 import Data.Text (Text)
 import qualified Data.Text as T
-import Data.Aeson (ToJSON, FromJSON)
+import Data.Aeson (ToJSON, FromJSON, Value, encode, decode)
 import GHC.Generics (Generic)
-import qualified Hasql.Decoders as D
-import qualified Hasql.Encoders as E
-import qualified Hasql.Session as Session
-import Hasql.Statement (Statement  (..))
-import Data.Functor.Contravariant ((>$<))
-import DAL.Database (Pool, usePool)
+import DAL.Database (ConnectionPool, runDb)
 import DAL.Types (QueryResult  (..))
+import Database.Persist.Sql (PersistValue (..), Single (..), rawExecute, rawSql, SqlPersistT)
 
 data BankTxn = BankTxn
   { btDate        :: !Text
@@ -109,6 +106,10 @@ parseNtryBlock block = BankTxn
   , btCounterparty = Just (getXmlField "Nm" "" block)
   }
 
+persistTextMaybe :: Maybe Text -> PersistValue
+persistTextMaybe Nothing  = PersistNull
+persistTextMaybe (Just t) = PersistText t
+
 getXmlField :: Text -> Text -> Text -> Text
 getXmlField outer inner block =
   let tag = if T.null inner then outer else inner
@@ -121,89 +122,66 @@ getXmlField outer inner block =
          in T.takeWhile (/= '<') val
 
 -- | Persist parsed transactions to DB under a new import record
-importStatementLines :: Pool -> Text -> Text -> [BankTxn] -> IO (QueryResult ImportResult)
-importStatementLines pool tenantId filename txns = do
-  -- Create import header
-  let hdrStmt = Statement
-        "INSERT INTO bank_statement_import (tenant_id, filename, format, total_rows, status) \
-        \VALUES ($1::UUID, $2, 'OFX', $3, 'done') RETURNING id::TEXT"
-        (((\(t,_,_) -> t) >$< E.param (E.nonNullable E.text))
-          <> ((\(_,f,_) -> f) >$< E.param (E.nonNullable E.text))
-          <> ((\(_,_,n) -> fromIntegral n) >$< E.param (E.nonNullable E.int4)))
-        (D.singleRow (D.column (D.nonNullable D.text)))
-        True
-  hdrRes <- usePool pool $ Session.statement (tenantId, filename, length txns) hdrStmt
-  case hdrRes of
-    Left err -> return $ QueryError (T.pack $ show err)
-    Right importId -> do
-      -- Insert lines
-      let lineStmt = Statement
-            "INSERT INTO bank_statement_line \
-            \(import_id, txn_date, value_date, amount, currency, description, ref_number, counterparty) \
-            \VALUES ($1::UUID, $2::DATE, $3::DATE, $4, $5, $6, $7, $8)"
-            (((\(i,_,_,_,_,_,_,_) -> i) >$< E.param (E.nonNullable E.text))
-              <> ((\(_,d,_,_,_,_,_,_) -> d) >$< E.param (E.nonNullable E.text))
-              <> ((\(_,_,v,_,_,_,_,_) -> v) >$< E.param (E.nullable E.text))
-              <> ((\(_,_,_,a,_,_,_,_) -> a) >$< E.param (E.nonNullable E.float8))
-              <> ((\(_,_,_,_,c,_,_,_) -> c) >$< E.param (E.nonNullable E.text))
-              <> ((\(_,_,_,_,_,d2,_,_) -> d2) >$< E.param (E.nullable E.text))
-              <> ((\(_,_,_,_,_,_,r,_) -> r) >$< E.param (E.nullable E.text))
-              <> ((\(_,_,_,_,_,_,_,cp) -> cp) >$< E.param (E.nullable E.text)))
-            D.noResult
-            True
-      mapM_ (\t -> usePool pool $ Session.statement
-              (importId, btDate t, btValueDate t, btAmount t, btCurrency t,
-               btDescription t, btRef t, btCounterparty t) lineStmt) txns
-      return $ QuerySuccess $ ImportResult importId (length txns) "done"
+importStatementLines :: ConnectionPool -> Text -> Text -> [BankTxn] -> IO (QueryResult ImportResult)
+importStatementLines pool tenantId filename txns =
+  runDb pool $ do
+    -- Use rawExecute for INSERT, then get the ID via a separate query
+    rawExecute
+      "INSERT INTO bank_statement_import (tenant_id, filename, format, total_rows, status) \
+      \VALUES (?, ?, 'OFX', ?, 'done')"
+      [PersistText tenantId, PersistText filename, PersistInt64 (fromIntegral $ length txns)]
+    importIds :: [Single Text] <- rawSql
+      "SELECT id FROM bank_statement_import WHERE tenant_id = ? AND filename = ? ORDER BY id DESC LIMIT 1"
+      [PersistText tenantId, PersistText filename]
+    case importIds of
+      [Single importId] -> do
+        let insertLine :: BankTxn -> SqlPersistT IO ()
+            insertLine t = rawExecute
+              "INSERT INTO bank_statement_line \
+              \(import_id, txn_date, value_date, amount, currency, description, ref_number, counterparty) \
+              \VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+              [ PersistText importId
+              , PersistText (btDate t)
+              , persistTextMaybe (btValueDate t)
+              , PersistDouble (btAmount t)
+              , PersistText (btCurrency t)
+              , persistTextMaybe (btDescription t)
+              , persistTextMaybe (btRef t)
+              , persistTextMaybe (btCounterparty t)
+              ]
+        mapM_ insertLine txns
+        pure $ QuerySuccess $ ImportResult importId (length txns) "done"
+      [] -> pure $ QueryError "Failed to create import record"
+      _  -> pure $ QueryError "Multiple import records returned"
 
 -- | Match imported transactions to existing bills by amount and date
-matchTransactionsToBills :: Pool -> Text -> IO (QueryResult MatchResult)
-matchTransactionsToBills pool importId = do
-  -- Get imported transactions
-  let getTxnsStmt = Statement
-        "SELECT id, amount, txn_date FROM bank_statement_line WHERE import_id = $1::UUID"
-        (E.param (E.nonNullable E.text))
-        (D.rowList $ (,,) <$> D.column (D.nonNullable D.text)
-                            <*> D.column (D.nonNullable D.float8)
-                            <*> D.column (D.nonNullable D.text))
-        True
-  txnRes <- usePool pool $ Session.statement importId getTxnsStmt
-  case txnRes of
-    Left err -> return $ QueryError (T.pack $ show err)
-    Right txns -> do
-      -- Get unpaid bills
-      let getBillsStmt = Statement
-            "SELECT id, amount, due_date FROM bill WHERE status = 'unpaid'"
-            E.noParams
-            (D.rowList $ (,,) <$> D.column (D.nonNullable D.text)
-                            <*> D.column (D.nonNullable D.float8)
-                            <*> D.column (D.nonNullable D.text))
-            True
-      billRes <- usePool pool $ Session.statement () getBillsStmt
-      case billRes of
-        Left err -> return $ QueryError (T.pack $ show err)
-        Right bills -> do
-          -- Match transactions to bills (simple amount + date match)
-          let matches = findMatches txns bills
-          -- Update matched bills
-          let updateMatchStmt = Statement
-                "UPDATE bill SET status = 'paid', paid_date = $2::DATE WHERE id = $1::UUID"
-                ((\(a,_) -> a) >$< E.param (E.nonNullable E.text))
-                D.noResult
-                True
-          mapM_ (\(billId, txnDate) -> usePool pool $ Session.statement (billId, txnDate) updateMatchStmt) matches
-          -- Link transactions to bills
-          let linkStmt = Statement
-                "UPDATE bank_statement_line SET matched_bill_id = $1::UUID WHERE id = $2::UUID"
-                ((\(a,_) -> a) >$< E.param (E.nonNullable E.text))
-                D.noResult
-                True
-          mapM_ (\(billId, txnId) -> usePool pool $ Session.statement (billId, txnId) linkStmt) matches
-          return $ QuerySuccess $ MatchResult
-            { mrMatchedCount = length matches
-            , mrUnmatchedCount = length txns - length matches
-            , mrMatchedIds = map fst matches
-            }
+matchTransactionsToBills :: ConnectionPool -> Text -> IO (QueryResult MatchResult)
+matchTransactionsToBills pool importId =
+  runDb pool $ do
+    txns <- rawSql
+      "SELECT id, amount, txn_date FROM bank_statement_line WHERE import_id = ?"
+      [PersistText importId]
+    bills <- rawSql
+      "SELECT id, amount, due_date FROM bill WHERE status = 'unpaid'"
+      []
+    let matches = findMatches
+          [(tid, amt, dt) | (Single tid, Single amt, Single dt) <- txns]
+          [(bid, amt, dt) | (Single bid, Single amt, Single dt) <- bills]
+    mapM_ (\(bid, txnDate) ->
+      rawExecute
+        "UPDATE bill SET status = 'paid', paid_date = ? WHERE id = ?"
+        [PersistText txnDate, PersistText bid])
+      matches
+    mapM_ (\(bid, txnId) ->
+      rawExecute
+        "UPDATE bank_statement_line SET matched_bill_id = ? WHERE id = ?"
+        [PersistText bid, PersistText txnId])
+      matches
+    pure $ QuerySuccess $ MatchResult
+      { mrMatchedCount = length matches
+      , mrUnmatchedCount = length txns - length matches
+      , mrMatchedIds = map fst matches
+      }
 
 -- | Find matches between transactions and bills
 findMatches :: [(Text, Double, Text)] -> [(Text, Double, Text)] -> [(Text, Text)]
@@ -211,20 +189,16 @@ findMatches txns bills =
   let matches = [(billId, txnId) |
                  (txnId, txnAmt, txnDate) <- txns,
                  (billId, billAmt, billDate) <- bills,
-                 abs (txnAmt - billAmt) < 0.01,  -- Amount tolerance
-                 txnDate == billDate]  -- Date match
+                 abs (txnAmt - billAmt) < 0.01,
+                 txnDate == billDate]
   in matches
 
 -- | Flag unmatched transactions for manual review
-flagUnmatchedTransactions :: Pool -> Text -> IO (QueryResult ())
-flagUnmatchedTransactions pool importId = do
-  let flagStmt = Statement
-        "UPDATE bank_statement_line SET needs_review = true \
-        \WHERE import_id = $1::UUID AND matched_bill_id IS NULL"
-        (E.param (E.nonNullable E.text))
-        D.noResult
-        True
-  res <- usePool pool $ Session.statement importId flagStmt
-  case res of
-    Left err -> return $ QueryError (T.pack $ show err)
-    Right () -> return $ QuerySuccess ()
+flagUnmatchedTransactions :: ConnectionPool -> Text -> IO (QueryResult ())
+flagUnmatchedTransactions pool importId =
+  runDb pool $ do
+    rawExecute
+      "UPDATE bank_statement_line SET needs_review = true \
+      \WHERE import_id = ? AND matched_bill_id IS NULL"
+      [PersistText importId]
+    pure $ QuerySuccess ()

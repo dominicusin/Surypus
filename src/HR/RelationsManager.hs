@@ -204,10 +204,10 @@ validateHierarchyNoCycles relations =
 
 -- | Count relations of a type for a person
 countRelationsByType :: [PersonRelation] -> Int64 -> RelationType -> Int
-countRelationsByType relations personId relType =
+countRelationsByType relations personId targetRelType =
   length $ filter (\r ->
     (relFromPersonId r == personId || relToPersonId r == personId) &&
-    relType r == relType &&
+    relType r == targetRelType &&
     relStatus r == RelationActive) relations
 
 -- | Get all active relations for a person

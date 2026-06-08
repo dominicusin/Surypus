@@ -38,6 +38,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Time (Day, getCurrentTime, utctDay)
 import Data.Maybe (fromMaybe, mapMaybe)
+import Data.List (find)
 import GHC.Generics (Generic)
 import Data.Aeson (FromJSON, ToJSON)
 
@@ -170,10 +171,6 @@ readPerson :: [Person] -> Int64 -> PersonOperationResult Person
 readPerson persons pid = case find (\p -> pId p == pid) persons of
   Just p -> OperationSuccess p
   Nothing -> OperationError (PersonNotFound pid)
-  where
-    find f = case [p | p <- persons, f p] of
-      [] -> Nothing
-      (p:_) -> Just p
 
 -- | Update person
 updatePerson :: [Person] -> Int64 -> UpdatePersonRequest -> PersonOperationResult Person
@@ -263,8 +260,8 @@ countPersons = length
 
 -- | Count active persons
 countActivePersons :: [Person] -> Int
-countActivePersons = length . personsByStatus PSActive
+countActivePersons persons = length (personsByStatus persons PSActive)
 
 -- | Count by kind
 countByKind :: [Person] -> PersonKind -> Int
-countByKind persons = length . personsByKind persons
+countByKind persons kind = length (personsByKind persons kind)

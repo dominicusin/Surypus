@@ -188,6 +188,9 @@ appendCRMEvent store event = do
   case latestSeqRes of
     Left err -> pure $ Left err
     Right latestSeq -> do
+      let nextSeq = case latestSeq of
+            Nothing -> 1
+            Just s  -> s + 1
       ES.appendEvent (cesPool store)
         aggId
         aggType
@@ -195,4 +198,4 @@ appendCRMEvent store event = do
         1 -- version
         (toJSON event)
         Nothing
-        (latestSeq + 1)
+        nextSeq

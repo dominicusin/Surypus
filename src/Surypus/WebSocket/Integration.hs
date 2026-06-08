@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 -- | WebSocket-EventBus integration for real-time notifications
 -- Broadcasts events to WebSocket clients when events occur
 module Surypus.WebSocket.Integration where

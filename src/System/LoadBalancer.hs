@@ -1,5 +1,13 @@
 module System.LoadBalancer where
+
+import Control.Concurrent.STM (TVar, newTVarIO, readTVar, writeTVar, atomically, readTVarIO)
+import Data.Function (on)
+import Data.List (minimumBy)
 import qualified Data.List as L
+import Data.Map.Strict (Map)
+import qualified Data.Map.Strict as Map
+import Data.Text (Text)
+import qualified Data.Text as T
 
 
 -- | Load balancer configuration
@@ -50,9 +58,9 @@ addServer lb server = atomically $ do
 
 -- | Remove server from load balancer
 removeServer :: LoadBalancer -> Text -> IO ()
-removeServer lb serverId = atomically $ do
+removeServer lb sid = atomically $ do
   servers <- readTVar (lbServers lb)
-  let filtered = filter (\s -> serverId /= serverId s) servers
+  let filtered = filter (\s -> sid /= serverId s) servers
   writeTVar (lbServers lb) filtered
 
 -- | Get next server based on algorithm
@@ -68,7 +76,11 @@ getNextServer lb clientIp = do
         let nextIdx = (idx + 1) `mod` length activeServers
         atomically $ writeTVar (lbCurrentIndex lb) nextIdx
         return $ Just (activeServers !! nextIdx)
-      LeastConnections -> return $ Just (minimumBy (compare `on` (fmap =<< readTVarIO . serverCurrentConnections)) activeServers)
+      LeastConnections -> do
+        conns <- mapM (readTVarIO . serverCurrentConnections) activeServers
+        let zipped = zip activeServers conns
+            minServer = minimumBy (compare `on` snd) zipped
+        return $ Just (fst minServer)
       IPHash -> do
         -- Hash client IP and use modulo to select server
         let hashVal = hashClientIP clientIp
@@ -122,7 +134,8 @@ runHealthChecks lb = do
 getServerStats :: LoadBalancer -> IO [(Text, Int)]
 getServerStats lb = do
   servers <- readTVarIO (lbServers lb)
-  return $ map (\s -> (serverId s, =<< readTVarIO (serverCurrentConnections s))) servers
+  conns <- mapM (readTVarIO . serverCurrentConnections) servers
+  return $ zip (map serverId servers) conns
 
 -- | Hash client IP for IPHash algorithm
 hashClientIP :: Text -> Int

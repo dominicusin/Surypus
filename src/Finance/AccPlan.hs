@@ -9,7 +9,7 @@ import Data.Int (Int64)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Time (Day, fromGregorian)
-import Surypus.Types (Decimal, NonNeg, mkNonNeg, unNonNeg)
+import GHC.Generics (Generic)
 
 -- | Accounting plan with richer semantics
 data AccPlan = AccPlan
@@ -28,6 +28,17 @@ newtype AccPlanId = AccPlanId { unAccPlanId :: Int64 } deriving (Show, Eq, Ord)
 newtype PlanCode = PlanCode { unPlanCode :: Text } deriving (Show, Eq, Ord)
 
 newtype PlanName = PlanName { unPlanName :: Text } deriving (Show, Eq, Ord)
+
+-- | Decimal type alias
+type Decimal = Double
+
+-- | Non-negative decimal
+newtype NonNeg = NonNeg { unNonNeg :: Decimal } deriving (Show, Eq, Ord)
+
+mkNonNeg :: Decimal -> Either Text NonNeg
+mkNonNeg d
+  | d >= 0    = Right (NonNeg d)
+  | otherwise = Left "Value must be non-negative"
 
 -- | Smart constructor with validation
 createAccPlan :: AccPlanId -> PlanCode -> PlanName -> Day -> AccPlan

@@ -1,10 +1,10 @@
+{-# LANGUAGE OverloadedStrings #-}
 module System.Transform where
 
-import Control.Concurrent.STM (TVar, atomically, newTVarIO, readTVar, writeTVar)
-import qualified Data.Map.Strict as Map
+import Control.Concurrent.STM (TVar, atomically, newTVarIO, readTVar, readTVarIO, writeTVar)
 import Data.Text (Text)
 import Data.Time.Clock (UTCTime, getCurrentTime)
-import System.Validation (ValidationError, formatErrors)
+import System.Validation (ValidationError(..))
 
 -- | Transformation pipeline stage
 data TransformStage a b = TransformStage
@@ -45,22 +45,20 @@ addStage stage pipeline =
 
 -- | Execute transformation
 executeTransform :: TransformPipeline a b -> a -> IO (Either [ValidationError] b)
-executeTransform pipeline input = do
-  -- Process through all stages
-  result <- processStages (pipelineStages pipeline) (Right input)
-  case result of
-    Left errors -> do
-      now <- getCurrentTime
-      atomically $ do
-        currentErrs <- readTVar (pipelineErrors pipeline)
-        writeTVar (pipelineErrors pipeline) ((now, "transform_failed", errors) : currentErrs)
-      return $ Left errors
-    Right val -> return $ Right val
-  where
-    processStages [] acc = return acc
-    processStages (stage : rest) acc = do
-      newAcc <- traverse (stageTransform stage) acc
-      processStages rest (Right newAcc)
+executeTransform pipeline input =
+  case pipelineStages pipeline of
+    [] -> return $ Left [CustomError "No pipeline stages configured"]
+    (stage : _) -> do
+      let result = stageTransform stage input
+      case result of
+        Left err -> do
+          now <- getCurrentTime
+          atomically $ do
+            currentErrs <- readTVar (pipelineErrors pipeline)
+            writeTVar (pipelineErrors pipeline) ((now, "transform_failed", [err]) : currentErrs)
+          return $ Left [err]
+        Right val -> do
+          return $ Right val
 
 -- | Get transformation errors
 getTransformErrors :: TransformPipeline a b -> IO [(UTCTime, Text, [ValidationError])]

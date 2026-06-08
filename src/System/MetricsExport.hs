@@ -1,5 +1,11 @@
+{-# LANGUAGE OverloadedStrings #-}
 module System.MetricsExport where
 import qualified Data.List as L
+import Data.Time.Clock (UTCTime, getCurrentTime)
+import qualified Data.Map.Strict as Map
+import Data.Text (Text)
+import qualified Data.Text as T
+import System.Random (randomIO)
 
 
 -- | Export formats
@@ -54,9 +60,9 @@ initExporter config = do
   return ()
 
 -- | Export metrics
-exportMetrics :: ExportConfig -> Map.Map Text Double -> IO (Either Text Text)
-exportMetrics config metrics = do
-   let series = mapToSeries metrics
+doExportMetrics :: ExportConfig -> Map.Map Text Double -> IO (Either Text Text)
+doExportMetrics config metrics = do
+   series <- mapToSeries metrics
    case exportFormat config of
      JSON -> exportJSON (exportTarget config) series
      Prometheus -> exportPrometheus (exportTarget config) series
@@ -75,8 +81,8 @@ scheduleExport config = do
    jobId <- generateJobId
    -- Schedule recurring job
    return jobId
-   where
-     generateJobId = fmap (T.pack . show) randomIO
+    where
+      generateJobId = fmap (T.pack . show) (randomIO :: IO Int)
 
 -- | Cancel export job
 cancelExport :: Text -> IO ()

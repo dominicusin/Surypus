@@ -1,0 +1,88 @@
+# Surypus ERP/CRM - Project Roadmap
+
+## Milestone: v1.0 - Production-ready ERP System
+
+**Status**: Active | **Total Phases**: 8 | **Completed**: 5 | **Remaining**: 3
+
+---
+
+## Phase 1: Core API & Database Integration ✅ COMPLETE
+**Goal**: Connect all API handlers to real database operations, remove in-memory stubs
+- 1.1: Replace DAL.DB in-memory stubs with real Hasql/PostgreSQL
+- 1.2: Connect API.Handlers to DAL.Queries/DAL.Mutations
+- 1.3: Implement proper connection pooling (Hasql.Pool)
+- 1.4: Remove in-memory DAL.DB completely
+- **Success Criteria**: All API handlers use real database, no in-memory stubs remain
+
+---
+
+## Phase 2: JWT Auth & RBAC Middleware ✅ COMPLETE
+**Goal**: Production-ready authentication and authorization
+- 2.1: JWT middleware with proper token validation
+- 2.2: Refresh token rotation with database storage
+- 2.3: RBAC middleware enforcing permissions on all write endpoints
+- 2.4: Audit logging for all mutations
+- **Success Criteria**: All write endpoints protected, RBAC enforced, audit trail working
+
+---
+
+## Phase 3: Bill Posting & Accounting ✅ COMPLETE
+**Goal**: Atomic document posting with stock deduction and accounting entries
+- 3.1: BillService with atomic transaction (Stock + Accounting)
+- 3.2: Property-based testing for double-entry bookkeeping
+- 3.2: QuickCheck property tests for invariants
+- 3.3: OpenAPI/Swagger auto-generation
+- **Success Criteria**: Atomic bill posting, all tests pass, Swagger available
+
+---
+
+## Phase 4: Event Sourcing & Infrastructure (CURRENT - IN PROGRESS)
+**Goal**: Event-driven architecture with Event Store, WebSocket broadcasts, Redis queue
+- 4.1: Hasql Event Store - Persist events to PostgreSQL with replay capability
+- 4.2: Event-Driven Accounting - Translate accounting entries to events
+- 4.3: WebSocket Broadcast - Real-time notifications to UI clients
+- 4.4: Redis Task Queue - Background report generation and async processing
+- **Success Criteria**: Event store operational, WebSocket broadcasts working, Redis queue processing jobs
+
+---
+
+## Phase 5: LiquidHaskell Formal Verification
+**Goal**: Formal verification of critical financial invariants
+- 5.1: Annotate Core.Tax with refinement types (VAT ≥ 0, VAT ≤ base)
+- 5.2: Annotate Core.Accounting with double-entry invariants (ΣDebit = ΣCredit)
+- 5.3: Annotate Core.Warehouse with stock invariants (Rest = Initial + Receipt - Issue)
+- 5.4: Configure LiquidHaskell in CI pipeline
+- **Success Criteria**: LiquidHaskell verification passes in CI, all critical invariants proven
+
+---
+
+## Phase 6: Multi-stage Docker & CI/CD
+**Goal**: Production-ready containerization and deployment pipeline
+- 6.1: Multi-stage Dockerfile (builder → runtime with libpq5)
+- 6.2: docker-compose.yml for local development (PostgreSQL, Redis, App)
+- 6.3: GitHub Actions CI pipeline (build → test → liquid → docker)
+- 6.4: Health check endpoint (/health) for container orchestration
+- **Success Criteria**: Docker image builds, health check passes, CI pipeline green
+
+---
+
+## Phase 7: API Production Hardening
+**Goal**: Production-grade API with observability and resilience
+- 7.1: Rate limiting (100 req/min/IP)
+- 7.2: Prometheus metrics endpoint (/metrics)
+- 7.3: Structured JSON logging (katip)
+- 7.4: Circuit breaker for external integrations
+- 7.5: Request tracing with correlation IDs
+- **Success Criteria**: All hardening features operational, metrics exposed
+
+---
+
+## Phase 8: Final Integration & Release v1.0
+**Goal**: End-to-end validation and release preparation
+- 8.1: Full integration test suite (tmp-postgres in CI)
+- 8.2: QuickCheck property tests for all financial invariants
+- 8.3: hlint zero warnings
+- 8.4: OpenAPI schema validation
+- 8.5: Health endpoint returns {status: "ok", db: "ok"}
+- 8.6: Release v1.0 tag and Docker image publish
+- **Success Criteria**: All tests pass, zero warnings, release artifacts ready

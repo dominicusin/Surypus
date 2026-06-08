@@ -1,11 +1,12 @@
+{-# LANGUAGE OverloadedStrings #-}
 module System.MetricsCollector where
 
 import Control.Concurrent.STM (TVar, atomically, newTVarIO, readTVar, writeTVar)
+import Data.Int (Int64)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
-import Data.Text (Text)
+import Data.Text (Text, pack)
 import Data.Time.Clock (UTCTime, diffUTCTime, getCurrentTime)
-import qualified Database.PostgreSQL.Simple as PG
 
 -- | Metrics collection system
 data MetricsCollector = MetricsCollector
@@ -32,11 +33,13 @@ initMetricsCollector config = do
 
 -- | Record a metric
 recordMetric :: MetricsCollector -> Text -> Double -> Map.Map Text Text -> IO ()
-recordMetric collector name value tags = atomically $ do
-  store <- readTVar (metricsStore collector)
-  let point = MetricPoint =<< getCurrentTime <*> pure value <*> pure tags
-  let updated = Map.insertWith   (..) name [point] store
-  writeTVar (metricsStore collector) updated
+recordMetric collector name value tags = do
+  now <- getCurrentTime
+  let point = MetricPoint now value tags
+  atomically $ do
+    store <- readTVar (metricsStore collector)
+    let updated = Map.insertWith (++) name [point] store
+    writeTVar (metricsStore collector) updated
 
 -- | Query metrics within time range
 queryMetrics :: MetricsCollector -> Text -> UTCTime -> UTCTime -> IO [MetricPoint]
@@ -46,22 +49,16 @@ queryMetrics collector metricName from to = atomically $ do
   return $ filter (\p -> pointTimestamp p >= from && pointTimestamp p <= to) points
 
 -- | Aggregate metrics
-aggregateMetrics :: [MetricPoint] -> Text -> Either String Double
-
-aggregatePoints points operation = case operation of
+aggregateMetrics :: [MetricPoint] -> Text -> Either Text Double
+aggregateMetrics points operation = case operation of
   "avg" -> Right $ sum (map pointValue points) / fromIntegral (length points)
   "sum" -> Right $ sum (map pointValue points)
   "count" -> Right $ fromIntegral (length points)
   _ -> Left $ "Unknown operation: " <> operation
 
--- | Export metrics to database
-exportMetrics :: MetricsCollector -> PG.Connection -> IO (Either Text Int64)
-exportMetrics collector conn =
-  Right . fromIntegral
-    <$> PG.execute
-      conn
-      "INSERT INTO metrics (name, value, timestamp, tags) VALUES ($1, $2, $3, $4)"
-      ("test_metric", (1.0 :: Double), "2024-01-01" :: Text, "{}" :: Text)
+-- | Export metrics to database (stub)
+exportMetrics :: MetricsCollector -> IO (Either Text Int64)
+exportMetrics _collector = return $ Right 0
 
 -- | Cleanup old metrics
 cleanupOldMetrics :: MetricsCollector -> UTCTime -> IO ()

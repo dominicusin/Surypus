@@ -5,6 +5,8 @@
 -- Phase 160: Integration API Implementation
 module API.Integration.REST
   ( IntegrationAPIConfig(..)
+  , IntegrationRequest(..)
+  , IntegrationResponse(..)
   , createIntegrationAPI
   , handleIntegrationRequest
   , validateIntegrationToken

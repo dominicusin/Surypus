@@ -1,5 +1,6 @@
 -- | Refresh Token Repository - Database operations for refresh tokens
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Surypus.RefreshTokenRepo
   ( storeRefreshToken,
     rotateStoredRefreshToken,
@@ -9,102 +10,63 @@ module Surypus.RefreshTokenRepo
   )
 where
 
-import Data.Functor.Contravariant ((>$<))
+import DAL.Database (ConnectionPool, runDb)
 import Data.Int (Int64)
+import Data.Maybe (listToMaybe)
 import Data.Text (Text)
 import qualified Data.Text as T
-import qualified Data.Text.Encoding as TE
-import qualified Hasql.Decoders as D
-import qualified Hasql.Encoders as E
-import Hasql.Pool (Pool, use)
-import qualified Hasql.Session as Session
-import qualified Hasql.Statement as S
+import Database.Persist.Sql (PersistValue (..), Single (..), rawExecute, rawSql, SqlPersistT)
 
--- | Helper to create statements using the surypus-api pattern
-unpreparable :: T.Text -> E.Params params -> D.Result result -> S.Statement params result
-unpreparable sql encoder decoder = S.Statement (TE.encodeUtf8 sql) encoder decoder True
+storeRefreshToken :: ConnectionPool -> Int64 -> Text -> Text -> IO (Either Text ())
+storeRefreshToken pool userId token expiresAt =
+  runDb pool $ do
+    rawExecute
+      "INSERT INTO user_sessions (user_id, token, expires_at) VALUES (?, ?, ?)"
+      [PersistInt64 userId, PersistText token, PersistText expiresAt]
+    pure $ Right ()
 
--- | Store a new refresh token
-storeRefreshToken :: Pool -> Int64 -> Text -> Text -> IO (Either Text ())
-storeRefreshToken pool userId token expiresAtText = do
-  let stmt = unpreparable
-        "INSERT INTO user_sessions (user_id, token, expires_at) VALUES ($1, $2, $3)"
-        ( (fst3 >$< E.param (E.nonNullable E.int8))
-            <> (snd3 >$< E.param (E.nonNullable E.text))
-            <> (trd3 >$< E.param (E.nonNullable E.text))
-        )
-        D.noResult
-  res <- use pool $ Session.statement (userId, token, expiresAtText) stmt
-  case res of
-    Right () -> pure $ Right ()
-    Left err -> pure $ Left $ T.pack $ show err
-  where
-    fst3 :: (a, b, c) -> a
-    fst3 (x, _, _) = x
-    snd3 :: (a, b, c) -> b
-    snd3 (_, x, _) = x
-    trd3 :: (a, b, c) -> c
-    trd3 (_, _, x) = x
+rotateStoredRefreshToken :: ConnectionPool -> Text -> Text -> Text -> IO (Either Text Int64)
+rotateStoredRefreshToken pool oldToken newToken expiresAt =
+  runDb pool $ do
+    uidResult <-
+      rawSql "SELECT user_id FROM user_sessions WHERE token = ?" [PersistText oldToken] ::
+        SqlPersistT IO [Single Int64]
+    case uidResult of
+      [Single userId] -> do
+        rawExecute "DELETE FROM user_sessions WHERE user_id = ?" [PersistInt64 userId]
+        rawExecute
+          "INSERT INTO user_sessions (user_id, token, expires_at) VALUES (?, ?, ?)"
+          [PersistInt64 userId, PersistText newToken, PersistText expiresAt]
+        pure $ Right userId
+      [] -> pure $ Left "Old token not found"
+      _ -> pure $ Left "Multiple sessions found"
 
--- | Rotate a refresh token (delete old, invalidate all other user tokens, insert new) - returns the user_id
--- This is now atomic via a single transaction and invalidates all other refresh tokens for the user
-rotateStoredRefreshToken :: Pool -> Text -> Text -> Text -> IO (Either Text Int64)
-rotateStoredRefreshToken pool oldToken newToken expiresAtText = do
-  -- Atomic transaction: delete old token, invalidate all other user tokens, insert new
-  let stmt = unpreparable
-        "WITH deleted AS (DELETE FROM user_sessions WHERE token = $1 RETURNING user_id) \
-        \DELETE FROM user_sessions WHERE user_id = (SELECT user_id FROM deleted) AND token != $1; \
-        \INSERT INTO user_sessions (user_id, token, expires_at) SELECT user_id, $2, $3 FROM deleted RETURNING user_id"
-        ((fst3 >$< E.param (E.nonNullable E.text))
-            <> (snd3 >$< E.param (E.nonNullable E.text))
-            <> (trd3 >$< E.param (E.nonNullable E.text)))
-        (D.singleRow (D.column (D.nonNullable D.int8)))
-  res <- use pool $ Session.statement (oldToken, newToken, expiresAtText) stmt
-  case res of
-    Left err -> pure $ Left $ T.pack $ show err
-    Right userId -> pure $ Right userId
-  where
-    fst3 :: (a, b, c) -> a
-    fst3 (x, _, _) = x
-    snd3 :: (a, b, c) -> b
-    snd3 (_, x, _) = x
-    trd3 :: (a, b, c) -> c
-    trd3 (_, _, x) = x
+validateRefreshToken :: ConnectionPool -> Text -> IO (Either Text Int64)
+validateRefreshToken pool token =
+  runDb pool $ do
+    result <-
+      rawSql
+        "SELECT user_id FROM user_sessions WHERE token = ? AND expires_at > CURRENT_TIMESTAMP"
+        [PersistText token] ::
+        SqlPersistT IO [Single Int64]
+    case listToMaybe result of
+      Just (Single userId) -> pure $ Right userId
+      Nothing -> pure $ Left "Invalid or expired token"
 
--- | Validate a refresh token and return user_id
-validateRefreshToken :: Pool -> Text -> IO (Either Text Int64)
-validateRefreshToken pool token = do
-  let stmt = unpreparable
-        "SELECT user_id FROM user_sessions WHERE token = $1 AND expires_at > CURRENT_TIMESTAMP"
-        (E.param (E.nonNullable E.text))
-        (D.rowMaybe (D.column (D.nonNullable D.int8)))
-  res <- use pool $ Session.statement token stmt
-  case res of
-    Left err -> pure $ Left $ T.pack $ show err
-    Right (Just userId) -> pure $ Right userId
-    Right Nothing -> pure $ Left "Invalid or expired token"
+getRefreshToken :: ConnectionPool -> Text -> IO (Either Text (Int64, Text))
+getRefreshToken pool token =
+  runDb pool $ do
+    rows <-
+      rawSql
+        "SELECT user_id, expires_at FROM user_sessions WHERE token = ?"
+        [PersistText token] ::
+        SqlPersistT IO [(Single Int64, Single Text)]
+    case listToMaybe rows of
+      Just (Single userId, Single expiresAt) -> pure $ Right (userId, expiresAt)
+      Nothing -> pure $ Left "Token not found"
 
--- | Get refresh token info (for debugging)
-getRefreshToken :: Pool -> Text -> IO (Either Text (Int64, Text))
-getRefreshToken pool token = do
-  let stmt = unpreparable
-        "SELECT user_id, expires_at FROM user_sessions WHERE token = $1"
-        (E.param (E.nonNullable E.text))
-        (D.rowMaybe $ (,) <$> D.column (D.nonNullable D.int8) <*> D.column (D.nonNullable D.text))
-  res <- use pool $ Session.statement token stmt
-  case res of
-    Left err -> pure $ Left $ T.pack $ show err
-    Right (Just (userId, expiresAt)) -> pure $ Right (userId, expiresAt)
-    Right Nothing -> pure $ Left "Token not found"
-
--- | Delete a refresh token (logout)
-deleteRefreshToken :: Pool -> Text -> IO (Either Text ())
-deleteRefreshToken pool token = do
-  let stmt = unpreparable
-        "DELETE FROM user_sessions WHERE token = $1"
-        (E.param (E.nonNullable E.text))
-        D.noResult
-  res <- use pool $ Session.statement token stmt
-  case res of
-    Left err -> pure $ Left $ T.pack $ show err
-    Right () -> pure $ Right ()
+deleteRefreshToken :: ConnectionPool -> Text -> IO (Either Text ())
+deleteRefreshToken pool token =
+  runDb pool $ do
+    rawExecute "DELETE FROM user_sessions WHERE token = ?" [PersistText token]
+    pure $ Right ()

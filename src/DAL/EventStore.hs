@@ -1,10 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE Unsafe #-}
 
 module DAL.EventStore
-   ( Event   (..),
+   ( Event (..),
      appendEvent,
      appendEventBroadcast,
      getEvents,
@@ -15,88 +14,136 @@ module DAL.EventStore
    )
    where
 
-import Data.Aeson (Value, encode)
+import Control.Concurrent.MVar (MVar, newMVar, putMVar, readMVar)
+import DAL.Database (ConnectionPool, runDb)
+import DAL.Schema
+  ( EventStoreEntity (..),
+    EntityField
+      ( EventStoreEntityAggregateId
+      , EventStoreEntityAggregateType
+      , EventStoreEntityEventType
+      , EventStoreEntityEventVersion
+      , EventStoreEntityEventData
+      , EventStoreEntityEventMetadata
+      , EventStoreEntitySequenceNumber
+      , EventStoreEntityOccurredAt
+      , EventStoreEntityCreatedAt
+      ),
+  )
+import Data.Aeson (Value, encode, decode)
+import qualified Data.ByteString.Lazy as LBS
 import Data.Int (Int64)
 import Data.Text (Text)
-import qualified Data.Text as T
-import Data.Time (UTCTime)
-import Data.UUID (UUID)
+import qualified Data.Text.Encoding as TE
+import Data.Time (UTCTime, getCurrentTime)
+import Database.Persist.Sql (insert, selectList, selectFirst, (==.), (>=.), entityVal)
+import Database.Persist.Types (SelectOpt (Desc, Asc))
 import GHC.Generics (Generic)
 import System.IO.Unsafe (unsafePerformIO)
-import Control.Concurrent.MVar (MVar, newMVar, putMVar, readMVar)
-import qualified Data.ByteString.Lazy as LBS
-import DAL.ORMPool (ConnectionPool)
 
--- | Domain Event data structure matching the event_store table
 data Event = Event
-  { eventId :: UUID,
-    eventAggregateId :: Int64,
-    eventAggregateType :: Text,
-    eventEventType :: Text,
-    eventEventVersion :: Int,
-    eventEventData :: Value,
-    eventEventMetadata :: Maybe Value,
-    eventSequenceNumber :: Int64,
-    eventOccurredAt :: UTCTime,
-    eventCreatedAt :: UTCTime
+  { eventAggregateId    :: Int64
+  , eventAggregateType  :: Text
+  , eventEventType      :: Text
+  , eventEventVersion   :: Int
+  , eventEventData      :: Value
+  , eventEventMetadata  :: Maybe Value
+  , eventSequenceNumber :: Int64
+  , eventOccurredAt     :: UTCTime
+  , eventCreatedAt      :: UTCTime
   }
   deriving (Show, Generic)
 
--- | Event broadcast callback type
 type BroadcastCallback = Int64 -> Text -> Text -> Value -> IO ()
 
--- | Global WebSocket broadcaster (set at application startup)
 {-# NOINLINE globalBroadcaster #-}
 globalBroadcaster :: MVar (Maybe BroadcastCallback)
 globalBroadcaster = unsafePerformIO (newMVar Nothing)
 
--- | Set the global WebSocket broadcaster
 setWebSocketBroadcaster :: BroadcastCallback -> IO ()
 setWebSocketBroadcaster callback = putMVar globalBroadcaster (Just callback)
 
--- | Table definition for event_store (simplified - using Hasql instead of Opaleye)
--- eventStoreTable :: OE.Table ... -- Removed Opaleye dependency
+decodeJSON :: Text -> Value
+decodeJSON txt = case decode (LBS.fromStrict $ TE.encodeUtf8 txt) of
+  Just v  -> v
+  Nothing -> error "Invalid JSON in database"
 
--- | Statement to append a new event (simplified - using Hasql instead of Opaleye)
--- appendEventStmt :: OE.Insert OE.PGString ()
--- appendEventStmt = OE.insert eventStoreTable ... -- Removed Opaleye dependency
+encodeJSON :: Value -> Text
+encodeJSON v = TE.decodeUtf8 $ LBS.toStrict $ encode v
 
--- | Query to get events for an aggregate (simplified - using Hasql instead of Opaleye)
--- getEventsQuery :: OE.Query ... -- Removed Opaleye dependency
+decodeMaybeJSON :: Maybe Text -> Maybe Value
+decodeMaybeJSON Nothing   = Nothing
+decodeMaybeJSON (Just t) = case decode (LBS.fromStrict $ TE.encodeUtf8 t) of
+  Just v  -> Just v
+  Nothing -> Nothing
 
--- | Query to get events for an aggregate starting from a sequence number (simplified)
--- getEventsFromQuery :: OE.Query ... -- Removed Opaleye dependency
+entityToEvent :: EventStoreEntity -> Event
+entityToEvent entity =
+  Event
+    { eventAggregateId    = eventStoreEntityAggregateId entity
+    , eventAggregateType  = eventStoreEntityAggregateType entity
+    , eventEventType      = eventStoreEntityEventType entity
+    , eventEventVersion   = eventStoreEntityEventVersion entity
+    , eventEventData      = decodeJSON (eventStoreEntityEventData entity)
+    , eventEventMetadata  = decodeMaybeJSON (eventStoreEntityEventMetadata entity)
+    , eventSequenceNumber = eventStoreEntitySequenceNumber entity
+    , eventOccurredAt     = eventStoreEntityOccurredAt entity
+    , eventCreatedAt      = eventStoreEntityCreatedAt entity
+    }
 
--- | Query to get the latest sequence number for an aggregate (simplified)
--- getLatestSequenceQuery :: OE.Query ... -- Removed Opaleye dependency
-
--- | Get the latest sequence number for an aggregate (stub implementation)
 getLatestSequence :: ConnectionPool -> Int64 -> Text -> IO (Either Text (Maybe Int64))
-getLatestSequence pool aggId aggType = pure $ Right Nothing  -- Stub implementation
+getLatestSequence pool aggId aggType = do
+  result <- runDb pool $ selectFirst
+    [ EventStoreEntityAggregateId ==. aggId
+    , EventStoreEntityAggregateType ==. aggType
+    ] [Desc EventStoreEntitySequenceNumber]
+  pure $ Right $ fmap (eventStoreEntitySequenceNumber . entityVal) result
 
--- | Append event to store with optional broadcast (stub implementation)
 appendEvent :: ConnectionPool -> Int64 -> Text -> Text -> Int -> Value -> Maybe Value -> Int64 -> IO (Either Text ())
-appendEvent pool aggId aggType evType evVer evData evMeta seqNum = pure $ Right ()  -- Stub implementation
+appendEvent pool aggId aggType evType evVer evData evMeta seqNum = do
+  now <- getCurrentTime
+  let entity = EventStoreEntity
+        { eventStoreEntityAggregateId    = aggId
+        , eventStoreEntityAggregateType  = aggType
+        , eventStoreEntityEventType      = evType
+        , eventStoreEntityEventVersion   = evVer
+        , eventStoreEntityEventData      = encodeJSON evData
+        , eventStoreEntityEventMetadata  = fmap encodeJSON evMeta
+        , eventStoreEntitySequenceNumber = seqNum
+        , eventStoreEntityOccurredAt     = now
+        , eventStoreEntityCreatedAt      = now
+        }
+  runDb pool $ insert entity
+  pure $ Right ()
 
--- | Append event and broadcast to WebSocket room (stub implementation)
 appendEventBroadcast :: ConnectionPool -> Int64 -> Text -> Text -> Int -> Value -> Maybe Value -> Int64 -> Text -> IO (Either Text ())
-appendEventBroadcast pool aggId aggType evType evVer evData evMeta seqNum room = do
-  -- Broadcast to WebSocket room via global broadcaster
+appendEventBroadcast pool aggId aggType evType evVer evData evMeta seqNum _room = do
+  result <- appendEvent pool aggId aggType evType evVer evData evMeta seqNum
   broadcaster <- readMVar globalBroadcaster
   case broadcaster of
-    Just broadcast -> do
-      _ <- broadcast aggId aggType evType evData
-      pure $ Right ()
-    Nothing -> pure $ Right () -- No broadcaster set, skip broadcast
+    Just broadcast -> broadcast aggId aggType evType evData >> pure result
+    Nothing        -> pure result
 
--- | Get all events for an aggregate (stub implementation)
 getEvents :: ConnectionPool -> Int64 -> Text -> IO (Either Text [Event])
-getEvents pool aggId aggType = pure $ Right []  -- Stub implementation
+getEvents pool aggId aggType = do
+  result <- runDb pool $ selectList
+    [ EventStoreEntityAggregateId ==. aggId
+    , EventStoreEntityAggregateType ==. aggType
+    ] [Asc EventStoreEntitySequenceNumber]
+  pure $ Right $ map (entityToEvent . entityVal) result
 
--- | Get events for an aggregate from a specific sequence number (stub implementation)
 getEventsFrom :: ConnectionPool -> Int64 -> Text -> Int64 -> IO (Either Text [Event])
-getEventsFrom pool aggId aggType seqFrom = pure $ Right []  -- Stub implementation
+getEventsFrom pool aggId aggType seqFrom = do
+  result <- runDb pool $ selectList
+    [ EventStoreEntityAggregateId ==. aggId
+    , EventStoreEntityAggregateType ==. aggType
+    , EventStoreEntitySequenceNumber >=. seqFrom
+    ] [Asc EventStoreEntitySequenceNumber]
+  pure $ Right $ map (entityToEvent . entityVal) result
 
--- | Replay account from events (stub implementation)
 replayAccount :: ConnectionPool -> Int64 -> IO (Either Text [Event])
-replayAccount pool accountId = pure $ Right []  -- Stub implementation
+replayAccount pool accountId = do
+  result <- runDb pool $ selectList
+    [ EventStoreEntityAggregateId ==. accountId
+    ] [Asc EventStoreEntitySequenceNumber]
+  pure $ Right $ map (entityToEvent . entityVal) result

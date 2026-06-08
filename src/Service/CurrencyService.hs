@@ -1,11 +1,11 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Service.CurrencyService where
 import Data.Text (Text)
-import Data.Map.Strict (Map)
+import qualified Data.Map.Strict as Map
 import Data.Time (UTCTime)
-import Data.Int (Int64)
 
 data CurrencyService = CurrencyService
-  { exchangeRates :: Map (Text, Text) Double
+  { exchangeRates :: Map.Map (Text, Text) Double
   , baseCurrency :: Text
   , lastUpdated :: UTCTime
   } deriving (Show, Eq)
@@ -21,7 +21,7 @@ convert service from to amount
                   Just rate -> Right (amount * rate)
                   Nothing -> Left $ "Exchange rate not found for " <> from <> " to " <> to
 
-updateExchangeRates :: CurrencyService -> Map (Text, Text) Double -> UTCTime -> CurrencyService
+updateExchangeRates :: CurrencyService -> Map.Map (Text, Text) Double -> UTCTime -> CurrencyService
 updateExchangeRates service newRates now =
   service { exchangeRates = newRates, lastUpdated = now }
 

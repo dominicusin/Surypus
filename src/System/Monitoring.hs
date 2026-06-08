@@ -1,7 +1,11 @@
+{-# LANGUAGE OverloadedStrings #-}
 module System.Monitoring where
 
-import Control.Concurrent.STM (TVar, atomically, newTVarIO, readTVar, writeTVar)
+import Control.Concurrent.STM (TVar, atomically, newTVarIO, readTVar, readTVarIO, writeTVar)
+import Control.Monad (when)
+import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
+import Data.Text (Text)
 import Data.Time.Clock (UTCTime, getCurrentTime)
 
 -- | Monitoring configuration
@@ -31,14 +35,14 @@ recordMetric state name value = do
   now <- getCurrentTime
   atomically $ do
     store <- readTVar (metricsStore state)
-    let updated = Data.Map.Strict.insertWith   (..) name [(now, value)] store
+    let updated = Map.insertWith (++) name [(now, value)] store
     writeTVar (metricsStore state) updated
-    checkThresholds state name value
+  checkThresholds state name value
 
 -- | Check alert thresholds
 checkThresholds :: MonitoringState -> Text -> Double -> IO ()
 checkThresholds state name value = do
-  thresholds <- readTVarIO (config state >>= return . alertThresholds)
+  let thresholds = alertThresholds (config state)
   case Map.lookup name thresholds of
     Just threshold -> when (value > threshold) $ do
       now <- getCurrentTime
@@ -51,7 +55,7 @@ checkThresholds state name value = do
 getMetrics :: MonitoringState -> Text -> IO [(UTCTime, Double)]
 getMetrics state name = do
   store <- readTVarIO (metricsStore state)
-  return $ Data.Map.Strict.findWithDefault [] name store
+  return $ Map.findWithDefault [] name store
 
 -- | Get alerts
 getAlerts :: MonitoringState -> IO [(UTCTime, Text, Text)]

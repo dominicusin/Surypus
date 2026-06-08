@@ -78,13 +78,13 @@ data HREvent
       { eventId :: Int64
       , eventTimestamp :: UTCTime
       , eventPersonId :: Maybe Int64
-      , eventData :: PersonEventData
+      , eventPersonData :: PersonEventData
       , eventUserId :: Maybe Int64
       }
   | RelationEvent
       { eventId :: Int64
       , eventTimestamp :: UTCTime
-      , eventData :: RelationEventData
+      , eventRelationData :: RelationEventData
       , eventUserId :: Maybe Int64
       }
   deriving (Show, Eq, Generic)
@@ -143,7 +143,7 @@ personCreatedEvent eventId ts personId name code userId =
     { eventId = eventId
     , eventTimestamp = ts
     , eventPersonId = Just personId
-    , eventData = PersonCreated personId name code
+    , eventPersonData = PersonCreated personId name code
     , eventUserId = userId
     }
 
@@ -154,7 +154,7 @@ personUpdatedEvent eventId ts personId fieldName oldVal newVal userId =
     { eventId = eventId
     , eventTimestamp = ts
     , eventPersonId = Just personId
-    , eventData = PersonUpdated personId fieldName oldVal newVal
+    , eventPersonData = PersonUpdated personId fieldName oldVal newVal
     , eventUserId = userId
     }
 
@@ -165,7 +165,7 @@ personStatusChangedEvent eventId ts personId oldStatus newStatus userId =
     { eventId = eventId
     , eventTimestamp = ts
     , eventPersonId = Just personId
-    , eventData = PersonStatusChanged personId oldStatus newStatus
+    , eventPersonData = PersonStatusChanged personId oldStatus newStatus
     , eventUserId = userId
     }
 
@@ -176,7 +176,7 @@ personDeletedEvent eventId ts personId name userId =
     { eventId = eventId
     , eventTimestamp = ts
     , eventPersonId = Just personId
-    , eventData = PersonDeleted personId name
+    , eventPersonData = PersonDeleted personId name
     , eventUserId = userId
     }
 
@@ -186,7 +186,7 @@ relationCreatedEvent eventId ts fromPersonId toPersonId relType userId =
   RelationEvent
     { eventId = eventId
     , eventTimestamp = ts
-    , eventData = RelationCreated fromPersonId toPersonId relType
+    , eventRelationData = RelationCreated fromPersonId toPersonId relType
     , eventUserId = userId
     }
 
@@ -196,6 +196,6 @@ relationEndedEvent eventId ts relationId fromPersonId toPersonId userId =
   RelationEvent
     { eventId = eventId
     , eventTimestamp = ts
-    , eventData = RelationEnded relationId fromPersonId toPersonId
+    , eventRelationData = RelationEnded relationId fromPersonId toPersonId
     , eventUserId = userId
     }

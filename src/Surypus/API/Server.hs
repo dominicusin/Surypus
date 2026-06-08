@@ -23,8 +23,9 @@ import Data.Time.Calendar (fromGregorian)
 import qualified Data.UUID as UUID
 import qualified Data.UUID.V4 as UUID
 import GHC.Generics (Generic)
-import Network.HTTP.Types (status401)
+import Network.HTTP.Types (status200, status401, status429)
 import Network.Wai as W
+import qualified System.RateLimiter as RL (SlidingWindow, initSlidingWindow, swCheck)
 import Servant
 import Surypus (
      Bill (..),
@@ -100,10 +101,31 @@ authMiddleware app req respond = do
                             Left _ -> respond $ W.responseLBS status401 [("Content-Type", "text/plain")] "Invalid token"
                             Right _ -> app req respond
 
-apiServer :: ConnectionPool -> Log.Logger -> Application
-apiServer connPool logger =
+apiServer :: ConnectionPool -> Log.Logger -> IO Application
+apiServer connPool logger = do
+    rateLimiter <- RL.initSlidingWindow 100 60
     let env = Env connPool logger Nothing
-     in correlationMiddleware logger $ authMiddleware (serve (Proxy @SurypusApi) (server env))
+        app = metricsEndpoint
+            $ rateLimiting rateLimiter
+            $ correlationMiddleware logger
+            $ authMiddleware
+            $ serve (Proxy @SurypusApi) (server env)
+    return app
+
+rateLimiting :: RL.SlidingWindow -> Application -> Application
+rateLimiting limiter app req respond = do
+    allowed <- RL.swCheck limiter
+    if allowed
+        then app req respond
+        else respond $ W.responseLBS status429 [("Content-Type", "application/json")] "{\"error\":\"Rate limit exceeded\"}"
+
+metricsEndpoint :: Application -> Application
+metricsEndpoint app req respond =
+    if W.rawPathInfo req == "/api/v1/metrics"
+        then respond $ W.responseLBS status200
+            [("Content-Type", "text/plain; charset=utf-8")]
+            "# HELP surypus_requests_total Total requests\n# TYPE surypus_requests_total counter\nsurypus_requests_total 0\n"
+        else app req respond
 
 -- ── API type ────────────────────────────────────────────────────────────────
 

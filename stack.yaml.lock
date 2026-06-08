@@ -60,6 +60,55 @@ packages:
       size: 439
   original:
     hackage: mime-mail-0.5.1
+- completed:
+    hackage: leksah-server-0.16.3.0@sha256:6bc8281b0be30622118695525b3d145745a21e9f1171c0de4d1e1b28a0540cf4,7059
+    pantry-tree:
+      sha256: 6c145af0434581e5a74f1695f32e28309d2298782676e1da2394ed4609b079e8
+      size: 1633
+  original:
+    hackage: leksah-server-0.16.3.0@sha256:6bc8281b0be30622118695525b3d145745a21e9f1171c0de4d1e1b28a0540cf4,7059
+- completed:
+    hackage: ltk-0.16.2.0@sha256:77c0b1fdf63cea173cded18a72ab04433c405025f9df01c8b95a5ee563bb313e,2422
+    pantry-tree:
+      sha256: 9d4288d9c02eb25d5ea3b0f770e1729c7638a3dab3fcc7b5ed3a99e2a40f0145
+      size: 1135
+  original:
+    hackage: ltk-0.16.2.0@sha256:77c0b1fdf63cea173cded18a72ab04433c405025f9df01c8b95a5ee563bb313e,2422
+- completed:
+    hackage: regex-tdfa-text-1.0.0.3@sha256:fb72123627eadf43dd5ca74a2896940d50aac291e61f62177960f0563f7d5c03,1180
+    pantry-tree:
+      sha256: 274206c4f30a2c85cc8daefcb0d221b45010a28f1c0f39295189850eecc978e4
+      size: 293
+  original:
+    hackage: regex-tdfa-text-1.0.0.3@sha256:fb72123627eadf43dd5ca74a2896940d50aac291e61f62177960f0563f7d5c03,1180
+- completed:
+    hackage: vado-0.0.14@sha256:f7094823246d4149cc6398110df86c3949f68cdce413718fe687cebc18235b53,2149
+    pantry-tree:
+      sha256: fe555d1fe6931f671d2fb28e6fb618fcb94dfb554edab7b5043f39bd5f3055e1
+      size: 388
+  original:
+    hackage: vado-0.0.14@sha256:f7094823246d4149cc6398110df86c3949f68cdce413718fe687cebc18235b53,2149
+- completed:
+    hackage: vcsgui-0.2.2.0@sha256:d4e0ae2aa0cec2054e77a7791bf36bef40d65d16f75cc49c8f68a5a2669cf1c9,4379
+    pantry-tree:
+      sha256: 3772d9da8fa80cf165bd4c16c9584b0ccd7b53e2b84c7f41c98d0b26dbdf15e0
+      size: 2760
+  original:
+    hackage: vcsgui-0.2.2.0@sha256:d4e0ae2aa0cec2054e77a7791bf36bef40d65d16f75cc49c8f68a5a2669cf1c9,4379
+- completed:
+    hackage: vcswrapper-0.1.6@sha256:8b45a960bf6003ac52f84a80051dc62ff26ff34fb04561590cef7028f921ebe1,2560
+    pantry-tree:
+      sha256: 22645a6b434487b095dff3a7a8dad29ee62559ffa9530d71b594f53ef1664b46
+      size: 1513
+  original:
+    hackage: vcswrapper-0.1.6@sha256:8b45a960bf6003ac52f84a80051dc62ff26ff34fb04561590cef7028f921ebe1,2560
+- completed:
+    hackage: haddock-api-2.18.1@sha256:fed04e4cde7abe46a4fd03ed0e0c5a9a132cb06707ecaef6b8eaddbb8e5a9d59,4404
+    pantry-tree:
+      sha256: c27c4dc40a45dab1b401a04e8f7203c6939ac9983e2d0a01a652cf59b7071794
+      size: 4010
+  original:
+    hackage: haddock-api-2.18.1@sha256:fed04e4cde7abe46a4fd03ed0e0c5a9a132cb06707ecaef6b8eaddbb8e5a9d59,4404
 snapshots:
 - completed:
     sha256: b146f371d1a90abbd2aeae1da10f776951046be50eae55a6fe93548a74fcc0dd

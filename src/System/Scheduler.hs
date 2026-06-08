@@ -1,22 +1,34 @@
 module System.Scheduler where
 
-import Control.Concurrent (forkIO, killThread, threadDelay)
-import Control.Concurrent.STM (TVar, TQueue, isEmptyTQueue, newTQueueIO, readTQueue, writeTQueue)
+import Control.Concurrent (forkIO, killThread, threadDelay, ThreadId)
+import Control.Concurrent.STM (TVar, TQueue, atomically, isEmptyTQueue, modifyTVar, newTQueueIO, newTVarIO, readTVar, readTVarIO, readTQueue, writeTVar, writeTQueue)
 import Control.Monad (forever, when)
+import Data.Map.Strict (Map)
+import qualified Data.Map.Strict as Map
 import Data.Sequence (Seq)
-import qualified Data.PriorityQueue.FingerTree as PQ
 import Data.Time.Calendar (Day, addDays)
-import Data.Time.Clock (UTCTime, utctDay, addUTCTime, getCurrentTime)
+import Data.Time.Clock (UTCTime(UTCTime), utctDay, addUTCTime, getCurrentTime, secondsToDiffTime)
+import System.Random (randomRIO)
 
 -- | Scheduled job types
 data JobType
   = -- | Run once at specific time
     OneTime UTCTime
   | -- | Recurring schedule function
-    Recurring (Day -> Day)
+    Recurring (Day -> Bool)
   | -- | Run every N seconds
     Interval Int
-  deriving (Show, Eq)
+
+instance Show JobType where
+  show (OneTime t) = "OneTime " ++ show t
+  show (Recurring _) = "Recurring <fn>"
+  show (Interval n) = "Interval " ++ show n
+
+instance Eq JobType where
+  OneTime t1 == OneTime t2 = t1 == t2
+  Recurring _ == Recurring _ = True
+  Interval n1 == Interval n2 = n1 == n2
+  _ == _ = False
 
 -- | Job definition
 data ScheduledJob = ScheduledJob
@@ -38,7 +50,7 @@ data SchedulerConfig = SchedulerConfig
 -- | Scheduler state
 data Scheduler = Scheduler
   { schedulerQueue :: TQueue ScheduledJob,
-    schedulerJobs :: TVar (PQ.PQueue UTCTime ScheduledJob),
+    schedulerJobs :: TVar (Map UTCTime [ScheduledJob]),
     schedulerConfig :: SchedulerConfig,
     schedulerThreads :: TVar [ThreadId]
   }
@@ -47,7 +59,7 @@ data Scheduler = Scheduler
 initScheduler :: SchedulerConfig -> IO Scheduler
 initScheduler config = do
   queue <- newTQueueIO
-  jobs <- newTVarIO PQ.empty
+  jobs <- newTVarIO Map.empty
   threads <- newTVarIO []
   return $ Scheduler queue jobs config threads
 
@@ -89,13 +101,14 @@ calculateNextRun :: Day -> (Day -> Bool) -> UTCTime
 calculateNextRun startDate condition =
     let go d = if condition d then d else go (addDays 1 d)
         nextDay = go startDate
-    in  UTCTime nextDay 0
+    in  UTCTime nextDay (secondsToDiffTime 0)
 
--- | Update job priority queue
+-- | Update job map
 updateJobQueue :: Scheduler -> ScheduledJob -> IO ()
 updateJobQueue scheduler job = atomically $ do
   jobs <- readTVar (schedulerJobs scheduler)
-  let newJobs = PQ.insert (jobNextRun job) job jobs
+  let key = jobNextRun job
+      newJobs = Map.insertWith (++) key [job] jobs
   writeTVar (schedulerJobs scheduler) newJobs
 
 -- | Run the scheduler main loop
@@ -103,10 +116,15 @@ runScheduler :: Scheduler -> IO ()
 runScheduler scheduler = do
   forever $ do
     now <- getCurrentTime
-    jobs <- atomically $ readTVar (schedulerJobs scheduler)
-    let (due, remaining) = PQ.span (< now) jobs
+    dueJobs <- atomically $ do
+      jobs <- readTVar (schedulerJobs scheduler)
+      let (due, rem1) = Map.split now jobs
+          (_, exact, rem2) = Map.splitLookup now rem1
+          dueJobsList = concat (Map.elems due) ++ maybe [] id exact
+      writeTVar (schedulerJobs scheduler) rem2
+      return dueJobsList
     -- Execute due jobs
-    mapM_ (executeJob scheduler) (PQ.elems due)
+    mapM_ (executeJob scheduler) dueJobs
     threadDelay (schedulerTickInterval (schedulerConfig scheduler) * 1000)
 
 -- | Execute a single job
@@ -115,9 +133,9 @@ executeJob scheduler job = do
   when (jobEnabled job) $ do
     jobAction job
     -- Reschedule if recurring
-     case jobType job of
-       Recurring condition -> do
-         currentDay <- utctDay <$> getCurrentTime
-         newTime <- calculateNextRun currentDay condition
-         atomically $ modifyTVar (schedulerJobs scheduler) (PQ.insert newTime job)
-       _ -> return ()
+    case jobType job of
+      Recurring condition -> do
+        currentDay <- utctDay <$> getCurrentTime
+        let newTime = calculateNextRun currentDay condition
+        atomically $ modifyTVar (schedulerJobs scheduler) (Map.insertWith (++) newTime [job])
+      _ -> return ()

@@ -1,10 +1,16 @@
+{-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
 module System.Tracing where
 
-import Data.Text (Text)
-import Data.Time.Clock (UTCTime)
+import Data.Text (Text, pack)
+import Data.Time.Clock (UTCTime, getCurrentTime)
 import qualified Data.UUID as UUID
-import Control.Concurrent.STM (TVar, newTVarIO, readTVar, writeTVar)
-import Data.Aeson (ToJSON, Value, object,   (..))
+import Data.UUID.V4 (nextRandom)
+import Control.Exception (try, SomeException)
+import Data.Aeson (ToJSON(..), Value, object, (.=))
 
 -- | Trace context for distributed tracing
 data TraceContext = TraceContext
@@ -17,8 +23,8 @@ data TraceContext = TraceContext
 -- | Initialize trace context
 initTraceContext :: IO TraceContext
 initTraceContext = do
-  tid <- UUID.toText <$> UUID.nextRandom
-  sid <- UUID.toText <$> UUID.nextRandom
+  tid <- UUID.toText <$> nextRandom
+  sid <- UUID.toText <$> nextRandom
   return $ TraceContext tid sid Nothing True
 
 -- | Start a new span
@@ -35,7 +41,7 @@ data Span = Span
 startSpan :: Text -> IO Span
 startSpan name = do
   now <- getCurrentTime
-  tid <- UUID.toText <$> UUID.nextRandom
+  tid <- UUID.toText <$> nextRandom
   return $ Span tid name now [] [] []
 
 -- | Add tag to span
@@ -48,21 +54,21 @@ addSpanLog span msg = do
   now <- getCurrentTime
   return $ span { spanLogs = (now, msg) : spanLogs span }
 
--- | Finish span and get timing
-endSpan :: Span -> (Span, NominalDiffTime)
-endSpan span = (span, diffUTCTime (getCurrentTime >>= \t -> return t) -- simplified
+-- | Finish span
+endSpan :: Span -> IO ()
+endSpan _ = return ()
 
 -- | Trace an operation with automatic span management
 traceOperation :: Text -> IO a -> IO (a, Span)
 traceOperation operation action = do
   span <- startSpan operation
-  result <- try action
+  result <- try @SomeException action
   case result of
     Right val -> do
       endSpan span
       return (val, span)
     Left err -> do
-      addSpanLog span ("Error: " <> T.pack (show err))
+      addSpanLog span ("Error: " <> pack (show err))
       endSpan span
       return (error (show err), span)
 

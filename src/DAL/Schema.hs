@@ -364,4 +364,16 @@ WorkOrderEntity sql=work_order
   updatedAt UTCTime
   closedAt Text Maybe
   deriving Show Eq
+
+EventStoreEntity sql=event_store
+  aggregateId Int64
+  aggregateType Text
+  eventType Text
+  eventVersion Int
+  eventData Text
+  eventMetadata Text Maybe
+  sequenceNumber Int64
+  occurredAt UTCTime
+  createdAt UTCTime
+  deriving Show Eq
 |]

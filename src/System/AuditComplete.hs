@@ -7,8 +7,8 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.ByteString.Lazy as BL
 import Data.Time.Clock (UTCTime, getCurrentTime, addUTCTime)
-import Data.Aeson (ToJSON(toJSON), encode)
-import Data.Aeson.Types (object,   (..))
+import Data.Aeson (ToJSON(toJSON), encode, (.=))
+import Data.Aeson.Types (object)
 import Data.Aeson.Key (fromText)
 
 -- | Audit severity levels with numeric values for filtering
@@ -88,7 +88,7 @@ updateIndices :: AuditStorage -> AuditEventComplete -> STM ()
 updateIndices audit event = do
   idx <- readTVar (auditIndex audit)
   let sourceKey = auditSource event
-      updated = Map.insertWith   (..) sourceKey [event] idx
+      updated = Map.insertWith (++) sourceKey [event] idx
   writeTVar (auditIndex audit) updated
 
 -- | Query with complex filters

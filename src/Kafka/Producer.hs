@@ -5,6 +5,7 @@ import EventBus
 import Control.Monad.IO.Class (liftIO)
 import Data.Text (Text)
 import qualified Data.Text as T
+import Data.Aeson ((.=), object)
 import qualified Data.Aeson as Aeson
 import Data.Int (Int64)
 
@@ -38,4 +39,4 @@ produceMessage producer topic value = do
 publishToKafka :: KafkaProducer -> DomainEvent -> IO (Either Text ())
 publishToKafka producer event = 
   let topic = "surypus-events"
-  in produceMessage producer topic (Aeson.Object $ Aeson.fromText $ deType event)
+  in produceMessage producer topic (Aeson.object ["type" .= deType event])

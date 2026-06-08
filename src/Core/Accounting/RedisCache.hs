@@ -108,7 +108,7 @@ connectRedis config = do
 -- | Disconnect from Redis
 disconnectRedis :: RedisConnection -> IO ()
 disconnectRedis conn = do
-  putStrLn $ "Disconnecting from Redis: " <> rcConnectionId conn
+  putStrLn $ "Disconnecting from Redis: " <> T.unpack (rcConnectionId conn)
   return ()
 
 -- ============================================================================
@@ -119,7 +119,7 @@ disconnectRedis conn = do
 initializeRedisCache :: RedisCacheConfig -> IO RedisConnection
 initializeRedisCache config = do
   conn <- connectRedis config
-  putStrLn $ "Redis cache initialized with TTL: " <> T.pack (show (rccDefaultTTL config))
+  putStrLn $ "Redis cache initialized with TTL: " <> show (rccDefaultTTL config)
   return conn
 
 -- | Get cached balance from Redis
@@ -192,9 +192,10 @@ invalidateRedisAccountCache conn accountId = do
 -- | Publish account event to Redis stream
 publishAccountEventToStream :: RedisConnection -> Int64 -> Value -> IO ()
 publishAccountEventToStream conn accountId eventData = do
-  let streamName = rccEventStreamName (rcConfig conn)
-      eventId = "account:" <> T.pack (show accountId) <> ":" <> T.pack (show (getCurrentTime))
-      eventDataStr = BS.unpack (BL.toStrict (encode eventData))
+  streamName <- pure $ rccEventStreamName (rcConfig conn)
+  now <- getCurrentTime
+  let eventId = "account:" <> T.pack (show accountId) <> ":" <> T.pack (show now)
+      eventDataStr = T.pack $ BS.unpack $ BL.toStrict $ encode eventData
   publishToRedisStream conn streamName eventId eventDataStr
 
 -- | Subscribe to account event stream
@@ -204,14 +205,14 @@ subscribeToAccountEventStream conn handler = do
   subscribeToRedisStream conn streamName $ \eventDataStr -> do
     case decode (BL.fromStrict (BS.pack eventDataStr)) of
       Just event -> handler event
-      Nothing -> putStrLn $ "Invalid event data: " <> T.pack eventDataStr
+      Nothing -> putStrLn $ "Invalid event data: " <> eventDataStr
 
 -- | Process Redis event stream and update cache
 processRedisEventStream :: RedisConnection -> ReadModelCache -> IO ()
 processRedisEventStream redisConn memoryCache = do
   subscribeToAccountEventStream redisConn $ \event -> do
     -- Parse event and update both Redis and memory cache
-    putStrLn $ "Processing event from Redis stream: " <> T.pack (show event)
+    putStrLn $ "Processing event from Redis stream: " <> show event
     -- Invalidate cache on any event (stub implementation)
     -- In production: Parse specific event types and update accordingly
 
@@ -232,7 +233,7 @@ wrapWithRedisBackend memoryCache redisConn accountId = do
       -- Fallback to memory cache
       model <- getCachedAccountReadModel memoryCache accountId
       -- Update Redis with the result
-      let redisAccount = readModelToRedisAccount model
+      redisAccount <- readModelToRedisAccount model
       setRedisAccountInCache redisConn redisAccount
       pure model
 
@@ -257,12 +258,12 @@ redisAccountToReadModel redisAccount = RM.AccountReadModel
   }
 
 -- | Convert read model to Redis account cache
-readModelToRedisAccount :: RM.AccountReadModel -> RedisAccountCache
+readModelToRedisAccount :: RM.AccountReadModel -> IO RedisAccountCache
 readModelToRedisAccount model = do
   now <- getCurrentTime
   let balanceState = RM.armBalanceState model
       expiresAt = addUTCTime (realToFrac 10) now  -- 10 second TTL
-  RedisAccountCache
+  pure RedisAccountCache
     { racAccountId = RM.armAccountId model
     , racBalance = RM.bsCurrentBalance balanceState
     , racDebitTotal = RM.bsDebitTotal balanceState
@@ -279,25 +280,25 @@ readModelToRedisAccount model = do
 -- | Get value from Redis (stub)
 getFromRedis :: (FromJSON a) => RedisConnection -> Text -> IO (Maybe a)
 getFromRedis conn key = do
-  putStrLn $ "Redis GET: " <> key
+  putStrLn $ "Redis GET: " <> T.unpack key
   pure Nothing
 
 -- | Set value in Redis with TTL (stub)
 setInRedisWithTTL :: (ToJSON a) => RedisConnection -> Text -> a -> NominalDiffTime -> IO ()
 setInRedisWithTTL conn key value ttl = do
-  putStrLn $ "Redis SETEX: " <> key <> " TTL: " <> T.pack (show ttl)
+  putStrLn $ "Redis SETEX: " <> T.unpack key <> " TTL: " <> show ttl
 
 -- | Delete key from Redis (stub)
 deleteFromRedis :: RedisConnection -> Text -> IO ()
 deleteFromRedis conn key = do
-  putStrLn $ "Redis DEL: " <> key
+  putStrLn $ "Redis DEL: " <> T.unpack key
 
 -- | Publish to Redis stream (stub)
 publishToRedisStream :: RedisConnection -> Text -> Text -> Text -> IO ()
 publishToRedisStream conn streamName eventId data_ = do
-  putStrLn $ "Redis XADD to " <> streamName <> ": " <> eventId <> " -> " <> T.pack data_
+  putStrLn $ "Redis XADD to " <> T.unpack streamName <> ": " <> T.unpack eventId <> " -> " <> T.unpack data_
 
 -- | Subscribe to Redis stream (stub)
 subscribeToRedisStream :: RedisConnection -> Text -> (String -> IO ()) -> IO ()
 subscribeToRedisStream conn streamName handler = do
-  putStrLn $ "Redis XSUBSCRIBE to: " <> streamName
+  putStrLn $ "Redis XSUBSCRIBE to: " <> T.unpack streamName

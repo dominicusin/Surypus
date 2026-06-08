@@ -26,7 +26,7 @@ module API.GraphQL.Proxy
   , rootResolver
   ) where
 
-import Data.Aeson (ToJSON, FromJSON, encode, decode, Value, object,   (..))
+import Data.Aeson (ToJSON, FromJSON, encode, decode, Value, object, (.=))
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Int (Int64)

@@ -3,9 +3,11 @@
 module EventBus where
 
 import Data.Text (Text)
+import qualified Data.Text as T
 import Data.Aeson (Value, encode, object, (.=))
 import qualified Data.ByteString.Lazy as LBS
 import Control.Concurrent.Chan
+import Control.Monad (when)
 import Control.Monad.IO.Class (liftIO)
 import qualified Data.UUID as UUID
 import qualified Data.UUID.V4 as UUID
@@ -43,7 +45,7 @@ publishEvent EventBus{..} event = do
 -- | Create domain event
 createEvent :: Text -> Value -> Text -> IO DomainEvent
 createEvent eventType payload source = do
-  uuid <- UUID.toString <$> UUID.nextRandom
+  uuid <- T.pack . UUID.toString <$> UUID.nextRandom
   timestamp <- getCurrentTime
   return $ DomainEvent uuid eventType timestamp payload source
 

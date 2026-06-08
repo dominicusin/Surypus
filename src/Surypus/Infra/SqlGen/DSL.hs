@@ -23,9 +23,7 @@ createTable table cols = DSL $
   ");"
 
 multi :: [DSL] -> DSL
-multi ds = DSL $ intercalate "\n" (map (
-  \(DSL s) -> s
-) ds)
+multi ds = DSL $ intercalate "\n" (map (\(DSL s) -> s) ds)
 
 -- Add a column to an existing table (ALTER TABLE ... ADD COLUMN ...)
 alterTableAddColumn :: String -> (String, String) -> DSL

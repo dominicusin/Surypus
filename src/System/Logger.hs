@@ -4,7 +4,7 @@
 module System.Logger where
 
 import Control.Concurrent.STM (TVar, newTVarIO, readTVar, readTVarIO, writeTVar, atomically)
-import Data.Aeson (ToJSON(toJSON), object,   (..))
+import Data.Aeson (ToJSON(toJSON), object, (.=))
 import Data.Text (Text)
 import Data.Time.Clock (UTCTime, getCurrentTime)
 import qualified System.IO ()

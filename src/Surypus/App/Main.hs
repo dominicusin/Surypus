@@ -19,15 +19,16 @@ main = do
   let v009 = RBACMigration.generateV009
   let v010 = RBACMigration.generateV010
   let v011 = RBACMigration.generateV011
-let v012 = RBACMigration.generateV012
-let v013 = RBACMigration.generateV013
-let v014 = RBACMigration.generateV014
-let v015 = RBACMigration.generateV015
-let v016 = RBACMigration.generateV016
-let v017 = RBACMigration.generateV017
+  let v012 = RBACMigration.generateV012
+  let v013 = RBACMigration.generateV013
+  let v014 = RBACMigration.generateV014
+  let v015 = RBACMigration.generateV015
+  let v016 = RBACMigration.generateV016
+  let v017 = RBACMigration.generateV017
   let v018 = RBACMigration.generateV018
   -- (V019..V024) declarations continued above
   let v019 = RBACMigration.generateV019
+  let v020 = RBACMigration.generateV020
   let v021 = RBACMigration.generateV021
   let v022 = RBACMigration.generateV022
   let v023 = RBACMigration.generateV023
@@ -35,7 +36,7 @@ let v017 = RBACMigration.generateV017
   let v025 = RBACMigration.generateV025
   let v026 = RBACMigration.generateV026
   let v027 = RBACMigration.generateV027
-let v028 = RBACMigration.generateV028
+  let v028 = RBACMigration.generateV028
   putStrLn "--- Generated V001 migration (DSL) ---"
   putStrLn v001
   -- Emit generated migration to SQL file (for quick iteration)

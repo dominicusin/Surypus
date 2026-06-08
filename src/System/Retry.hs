@@ -1,3 +1,4 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 module System.Retry where
 
 import Control.Concurrent (threadDelay)
@@ -31,28 +32,32 @@ data RetryResult a
 withRetries :: RetryConfig -> IO a -> IO (RetryResult a)
 withRetries config action = go 0 []
   where
+    maxAttemptsNum = maxAttempts config
+    baseDelayNum = baseDelay config
+    maxDelayNum = maxDelay config
+    strategyVal = strategy config
+
     go attempt errs
-      | attempt >= maxAttempts config =
-          Failure errs =<< getCurrentTime
+      | attempt >= maxAttemptsNum =
+          Failure errs <$> getCurrentTime
       | otherwise = do
-          result <- try action :: IO (Either SomeException a)
+          result <- try action
           case result of
             Right val -> Success val <$> getCurrentTime
-            Left err -> do
+            Left (err :: SomeException) -> do
               delay <- calculateDelay attempt
               threadDelay delay
               go (attempt + 1) (err : errs)
 
     calculateDelay attempt = do
-      let base = (baseDelay config)
-      case strategy config of
+      case strategyVal of
         FixedDelay d -> return d
         ExponentialBackoff ->
-          return $ min (maxDelay config) (base * (2 ^ attempt))
+          return $ min maxDelayNum (baseDelayNum * (2 ^ attempt))
         LinearBackoff step ->
-          return $ min (maxDelay config) (base + step * attempt)
+          return $ min maxDelayNum (baseDelayNum + step * attempt)
         Jitter -> do
-          let baseVal = min maxDelay (baseDelay config * (attempt + 1))
+          let baseVal = min maxDelayNum (baseDelayNum * (attempt + 1))
           randomRIO (baseVal, baseVal * 3 `div` 2)
 
 -- | Retry with specific delays
@@ -63,12 +68,12 @@ withRetriesDelays delays action = go delays
       result <- try action
       case result of
         Right val -> return $ Right val
-        Left err -> return $ Left err
+        Left (err :: SomeException) -> return $ Left err
     go (d : ds) = do
       result <- try action
       case result of
         Right val -> return $ Right val
-        Left err -> do
+        Left (err :: SomeException) -> do
           threadDelay d
           go ds
 
@@ -78,9 +83,9 @@ untilSuccessWithTimeout attempts delayMicros action = go attempts
   where
     go 0 = return $ Left "max attempts exceeded"
     go n = do
-      result <- try action :: IO (Either SomeException a)
+      result <- try action
       case result of
         Right val -> return $ Right val
-        Left (SomeException _) -> do
+        Left (_ :: SomeException) -> do
           threadDelay delayMicros
           go (n - 1)

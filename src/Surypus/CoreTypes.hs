@@ -8,6 +8,7 @@ module Surypus.CoreTypes
     unNonNeg
   ) where
 
+import Data.Aeson (ToJSON (..), FromJSON (..))
 import Prelude hiding (div)
 
 newtype Decimal = Decimal Double
@@ -18,6 +19,12 @@ unDecimal (Decimal d) = d
 
 div :: Double -> Double -> Double
 div = (/)
+
+instance ToJSON Decimal where
+  toJSON (Decimal d) = toJSON d
+
+instance FromJSON Decimal where
+  parseJSON v = Decimal <$> parseJSON v
 
 -- | Non-negative decimal wrapper for validation
 newtype NonNeg = NonNeg Decimal

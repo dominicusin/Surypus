@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveGeneric #-}
 module HR.Person
   ( Person   (..),
     PersonFlags   (..),
@@ -14,6 +15,8 @@ import Data.Int (Int64)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Time (Day)
+import GHC.Generics (Generic)
+import Data.Aeson (FromJSON, ToJSON)
 
 data Person = Person
   { pId :: Int64,
@@ -39,7 +42,7 @@ data Person = Person
     pRegisterDate :: Day,
     pFlags :: PersonFlags
   }
-  deriving (Show, Eq)
+  deriving (Show, Eq, Generic)
 
 data PersonFlags = PersonFlags
   { pfRegistered :: Bool,
@@ -47,7 +50,7 @@ data PersonFlags = PersonFlags
     pfIntrust :: Bool,
     pfVeryLocked :: Bool
   }
-  deriving (Show, Eq)
+  deriving (Show, Eq, Generic)
 
 data PersonKind
   = PKCompany
@@ -57,10 +60,19 @@ data PersonKind
   | PKSupplier
   | PKCustomer
   | PKEmployee
-  deriving (Show, Eq, Enum)
+  deriving (Show, Eq, Enum, Generic)
 
 data PersonStatus = PSActive | PSInactive | PSBlocked | PSDeleted
-  deriving (Show, Eq, Enum)
+  deriving (Show, Eq, Enum, Generic)
+
+instance ToJSON Person
+instance FromJSON Person
+instance ToJSON PersonFlags
+instance FromJSON PersonFlags
+instance ToJSON PersonKind
+instance FromJSON PersonKind
+instance ToJSON PersonStatus
+instance FromJSON PersonStatus
 
 validateINN :: Text -> Bool
 validateINN inn = T.length inn `elem` [10, 12] && T.all isDigit inn

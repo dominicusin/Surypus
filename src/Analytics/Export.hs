@@ -13,8 +13,8 @@ exportToExcel :: [DataPoint] -> IO LBS.ByteString
 exportToExcel points = do
   -- TODO: Implement actual Excel export
   let headers = "Label,Value,Color\n"
-  let rows = T.concat [pLabel dp, ",", T.pack (show (dpValue dp)), ",", dpColor dp, "\n" | dp <- points]
-  return $ TE.encodeUtf8 $ TE.decodeUtf8 $ LBS.fromStrict $ TE.encodeUtf8 (T.pack headers <> rows)
+  let rows = T.concat [ T.concat [dpLabel dp, ",", T.pack (show (dpValue dp)), ",", dpColor dp, "\n"] | dp <- points ]
+  return $ LBS.fromStrict $ TE.encodeUtf8 (T.pack headers <> rows)
 
 -- | Export dashboard to PDF
 exportToPDF :: [DataPoint] -> Text -> IO LBS.ByteString

@@ -1,8 +1,8 @@
 module System.RateLimiterAdvanced where
 
-import Control.Concurrent.STM (TVar, atomically, newTVarIO, readTVar, writeTVar)
+import Control.Concurrent.STM (TVar, atomically, newTVarIO, readTVar, readTVarIO, writeTVar)
 import qualified Data.Sequence as Seq
-import Data.Time.Clock (UTCTime, diffUTCTime, getCurrentTime)
+import Data.Time.Clock (NominalDiffTime, UTCTime, addUTCTime, diffUTCTime, getCurrentTime)
 
 -- | Advanced rate limiter with multiple strategies
 data RateLimiterAdvanced = RateLimiterAdvanced
@@ -48,7 +48,8 @@ data RateMetrics = RateMetrics
 -- | Initialize advanced rate limiter
 initRateLimiterAdvanced :: RateConfig -> IO RateLimiterAdvanced
 initRateLimiterAdvanced config = do
-  state <- newTVarIO $ initState (rateStrategy config)
+  now <- getCurrentTime
+  state <- newTVarIO $ initState (rateStrategy config) now
   metricsVar <-
     newTVarIO
       RateMetrics
@@ -60,10 +61,10 @@ initRateLimiterAdvanced config = do
         }
   return $ RateLimiterAdvanced config state metricsVar
   where
-    initState TokenBucket = TokenState 0 =<< getCurrentTime
-    initState LeakyBucket = LeakState Seq.empty
-    initState FixedWindow = WindowState []
-    initState SlidingWindow = SlidingState Seq.empty
+    initState TokenBucket now = TokenState 0 now
+    initState LeakyBucket _ = LeakState Seq.empty
+    initState FixedWindow _ = WindowState []
+    initState SlidingWindow _ = SlidingState Seq.empty
 
 -- | Check request with advanced logic
 checkRequestAdvanced :: RateLimiterAdvanced -> IO Bool
@@ -71,38 +72,42 @@ checkRequestAdvanced limiter = do
   now <- getCurrentTime
   atomically $ do
     state <- readTVar (limiterState limiter)
-    (allowed, newState) <- evaluateStrategy limiter state now
+    let (allowed, newState) = evaluateStrategy state now
     writeTVar (limiterState limiter) newState
-    updateMetrics limiter now allowed
     return allowed
   where
-    evaluateStrategy _ (TokenState tokens lastRefill) now =
-      let refillRate = rateLimit (limiterConfig limiter)
+    cfg = limiterConfig limiter
+    rateLmt = rateLimit cfg
+    winSec = realToFrac (rateWindowSec cfg) :: NominalDiffTime
+    windowDur = winSec * 60
+
+    evaluateStrategy (TokenState tokens lastRefill) now =
+      let refillRate = rateLmt
           elapsed = realToFrac $ diffUTCTime now lastRefill
-          newTokens = min (rateLimit (limiterConfig limiter)) (tokens + elapsed * refillRate)
+          newTokens = min rateLmt (tokens + elapsed * refillRate)
        in if newTokens >= 1
-            then (True, TokenState (newTokens - 1) now)
-            else (False, TokenState newTokens now)
-    evaluateStrategy _ (LeakState leaks) now =
-      let windowSize = fromIntegral (rateWindowSec limiter)
-          validLeaks = Seq.dropWhileL (\t -> diffUTCTime now t < windowSize) leaks
+             then (True, TokenState (newTokens - 1) now)
+             else (False, TokenState newTokens now)
+    evaluateStrategy (LeakState leaks) now =
+      let winSize = realToFrac (rateWindowSec cfg) :: NominalDiffTime
+          validLeaks = Seq.dropWhileL (\t -> diffUTCTime now t < winSize) leaks
           count = Seq.length validLeaks
-       in if count < rateLimit (limiterConfig limiter)
-            then (True, LeakState (validLeaks Seq.|> now))
-            else (False, LeakState validLeaks)
-    evaluateStrategy _ (WindowState counts) now =
-      let windowStart = diffUTCTime now (fromIntegral (rateWindowSec limiter) * 60)
+       in if fromIntegral count < rateLmt
+             then (True, LeakState (validLeaks Seq.|> now))
+             else (False, LeakState validLeaks)
+    evaluateStrategy (WindowState counts) now =
+      let windowStart = addUTCTime (negate windowDur) now
           validCounts = filter (\(t, _) -> t > windowStart) counts
           total = sum (map snd validCounts)
-       in if total < rateLimit (limiterConfig limiter)
-            then (True, WindowState ((now, 1) : validCounts))
-            else (False, WindowState ((now, 1) : validCounts))
-    evaluateStrategy _ (SlidingState reqs) now =
-      let windowStart = diffUTCTime now (fromIntegral (rateWindowSec limiter) * 60)
-          validReqs = Seq.dropWhileL (\t -> diffUTCTime now t < windowStart) reqs
-       in if Seq.length validReqs < rateLimit (limiterConfig limiter)
-            then (True, SlidingState (validReqs Seq.|> now))
-            else (False, SlidingState validReqs)
+       in if fromIntegral total < rateLmt
+             then (True, WindowState ((now, 1) : validCounts))
+             else (False, WindowState ((now, 1) : validCounts))
+    evaluateStrategy (SlidingState reqs) now =
+      let windowStartTime = addUTCTime (negate windowDur) now
+          validReqs = Seq.dropWhileL (\t -> t < windowStartTime) reqs
+       in if fromIntegral (Seq.length validReqs) < rateLmt
+             then (True, SlidingState (validReqs Seq.|> now))
+             else (False, SlidingState validReqs)
 
 -- | Check with burst allowance
 checkRequestWithBurst :: RateLimiterAdvanced -> IO Bool
@@ -128,23 +133,24 @@ getRateAdvanced limiter = readTVarIO (limiterMetrics limiter) >>= return . curre
 
 -- | Reset limiter
 resetRateLimiterAdvanced :: RateLimiterAdvanced -> IO ()
-resetRateLimiterAdvanced limiter = atomically $ do
-  state <- readTVar (limiterState limiter)
+resetRateLimiterAdvanced limiter = do
   now <- getCurrentTime
-  let newState = initState (rateStrategy limiter)
-  writeTVar (limiterState limiter) newState
-  m <- readTVar (limiterMetrics limiter)
-  writeTVar
-    (limiterMetrics limiter)
-    m
-      { totalRequests = 0,
-        totalAllowed = 0,
-        totalDenied = 0,
-        currentRate = 0,
-        penaltyApplied = 0
-      }
+  atomically $ do
+    state <- readTVar (limiterState limiter)
+    let newState = initState (rateStrategy (limiterConfig limiter)) now
+    writeTVar (limiterState limiter) newState
+    m <- readTVar (limiterMetrics limiter)
+    writeTVar
+      (limiterMetrics limiter)
+      m
+        { totalRequests = 0,
+          totalAllowed = 0,
+          totalDenied = 0,
+          currentRate = 0,
+          penaltyApplied = 0
+        }
   where
-    initState TokenBucket = TokenState 0 now
-    initState LeakyBucket = LeakState Seq.empty
-    initState FixedWindow = WindowState []
-    initState SlidingWindow = SlidingState Seq.empty
+    initState TokenBucket now = TokenState 0 now
+    initState LeakyBucket _ = LeakState Seq.empty
+    initState FixedWindow _ = WindowState []
+    initState SlidingWindow _ = SlidingState Seq.empty

@@ -14,7 +14,7 @@ module Surypus.AI
 
 import Data.Text (Text)
 import qualified Data.Text as T
-import Data.Aeson (ToJSON, FromJSON, Value, object,   (..), parseJSON, withObject,   (..))
+import Data.Aeson (ToJSON, FromJSON, Value, object, parseJSON, withObject)
 import GHC.Generics (Generic)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.Time.Clock (getCurrentTime, UTCTime)

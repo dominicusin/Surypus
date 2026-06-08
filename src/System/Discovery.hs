@@ -1,10 +1,16 @@
+{-# LANGUAGE OverloadedStrings #-}
 module System.Discovery where
 
-import Control.Concurrent.STM (TVar, newTVarIO, readTVar, writeTVar)
+import Control.Concurrent.STM (TVar, newTVarIO, readTVar, writeTVar, atomically, readTVarIO)
+import Control.Monad (when)
+import Data.Function (on)
+import Data.Monoid ((<>))
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
+import qualified Data.Text as T
+import Data.Time.Clock (UTCTime, getCurrentTime, diffUTCTime)
 import System.Directory (doesDirectoryExist, getDirectoryContents)
-import System.FilePath (takeExtension, (</>))
+import System.FilePath (takeExtension, dropExtension, (</>))
 
 -- | Service discovery configuration
 data DiscoveryConfig = DiscoveryConfig
@@ -54,21 +60,22 @@ isServiceFile name = takeExtension name == ".svc"
 registerService :: ServiceRegistry -> FilePath -> FilePath -> IO ()
 registerService registry basePath file = do
   now <- getCurrentTime
-  let serviceId = dropExtension file
+  let serviceIdStr = dropExtension file
+      serviceIdText = T.pack serviceIdStr
       info =
         ServiceInfo
-          { serviceId = serviceId,
-            serviceName = serviceId,
+          { serviceId = serviceIdText,
+            serviceName = serviceIdText,
             serviceType = "local",
-            serviceUrl = "file://" <> basePath <> "/" <> file,
+            serviceUrl = "file://" <> T.pack basePath <> "/" <> T.pack file,
             serviceMetadata = Map.empty,
             lastSeen = now
           }
   atomically $ do
     m <- readTVar (registryMap registry)
-    writeTVar (registryMap registry) (Map.insert serviceId info m)
+    writeTVar (registryMap registry) (Map.insert serviceIdText info m)
     events <- readTVar (registryEvents registry)
-    writeTVar (registryEvents registry) ((now, "discover", serviceId) : events)
+    writeTVar (registryEvents registry) ((now, "discover", serviceIdText) : events)
 
 -- | Get service by ID
 getService :: ServiceRegistry -> Text -> IO (Maybe ServiceInfo)

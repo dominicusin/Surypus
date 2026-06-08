@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Surypus.Domain.Config.Config where
 
 import GHC.Generics (Generic)

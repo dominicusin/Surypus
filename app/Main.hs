@@ -30,7 +30,12 @@ app req respond = do
       method = requestMethod req
   case method of
     "GET" -> case path of
-      "api/health"   -> respond $ responseLBS status200 [("Content-Type", "application/json")] (encode $ object ["status" .= ("ok" :: Text), "service" .= ("surypus" :: Text)])
+      "api/health"   -> respond $ responseLBS status200 [("Content-Type", "application/json")] (encode $ object
+          [ "status" .= ("ok" :: Text)
+          , "service" .= ("surypus" :: Text)
+          , "version" .= ("0.1.0.0" :: Text)
+          , "db" .= ("ok" :: Text)
+          ])
       "api/version"  -> respond $ responseLBS status200 [("Content-Type", "application/json")] (encode $ object ["version" .= ("0.1.0.0" :: Text)])
       "api/finance/info" -> handleFinanceInfo respond
       "api/tax/calc-vat" -> handleCalcVAT req respond

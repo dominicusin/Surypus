@@ -10,13 +10,14 @@ import Web.Scotty
 import qualified Web.Scotty.Trans as ST
 import Data.Text.Lazy (Text)
 import qualified Data.Text.Lazy as TL
-import Data.Text (Text)
 import qualified Data.Text as T
-import Data.Aeson (Value, object, (.=))
+import Data.Aeson (Value, object, (.=), decode)
 import qualified API.Integration.REST as REST
 import DAL.ORMPool (ConnectionPool)
 import Network.Wai.Middleware.RequestLogger (logStdoutDev)
-import Network.Wai.Middleware.Cors (simpleCors)
+import Control.Monad.IO.Class (liftIO)
+import qualified Data.ByteString.Lazy as LBS
+-- import Network.Wai.Middleware.Cors (simpleCors)
 import qualified Finance.Accounting as Acct
 import qualified Inventory.Stock as Stock
 import qualified Finance.Tax as Tax
@@ -33,9 +34,9 @@ data IntegrationAPIConfig = IntegrationAPIConfig
 -- | Run the web application
 runApp :: ConnectionPool -> Text -> Int -> IO ()
 runApp pool jwtSecret port = do
-  let config = REST.createIntegrationAPI pool jwtSecret 3600 ["*"]
-  scottyOpts defaultOptions { settings = (defaultSettings { settingsPort = port }) } $ do
-    middleware simpleCors
+  let config = REST.createIntegrationAPI pool (TL.toStrict jwtSecret) 3600 ["*"]
+  scotty port $ do
+    -- middleware simpleCors
     middleware logStdoutDev
     
     -- Health check endpoint
@@ -235,17 +236,18 @@ runApp pool jwtSecret port = do
     
     -- Integration API endpoints
     post "/api/v1/integrations/bank-statement/upload" $ do
-      body <- body
+      bodyBytes <- body
+      let bodyVal = decode bodyBytes :: Maybe Value
       let request = REST.IntegrationRequest
             { REST.irPath = "/api/v1/integrations/bank-statement/upload"
             , REST.irMethod = "POST"
-            , REST.irBody = Just body
+            , REST.irBody = bodyVal
             , REST.irHeaders = []
             , REST.irQueryParams = []
             }
       response <- liftIO $ REST.handleIntegrationRequest config "default-tenant" request
       json $ REST.irespBody response
-    
+     
     get "/api/v1/integrations/health" $ do
       let request = REST.IntegrationRequest
             { REST.irPath = "/api/v1/integrations/health"
@@ -256,7 +258,7 @@ runApp pool jwtSecret port = do
             }
       response <- liftIO $ REST.handleIntegrationRequest config "default-tenant" request
       json $ REST.irespBody response
-    
+     
     get "/api/v1/integrations/status" $ do
       let request = REST.IntegrationRequest
             { REST.irPath = "/api/v1/integrations/status"

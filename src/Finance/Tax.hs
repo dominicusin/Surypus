@@ -1,10 +1,21 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+
+{-@ LIQUID "--reflection" @-}
+{-@ LIQUID "--ple"        @-}
+
+{-@ type NonNeg = {v:Decimal | v >= 0} @-}
+{-@ type NonNegD = {v:Double | v >= 0} @-}
+
+{-@ type TaxRateValid = {v:TaxRate | 0 <= unTaxRate v && unTaxRate v <= 100} @-}
 
 -- | Finance.Tax - Enhanced VAT/Tax calculations with refinement types
 -- This module provides type-safe tax calculations with formal verification
 module Finance.Tax where
 
+import Data.Aeson (ToJSON (..), FromJSON (..))
 import Data.Decimal (Decimal)
 import Data.Int (Int64)
 import qualified Data.Text as T
@@ -15,6 +26,7 @@ import GHC.Generics (Generic)
 newtype TaxRate = TaxRate { unTaxRate :: Decimal }
   deriving (Show, Eq, Ord)
 
+{-@ mkTaxRate :: r:Decimal -> Maybe {v:TaxRate | 0 <= unTaxRate v && unTaxRate v <= 100} @-}
 -- | Smart constructor with validation
 mkTaxRate :: Decimal -> Maybe TaxRate
 mkTaxRate r
@@ -22,6 +34,7 @@ mkTaxRate r
   | r > 100   = Nothing
   | otherwise = Just (TaxRate r)
 
+{-@ calcVAT :: amount:NonNeg -> TaxRateValid -> NonNeg @-}
 -- | Calculate VAT amount from price and rate
 -- Invariant: calcVAT amount rate >= 0
 -- Invariant: calcVAT amount rate <= amount (when rate <= 100)
@@ -35,6 +48,7 @@ calcVAT amount (TaxRate rate)
       let result = (amount * rate) / 100
       in if result < 0 then 0 else result
 
+{-@ calcVATFromInclusive :: amount:NonNeg -> TaxRateValid -> NonNeg @-}
 -- | Extract VAT from inclusive price
 -- Invariant: calcVATFromInclusive amount rate >= 0
 -- Invariant: calcVATFromInclusive amount rate <= amount (when rate <= 100)
@@ -47,11 +61,13 @@ calcVATFromInclusive amount (TaxRate rate)
       let divisor = 100 + rate
       in if divisor == 0 then 0 else (amount * rate) / divisor
 
+{-@ calcPriceWithVAT :: price:NonNeg -> TaxRateValid -> {v:NonNeg | v >= price} @-}
 -- | Price including VAT
 -- Invariant: calcPriceWithVAT price rate >= price (when rate >= 0)
 calcPriceWithVAT :: Decimal -> TaxRate -> Decimal
 calcPriceWithVAT price rate = price + calcVAT price rate
 
+{-@ calcPriceWithoutVAT :: inclusive:NonNeg -> TaxRateValid -> {v:NonNeg | v <= inclusive} @-}
 -- | Price excluding VAT (from inclusive price)
 -- Invariant: calcPriceWithoutVAT inclusive rate <= inclusive (when rate <= 100)
 calcPriceWithoutVAT :: Decimal -> TaxRate -> Decimal
@@ -63,6 +79,7 @@ calcPriceWithoutVAT inclusive (TaxRate rate)
       let multiplier = 100 + rate
       in if multiplier == 0 then 0 else (inclusive * 100) / multiplier
 
+{-@ calcTaxInclusive :: price:NonNeg -> TaxRateValid -> {v:NonNeg | v >= price} @-}
 -- | VAT inclusive price
 -- Invariant: calcTaxInclusive price rate >= price (when rate >= 0)
 calcTaxInclusive :: Decimal -> TaxRate -> Decimal
@@ -105,3 +122,11 @@ prettyTaxRate (TaxRate r) = T.pack $ show r <> "%"
 -- | Pretty print tax entry
 prettyTaxEntry :: TaxEntry -> T.Text
 prettyTaxEntry e = "TaxEntry #" <> T.pack (show (unTaxEntryId (teId e))) <> " VAT: " <> T.pack (show (teVATAmount e))
+
+instance ToJSON Decimal where
+  toJSON d = toJSON (show d)
+
+instance FromJSON Decimal where
+  parseJSON v = parseJSON v >>= \s -> case reads s of
+    [(d, "")] -> pure d
+    _ -> fail "Invalid decimal format"

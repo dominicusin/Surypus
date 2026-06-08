@@ -2,6 +2,8 @@
 {-@ LIQUID "--ple"        @-}
 {-# LANGUAGE OverloadedStrings #-}
 
+{-@ type NonNeg = {v:Decimal | v >= 0} @-}
+
 module Finance.Accounting
   ( debit,
     credit,
@@ -42,6 +44,7 @@ data LedgerEntry = LedgerEntry
   }
   deriving (Eq, Show)
 
+{-@ mkLedgerEntry :: _ -> _ -> _ -> _ -> debit:NonNeg -> credit:NonNeg -> _ -> Maybe LedgerEntry @-}
 -- | Smart constructor for LedgerEntry that ensures non-negative amounts
 -- Returns Nothing if debit or credit is negative
 mkLedgerEntry :: Maybe Int64 -> Day -> Int64 -> Text -> Decimal -> Decimal -> Maybe Text -> Maybe LedgerEntry
@@ -82,6 +85,7 @@ credit = leCredit
 balance :: LedgerEntry -> Decimal
 balance le = leDebit le - leCredit le
 
+{-@ validateTransaction :: tx:Transaction -> Either Text {v:Transaction | sumDebits v == sumCredits v} @-}
 -- | Validate transaction (debits must equal credits)
 validateTransaction :: Transaction -> Either Text Transaction
 validateTransaction tx@Transaction {txEntries = entries}

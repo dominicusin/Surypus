@@ -8,7 +8,7 @@ module HR
     module HR.Employee,
     module HR.Position,
     module HR.Types,
-    PersonEx(peId, peCode, peName, peINN, peKPP, peType),
+    PersonEx,
     PersonType2  (..),
     module HR.Salary,
   )
