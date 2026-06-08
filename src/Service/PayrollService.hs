@@ -1,6 +1,11 @@
 -- | Payroll Service — orchestrates payroll calculations and reporting
 -- Patch F: Real payroll logic through Core.Payroll.Calculation
 {-# LANGUAGE OverloadedStrings #-}
+
+{-@ type NonNegDouble = {v:Double | v >= 0} @-}
+{-@ type PosDouble   = {v:Double | v > 0}  @-}
+{-@ type Rate        = {v:Double | v >= 0 && v <= 100} @-}
+
 module Service.PayrollService where
 
 import Data.Int (Int64)
@@ -33,6 +38,7 @@ data PayrollResult = PayrollResult
   , prTotalToPay :: Double
   } deriving (Show, Eq)
 
+{-@ calculatePayroll :: {v:PayrollRequest | prBaseSalary v >= 0} -> IO {v:PayrollResult | prNetSalary v >= 0} @-}
 -- | Calculate full payroll for an employee
 calculatePayroll :: PayrollRequest -> IO PayrollResult
 calculatePayroll req = do
@@ -59,10 +65,12 @@ calculatePayroll req = do
     , prTotalToPay = totalToPay
     }
 
+{-@ calcVacationPay :: Int -> NonNegDouble -> NonNegDouble @-}
 -- | Calculate vacation pay (avg daily * days * 1.0)
 calcVacationPay :: Int -> Double -> Double
 calcVacationPay days monthlySalary = (monthlySalary / 29.3) * fromIntegral days
 
+{-@ calcSickPay :: Int -> NonNegDouble -> NonNegDouble @-}
 -- | Calculate sick pay (avg daily * days * 0.6 employer portion)
 calcSickPay :: Int -> Double -> Double
 calcSickPay days monthlySalary
@@ -72,6 +80,7 @@ calcSickPay days monthlySalary
                     soc = (monthlySalary / 29.3) * 0.80 * fromIntegral (days - 3)
                 in emp + soc
 
+{-@ calculateYearEndSummary :: [{v:PayrollResult | prTotalToPay v >= 0}] -> NonNegDouble @-}
 -- | Calculate year-end payroll summary
 calculateYearEndSummary :: [PayrollResult] -> Double
 calculateYearEndSummary results =

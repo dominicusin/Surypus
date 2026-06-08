@@ -1,6 +1,10 @@
 -- | Inventory Service — orchestrates inventory/stock operations
 -- Patch F: Inventory lifecycle (receipts, issues, adjustments, inventory)
 {-# LANGUAGE OverloadedStrings #-}
+
+{-@ type NonNegDouble = {v:Double | v >= 0} @-}
+{-@ type PosDouble    = {v:Double | v > 0}  @-}
+
 module Service.InventoryService
   ( InventoryDocType   (..)
   , InventoryDocStatus   (..)
@@ -68,6 +72,7 @@ data StockMovement = StockMovement
   , smType :: StockMotionType
   }
 
+{-@ postInventoryDoc :: IEI.InventoryEventStore -> (IEI.InventoryEvent -> IO ()) -> {v:InventoryDoc | idStatus v == IDSDraft || idStatus v == IDSApproved} -> IO (Either Text ()) @-}
 -- | Post inventory document — apply stock movements as events
 postInventoryDoc :: IEI.InventoryEventStore -> (IEI.InventoryEvent -> IO ()) -> InventoryDoc -> IO (Either Text ())
 postInventoryDoc store notify doc = do
@@ -104,6 +109,7 @@ generateEvents doc now = concatMap mkEvents (idLines doc)
 getStockSnapshot :: IEI.InventoryEventStore -> Int64 -> IO (Either Text (Map (Int64, Int64) IEI.StockSnapshot))
 getStockSnapshot = IEI.getStockSnapshot
 
+{-@ generateMovements :: InventoryDoc -> [{v:StockMovement | smQty v >= 0 || smQty v < 0}] @-}
 -- | Generate stock movements (classic logic)
 generateMovements :: InventoryDoc -> [StockMovement]
 generateMovements doc =
@@ -159,6 +165,7 @@ generateMovements doc =
       , smType = SMTAdjustment
       }
 
+{-@ calculateStockBalance :: [{v:Stock | sQtty v >= 0}] -> [StockMovement] -> [{v:Stock | sQtty v >= 0}] @-}
 -- | Calculate stock balance (pure)
 calculateStockBalance :: [Stock] -> [StockMovement] -> [Stock]
 calculateStockBalance = L.foldl' applyMovement
