@@ -24,6 +24,7 @@ library
     DAL.Mutations
     DAL.MutationsORM
     DAL.ORMPool
+    DAL.Pool
     DAL.Procedures
     Commerce.AdvanceBill
     Commerce.AdvanceInvoice

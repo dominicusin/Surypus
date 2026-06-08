@@ -21,7 +21,7 @@ import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as LBS
 import Data.Time.Calendar (fromGregorian)
 import qualified Data.UUID as UUID
-import qualified Data.UUID.V4 as UUID
+import qualified Data.UUID.V4 as UUIDv4
 import GHC.Generics (Generic)
 import Network.HTTP.Types (status200, status401, status429)
 import Network.Wai as W
@@ -83,7 +83,7 @@ correlationMiddleware logger app req respond = do
     let corrIdHeader = lookup "x-correlation-id" (W.requestHeaders req)
     corrId <- case corrIdHeader of
         Just cid -> return (TE.decodeUtf8 cid)
-        Nothing -> UUID.toText <$> UUID.nextRandom
+        Nothing -> UUID.toText <$> UUIDv4.nextRandom
     Log.withCorrelationId logger (DT.unpack corrId) $ app req respond
 
 authMiddleware :: Application -> Application

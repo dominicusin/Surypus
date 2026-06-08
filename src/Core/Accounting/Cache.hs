@@ -14,6 +14,7 @@ module Core.Accounting.Cache
 import Data.Int (Int64)
 import Data.Time (UTCTime, getCurrentTime, addUTCTime)
 import Data.IORef (IORef, newIORef, readIORef, atomicModifyIORef')
+import DAL.Database (ConnectionPool)
 import System.Cache (CacheStats  (..))
 
 import qualified Core.Accounting.ReadModel as RM
@@ -30,21 +31,25 @@ data CacheState = CacheState
   }
 
 -- | Read model cache handle
-newtype ReadModelCache = ReadModelCache (IORef CacheState)
+data ReadModelCache = ReadModelCache
+  { rcState :: IORef CacheState
+  , rcPool  :: ConnectionPool
+  }
 
 -- | Create a new read model cache
-mkReadModelCache :: IO ReadModelCache
-mkReadModelCache = do
+mkReadModelCache :: ConnectionPool -> IO ReadModelCache
+mkReadModelCache pool = do
   ref <- newIORef CacheState
     { csModels = []
     , chHits = 0
     , chMisses = 0
     }
-  pure $ ReadModelCache ref
+  pure $ ReadModelCache ref pool
 
 -- | Get cached account read model (or compute and cache)
 getCachedAccountReadModel :: ReadModelCache -> Int64 -> IO RM.AccountReadModel
-getCachedAccountReadModel (ReadModelCache ref) accountId = do
+getCachedAccountReadModel cache accountId = do
+    let ReadModelCache ref pool = cache
     now <- getCurrentTime
     state <- readIORef ref
     case lookup accountId (csModels state) of
@@ -54,7 +59,7 @@ getCachedAccountReadModel (ReadModelCache ref) accountId = do
             pure model
         _ -> do
             now <- getCurrentTime
-            result <- RM.replayAccountEvents undefined accountId ""
+            result <- RM.replayAccountEvents pool accountId ""
             case result of
                 Left _ -> do
                     atomicModifyIORef' ref $ \s ->
@@ -76,24 +81,24 @@ getCachedBalance cache accountId = do
 
 -- | Invalidate cache for a specific account
 invalidateCache :: ReadModelCache -> Int64 -> IO ()
-invalidateCache (ReadModelCache ref) accountId =
-  atomicModifyIORef' ref $ \s ->
+invalidateCache cache accountId =
+  atomicModifyIORef' (rcState cache) $ \s ->
     ( s { csModels = filter (\(k, _) -> k /= accountId) (csModels s) }
     , ()
     )
 
 -- | Clear all cached entries
 clearCache :: ReadModelCache -> IO ()
-clearCache (ReadModelCache ref) =
-  atomicModifyIORef' ref $ \s ->
+clearCache cache =
+  atomicModifyIORef' (rcState cache) $ \s ->
     ( s { csModels = [] }
     , ()
     )
 
 -- | Get cache statistics
 cacheStats :: ReadModelCache -> IO CacheStats
-cacheStats (ReadModelCache ref) = do
-  state <- readIORef ref
+cacheStats cache = do
+  state <- readIORef (rcState cache)
   pure CacheStats
     { csHits = fromIntegral (chHits state)
     , csMisses = fromIntegral (chMisses state)

@@ -9,7 +9,9 @@ import Network.Wai.Middleware.Gzip (gzip, def)
 import Network.Wai.Middleware.RequestLogger (logStdoutDev)
 import Surypus.API.Server (apiServer)
 import Surypus.API.Logger (initLogger, LogLevel(Info))
-import DAL.ORMPool (createPool)
+import Surypus.RBAC (parsePermissionText)
+import DAL.Database (createPool)
+import qualified DAL.Repository.RBAC as RBAC
 import System.Environment (lookupEnv)
 import System.IO (hFlush, stdout)
 
@@ -23,17 +25,20 @@ publicPaths =
     "/swagger.json"
   ]
 
--- | Permission check: verify userId has required permission
-checkPermission :: Int64 -> Text -> IO Bool
-checkPermission userId permText = do
-  -- TODO: wire with real RBAC store. For now, allow all.
-  pure True
+-- | Permission check: verify userId has required permission via RBAC repository
+checkPermission :: RBAC.RBACRepository -> Int64 -> Text -> IO Bool
+checkPermission repo userId permText =
+  case parsePermissionText permText of
+    Nothing -> pure False
+    Just perm -> RBAC.checkUserAppPermissionRepo repo userId perm
 
 main :: IO ()
 main = do
   pool <- createPool
+  let repo = RBAC.mkRBACRepository pool
+      checkPerm = checkPermission repo
   logger <- initLogger Info
-  app <- apiServer pool logger publicPaths checkPermission
+  app <- apiServer pool logger publicPaths checkPerm
   port <- fmap (maybe 8080 read) (lookupEnv "PORT")
   putStrLn $ "Starting Surypus server on http://0.0.0.0:" ++ show port
   hFlush stdout
