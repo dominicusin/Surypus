@@ -104,6 +104,7 @@ library
     Security.Quantum.Crypto
     Service.InventoryLifecycleService
     Service.InventoryService
+    Service.JobHandlers
     Surypus
     Surypus.AI.Anthropic
     Surypus.AI.OpenAI
