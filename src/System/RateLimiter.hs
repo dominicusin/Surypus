@@ -118,8 +118,8 @@ swCheck sw = do
   now <- getCurrentTime
   atomically $ do
     reqs <- readTVar (swRequests sw)
-    let windowSize = (fromIntegral (swWindowSec sw) * 60) :: NominalDiffTime
-        valid = Seq.dropWhileL (\t -> diffUTCTime now t < windowSize) reqs
+    let windowSize = fromIntegral (swWindowSec sw) :: NominalDiffTime
+        valid = Seq.dropWhileL (\t -> diffUTCTime now t > windowSize) reqs
     if Seq.length valid < swLimit sw
       then do
         writeTVar (swRequests sw) (valid Seq.|> now)

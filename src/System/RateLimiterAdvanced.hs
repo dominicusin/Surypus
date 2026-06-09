@@ -79,7 +79,7 @@ checkRequestAdvanced limiter = do
     cfg = limiterConfig limiter
     rateLmt = rateLimit cfg
     winSec = realToFrac (rateWindowSec cfg) :: NominalDiffTime
-    windowDur = winSec * 60
+    windowDur = winSec
 
     evaluateStrategy (TokenState tokens lastRefill) now =
       let refillRate = rateLmt

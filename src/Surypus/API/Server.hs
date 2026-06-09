@@ -26,7 +26,9 @@ import qualified Data.UUID.V4 as UUIDv4
 import GHC.Generics (Generic)
 import Network.HTTP.Types (status200, status401, status429)
 import Network.Wai as W
-import qualified System.RateLimiter as RL (SlidingWindow, initSlidingWindow, swCheck)
+import Network.Wai.Handler.WebSockets (websocketsOr)
+import qualified Network.WebSockets as NetWS
+import qualified Surypus.API.RateLimiter as RL (RateLimiterConfig(..), RateLimiterState, defaultRateLimiterConfig, initRateLimiter, rateLimiterMiddleware)
 import Servant
 import Surypus (
      Bill (..),
@@ -52,8 +54,10 @@ import qualified Surypus.API.Payment as Payments
 import qualified Surypus.API.Persons as Persons
 import qualified Surypus.API.Reports as Reports
 import qualified Surypus.API.Workflow as Workflow
+import qualified Surypus.API.GraphQL as GraphQL
 import qualified Surypus.JWT.Token as JWT
 import qualified Surypus.WebSocket as WS
+import Surypus.WebSocket.Integration (startEventBroadcaster, startRedisBridge)
 import Surypus.API.AuthMiddleware (withAuthzResolverAdvanced)
 import Surypus.API.MetricsMiddleware (MetricsMiddlewareConfig(..), withMetricsCollection)
 import Surypus.Metrics (Metrics, renderPrometheus)
@@ -111,26 +115,30 @@ authMiddleware app req respond = do
 
 apiServer :: ConnectionPool -> Log.Logger -> Metrics -> [Text] -> (Int64 -> Text -> IO Bool) -> IO Application
 apiServer connPool logger metrics publicPaths checkPermission = do
-    rateLimiter <- RL.initSlidingWindow 100 60
+    let rlConfig = RL.defaultRateLimiterConfig
+    rlState <- RL.initRateLimiter rlConfig
     broadcaster <- ES.newBroadcaster
+    wsHandler <- WS.initWebSocketHandler
+    _wsSubId <- startEventBroadcaster wsHandler broadcaster
     let metricsCfg = MetricsMiddlewareConfig metrics publicPaths
-        env = Env connPool logger metrics Nothing broadcaster
-        app = metricsEndpoint metrics
-            $ rateLimiting rateLimiter
+        env = Env connPool logger metrics (Just wsHandler) broadcaster
+        wsApp pending = do
+            let path = NetWS.requestPath pending
+            if path == "/api/v1/ws"
+                then do
+                    conn <- NetWS.acceptRequest pending
+                    WS.handleWebSocket wsHandler conn
+                else
+                    NetWS.rejectRequest pending
+        baseApp = metricsEndpoint metrics
+            $ RL.rateLimiterMiddleware rlConfig rlState
             $ withMetricsCollection metricsCfg
             $ correlationMiddleware logger
             $ MT.tenantMiddleware
             $ authMiddleware
             $ withAuthzResolverAdvanced publicPaths checkPermission
             $ serve (Proxy @SurypusApi) (server env)
-    return app
-
-rateLimiting :: RL.SlidingWindow -> Application -> Application
-rateLimiting limiter app req respond = do
-    allowed <- RL.swCheck limiter
-    if allowed
-        then app req respond
-        else respond $ W.responseLBS status429 [("Content-Type", "application/json")] "{\"error\":\"Rate limit exceeded\"}"
+    return $ websocketsOr NetWS.defaultConnectionOptions wsApp baseApp
 
 metricsEndpoint :: Metrics -> Application -> Application
 metricsEndpoint metrics app req respond =
@@ -148,6 +156,8 @@ type SurypusApi =
     "api"
         :> "v1"
         :> ( "login" :> ReqBody '[JSON] LoginRequest :> Post '[JSON] LoginResponse
+                -- GraphQL endpoint
+                :<|> "graphql" :> GraphQL.GraphQLAPI
                 -- Bills
                 :<|> "bills" :> Get '[JSON] [Bill]
                 :<|> "bills" :> ReqBody '[JSON] BillInput :> Post '[JSON] Bill
@@ -241,6 +251,7 @@ type SurypusApi =
 server :: Env -> Server SurypusApi
 server env =
     handleLogin env
+        :<|> graphQLServer env
         :<|> billsList env
         :<|> billsCreate env
         :<|> billGet env
@@ -425,3 +436,7 @@ classifiersOkunList env = liftQ $ Classifiers.listOkun (envConnectionPool env)
 classifiersOkudList env = liftQ $ Classifiers.listOkud (envConnectionPool env)
 classifiersOkfsList env = liftQ $ Classifiers.listOkfs (envConnectionPool env)
 classifiersOknpoList env = liftQ $ Classifiers.listOknpo (envConnectionPool env)
+
+-- ── GraphQL handler ────────────────────────────────────────────────────────────
+graphQLServer :: Env -> Server GraphQL.GraphQLAPI
+graphQLServer env = GraphQL.graphQLServer (envConnectionPool env)

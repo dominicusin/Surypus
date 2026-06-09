@@ -126,6 +126,7 @@ library
     Surypus.API.Payment
     Surypus.API.Persons
     Surypus.API.Production
+    Surypus.API.RateLimiter
     Surypus.API.Reports
     Surypus.API.Server
     Surypus.API.Workflow
@@ -455,6 +456,7 @@ library
     , network-uri >=2.6
     , unordered-containers >=0.2
     , deriving-aeson >=0.2
+    , morpheus-graphql >=0.27 && <0.28
 
 
 executable surypus-server
