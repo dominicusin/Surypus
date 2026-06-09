@@ -1,5 +1,5 @@
 -- | Payroll calculation — income tax, social tax, vacation, sick leave, bonuses
--- Matches tests in test/Test.hs: performs Russian payroll tax calculations
+-- Uses Data.Decimal for all monetary amounts (PYR-02)
 module Core.Payroll.Calculation
   ( calcIncomeTax
   , calcSocialTax
@@ -12,11 +12,12 @@ module Core.Payroll.Calculation
   , calcTotalCompensation
   ) where
 
+import Data.Decimal (Decimal)
 import Data.Time (Day, diffDays)
 
 -- | Calculate progressive income tax (НДФЛ)
 -- Brackets: 13% ≤500k, 15% ≤3.5M, 18% ≤5M, 20% >5M
-calcIncomeTax :: Double -> Double
+calcIncomeTax :: Decimal -> Decimal
 calcIncomeTax salary
   | salary <= 0 = 0
   | salary <= 500000 = salary * 0.13
@@ -26,14 +27,14 @@ calcIncomeTax salary
 
 -- | Calculate social tax (страховые взносы)
 -- 30% up to cap of 876000, then 0% above cap
-calcSocialTax :: Double -> Double
+calcSocialTax :: Decimal -> Decimal
 calcSocialTax salary
   | salary <= 0 = 0
   | salary <= 876000 = salary * 0.30
   | otherwise = 876000 * 0.30
 
--- | Calculate net salary (gross - income tax)
-calcNetSalaryFromGross :: Double -> Double
+-- | Calculate net salary (gross - income tax - social tax)
+calcNetSalaryFromGross :: Decimal -> Decimal
 calcNetSalaryFromGross gross = gross - calcIncomeTax gross
 
 -- | Calculate vacation days between two dates
@@ -43,7 +44,7 @@ calcVacationDays start end = fromIntegral (diffDays end start)
 -- | Calculate sick leave pay
 -- first3Days: if True, employer pays (60% of avg daily * min(3, days))
 -- first3Days: if False, social insurance pays (80% of avg daily * remaining)
-calcSickLeavePay :: Double -> Int -> Bool -> Double
+calcSickLeavePay :: Decimal -> Int -> Bool -> Decimal
 calcSickLeavePay avgDaily totalDays first3Days
   | first3Days = avgDaily * 0.60 * fromIntegral (min 3 totalDays)
   | otherwise = avgDaily * 0.80 * fromIntegral (max 0 (totalDays - 3))
@@ -51,19 +52,19 @@ calcSickLeavePay avgDaily totalDays first3Days
 -- | Calculate year-end bonus (prorated by months worked)
 -- Less than 3 months: no bonus
 -- 3+ months: bonus * (months / 12)
-calcYearEndBonus :: Int -> Double -> Double
+calcYearEndBonus :: Int -> Decimal -> Decimal
 calcYearEndBonus monthsWorked fullBonus
   | monthsWorked < 3 = 0
   | otherwise = fullBonus * fromIntegral monthsWorked / 12.0
 
 -- | Calculate advance amount (percentage of base salary)
-calcAdvanceAmount :: Double -> Double -> Double
+calcAdvanceAmount :: Decimal -> Decimal -> Decimal
 calcAdvanceAmount base percentage = base * percentage / 100.0
 
 -- | Calculate monthly advance (~40% of base)
-calcMonthlyAdvance :: Double -> Double
+calcMonthlyAdvance :: Decimal -> Decimal
 calcMonthlyAdvance base = base * 0.40
 
 -- | Calculate total compensation (base + additional payments)
-calcTotalCompensation :: Double -> Double -> Double
+calcTotalCompensation :: Decimal -> Decimal -> Decimal
 calcTotalCompensation base additions = base + additions

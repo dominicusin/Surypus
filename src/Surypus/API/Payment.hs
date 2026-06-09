@@ -12,7 +12,7 @@ module Surypus.API.Payment (
 where
 
 import Control.Monad.IO.Class (liftIO)
-import DAL.Hasql.Database (ConnectionPool)
+import DAL.Pool (ConnectionPool)
 import qualified DAL.Mutations as Mut
 import DAL.Types (MutationResult (..), Payment (..), PaymentInput (..), QueryResult (..))
 import Data.Int (Int64)

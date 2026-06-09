@@ -17,12 +17,6 @@ module Production.JobSystem
 
 import Data.Int (Int64)
 import Data.Text (Text)
--- import qualified Hasql.Decoders as D
--- import qualified Hasql.Encoders as E
--- import Hasql.Pool (Pool, use)
--- import qualified Hasql.Session as Session
--- import Hasql.Statement (Statement)
-
 -- | Job execution status
 data JobStatus
   = JobPending

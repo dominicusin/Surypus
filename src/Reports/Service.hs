@@ -16,8 +16,6 @@ module Reports.Service
 import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Time (Day)
--- import Hasql.Pool (Pool, use)
-
 -- | Stub type for Pool
 type Pool = ()
 

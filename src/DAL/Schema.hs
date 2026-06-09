@@ -16,6 +16,7 @@ module DAL.Schema where
 import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Time (Day, UTCTime)
+import Data.ByteString (ByteString)
 import Database.Persist.TH
 
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
@@ -378,11 +379,22 @@ EventStoreEntity sql=event_store
   aggregateType Text
   eventType Text
   eventVersion Int
+  eventSchemaVersion Int
   eventData Text
   eventMetadata Text Maybe
   sequenceNumber Int64
   occurredAt UTCTime
   createdAt UTCTime
+  deriving Show Eq
+
+EventSnapshotEntity sql=event_snapshot
+  snapshotAggregateId Int64
+  snapshotAggregateType Text
+  snapshotVersion Int
+  snapshotLastSeq Int64
+  snapshotData Text
+  snapshotCreatedAt UTCTime
+  UniqueSnapshot snapshotAggregateId snapshotAggregateType snapshotVersion
   deriving Show Eq
 
 AuditLogEntity sql=audit_log
@@ -394,5 +406,26 @@ AuditLogEntity sql=audit_log
   newValues Text Maybe
   ipAddress Text
   createdAt UTCTime
+  deriving Show Eq
+
+PayrollResultEntity sql=payroll_results
+  tenantId Int64
+  period Day
+  employeeId Int64
+  gross Double
+  deductions Double
+  net Double
+  incomeTax Double
+  socialTax Double
+  advance Double
+  bonus Double
+  vacationPay Double
+  sickPay Double
+  totalToPay Double
+  currency Text
+  version Int
+  createdBy Int64 Maybe
+  createdAt UTCTime
+  updatedAt UTCTime
   deriving Show Eq
 |]

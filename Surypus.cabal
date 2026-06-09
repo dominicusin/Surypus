@@ -19,11 +19,11 @@ library
     DAL.Conversion
     DAL.Database
     DAL.EventStore
-    DAL.Hasql.Database
     DAL.Migration
     DAL.Mutations
     DAL.MutationsORM
     DAL.ORMPool
+    DAL.Payroll
     DAL.Pool
     DAL.Procedures
     Commerce.AdvanceBill

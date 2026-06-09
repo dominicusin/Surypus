@@ -3,6 +3,7 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE OverloadedStrings #-}
 -- | DAL.Types module
 module DAL.Types (
     DashboardStats   (..),
@@ -29,6 +30,7 @@ module DAL.Types (
     AccTurnInput   (..),
     Salary   (..),
     Employee   (..),
+    PayrollResult   (..),
     ReportTemplate   (..),
     Order   (..),
     OrderInput   (..),
@@ -77,7 +79,8 @@ module DAL.Types (
     OknpoRecord   (..)
 ) where
 
-import Data.Aeson (FromJSON, ToJSON)
+import Data.Aeson (FromJSON(..), ToJSON(..), object, withObject, (.:), (.:?), (.=))
+import Data.Decimal (Decimal)
 import GHC.Generics (Generic)
 import Data.Int (Int64)
 import Data.Text (Text)
@@ -762,6 +765,76 @@ data WorkflowInput = WorkflowInput
 
 instance ToJSON WorkflowInput
 instance FromJSON WorkflowInput
+
+-- | PayrollResult type with Decimal precision for monetary amounts
+data PayrollResult = PayrollResult
+  { prId :: !Int64
+  , prTenantId :: !Int64
+  , prPeriod :: !Day
+  , prEmployeeId :: !Int64
+  , prGross :: !Decimal
+  , prDeductions :: !Decimal
+  , prNet :: !Decimal
+  , prIncomeTax :: !Decimal
+  , prSocialTax :: !Decimal
+  , prAdvance :: !Decimal
+  , prBonus :: !Decimal
+  , prVacationPay :: !Decimal
+  , prSickPay :: !Decimal
+  , prTotalToPay :: !Decimal
+  , prCurrency :: !Text
+  , prVersion :: !Int
+  , prCreatedBy :: !(Maybe Int64)
+  , prCreatedAt :: !UTCTime
+  , prUpdatedAt :: !UTCTime
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON PayrollResult where
+  toJSON r = object
+    [ "id"         .= prId r
+    , "tenantId"   .= prTenantId r
+    , "period"     .= prPeriod r
+    , "employeeId" .= prEmployeeId r
+    , "gross"      .= show (prGross r)
+    , "deductions" .= show (prDeductions r)
+    , "net"        .= show (prNet r)
+    , "incomeTax"  .= show (prIncomeTax r)
+    , "socialTax"  .= show (prSocialTax r)
+    , "advance"    .= show (prAdvance r)
+    , "bonus"      .= show (prBonus r)
+    , "vacationPay" .= show (prVacationPay r)
+    , "sickPay"    .= show (prSickPay r)
+    , "totalToPay" .= show (prTotalToPay r)
+    , "currency"   .= prCurrency r
+    , "version"    .= prVersion r
+    , "createdBy"  .= prCreatedBy r
+    , "createdAt"  .= prCreatedAt r
+    , "updatedAt"  .= prUpdatedAt r
+    ]
+
+instance FromJSON PayrollResult where
+  parseJSON = withObject "PayrollResult" $ \v ->
+    PayrollResult
+      <$> v .:  "id"
+      <*> v .:  "tenantId"
+      <*> v .:  "period"
+      <*> v .:  "employeeId"
+      <*> (read <$> v .: "gross")
+      <*> (read <$> v .: "deductions")
+      <*> (read <$> v .: "net")
+      <*> (read <$> v .: "incomeTax")
+      <*> (read <$> v .: "socialTax")
+      <*> (read <$> v .: "advance")
+      <*> (read <$> v .: "bonus")
+      <*> (read <$> v .: "vacationPay")
+      <*> (read <$> v .: "sickPay")
+      <*> (read <$> v .: "totalToPay")
+      <*> v .:  "currency"
+      <*> v .:  "version"
+      <*> v .:  "createdBy"
+      <*> v .:  "createdAt"
+      <*> v .:  "updatedAt"
 
 -- ============================================================
 -- All-Russian Classifiers (Общероссийские классификаторы)

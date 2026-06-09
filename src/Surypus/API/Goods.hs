@@ -10,7 +10,7 @@ module Surypus.API.Goods (
 )
 where
 
-import DAL.Hasql.Database (ConnectionPool)
+import DAL.Pool (ConnectionPool)
 import qualified DAL.Mutations as Mut
 import qualified DAL.QueriesORM as ORM
 import DAL.Types (Goods (..), GoodsInput (..), MutationResult (..), QueryResult (..))

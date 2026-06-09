@@ -166,6 +166,7 @@ appendAccountingEvent store event = do
         aggType
         evType
         1 -- version
+        1 -- schema version
         (toJSON event)
         Nothing
         nextSeq

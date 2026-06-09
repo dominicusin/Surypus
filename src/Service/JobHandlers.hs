@@ -49,6 +49,7 @@ processPayrollJob ctx _start _end = do
         period = fromUTCTime _start
         req = PayrollRequest
           { prEmployeeId = empId
+          , prTenantId = 0
           , prPeriod = period
           , prBaseSalary = 50000
           , prBonus = 0
@@ -56,7 +57,7 @@ processPayrollJob ctx _start _end = do
           , prVacationDays = 0
           , prSickDays = 0
           }
-    result <- calculatePayroll req
+        result = calculatePayroll req
     pure result
     ) employees
   let totalGross = sum (map prGrossSalary results)

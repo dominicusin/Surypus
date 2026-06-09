@@ -2,6 +2,7 @@
 
 module DAL.Conversion where
 
+import Data.Decimal (Decimal)
 import Data.Int (Int64)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text, pack)
@@ -284,3 +285,26 @@ oknpoFromEntity (Entity pid e) = T.OknpoRecord
    , T.oknpoCode = oknpoEntityCode e
    , T.oknpoName = oknpoEntityName e
    }
+
+payrollResultFromEntity :: Entity PayrollResultEntity -> T.PayrollResult
+payrollResultFromEntity (Entity pid e) = T.PayrollResult
+  { T.prId = keyToInt pid
+  , T.prTenantId = payrollResultEntityTenantId e
+  , T.prPeriod = payrollResultEntityPeriod e
+  , T.prEmployeeId = payrollResultEntityEmployeeId e
+  , T.prGross = realToFrac (payrollResultEntityGross e)
+  , T.prDeductions = realToFrac (payrollResultEntityDeductions e)
+  , T.prNet = realToFrac (payrollResultEntityNet e)
+  , T.prIncomeTax = realToFrac (payrollResultEntityIncomeTax e)
+  , T.prSocialTax = realToFrac (payrollResultEntitySocialTax e)
+  , T.prAdvance = realToFrac (payrollResultEntityAdvance e)
+  , T.prBonus = realToFrac (payrollResultEntityBonus e)
+  , T.prVacationPay = realToFrac (payrollResultEntityVacationPay e)
+  , T.prSickPay = realToFrac (payrollResultEntitySickPay e)
+  , T.prTotalToPay = realToFrac (payrollResultEntityTotalToPay e)
+  , T.prCurrency = payrollResultEntityCurrency e
+  , T.prVersion = payrollResultEntityVersion e
+  , T.prCreatedBy = payrollResultEntityCreatedBy e
+  , T.prCreatedAt = payrollResultEntityCreatedAt e
+  , T.prUpdatedAt = payrollResultEntityUpdatedAt e
+  }

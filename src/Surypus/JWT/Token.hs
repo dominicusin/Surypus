@@ -45,7 +45,7 @@ import Data.Text qualified as T
 import Data.Text.Encoding qualified as TE
 import Data.Time.Clock (addUTCTime, getCurrentTime)
 import DAL.Types (User (..))
-import DAL.Hasql.Database (ConnectionPool)
+import DAL.Pool (ConnectionPool)
 import System.Environment (lookupEnv)
 import Text.Read (readMaybe)
 

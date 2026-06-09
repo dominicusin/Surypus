@@ -39,7 +39,7 @@ module Surypus.API.Classifiers (
 ) where
 
 import qualified DAL.Classifiers as C
-import DAL.Hasql.Database (ConnectionPool)
+import DAL.Pool (ConnectionPool)
 import DAL.Types
 import Data.Int (Int64)
 import Data.Text (Text)

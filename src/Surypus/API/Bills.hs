@@ -11,7 +11,7 @@ module Surypus.API.Bills (
 )
 where
 
-import DAL.Hasql.Database (ConnectionPool)
+import DAL.Pool (ConnectionPool)
 import qualified DAL.Mutations as Mut
 import qualified DAL.Procedures as Proc
 import qualified DAL.QueriesORM as ORM

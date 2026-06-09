@@ -7,10 +7,10 @@ import Data.Aeson (Value (..))
 import Data.Int (Int64)
 import Data.Text (Text)
 import qualified Data.Text as T
-import Hasql.Pool (Pool)
+import DAL.Pool (ConnectionPool)
 import Test.Hspec
 
-spec :: Pool -> Spec
+spec :: ConnectionPool -> Spec
 spec pool = do
   describe "DAL.EventStore" $ do
     it "can append and retrieve events" $ do

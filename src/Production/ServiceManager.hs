@@ -13,8 +13,6 @@ import Control.Concurrent (forkIO, threadDelay)
 import Control.Exception (SomeException, try)
 import Control.Monad (forever, void)
 import Data.Time.Clock (getCurrentTime)
--- import Hasql.Pool (Pool)
-
 -- | Stub type for Pool
 type Pool = ()
 

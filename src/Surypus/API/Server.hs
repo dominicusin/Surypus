@@ -11,7 +11,8 @@ module Surypus.API.Server (apiServer) where
 import Control.Monad.IO.Class (liftIO)
 import qualified DAL.Mutations
 import qualified DAL.Types as DAL
-import DAL.Hasql.Database (ConnectionPool)
+import DAL.Pool (ConnectionPool)
+import qualified DAL.EventStore as ES
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Int (Int64)
 import Data.Text (Text)
@@ -81,6 +82,7 @@ data Env = Env
      , envLogger :: Log.Logger
      , envMetrics :: Metrics
      , envWSHandler :: Maybe WS.WebSocketHandler
+     , envBroadcaster :: ES.Broadcaster
      }
 
 correlationMiddleware :: Log.Logger -> Application -> Application
@@ -110,8 +112,9 @@ authMiddleware app req respond = do
 apiServer :: ConnectionPool -> Log.Logger -> Metrics -> [Text] -> (Int64 -> Text -> IO Bool) -> IO Application
 apiServer connPool logger metrics publicPaths checkPermission = do
     rateLimiter <- RL.initSlidingWindow 100 60
+    broadcaster <- ES.newBroadcaster
     let metricsCfg = MetricsMiddlewareConfig metrics publicPaths
-        env = Env connPool logger metrics Nothing
+        env = Env connPool logger metrics Nothing broadcaster
         app = metricsEndpoint metrics
             $ rateLimiting rateLimiter
             $ withMetricsCollection metricsCfg

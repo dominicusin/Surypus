@@ -1,78 +1,114 @@
--- | Payroll Service — orchestrates payroll calculations and reporting
--- Patch F: Real payroll logic through Core.Payroll.Calculation
+-- | Payroll Service — orchestrates payroll calculations and persistence
+-- Uses Data.Decimal for all monetary amounts (PYR-02)
 {-# LANGUAGE OverloadedStrings #-}
 
-{-@ type NonNegDouble = {v:Double | v >= 0} @-}
-{-@ type PosDouble   = {v:Double | v > 0}  @-}
-{-@ type Rate        = {v:Double | v >= 0 && v <= 100} @-}
+module Service.PayrollService
+  ( PayrollRequest(..)
+  , PayrollResult(..)
+  , calculatePayroll
+  , calculateAndSavePayroll
+  , calcVacationPay
+  , calcSickPay
+  , calculateYearEndSummary
+  ) where
 
-module Service.PayrollService where
-
+import Data.Decimal (Decimal)
 import Data.Int (Int64)
-import Data.Time (Day, getCurrentTime, UTCTime)
+import Data.Text (Text)
+import Data.Time (Day)
+import Database.Persist.Postgresql (ConnectionPool)
 import Core.Payroll.Calculation
+import DAL.Payroll (savePayrollResult)
+import DAL.Types (QueryResult(..))
+import qualified DAL.Types as DAL
 
 -- | Payroll calculation request
 data PayrollRequest = PayrollRequest
   { prEmployeeId :: Int64
+  , prTenantId :: Int64
   , prPeriod :: Day
-  , prBaseSalary :: Double
-  , prBonus :: Double
+  , prBaseSalary :: Decimal
+  , prBonus :: Decimal
   , prDaysWorked :: Int
   , prVacationDays :: Int
   , prSickDays :: Int
   }
 
--- | Payroll calculation result
+-- | Payroll calculation result (domain type, matches DAL.PayrollResult fields)
 data PayrollResult = PayrollResult
   { prCalcEmployeeId :: Int64
+  , prCalcTenantId :: Int64
   , prCalcPeriod :: Day
-  , prGrossSalary :: Double
-  , prIncomeTax :: Double
-  , prSocialTax :: Double
-  , prNetSalary :: Double
-  , prAdvance :: Double
-  , prBonusAmount :: Double
-  , prVacationPay :: Double
-  , prSickPay :: Double
-  , prTotalToPay :: Double
+  , prGrossSalary :: Decimal
+  , prIncomeTax :: Decimal
+  , prSocialTax :: Decimal
+  , prDeductions :: Decimal
+  , prNetSalary :: Decimal
+  , prAdvance :: Decimal
+  , prBonusAmount :: Decimal
+  , prVacationPay :: Decimal
+  , prSickPay :: Decimal
+  , prTotalToPay :: Decimal
+  , prCurrency :: Text
   } deriving (Show, Eq)
 
-{-@ calculatePayroll :: {v:PayrollRequest | prBaseSalary v >= 0} -> IO {v:PayrollResult | prNetSalary v >= 0} @-}
 -- | Calculate full payroll for an employee
-calculatePayroll :: PayrollRequest -> IO PayrollResult
-calculatePayroll req = do
+calculatePayroll :: PayrollRequest -> PayrollResult
+calculatePayroll req =
   let gross = prBaseSalary req
       incomeTax = calcIncomeTax gross
       socialTax = calcSocialTax gross
-      netSalary = calcNetSalaryFromGross gross
+      deductions = incomeTax + socialTax
+      netSalary = gross - deductions
       advance = calcMonthlyAdvance gross
       bonus = prBonus req
       vacationPay = calcVacationPay (prVacationDays req) gross
       sickPay = calcSickPay (prSickDays req) gross
       totalToPay = netSalary + bonus + vacationPay + sickPay
-  pure PayrollResult
+  in PayrollResult
     { prCalcEmployeeId = prEmployeeId req
+    , prCalcTenantId = prTenantId req
     , prCalcPeriod = prPeriod req
     , prGrossSalary = gross
     , prIncomeTax = incomeTax
     , prSocialTax = socialTax
+    , prDeductions = deductions
     , prNetSalary = netSalary
     , prAdvance = advance
     , prBonusAmount = bonus
     , prVacationPay = vacationPay
     , prSickPay = sickPay
     , prTotalToPay = totalToPay
+    , prCurrency = "RUB"
     }
 
-{-@ calcVacationPay :: Int -> NonNegDouble -> NonNegDouble @-}
+-- | Calculate and persist payroll result (PYR-01)
+calculateAndSavePayroll :: ConnectionPool -> PayrollRequest -> Int64 -> IO (QueryResult DAL.PayrollResult)
+calculateAndSavePayroll pool req userId =
+  let result = calculatePayroll req
+  in savePayrollResult pool
+    (prCalcTenantId result)
+    (prCalcPeriod result)
+    (prCalcEmployeeId result)
+    (prGrossSalary result)
+    (prDeductions result)
+    (prNetSalary result)
+    (prIncomeTax result)
+    (prSocialTax result)
+    (prAdvance result)
+    (prBonusAmount result)
+    (prVacationPay result)
+    (prSickPay result)
+    (prTotalToPay result)
+    (prCurrency result)
+    userId
+
 -- | Calculate vacation pay (avg daily * days * 1.0)
-calcVacationPay :: Int -> Double -> Double
+calcVacationPay :: Int -> Decimal -> Decimal
 calcVacationPay days monthlySalary = (monthlySalary / 29.3) * fromIntegral days
 
-{-@ calcSickPay :: Int -> NonNegDouble -> NonNegDouble @-}
--- | Calculate sick pay (avg daily * days * 0.6 employer portion)
-calcSickPay :: Int -> Double -> Double
+-- | Calculate sick pay (avg daily * days, employer + social portions)
+calcSickPay :: Int -> Decimal -> Decimal
 calcSickPay days monthlySalary
   | days <= 0 = 0
   | days <= 3 = (monthlySalary / 29.3) * 0.60 * fromIntegral days
@@ -80,8 +116,7 @@ calcSickPay days monthlySalary
                     soc = (monthlySalary / 29.3) * 0.80 * fromIntegral (days - 3)
                 in emp + soc
 
-{-@ calculateYearEndSummary :: [{v:PayrollResult | prTotalToPay v >= 0}] -> NonNegDouble @-}
 -- | Calculate year-end payroll summary
-calculateYearEndSummary :: [PayrollResult] -> Double
+calculateYearEndSummary :: [PayrollResult] -> Decimal
 calculateYearEndSummary results =
   sum (map prTotalToPay results)
