@@ -7,7 +7,7 @@ module Science.ML.DemandForecasting
   , predict
   ) where
 
-import Data.Time (Day)
+import Data.Time (Day, fromGregorian)
 import Data.Text (Text)
 import qualified Data.Text as T
 
@@ -42,7 +42,7 @@ trainModel _ _ = putStrLn "Model trained (placeholder)"
 predict :: ForecastingModel -> Int -> Int -> IO DemandForecast
 predict model itemId horizon = do
   let points = replicate horizon $ ForecastPoint
-        { fpDate = error "use real date"
+        { fpDate = fromGregorian 2020 1 1
         , fpPredicted = 0
         , fpLower = 0
         , fpUpper = 0

@@ -10,7 +10,7 @@ module DigitalTwin.TwinSystem
 
 import Data.Text (Text)
 import Data.Aeson (Value)
-import Data.Time (UTCTime)
+import Data.Time (UTCTime, getCurrentTime)
 import Control.Monad.IO.Class (liftIO)
 import qualified Data.Map.Strict as M
 
@@ -36,12 +36,14 @@ type TwinSimulation = TwinEntity -> IO TwinEntity
 -- | Create a digital twin for an entity
 createTwin :: Text -> Text -> Value -> IO TwinEntity
 createTwin entityId entityType initialState = do
-  return $ TwinEntity entityId entityType (TwinState initialState Nothing (error "no time") 0.0) M.empty
+  now <- getCurrentTime
+  return $ TwinEntity entityId entityType (TwinState initialState Nothing now 0.0) M.empty
 
 -- | Sync twin with real entity state
 syncTwin :: TwinEntity -> Value -> IO TwinEntity
 syncTwin twin newState = do
-  let updatedState = TwinState newState Nothing (error "no time") 1.0
+  now <- getCurrentTime
+  let updatedState = TwinState newState Nothing now 1.0
   return $ twin { teState = updatedState }
 
 -- | Predict future state using simulation

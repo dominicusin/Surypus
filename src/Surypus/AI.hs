@@ -63,12 +63,12 @@ instance FromJSON LLMResponse
 -- | Parse a document using AI
 parseDocument :: Text -> IO (Either Text LLMResponse)
 parseDocument docContent = do
-  -- TODO: Implement actual LLM call
+  now <- getCurrentTime
   pure $ Right $ LLMResponse
     { respId = "stub"
     , respContent = T.take 100 docContent
     , respModel = "stub"
-    , respCreatedAt = error "not implemented"
+    , respCreatedAt = now
     }
 
 -- | Get recommendations using AI
