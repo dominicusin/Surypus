@@ -9,7 +9,7 @@ import Network.Wai.Middleware.Gzip (gzip, def)
 import Surypus.API.Server (apiServer)
 import Surypus.API.Logger (initLogger, LogLevel(Info))
 import Surypus.Metrics (initMetrics)
-import Surypus.RBAC (parsePermissionText)
+import Surypus.RBAC (parsePermissionText, setPermissionChecker, permissionToText)
 import DAL.Database (createPool)
 import qualified DAL.Repository.RBAC as RBAC
 import System.Environment (lookupEnv)
@@ -37,6 +37,12 @@ main = do
   pool <- createPool
   let repo = RBAC.mkRBACRepository pool
       checkPerm = checkPermission repo
+      rbacChecker userId perm = do
+        hasPerm <- RBAC.checkUserAppPermissionRepo repo userId perm
+        if hasPerm
+          then pure $ Right ()
+          else pure $ Left $ "Permission denied: " <> permissionToText perm
+  setPermissionChecker rbacChecker
   logger <- initLogger Info
   metrics <- initMetrics
   app <- apiServer pool logger metrics publicPaths checkPerm

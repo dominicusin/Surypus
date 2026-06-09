@@ -58,7 +58,6 @@ getCachedAccountReadModel cache accountId = do
                 (s { chHits = chHits s + 1 }, ())
             pure model
         _ -> do
-            now <- getCurrentTime
             result <- RM.replayAccountEvents pool accountId ""
             case result of
                 Left _ -> do

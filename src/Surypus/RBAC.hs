@@ -7,15 +7,18 @@ module Surypus.RBAC
     parsePermissionText,
     requirePermission,
     requirePermissionChecked,
+    setPermissionChecker,
   )
 where
 
 import Control.Monad.IO.Class (MonadIO, liftIO)
+import Data.IORef (IORef, newIORef, readIORef, writeIORef)
 import Data.Int (Int64)
 import Data.Text (Text)
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as LBS
 import Servant (Handler, err403, errBody, throwError)
+import System.IO.Unsafe (unsafePerformIO)
 
 -- | Permission type
 data Permission
@@ -129,41 +132,29 @@ parsePermissionText = \case
   "salaries:write" -> Just SalariesWrite
   _ -> Nothing
 
+-- | Permission checker type: userId -> Permission -> IO (Either error success)
+type PermissionChecker = Int64 -> Permission -> IO (Either Text ())
+
+-- | Global permission checker reference.
+-- In production, set during server startup to DAL-backed checker.
+{-# NOINLINE permCheckerRef #-}
+permCheckerRef :: IORef (Maybe PermissionChecker)
+permCheckerRef = unsafePerformIO $ newIORef Nothing
+
+setPermissionChecker :: PermissionChecker -> IO ()
+setPermissionChecker checker = writeIORef permCheckerRef (Just checker)
+
 -- | Require a permission (used in servant handlers)
--- Checks user roles and permissions from database
 requirePermission :: Int64 -> Permission -> IO (Either Text ())
 requirePermission userId perm = do
-  -- Check if user has admin access (bypass all permissions)
-  isAdmin <- checkAdminStatus userId
-  if isAdmin
-    then pure $ Right ()
-    else checkUserPermission userId perm
+  mChecker <- readIORef permCheckerRef
+  case mChecker of
+    Just checker -> checker userId perm
+    Nothing -> pure $ Left "Permission checker not initialized"
 
--- | Check if user has admin status
+-- | Check if user has admin status (bypass all permissions)
 checkAdminStatus :: Int64 -> IO Bool
-checkAdminStatus userId = do
-  -- In production: query database for admin role
-  -- For now: stub that checks if user is in admin role
-  pure False
-
--- | Check specific permission
-checkUserPermission :: Int64 -> Permission -> IO (Either Text ())
-checkUserPermission _userId perm = do
-  -- TODO: Query database for user roles and permissions
-  -- For now: allow read operations, deny write operations
-  case perm of
-    PersonRead -> pure $ Right ()
-    GoodsRead -> pure $ Right ()
-    BillRead -> pure $ Right ()
-    PaymentRead -> pure $ Right ()
-    LocationRead -> pure $ Right ()
-    StockRead -> pure $ Right ()
-    ReportsRead -> pure $ Right ()
-    UsersRead -> pure $ Right ()
-    SettingsRead -> pure $ Right ()
-    AccountingRead -> pure $ Right ()
-    PayrollRead -> pure $ Right ()
-    _ -> pure $ Left $ "Permission denied: " <> permissionToText perm
+checkAdminStatus _ = pure False
 
 -- | Require permission with explicit check - throws 403 if denied
 -- This is the production version that should be used

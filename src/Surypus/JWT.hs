@@ -40,6 +40,7 @@ import Crypto.JWT
     verifyClaims,
   )
 import Control.Lens ((&), (?~), (^.))
+import DAL.Database (ConnectionPool)
 import Data.Aeson (Value (..), toJSON)
 import Data.ByteString.Lazy qualified as LBS
 import Data.Int (Int64)
@@ -50,6 +51,9 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import Data.Time (UTCTime, addUTCTime, getCurrentTime)
 import Data.Time.Clock (NominalDiffTime)
+import qualified Data.UUID as UUID
+import qualified Data.UUID.V4 as UUIDv4
+import qualified Surypus.RefreshTokenRepo as RTRepo
 import Text.Read (readMaybe)
 
 data AuthError = AuthExpired | AuthInvalid | AuthMissing | AuthMalformed
@@ -84,10 +88,7 @@ refreshToken :: TokenPair -> Text
 refreshToken = tpRefreshToken
 
 rtUserId :: TokenPair -> Int64
-rtUserId tokenPair =
-  case T.stripPrefix "fake-refresh-token-" (tpRefreshToken tokenPair) of
-    Just uidStr -> read (T.unpack uidStr)
-    Nothing -> 1
+rtUserId = const 0
 
 rtExpiresAt :: TokenPair -> UTCTime
 rtExpiresAt = tpExpiresAt
@@ -95,10 +96,11 @@ rtExpiresAt = tpExpiresAt
 getSigningKey :: Text -> LBS.ByteString
 getSigningKey secret = LBS.fromStrict $ TE.encodeUtf8 secret
 
-generateTokenPair :: JWTConfig -> Int64 -> Text -> Text -> Maybe Int64 -> IO TokenPair
-generateTokenPair cfg userId username role _mPersonId = do
+generateTokenPair :: ConnectionPool -> JWTConfig -> Int64 -> Text -> Text -> Maybe Int64 -> IO TokenPair
+generateTokenPair pool cfg userId username role _mPersonId = do
   now <- getCurrentTime
   let expiresAt = addUTCTime (jwtExpiry cfg) now
+      refreshExpiresAt = addUTCTime (jwtRefreshExpiry cfg) now
       jwk = fromOctets $ getSigningKey $ jwtSecret cfg
       header = newJWSHeader ((), HS256)
       uid = T.pack (show userId)
@@ -114,27 +116,29 @@ generateTokenPair cfg userId username role _mPersonId = do
     Left err -> ioError $ userError $ "JWT signing failed: " ++ show err
     Right signedJWT -> do
       let accessTok = TE.decodeUtf8 $ LBS.toStrict $ encodeCompact signedJWT
-          refreshTok = T.concat ["fake-refresh-token-", T.pack (show userId)]
+      refreshTokenUuid <- UUIDv4.nextRandom
+      let refreshTok = UUID.toText refreshTokenUuid
+          refreshExpiresStr = T.pack (show refreshExpiresAt)
+      _ <- RTRepo.storeRefreshToken pool userId refreshTok refreshExpiresStr
       pure TokenPair
         { tpAccessToken = accessTok,
           tpRefreshToken = refreshTok,
           tpExpiresAt = expiresAt
         }
 
-validateRefreshToken :: JWTConfig -> Text -> IO (Either Text TokenPair)
-validateRefreshToken _cfg token = do
-  now <- getCurrentTime
-  case T.stripPrefix "fake-refresh-token-" token of
-    Just uidStr -> case reads (T.unpack uidStr) of
-      [(userId :: Int64, "")] -> do
-        let expiresAt = addUTCTime 1209600 now
-        pure $ Right TokenPair
-          { tpAccessToken = "fake-access-token-" <> uidStr,
-            tpRefreshToken = token,
-            tpExpiresAt = expiresAt
-          }
-      _ -> pure $ Left "Invalid token format"
-    Nothing -> pure $ Left "Invalid token format"
+validateRefreshToken :: ConnectionPool -> JWTConfig -> Text -> IO (Either Text TokenPair)
+validateRefreshToken pool cfg token = do
+  result <- RTRepo.validateRefreshToken pool token
+  case result of
+    Left err -> pure $ Left err
+    Right userId -> do
+      now <- getCurrentTime
+      let expiresAt = addUTCTime (jwtExpiry cfg) now
+      pure $ Right TokenPair
+        { tpAccessToken = "",
+          tpRefreshToken = token,
+          tpExpiresAt = expiresAt
+        }
 
 validateAccessToken :: Text -> Text -> IO (Either Text Int64)
 validateAccessToken secret token = do
