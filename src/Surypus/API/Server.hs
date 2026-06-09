@@ -12,7 +12,6 @@ import Control.Monad.IO.Class (liftIO)
 import qualified DAL.Mutations
 import qualified DAL.Types as DAL
 import DAL.Pool (ConnectionPool)
-import qualified DAL.EventStore as ES
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Int (Int64)
 import Data.Text (Text)
@@ -57,7 +56,6 @@ import qualified Surypus.API.Workflow as Workflow
 import qualified Surypus.API.GraphQL as GraphQL
 import qualified Surypus.JWT.Token as JWT
 import qualified Surypus.WebSocket as WS
-import Surypus.WebSocket.Integration (startEventBroadcaster, startRedisBridge)
 import Surypus.API.AuthMiddleware (withAuthzResolverAdvanced)
 import Surypus.API.MetricsMiddleware (MetricsMiddlewareConfig(..), withMetricsCollection)
 import Surypus.Metrics (Metrics, renderPrometheus)
@@ -86,7 +84,6 @@ data Env = Env
      , envLogger :: Log.Logger
      , envMetrics :: Metrics
      , envWSHandler :: Maybe WS.WebSocketHandler
-     , envBroadcaster :: ES.Broadcaster
      }
 
 correlationMiddleware :: Log.Logger -> Application -> Application
@@ -117,19 +114,17 @@ apiServer :: ConnectionPool -> Log.Logger -> Metrics -> [Text] -> (Int64 -> Text
 apiServer connPool logger metrics publicPaths checkPermission = do
     let rlConfig = RL.defaultRateLimiterConfig
     rlState <- RL.initRateLimiter rlConfig
-    broadcaster <- ES.newBroadcaster
     wsHandler <- WS.initWebSocketHandler
-    _wsSubId <- startEventBroadcaster wsHandler broadcaster
     let metricsCfg = MetricsMiddlewareConfig metrics publicPaths
-        env = Env connPool logger metrics (Just wsHandler) broadcaster
+        env = Env connPool logger metrics (Just wsHandler)
         wsApp pending = do
-            let path = NetWS.requestPath pending
+            let path = NetWS.requestPath (NetWS.pendingRequest pending)
             if path == "/api/v1/ws"
                 then do
                     conn <- NetWS.acceptRequest pending
                     WS.handleWebSocket wsHandler conn
                 else
-                    NetWS.rejectRequest pending
+                    NetWS.rejectRequest pending "Not a WebSocket request"
         baseApp = metricsEndpoint metrics
             $ RL.rateLimiterMiddleware rlConfig rlState
             $ withMetricsCollection metricsCfg
@@ -437,6 +432,5 @@ classifiersOkudList env = liftQ $ Classifiers.listOkud (envConnectionPool env)
 classifiersOkfsList env = liftQ $ Classifiers.listOkfs (envConnectionPool env)
 classifiersOknpoList env = liftQ $ Classifiers.listOknpo (envConnectionPool env)
 
--- ── GraphQL handler ────────────────────────────────────────────────────────────
 graphQLServer :: Env -> Server GraphQL.GraphQLAPI
-graphQLServer env = GraphQL.graphQLServer (envConnectionPool env)
+graphQLServer env = GraphQL.graphqlHandler (envConnectionPool env)
