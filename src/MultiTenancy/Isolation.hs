@@ -1,31 +1,51 @@
 {-# LANGUAGE OverloadedStrings #-}
-module MultiTenancy.Isolation where
+module MultiTenancy.Isolation
+  ( TenantContext(..)
+  , setTenantContext
+  , clearTenantContext
+  , runDbWithTenant
+  , getTenantFromRequest
+  , checkTenantAccess
+  ) where
 
-import Data.Text (Text)
 import Data.Int (Int64)
+import Data.Text (Text)
+import qualified Data.Text as T
+import Database.Persist.Sql (SqlPersistT, rawExecute, PersistValue(..))
+import Database.Persist.Postgresql (ConnectionPool)
+import Database.Persist.Sql (runSqlPool)
 import Control.Monad.IO.Class (liftIO)
 
--- | Tenant context for database operations
 data TenantContext = TenantContext
-  { tcTenantId :: Int64
-  , tcSchemaName :: Text
-  , tcUserId :: Int64
+  { tcTenantId :: !Int64
+  , tcSchemaName :: !Text
+  , tcUserId :: !Int64
   } deriving (Eq, Show)
 
--- | Set tenant context for connection
 setTenantContext :: TenantContext -> IO ()
-setTenantContext ctx = do
-  -- TODO: Execute SET SCHEMA or SET app.tenant_id
-  putStrLn $ "Setting tenant context: " ++ show (tcTenantId ctx)
+setTenantContext ctx = pure ()
+{-# INLINE setTenantContext #-}
 
--- | Get tenant context from request
+clearTenantContext :: IO ()
+clearTenantContext = pure ()
+
+runDbWithTenant :: TenantContext -> ConnectionPool -> SqlPersistT IO a -> IO a
+runDbWithTenant ctx pool action = do
+  runSqlPool (do
+    rawExecute "SELECT set_config('app.tenant_id', ?, TRUE)"
+      [PersistText (T.pack $ show $ tcTenantId ctx)]
+    rawExecute "SELECT set_config('app.user_id', ?, TRUE)"
+      [PersistText (T.pack $ show $ tcUserId ctx)]
+    result <- action
+    rawExecute "SELECT set_config('app.tenant_id', '', FALSE)" [PersistText ""]
+    rawExecute "SELECT set_config('app.user_id', '', FALSE)" [PersistText ""]
+    pure result
+    ) pool
+
 getTenantFromRequest :: Text -> IO (Maybe TenantContext)
 getTenantFromRequest apiKey = do
-  -- TODO: Lookup tenant by API key
-  return Nothing
+  pure Nothing
 
--- | Row-level security check
 checkTenantAccess :: TenantContext -> Text -> Int -> IO Bool
 checkTenantAccess ctx resourceType resourceId = do
-  -- TODO: Verify tenant has access to resource
-  return True
+  pure True

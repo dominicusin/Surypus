@@ -284,6 +284,8 @@ library
     Messaging.Communication
     Messaging.Message
     MultiTenancy.Isolation
+    MultiTenancy.Middleware
+    MultiTenancy.Provisioning
     MultiTenancy.TenantConfig
     Production
     Production.Activity

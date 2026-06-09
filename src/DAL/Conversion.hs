@@ -63,10 +63,11 @@ userFromEntity :: Entity UserEntity -> T.User
 userFromEntity (Entity pid e) = T.User
   { T.userId = keyToInt pid
   , T.userName = userEntityUsername e
-   , T.userPassword = Just (userEntityPasswordHash e)
+  , T.userPassword = Just (userEntityPasswordHash e)
   , T.userEmail = userEntityEmail e
   , T.userPersonId = userEntityPersonId e
   , T.userStatus = userEntityStatus e
+  , T.userTenantId = userEntityTenantId e
   }
 
 locationFromEntity :: Entity LocationEntity -> T.Location

@@ -1,7 +1,6 @@
-{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 
--- | Structured logging module (stub implementation)
+-- | Structured JSON logging module
 module Surypus.API.Logger (
     LogLevel (..),
     LogField,
@@ -17,8 +16,17 @@ module Surypus.API.Logger (
     logDBQuery,
 ) where
 
+import Data.Aeson (object, (.=))
+import qualified Data.Aeson as A
+import Data.Aeson.Key (fromText)
 import Data.IORef
-import System.IO.Unsafe (unsafePerformIO)
+import Data.Text (Text)
+import qualified Data.Text as T
+import Data.Time.Clock (getCurrentTime)
+import Data.Time.Format (formatTime, defaultTimeLocale)
+import qualified Data.ByteString.Lazy.Char8 as LBC
+import System.IO (stdout, hFlush)
+import Control.Monad (when)
 
 data LogLevel = Debug | Info | Warn | Error deriving (Show, Eq, Ord, Enum, Bounded)
 
@@ -26,34 +34,65 @@ type LogField = (String, String)
 
 data Logger = Logger
     { loggerLevel :: LogLevel
-    , loggerFields :: IORef [LogField]
     , loggerCorrId :: IORef (Maybe String)
     }
 
-{-# NOINLINE theLogger #-}
-theLogger :: Logger
-theLogger = Logger Info (unsafePerformIO (newIORef [])) (unsafePerformIO (newIORef Nothing))
-
 initLogger :: LogLevel -> IO Logger
 initLogger level = do
-    fields <- newIORef []
     corrId <- newIORef Nothing
-    return $ Logger level fields corrId
+    return $ Logger level corrId
+
+levelToText :: LogLevel -> Text
+levelToText Debug = "DEBUG"
+levelToText Info  = "INFO"
+levelToText Warn  = "WARN"
+levelToText Error = "ERROR"
+
+logJson :: Logger -> LogLevel -> String -> [LogField] -> IO ()
+logJson logger lvl msg fields = do
+    mCorrId <- readIORef (loggerCorrId logger)
+    now <- getCurrentTime
+    let ts = T.pack $ formatTime defaultTimeLocale "%FT%T%QZ" now
+        jsonFields = case mCorrId of
+            Just cid -> ("correlation_id", T.pack cid) : map (\(k, v) -> (T.pack k, T.pack v)) fields
+            Nothing  -> map (\(k, v) -> (T.pack k, T.pack v)) fields
+        fieldPairs = map (\(k, v) -> fromText k .= v) jsonFields
+        entry = object $
+            [ "timestamp" .= ts
+            , "level" .= levelToText lvl
+            , "message" .= T.pack msg
+            ] ++ fieldPairs
+    LBC.hPutStrLn stdout (A.encode entry)
+    hFlush stdout
 
 logMessage :: Logger -> LogLevel -> String -> [LogField] -> IO ()
-logMessage _ _ _ _ = return ()
+logMessage logger lvl msg fields =
+    when (lvl >= loggerLevel logger) $
+        logJson logger lvl msg fields
 
-logDebug, logInfo, logWarn, logError :: Logger -> String -> [LogField] -> IO ()
-logDebug _ _ _ = return ()
-logInfo _ _ _ = return ()
-logWarn _ _ _ = return ()
-logError _ _ _ = return ()
+logDebug :: Logger -> String -> [LogField] -> IO ()
+logDebug logger msg fields = logMessage logger Debug msg fields
+
+logInfo :: Logger -> String -> [LogField] -> IO ()
+logInfo logger msg fields = logMessage logger Info msg fields
+
+logWarn :: Logger -> String -> [LogField] -> IO ()
+logWarn logger msg fields = logMessage logger Warn msg fields
+
+logError :: Logger -> String -> [LogField] -> IO ()
+logError logger msg fields = logMessage logger Error msg fields
 
 withCorrelationId :: Logger -> String -> IO a -> IO a
-withCorrelationId _ _ action = action
+withCorrelationId logger cid action = do
+    old <- readIORef (loggerCorrId logger)
+    writeIORef (loggerCorrId logger) (Just cid)
+    result <- action
+    writeIORef (loggerCorrId logger) old
+    return result
 
 getCorrelationId :: Logger -> IO (Maybe String)
-getCorrelationId _ = return Nothing
+getCorrelationId logger = readIORef (loggerCorrId logger)
 
 logDBQuery :: Logger -> String -> [LogField] -> IO ()
-logDBQuery _ _ _ = return ()
+logDBQuery logger query fields =
+    logMessage logger Debug ("DB: " ++ query) fields

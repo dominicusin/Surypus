@@ -377,6 +377,7 @@ createUser pool input = do
         , userEntityEmail = Nothing
         , userEntityPersonId = uiPersonId input
         , userEntityStatus = fromIntegral (uiStatus input)
+        , userEntityTenantId = 0
         }
     key <- liftIO $ runSqlPool (P.insert entity) pool
     return $ QuerySuccess (MutationResult True (Just $ keyToInt key) "User created successfully")

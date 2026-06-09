@@ -200,4 +200,5 @@ userFromEntity (P.Entity key e) = User
     , userEmail = Nothing
     , userPersonId = userEntityPersonId e
     , userStatus = userEntityStatus e
+    , userTenantId = userEntityTenantId e
     }

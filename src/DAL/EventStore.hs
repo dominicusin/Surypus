@@ -10,11 +10,9 @@ module DAL.EventStore
      getEventsFrom,
      replayAccount,
      getLatestSequence,
-     setWebSocketBroadcaster,
    )
    where
 
-import Control.Concurrent.MVar (MVar, newMVar, putMVar, readMVar)
 import DAL.Database (ConnectionPool, runDb)
 import DAL.Schema
   ( EventStoreEntity (..),
@@ -39,7 +37,6 @@ import Data.Time (UTCTime, getCurrentTime)
 import Database.Persist.Sql (insert, selectList, selectFirst, (==.), (>=.), entityVal)
 import Database.Persist.Types (SelectOpt (Desc, Asc))
 import GHC.Generics (Generic)
-import System.IO.Unsafe (unsafePerformIO)
 
 data Event = Event
   { eventAggregateId    :: Int64
@@ -55,13 +52,6 @@ data Event = Event
   deriving (Show, Generic)
 
 type BroadcastCallback = Int64 -> Text -> Text -> Value -> IO ()
-
-{-# NOINLINE globalBroadcaster #-}
-globalBroadcaster :: MVar (Maybe BroadcastCallback)
-globalBroadcaster = unsafePerformIO (newMVar Nothing)
-
-setWebSocketBroadcaster :: BroadcastCallback -> IO ()
-setWebSocketBroadcaster callback = putMVar globalBroadcaster (Just callback)
 
 decodeJSON :: Text -> Value
 decodeJSON txt = case decode (LBS.fromStrict $ TE.encodeUtf8 txt) of
@@ -116,11 +106,10 @@ appendEvent pool aggId aggType evType evVer evData evMeta seqNum = do
   runDb pool $ insert entity
   pure $ Right ()
 
-appendEventBroadcast :: ConnectionPool -> Int64 -> Text -> Text -> Int -> Value -> Maybe Value -> Int64 -> Text -> IO (Either Text ())
-appendEventBroadcast pool aggId aggType evType evVer evData evMeta seqNum _room = do
+appendEventBroadcast :: ConnectionPool -> Maybe BroadcastCallback -> Int64 -> Text -> Text -> Int -> Value -> Maybe Value -> Int64 -> Text -> IO (Either Text ())
+appendEventBroadcast pool mBroadcaster aggId aggType evType evVer evData evMeta seqNum _room = do
   result <- appendEvent pool aggId aggType evType evVer evData evMeta seqNum
-  broadcaster <- readMVar globalBroadcaster
-  case broadcaster of
+  case mBroadcaster of
     Just broadcast -> broadcast aggId aggType evType evData >> pure result
     Nothing        -> pure result
 

@@ -54,6 +54,10 @@ import qualified Surypus.API.Workflow as Workflow
 import qualified Surypus.JWT.Token as JWT
 import qualified Surypus.WebSocket as WS
 import Surypus.API.AuthMiddleware (withAuthzResolverAdvanced)
+import Surypus.API.MetricsMiddleware (MetricsMiddlewareConfig(..), withMetricsCollection)
+import Surypus.Metrics (Metrics, renderPrometheus)
+import qualified MultiTenancy.Middleware as MT
+import qualified MultiTenancy.Isolation as MTI
 
 -- Local type definitions for API
 data LoginRequest = LoginRequest
@@ -75,6 +79,7 @@ instance ToJSON LoginResponse
 data Env = Env
      { envConnectionPool :: ConnectionPool
      , envLogger :: Log.Logger
+     , envMetrics :: Metrics
      , envWSHandler :: Maybe WS.WebSocketHandler
      }
 
@@ -102,13 +107,16 @@ authMiddleware app req respond = do
                             Left _ -> respond $ W.responseLBS status401 [("Content-Type", "text/plain")] "Invalid token"
                             Right _ -> app req respond
 
-apiServer :: ConnectionPool -> Log.Logger -> [Text] -> (Int64 -> Text -> IO Bool) -> IO Application
-apiServer connPool logger publicPaths checkPermission = do
+apiServer :: ConnectionPool -> Log.Logger -> Metrics -> [Text] -> (Int64 -> Text -> IO Bool) -> IO Application
+apiServer connPool logger metrics publicPaths checkPermission = do
     rateLimiter <- RL.initSlidingWindow 100 60
-    let env = Env connPool logger Nothing
-        app = metricsEndpoint
+    let metricsCfg = MetricsMiddlewareConfig metrics publicPaths
+        env = Env connPool logger metrics Nothing
+        app = metricsEndpoint metrics
             $ rateLimiting rateLimiter
+            $ withMetricsCollection metricsCfg
             $ correlationMiddleware logger
+            $ MT.tenantMiddleware
             $ authMiddleware
             $ withAuthzResolverAdvanced publicPaths checkPermission
             $ serve (Proxy @SurypusApi) (server env)
@@ -121,12 +129,14 @@ rateLimiting limiter app req respond = do
         then app req respond
         else respond $ W.responseLBS status429 [("Content-Type", "application/json")] "{\"error\":\"Rate limit exceeded\"}"
 
-metricsEndpoint :: Application -> Application
-metricsEndpoint app req respond =
+metricsEndpoint :: Metrics -> Application -> Application
+metricsEndpoint metrics app req respond =
     if W.rawPathInfo req == "/api/v1/metrics"
-        then respond $ W.responseLBS status200
-            [("Content-Type", "text/plain; charset=utf-8")]
-            "# HELP surypus_requests_total Total requests\n# TYPE surypus_requests_total counter\nsurypus_requests_total 0\n"
+        then do
+            promText <- renderPrometheus metrics
+            respond $ W.responseLBS status200
+                [("Content-Type", "text/plain; charset=utf-8")]
+                (LBS.encodeUtf8 (TL.fromStrict promText))
         else app req respond
 
 -- ── API type ────────────────────────────────────────────────────────────────

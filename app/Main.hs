@@ -6,9 +6,9 @@ import Data.Int (Int64)
 import Data.Text (Text)
 import Network.Wai.Handler.Warp (run)
 import Network.Wai.Middleware.Gzip (gzip, def)
-import Network.Wai.Middleware.RequestLogger (logStdoutDev)
 import Surypus.API.Server (apiServer)
 import Surypus.API.Logger (initLogger, LogLevel(Info))
+import Surypus.Metrics (initMetrics)
 import Surypus.RBAC (parsePermissionText)
 import DAL.Database (createPool)
 import qualified DAL.Repository.RBAC as RBAC
@@ -38,8 +38,9 @@ main = do
   let repo = RBAC.mkRBACRepository pool
       checkPerm = checkPermission repo
   logger <- initLogger Info
-  app <- apiServer pool logger publicPaths checkPerm
+  metrics <- initMetrics
+  app <- apiServer pool logger metrics publicPaths checkPerm
   port <- fmap (maybe 8080 read) (lookupEnv "PORT")
   putStrLn $ "Starting Surypus server on http://0.0.0.0:" ++ show port
   hFlush stdout
-  run port $ logStdoutDev $ gzip def app
+  run port $ gzip def app

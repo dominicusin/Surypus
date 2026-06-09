@@ -289,7 +289,8 @@ data User = User
     userPassword :: !(Maybe Text),
     userEmail :: !(Maybe Text),
     userPersonId :: !(Maybe Int64),
-    userStatus :: !Int
+    userStatus :: !Int,
+    userTenantId :: !Int64
   }
   deriving stock (Show, Eq, Generic)
 

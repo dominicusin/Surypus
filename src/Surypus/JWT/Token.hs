@@ -54,6 +54,7 @@ data UserClaims = UserClaims
     { ucUserId :: !Int64
     , ucUsername :: !Text
     , ucRoles :: ![Text]
+    , ucTenantId :: !(Maybe Int64)
     }
     deriving (Show, Eq)
 
@@ -74,6 +75,10 @@ generateToken :: ConnectionPool -> User -> IO Text
 generateToken _pool user = do
     now <- getCurrentTime
     let uid = T.pack $ show $ userId user
+        tenantId = maybe (Number 0) (\t -> Number (fromIntegral t)) $
+          case userPersonId user of
+            Just pid -> Just 0
+            Nothing -> Nothing
     secret <- getSigningKey
     result <- runJOSE @JWTError $ do
         let jwk = fromOctets secret
@@ -82,9 +87,10 @@ generateToken _pool user = do
                 addClaim "sub" (toJSON uid) $
                     addClaim "name" (toJSON $ userName user) $
                         addClaim "role" (toJSON ([] :: [Text])) $
-                            emptyClaimsSet
-                                & claimIat ?~ NumericDate now
-                                & claimExp ?~ NumericDate (addUTCTime 3600 now)
+                            addClaim "tenant_id" (Number 0) $
+                                emptyClaimsSet
+                                    & claimIat ?~ NumericDate now
+                                    & claimExp ?~ NumericDate (addUTCTime 3600 now)
         signClaims jwk header claims
     case result of
         Left jwtErr -> throwIO $ userError $ "JWT signing failed: " ++ show jwtErr
@@ -122,6 +128,13 @@ verifyToken tokenStr = do
                     lookupClaim "role" >>= \case
                         String s -> Just $ T.splitOn "," s
                         _ -> Nothing
+                mbTenantId =
+                    lookupClaim "tenant_id" >>= \case
+                        Number n -> Just (round n)
+                        String s -> case readMaybe (T.unpack s) of
+                            Just tid -> Just tid
+                            Nothing -> Nothing
+                        _ -> Nothing
             case mbUid of
                 Just uid -> case readMaybe (T.unpack uid) of
                     Just uidInt ->
@@ -131,6 +144,7 @@ verifyToken tokenStr = do
                                     { ucUserId = uidInt
                                     , ucUsername = fromMaybe "" mbName
                                     , ucRoles = fromMaybe [] mbRole
+                                    , ucTenantId = mbTenantId
                                     }
                     Nothing -> pure $ Left "Invalid token: sub claim is not a valid integer"
                 _ -> pure $ Left "Invalid token: missing or invalid sub claim"

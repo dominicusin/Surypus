@@ -58,6 +58,7 @@ employeeToDummyUser e = User
   , userEmail = Nothing
   , userPersonId = Nothing
   , userStatus = employeeEntityStatus e
+  , userTenantId = 0
   }
 
 documentTypeFromEntity :: P.Entity DocumentTypeEntity -> DocumentRegisterType

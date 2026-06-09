@@ -185,6 +185,14 @@ UserEntity sql=users
   email Text Maybe
   personId Int64 Maybe
   status Int
+  tenantId Int64
+  deriving Show Eq
+
+TenantEntity sql=tenants
+  name Text
+  slug Text
+  schemaName Text
+  isActive Bool
   deriving Show Eq
 
 DocumentTypeEntity sql=document_type
