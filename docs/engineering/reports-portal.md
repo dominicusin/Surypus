@@ -1,6 +1,6 @@
 # Отчёты: Jasper / Pentaho / Helical
 
-OpenPapyrus использовал Crystal Reports и встроенный генератор отчётов `report_engine` (например `PPReport`, `CrystalReport`). Surypus перепроектирует отчётную подсистему в несколько компонентов:
+ встроенный генератор отчётов `report_engine` (например `PPReport`, `CrystalReport`). Surypus перепроектирует отчётную подсистему в несколько компонентов:
 
 1. **Математические шаблоны** — каждую Crystal-форму (`report/*.rpt`) мы описали как `ReportDef` (см. `Surypus/src/Surypus/Reports.hs` и `Surypus/src/Reports.hs`). Сегодня доступны шаблоны:
    * `sales_daily.jrxml` — ежедневные продажи (Jasper)

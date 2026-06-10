@@ -172,7 +172,12 @@ const api = {
         list: (params = {}) => axios.get(`${API_BASE}/stock`, { params }),
         byGoods: (goodsId) => axios.get(`${API_BASE}/stock/goods/${goodsId}`),
         byGoodsAndLocation: (goodsId, locationId) => axios.get(`${API_BASE}/stock/${goodsId}/locations/${locationId}`),
-        summary: () => axios.get(`${API_BASE}/stock/summary`)
+        summary: () => axios.get(`${API_BASE}/stock/summary`),
+        movements: {
+            list: (params = {}) => axios.get(`${API_BASE}/stock/movements`, { params }),
+            byGoods: (goodsId) => axios.get(`${API_BASE}/stock/movements/goods/${goodsId}`)
+        },
+        createMovement: (data) => axios.post(`${API_BASE}/stock/movements`, data)
     },
 
     // Lots API
@@ -188,11 +193,6 @@ const api = {
         list: () => axios.get(`${API_BASE}/tenants`),
         get: (id) => axios.get(`${API_BASE}/tenants/${id}`),
         create: (data) => axios.post(`${API_BASE}/tenants`, data)
-    },
-
-    // Locations API
-    locations: {
-        list: () => axios.get(`${API_BASE}/locations`)
     },
 
     // Payroll API

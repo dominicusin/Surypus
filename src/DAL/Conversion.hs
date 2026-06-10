@@ -176,6 +176,21 @@ salaryFromEntity (Entity pid e) = T.Salary
   , T.salaryOther = salaryEntityOther e
   }
 
+stockMovementFromEntity :: Entity StockMovementEntity -> T.StockMovement
+stockMovementFromEntity (Entity pid e) = T.StockMovement
+  { T.smId = keyToInt pid
+  , T.smGoodsId = stockMovementEntityGoodsId e
+  , T.smLocationFromId = stockMovementEntityLocationFromId e
+  , T.smLocationToId = stockMovementEntityLocationToId e
+  , T.smQtty = stockMovementEntityQtty e
+  , T.smMovementType = stockMovementEntityMovementType e
+  , T.smBillId = stockMovementEntityBillId e
+  , T.smMovementDate = stockMovementEntityMovementDate e
+  , T.smUserId = stockMovementEntityUserId e
+  , T.smNotes = stockMovementEntityNotes e
+  , T.smCreatedAt = stockMovementEntityCreatedAt e
+  }
+
 oksmFromEntity :: Entity OksmEntity -> T.OksmRecord
 oksmFromEntity (Entity pid e) = T.OksmRecord
   { T.oksmId = keyToInt pid

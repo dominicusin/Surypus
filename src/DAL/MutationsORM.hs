@@ -48,7 +48,8 @@ module DAL.MutationsORM (
     updateAccTurn,
     deleteAccTurn,
     createEmployee,
-    createSalary
+    createSalary,
+    createStockMovement
 ) where
 
 import Control.Monad.IO.Class (liftIO)
@@ -524,6 +525,26 @@ deleteAccTurn pool turnId = do
 
 accTurnKey :: Int64 -> P.Key AccTurnEntity
 accTurnKey n = toSqlKey n
+
+stockMovementKey :: Int64 -> P.Key StockMovementEntity
+stockMovementKey n = toSqlKey n
+
+createStockMovement :: ConnectionPool -> StockMovementInput -> IO (QueryResult MutationResult)
+createStockMovement pool input = do
+    let entity = StockMovementEntity
+          { stockMovementEntityGoodsId = smiGoodsId input
+          , stockMovementEntityLocationFromId = smiLocationFromId input
+          , stockMovementEntityLocationToId = smiLocationToId input
+          , stockMovementEntityQtty = smiQtty input
+          , stockMovementEntityMovementType = smiMovementType input
+          , stockMovementEntityBillId = smiBillId input
+          , stockMovementEntityMovementDate = smiMovementDate input
+          , stockMovementEntityUserId = Nothing
+          , stockMovementEntityNotes = smiNotes input
+          , stockMovementEntityCreatedAt = Nothing
+          }
+    key <- liftIO $ runSqlPool (P.insert entity) pool
+    return $ QuerySuccess (MutationResult True (Just $ keyToInt key) "Stock movement recorded")
 
 employeeKey :: Int64 -> P.Key EmployeeEntity
 employeeKey n = toSqlKey n

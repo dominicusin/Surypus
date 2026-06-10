@@ -1619,12 +1619,13 @@
         <div id="page-stock" style="display: none;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
                 <h1>Складской учёт</h1>
-                <button class="btn btn-primary" onclick="openModal('stockModal')">➕ Перемещение</button>
+                <button class="btn btn-primary" onclick="openStockModal()">➕ Перемещение</button>
             </div>
             
             <div class="tabs" id="stock-tabs">
                 <div class="tab active" data-st-tab="balances">Остатки</div>
                 <div class="tab" data-st-tab="lots">Партии</div>
+                <div class="tab" data-st-tab="movements">Движения</div>
                 <div class="tab" data-st-tab="locations">Склады</div>
             </div>
             
@@ -1684,6 +1685,33 @@
                             </thead>
                             <tbody id="st-lots-body">
                                 <tr><td colspan="8" style="text-align:center;color:var(--text-secondary);">Загрузка...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="st-tab-movements" class="st-tab-content" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">История движений</span>
+                        <span style="font-size: 12px; color: var(--text-secondary);" id="st-mov-count"></span>
+                    </div>
+                    <div class="card-body">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Дата</th>
+                                    <th>Товар ID</th>
+                                    <th>Тип</th>
+                                    <th>Откуда</th>
+                                    <th>Куда</th>
+                                    <th>Кол-во</th>
+                                    <th>Примечание</th>
+                                </tr>
+                            </thead>
+                            <tbody id="st-movements-body">
+                                <tr><td colspan="7" style="text-align:center;color:var(--text-secondary);">Загрузка...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -2075,39 +2103,44 @@
             <div class="modal-body">
                 <div class="form-group">
                     <label class="form-label">Тип операции</label>
-                    <select class="form-input">
-                        <option>Перемещение между складами</option>
-                        <option>Поступление</option>
-                        <option>Списание</option>
+                    <select class="form-input" id="sm-type">
+                        <option value="transfer">Перемещение между складами</option>
+                        <option value="receipt">Поступление</option>
+                        <option value="issue">Списание</option>
+                        <option value="adjustment">Корректировка</option>
+                        <option value="return">Возврат</option>
                     </select>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Склад отправитель</label>
-                    <select class="form-input">
-                        <option>Основной склад</option>
-                        <option>Склад запчастей</option>
+                    <select class="form-input" id="sm-from-location">
+                        <option value="">—</option>
                     </select>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Склад получатель</label>
-                    <select class="form-input">
-                        <option>Розничный магазин №1</option>
-                        <option>Розничный магазин №2</option>
-                        <option>Основной склад</option>
+                    <select class="form-input" id="sm-to-location">
+                        <option value="">—</option>
                     </select>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Товар</label>
-                    <input type="text" class="form-input" placeholder="Поиск товара...">
+                    <select class="form-input" id="sm-goods">
+                        <option value="">—</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Количество</label>
-                    <input type="number" class="form-input" placeholder="0">
+                    <input type="number" class="form-input" id="sm-qtty" placeholder="0" min="0.01" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Комментарий</label>
+                    <input type="text" class="form-input" id="sm-ref" placeholder="Основание/номер документа">
                 </div>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModal('stockModal')">Отмена</button>
-                <button class="btn btn-primary" onclick="closeModal('stockModal')">Переместить</button>
+                <button class="btn btn-primary" id="sm-submit" onclick="submitStockMovement()">Переместить</button>
             </div>
         </div>
     </div>
@@ -2738,14 +2771,16 @@
         async function loadStockData() {
             document.getElementById('st-loading').style.display = 'block';
             try {
-                const [balRes, locRes, lotsRes] = await Promise.all([
+                const [balRes, locRes, lotsRes, movRes] = await Promise.all([
                     api.stock.list(),
                     api.locations.list(),
-                    api.lots.list()
+                    api.lots.list(),
+                    api.stock.movements.list().catch(function() { return { data: [] }; })
                 ]);
                 renderStockBalances(balRes.data);
                 renderLocations(locRes.data);
                 renderLots(lotsRes.data);
+                renderStockMovements(movRes.data);
             } catch (err) {
                 console.error('Stock load error:', err);
                 document.getElementById('st-balances-body').innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--danger);">Ошибка</td></tr>';
@@ -2810,6 +2845,89 @@
                     '</tr>';
             }).join('');
             document.getElementById('st-lots-count').textContent = items.length;
+        }
+
+        function renderStockMovements(items) {
+            var body = document.getElementById('st-movements-body');
+            if (!items || items.length === 0) {
+                body.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-secondary);">Нет движений</td></tr>';
+                document.getElementById('st-mov-count').textContent = '0';
+                return;
+            }
+            var typeMap = { 0: 'Поступление', 1: 'Списание', 2: 'Перемещение', 3: 'Корректировка', 4: 'Возврат' };
+            body.innerHTML = items.map(function(m) {
+                var qty = parseFloat(m.smQtty);
+                var color = qty > 0 ? 'var(--success)' : 'var(--error)';
+                var sign = qty > 0 ? '+' : '';
+                return '<tr>' +
+                    '<td>' + helpers.formatDate(m.smMovementDate) + '</td>' +
+                    '<td>' + m.smGoodsId + '</td>' +
+                    '<td>' + (typeMap[m.smMovementType] || 'Другое') + '</td>' +
+                    '<td>' + (m.smLocationFromId || '—') + '</td>' +
+                    '<td>' + (m.smLocationToId || '—') + '</td>' +
+                    '<td style="color:' + color + ';font-weight:bold;">' + sign + helpers.formatNumber(qty) + '</td>' +
+                    '<td>' + (m.smNotes || '') + '</td>' +
+                    '</tr>';
+            }).join('');
+            document.getElementById('st-mov-count').textContent = items.length;
+        }
+
+        // Stock movement modal
+        async function openStockModal() {
+            var smBtn = document.getElementById('sm-submit');
+            smBtn.disabled = false;
+            smBtn.textContent = 'Переместить';
+            document.getElementById('sm-type').value = 'transfer';
+            document.getElementById('sm-qtty').value = '';
+            document.getElementById('sm-ref').value = '';
+            try {
+                var [locRes, goodsRes] = await Promise.all([
+                    api.locations.list(),
+                    api.goods.list()
+                ]);
+                var locations = locRes.data || [];
+                var goods = goodsRes.data || [];
+                var fromSel = document.getElementById('sm-from-location');
+                var toSel = document.getElementById('sm-to-location');
+                var goodsSel = document.getElementById('sm-goods');
+                fromSel.innerHTML = '<option value="">—</option>';
+                toSel.innerHTML = '<option value="">—</option>';
+                goodsSel.innerHTML = '<option value="">—</option>';
+                locations.forEach(function(l) {
+                    var opt = '<option value="' + l.locationId + '">' + helpers.escapeHtml(l.locationName || 'Склад') + '</option>';
+                    fromSel.innerHTML += opt;
+                    toSel.innerHTML += opt;
+                });
+                goods.forEach(function(g) {
+                    goodsSel.innerHTML += '<option value="' + g.goodsId + '">' + helpers.escapeHtml(g.goodsName || 'Товар') + '</option>';
+                });
+            } catch (e) { console.error('Stock modal load error:', e); }
+            openModal('stockModal');
+        }
+
+        async function submitStockMovement() {
+            var smBtn = document.getElementById('sm-submit');
+            smBtn.disabled = true;
+            smBtn.textContent = 'Отправка...';
+            var data = {
+                movementType: document.getElementById('sm-type').value,
+                movementGoodId: parseInt(document.getElementById('sm-goods').value),
+                movementFromLocation: document.getElementById('sm-from-location').value ? parseInt(document.getElementById('sm-from-location').value) : null,
+                movementToLocation: document.getElementById('sm-to-location').value ? parseInt(document.getElementById('sm-to-location').value) : null,
+                movementQuantity: parseFloat(document.getElementById('sm-qtty').value) || 0,
+                movementReference: document.getElementById('sm-ref').value || null
+            };
+            if (!data.movementGoodId) { alert('Выберите товар'); smBtn.disabled = false; smBtn.textContent = 'Переместить'; return; }
+            if (data.movementQuantity <= 0) { alert('Укажите количество'); smBtn.disabled = false; smBtn.textContent = 'Переместить'; return; }
+            try {
+                await api.stock.createMovement(data);
+                closeModal('stockModal');
+                loadStockData();
+            } catch (e) {
+                smBtn.disabled = false;
+                smBtn.textContent = 'Переместить';
+                alert('Ошибка: ' + (helpers.handleApiError(e) || 'сервер недоступен'));
+            }
         }
 
         // Stock tabs

@@ -507,6 +507,29 @@ getTenantById pool tid = do
     Just entity -> QuerySuccess $ tenantFromEntity entity
     Nothing -> QueryError "Not Found"
 
+-- | Get all stock movements (most recent first)
+getStockMovements :: ConnectionPool -> IO (QueryResult [StockMovement])
+getStockMovements pool = do
+  entities <- liftIO $ runSqlPool
+    (select $ do
+      m <- from $ table @StockMovementEntity
+      orderBy [desc $ m ^. StockMovementEntityMovementDate, desc $ m ^. StockMovementEntityId]
+      return m)
+    pool
+  return $ QuerySuccess $ map stockMovementFromEntity entities
+
+-- | Get stock movements by goods ID
+getStockMovementsByGoods :: ConnectionPool -> Int64 -> IO (QueryResult [StockMovement])
+getStockMovementsByGoods connPool gid = do
+  entities <- liftIO $ runSqlPool
+    (select $ do
+      sm <- from $ table @StockMovementEntity
+      where_ $ sm ^. StockMovementEntityGoodsId ==. val gid
+      orderBy [desc $ sm ^. StockMovementEntityMovementDate, desc $ sm ^. StockMovementEntityId]
+      return sm)
+    connPool
+  return $ QuerySuccess $ map stockMovementFromEntity entities
+
 -- | Get currencies
 getCurrencies :: ConnectionPool -> IO (QueryResult [Currency])
 getCurrencies pool = do

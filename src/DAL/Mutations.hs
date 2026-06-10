@@ -16,7 +16,8 @@ module DAL.Mutations (
     createCurrency, updateCurrency, deleteCurrency,
     createAccPlan, updateAccPlan, deleteAccPlan,
     createAccTurn, updateAccTurn, deleteAccTurn,
-    createEmployee, createSalary
+    createEmployee, createSalary,
+    createStockMovement
 ) where
 
 import Data.Int (Int64)
@@ -192,6 +193,9 @@ createEmployee = DAL.MutationsORM.createEmployee
 
 createSalary :: ConnectionPool -> SalaryInput -> IO (QueryResult MutationResult)
 createSalary = DAL.MutationsORM.createSalary
+
+createStockMovement :: ConnectionPool -> StockMovementInput -> IO (QueryResult MutationResult)
+createStockMovement = DAL.MutationsORM.createStockMovement
 
 updateCurrency :: ConnectionPool -> Int64 -> CurrencyInput -> IO (QueryResult MutationResult)
 updateCurrency = DAL.MutationsORM.updateCurrency

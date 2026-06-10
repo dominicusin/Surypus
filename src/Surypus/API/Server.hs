@@ -255,6 +255,9 @@ type SurypusApi =
                 :<|> "reports" :> "export" :> ReqBody '[JSON] Reports.ReportExportRequest :> Post '[JSON] Reports.ReportExportResponse
                 -- Stock
                 :<|> "stock" :> Get '[JSON] [DAL.Stock]
+                :<|> "stock" :> "movements" :> Get '[JSON] [DAL.StockMovement]
+                :<|> "stock" :> "movements" :> ReqBody '[JSON] DAL.StockMovementInput :> Post '[JSON] DAL.MutationResult
+                :<|> "stock" :> "movements" :> "goods" :> Capture "goodsId" Int64 :> Get '[JSON] [DAL.StockMovement]
                 -- Lots
                 :<|> "lots" :> Get '[JSON] [DAL.Lot]
                 :<|> "lots" :> Capture "id" Int64 :> Get '[JSON] DAL.Lot
@@ -373,6 +376,9 @@ server env =
         :<|> reportsInventory env
         :<|> reportsExport env
         :<|> stockList env
+        :<|> stockMovementsList env
+        :<|> stockMovementCreate env
+        :<|> stockMovementsByGoods env
         :<|> lotsList env
         :<|> lotGet env
         :<|> lotsByGoods env
@@ -536,6 +542,15 @@ reportsExport env req = do
 
 stockList :: Env -> Handler [DAL.Stock]
 stockList env = liftQ $ DAL.QueriesORM.getStockAll (envConnectionPool env)
+
+stockMovementsList :: Env -> Handler [DAL.StockMovement]
+stockMovementsList env = liftQ $ DAL.QueriesORM.getStockMovements (envConnectionPool env)
+
+stockMovementCreate :: Env -> DAL.StockMovementInput -> Handler DAL.MutationResult
+stockMovementCreate env input = liftQ $ DAL.Mutations.createStockMovement (envConnectionPool env) input
+
+stockMovementsByGoods :: Env -> Int64 -> Handler [DAL.StockMovement]
+stockMovementsByGoods env gid = liftQ $ DAL.QueriesORM.getStockMovementsByGoods (envConnectionPool env) gid
 
 lotsList :: Env -> Handler [DAL.Lot]
 lotsList env = liftQ $ DAL.QueriesORM.getLots (envConnectionPool env)

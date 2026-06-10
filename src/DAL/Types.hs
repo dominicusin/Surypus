@@ -49,6 +49,8 @@ module DAL.Types (
     CurrencyInput   (..),
     TechCard   (..),
     WorkOrder   (..),
+    StockMovement   (..),
+    StockMovementInput   (..),
     -- Sort and filter types
     PersonSortBy   (..),
     GoodsSortBy   (..),
@@ -388,6 +390,41 @@ data MutationResult = MutationResult
 
 instance ToJSON MutationResult
 instance FromJSON MutationResult
+
+-- | Stock movement type (matches stock_movement table)
+data StockMovement = StockMovement
+  { smId :: !Int64,
+    smGoodsId :: !Int64,
+    smLocationFromId :: !(Maybe Int64),
+    smLocationToId :: !(Maybe Int64),
+    smQtty :: !Double,
+    smMovementType :: !Int,
+    smBillId :: !(Maybe Int64),
+    smMovementDate :: !Day,
+    smUserId :: !(Maybe Int64),
+    smNotes :: !(Maybe Text),
+    smCreatedAt :: !(Maybe UTCTime)
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON StockMovement
+instance FromJSON StockMovement
+
+-- | Stock movement input type (for API requests)
+data StockMovementInput = StockMovementInput
+  { smiGoodsId :: !Int64,
+    smiLocationFromId :: !(Maybe Int64),
+    smiLocationToId :: !(Maybe Int64),
+    smiQtty :: !Double,
+    smiMovementType :: !Int,
+    smiBillId :: !(Maybe Int64),
+    smiMovementDate :: !Day,
+    smiNotes :: !(Maybe Text)
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON StockMovementInput
+instance FromJSON StockMovementInput
 
 -- | Location input type
 data LocationInput = LocationInput

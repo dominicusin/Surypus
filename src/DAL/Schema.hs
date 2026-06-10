@@ -441,4 +441,17 @@ PayrollResultEntity sql=payroll_results
   createdAt UTCTime
   updatedAt UTCTime
   deriving Show Eq
+
+StockMovementEntity sql=stock_movement
+  goodsId Int64
+  locationFromId Int64 Maybe
+  locationToId Int64 Maybe
+  qtty Double
+  movementType Int
+  billId Int64 Maybe
+  movementDate Day
+  userId Int64 Maybe
+  notes Text Maybe
+  createdAt UTCTime Maybe
+  deriving Show Eq
 |]

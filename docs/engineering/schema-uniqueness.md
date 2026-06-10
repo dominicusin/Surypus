@@ -2,7 +2,7 @@
 
 ## Контекст
 
-При портировании OpenPapyrus в Surypus мы сохраняем множество SQL-скриптов, отражающих разные домены: accounting, finance, documents, legal, common и т.д. Некоторые объекты в старых скриптах переотражаются (например, `AccSheet` используется и в `Core.Accounting`, и в `Core.Finance`, а `Register`/`RegisterType` — и в `PPObjRegister`, и в `Core.Document`). Без разграничения название `schema_acc_sheet.sql` могло содержать несколько схем, что затрудняло валидацию.
+При портировании в Surypus мы сохраняем множество SQL-скриптов, отражающих разные домены: accounting, finance, documents, legal, common и т.д. Некоторые объекты в старых скриптах переотражаются (например, `AccSheet` используется и в `Core.Accounting`, и в `Core.Finance`, а `Register`/`RegisterType` — и в `PPObjRegister`, и в `Core.Document`). Без разграничения название `schema_acc_sheet.sql` могло содержать несколько схем, что затрудняло валидацию.
 
 ## Что сделано
 

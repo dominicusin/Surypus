@@ -9,858 +9,470 @@
     <title>Surypus ERP Mobile</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        :root {
-            --primary: #1976D2;
-            --primary-dark: #1565C0;
-            --secondary: #FF5722;
-            --background: #F5F5F5;
-            --surface: #FFFFFF;
-            --text: #212121;
-            --text-secondary: #757575;
-            --success: #4CAF50;
-            --warning: #FFC107;
-            --error: #F44336;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--background);
-            color: var(--text);
-            padding-bottom: 70px;
-        }
-        
-        /* Header */
-        .header {
-            background: var(--primary);
-            color: white;
-            padding: 12px 16px;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        
+        :root { --primary: #1976D2; --primary-dark: #1565C0; --secondary: #FF5722; --background: #F5F5F5; --surface: #FFFFFF; --text: #212121; --text-secondary: #757575; --success: #4CAF50; --warning: #FFC107; --error: #F44336; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--background); color: var(--text); padding-bottom: 70px; }
+        .header { background: var(--primary); color: white; padding: 12px 16px; position: sticky; top: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; }
         .header h1 { font-size: 18px; }
-        
         .header-actions { display: flex; gap: 12px; }
-        
-        .header-btn {
-            background: rgba(255,255,255,0.2);
-            border: none;
-            color: white;
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            font-size: 18px;
-            cursor: pointer;
-        }
-        
-        /* Stats */
-        .stats-scroll {
-            display: flex;
-            gap: 12px;
-            padding: 16px;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-        
-        .stat-card {
-            background: var(--surface);
-            border-radius: 12px;
-            padding: 16px;
-            min-width: 120px;
-            text-align: center;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        
+        .header-btn { background: rgba(255,255,255,0.2); border: none; color: white; width: 36px; height: 36px; border-radius: 50%; font-size: 18px; cursor: pointer; }
+        .stats-scroll { display: flex; gap: 12px; padding: 16px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .stat-card { background: var(--surface); border-radius: 12px; padding: 16px; min-width: 120px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         .stat-value { font-size: 24px; font-weight: bold; color: var(--primary); }
         .stat-label { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
-        
-        /* Quick Actions */
-        .quick-actions {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 8px;
-            padding: 0 16px;
-        }
-        
-        .quick-action {
-            background: var(--surface);
-            border: none;
-            border-radius: 12px;
-            padding: 16px 8px;
-            text-align: center;
-            cursor: pointer;
-        }
-        
+        .quick-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 0 16px; }
+        .quick-action { background: var(--surface); border: none; border-radius: 12px; padding: 16px 8px; text-align: center; cursor: pointer; }
         .quick-icon { font-size: 24px; display: block; margin-bottom: 4px; }
         .quick-label { font-size: 10px; color: var(--text-secondary); }
-        
-        /* Menu */
         .menu-list { padding: 8px 0; }
-        
-        .menu-item {
-            display: flex;
-            align-items: center;
-            padding: 14px 16px;
-            border-bottom: 1px solid #eee;
-            cursor: pointer;
-        }
-        
+        .menu-item { display: flex; align-items: center; padding: 14px 16px; border-bottom: 1px solid #eee; cursor: pointer; }
         .menu-icon { font-size: 20px; margin-right: 12px; width: 24px; }
         .menu-text { flex: 1; font-size: 15px; }
-        .menu-badge {
-            background: var(--error);
-            color: white;
-            font-size: 11px;
-            padding: 2px 8px;
-            border-radius: 10px;
-        }
-        
-        /* Cards */
-        .card {
-            background: var(--surface);
-            margin: 16px;
-            border-radius: 12px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-        
-        .card-header {
-            padding: 14px 16px;
-            border-bottom: 1px solid #eee;
-            font-weight: 600;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
+        .card { background: var(--surface); margin: 16px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; }
+        .card-header { padding: 14px 16px; border-bottom: 1px solid #eee; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
         .card-body { padding: 0; }
-        
-        /* List Items */
-        .list-item {
-            display: flex;
-            align-items: center;
-            padding: 12px 16px;
-            border-bottom: 1px solid #f5f5f5;
-        }
-        
+        .list-item { display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid #f5f5f5; }
         .list-item:last-child { border-bottom: none; }
-        
         .item-icon { font-size: 20px; margin-right: 12px; }
         .item-content { flex: 1; }
         .item-title { font-size: 14px; font-weight: 500; }
         .item-subtitle { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
         .item-value { font-size: 14px; font-weight: 600; color: var(--primary); }
-        
-        /* Status */
         .status { font-size: 11px; padding: 3px 8px; border-radius: 4px; }
         .status-active { background: #E8F5E9; color: var(--success); }
         .status-pending { background: #FFF3E0; color: var(--warning); }
-        
-        /* Bottom Nav */
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: var(--surface);
-            display: flex;
-            justify-content: space-around;
-            padding: 8px 0;
-            border-top: 1px solid #eee;
-            z-index: 100;
-        }
-        
-        .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 4px 12px;
-            color: var(--text-secondary);
-            text-decoration: none;
-            font-size: 10px;
-        }
-        
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); display: flex; justify-content: space-around; padding: 8px 0; border-top: 1px solid #eee; z-index: 100; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; padding: 4px 12px; color: var(--text-secondary); text-decoration: none; font-size: 10px; cursor: pointer; }
         .nav-item.active { color: var(--primary); }
         .nav-icon { font-size: 22px; margin-bottom: 2px; }
-        
-        /* Search */
-        .search-bar {
-            padding: 12px 16px;
-        }
-        
-        .search-input {
-            width: 100%;
-            padding: 10px 16px;
-            border: 1px solid #ddd;
-            border-radius: 20px;
-            font-size: 14px;
-        }
-        
-        /* Tabs */
-        .tabs {
-            display: flex;
-            background: var(--surface);
-            border-bottom: 1px solid #eee;
-        }
-        
-        .tab {
-            flex: 1;
-            padding: 14px;
-            text-align: center;
-            font-size: 13px;
-            color: var(--text-secondary);
-            border-bottom: 2px solid transparent;
-        }
-        
-        .tab.active {
-            color: var(--primary);
-            border-bottom-color: var(--primary);
-        }
-        
-        /* FAB */
-        .fab {
-            position: fixed;
-            bottom: 80px;
-            right: 20px;
-            width: 56px;
-            height: 56px;
-            border-radius: 50%;
-            background: var(--primary);
-            color: white;
-            font-size: 24px;
-            border: none;
-            box-shadow: 0 4px 12px rgba(25, 118, 210, 0.4);
-            cursor: pointer;
-        }
-        
-        /* Page sections */
+        .search-bar { padding: 12px 16px; }
+        .search-input { width: 100%; padding: 10px 16px; border: 1px solid #ddd; border-radius: 20px; font-size: 14px; }
+        .search-input:focus { outline: none; border-color: var(--primary); }
+        .tabs { display: flex; background: var(--surface); border-bottom: 1px solid #eee; }
+        .tab { flex: 1; padding: 14px; text-align: center; font-size: 13px; color: var(--text-secondary); border-bottom: 2px solid transparent; cursor: pointer; }
+        .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+        .fab { position: fixed; bottom: 80px; right: 20px; width: 56px; height: 56px; border-radius: 50%; background: var(--primary); color: white; font-size: 24px; border: none; box-shadow: 0 4px 12px rgba(25, 118, 210, 0.4); cursor: pointer; }
         .page { display: none; }
         .page.active { display: block; }
-        
-        /* Chart */
-        .mini-chart {
-            display: flex;
-            align-items: flex-end;
-            justify-content: space-between;
-            height: 60px;
-            padding: 8px;
-        }
-        
-        .mini-chart-bar {
-            width: 8px;
-            background: var(--primary);
-            border-radius: 2px;
-        }
-        
-        /* Swipe actions */
-        .swipe-action {
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            display: flex;
-            align-items: center;
-            padding: 0 16px;
-        }
-        
-        .swipe-left { right: 0; background: #4CAF50; }
-        .swipe-right { left: 0; background: #F44336; }
-        
-        /* Pull to refresh */
-        .pull-refresh {
-            text-align: center;
-            padding: 16px;
-            color: var(--text-secondary);
-            font-size: 12px;
-        }
-        
-        /* Notification badge */
-        .badge {
-            position: absolute;
-            top: -4px;
-            right: -4px;
-            background: var(--error);
-            color: white;
-            font-size: 10px;
-            padding: 2px 5px;
-            border-radius: 10px;
-            min-width: 16px;
-            text-align: center;
-        }
-        
-        /* Modal mobile */
-        .modal-mobile {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.5);
-            display: none;
-            align-items: flex-end;
-            z-index: 2000;
-        }
-        
-        .modal-mobile.active { display: flex; }
-        
-        .modal-mobile-content {
-            background: var(--surface);
-            width: 100%;
-            border-radius: 16px 16px 0 0;
-            padding: 20px;
-            animation: slideUp 0.3s ease;
-        }
-        
-        @keyframes slideUp {
-            from { transform: translateY(100%); }
-            to { transform: translateY(0); }
-        }
-        
-        /* Form mobile */
-        .form-row {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 12px;
-        }
-        
-        .form-row .form-group { flex: 1; }
-        
-        .form-input {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 14px;
-            background: #FAFAFA;
-        }
-        
-        .form-input:focus {
-            outline: none;
-            border-color: var(--primary);
-        }
-        
-        /* Action sheet */
-        .action-sheet {
-            background: var(--surface);
-            border-radius: 16px 16px 0 0;
-            padding: 16px;
-        }
-        
-        .action-sheet-item {
-            padding: 14px;
-            text-align: center;
-            border-bottom: 1px solid #eee;
-            cursor: pointer;
-        }
-        
-        .action-sheet-item:last-child { border-bottom: none; }
-        
-        .action-sheet-cancel {
-            margin-top: 8px;
-            background: #F5F5F5;
-            border-radius: 8px;
-        }
-        
-        /* Offline indicator */
-        .offline-banner {
-            background: var(--warning);
-            color: #333;
-            text-align: center;
-            padding: 8px;
-            font-size: 12px;
-        }
-        
-        /* Empty state */
-        .empty-state {
-            text-align: center;
-            padding: 40px 20px;
-            color: var(--text-secondary);
-        }
-        
+        .offline-banner { background: var(--warning); color: #333; text-align: center; padding: 8px; font-size: 12px; }
+        .empty-state { text-align: center; padding: 40px 20px; color: var(--text-secondary); }
         .empty-icon { font-size: 48px; margin-bottom: 16px; }
+        .m-loading { text-align: center; padding: 40px 20px; color: var(--text-secondary); }
+        .m-loading:before { content: '⏳'; display: block; font-size: 32px; margin-bottom: 12px; }
+        .m-error { text-align: center; padding: 40px 20px; color: var(--error); font-size: 14px; }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 </head>
 <body>
-    <!-- Home Page -->
+    <div id="offline-banner" class="offline-banner" style="display:none;">Нет подключения к серверу</div>
+
     <div id="page-home" class="page active">
         <header class="header">
-            <h1>🏢 Surypus</h1>
+            <h1>Surypus</h1>
             <div class="header-actions">
-                <button class="header-btn">🔍</button>
-                <button class="header-btn">🔔</button>
+                <button class="header-btn" onclick="loadAllData()">🔄</button>
             </div>
         </header>
-        
-        <div class="search-bar">
-            <input type="text" class="search-input" placeholder="Поиск...">
+        <div class="stats-scroll" id="home-stats">
+            <div class="stat-card"><div class="stat-value">—</div><div class="stat-label">Загрузка...</div></div>
         </div>
-        
-        <div class="stats-scroll">
-            <div class="stat-card">
-                <div class="stat-value">125</div>
-                <div class="stat-label">Контрагенты</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value">1,234</div>
-                <div class="stat-label">Товары</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value">89</div>
-                <div class="stat-label">Документы</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value">12</div>
-                <div class="stat-label">Задачи</div>
-            </div>
-        </div>
-        
         <div class="quick-actions">
-            <button class="quick-action"><span class="quick-icon">👤</span><span class="quick-label">Контрагент</span></button>
-            <button class="quick-action"><span class="quick-icon">📦</span><span class="quick-label">Товар</span></button>
-            <button class="quick-action"><span class="quick-icon">📋</span><span class="quick-label">Счёт</span></button>
-            <button class="quick-action"><span class="quick-icon">✅</span><span class="quick-label">Задача</span></button>
+            <button class="quick-action" onclick="showPage('persons')"><span class="quick-icon">👤</span><span class="quick-label">Контрагенты</span></button>
+            <button class="quick-action" onclick="showPage('goods')"><span class="quick-icon">📦</span><span class="quick-label">Товары</span></button>
+            <button class="quick-action" onclick="showPage('bills')"><span class="quick-icon">📋</span><span class="quick-label">Документы</span></button>
+            <button class="quick-action" onclick="showPage('stock')"><span class="quick-icon">📈</span><span class="quick-label">Склад</span></button>
         </div>
-        
         <div class="card" style="margin-top: 16px;">
-            <div class="card-header">Задачи <span class="status status-pending">3</span></div>
-            <div class="card-body">
-                <div class="list-item">
-                    <span class="item-icon">📋</span>
-                    <div class="item-content">
-                        <div class="item-title">Отправить отчёт</div>
-                        <div class="item-subtitle">Приоритет: Высокий</div>
-                    </div>
-                </div>
-                <div class="list-item">
-                    <span class="item-icon">📋</span>
-                    <div class="item-content">
-                        <div class="item-title">Обработать платежи</div>
-                        <div class="item-subtitle">В работе</div>
-                    </div>
-                </div>
-                <div class="list-item">
-                    <span class="item-icon">📋</span>
-                    <div class="item-content">
-                        <div class="item-title">Сформировать накладную</div>
-                        <div class="item-subtitle">Срок: сегодня</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="card">
             <div class="card-header">Последние документы</div>
-            <div class="card-body">
-                <div class="list-item">
-                    <span class="item-icon">📄</span>
-                    <div class="item-content">
-                        <div class="item-title">INV-2026-089</div>
-                        <div class="item-subtitle">ООО ТехноСтрой</div>
-                    </div>
-                    <div class="item-value">50 000 ₽</div>
-                </div>
-                <div class="list-item">
-                    <span class="item-icon">📄</span>
-                    <div class="item-content">
-                        <div class="item-title">INV-2026-088</div>
-                        <div class="item-subtitle">ИП Иванов</div>
-                    </div>
-                    <div class="item-value">25 000 ₽</div>
-                </div>
-            </div>
+            <div class="card-body" id="home-docs"><div class="m-loading"></div></div>
         </div>
     </div>
-    
-    <!-- Persons Page -->
+
     <div id="page-persons" class="page">
         <header class="header">
             <button class="header-btn" onclick="showPage('home')">←</button>
             <h1>Контрагенты</h1>
-            <button class="header-btn">+</button>
+            <button class="header-btn" onclick="mobileCreatePerson()">+</button>
         </header>
-        
         <div class="search-bar">
-            <input type="text" class="search-input" placeholder="Поиск контрагентов...">
+            <input type="text" class="search-input" id="persons-search" placeholder="Поиск..." oninput="loadPersons()">
         </div>
-        
-        <div class="tabs">
-            <div class="tab active">Все</div>
-            <div class="tab">Юр. лица</div>
-            <div class="tab">Физ. лица</div>
-            <div class="tab">ИП</div>
-        </div>
-        
         <div class="card">
-            <div class="card-body">
-                <div class="list-item">
-                    <span class="item-icon">🏢</span>
-                    <div class="item-content">
-                        <div class="item-title">ООО ТехноСтрой</div>
-                        <div class="item-subtitle">ИНН: 7701234567890</div>
-                    </div>
-                    <span class="status status-active">Активен</span>
-                </div>
-                <div class="list-item">
-                    <span class="item-icon">👤</span>
-                    <div class="item-content">
-                        <div class="item-title">ИП Иванов И.И.</div>
-                        <div class="item-subtitle">ИНН: 7709876543210</div>
-                    </div>
-                    <span class="status status-active">Активен</span>
-                </div>
-                <div class="list-item">
-                    <span class="item-icon">🏢</span>
-                    <div class="item-content">
-                        <div class="item-title">ООО МегаТрейд</div>
-                        <div class="item-subtitle">ИНН: 7705555555555</div>
-                    </div>
-                    <span class="status status-active">Активен</span>
-                </div>
-            </div>
+            <div class="card-body" id="persons-list"><div class="m-loading"></div></div>
         </div>
     </div>
-    
-    <!-- Goods Page -->
+
     <div id="page-goods" class="page">
         <header class="header">
             <button class="header-btn" onclick="showPage('home')">←</button>
             <h1>Товары</h1>
-            <button class="header-btn">+</button>
+            <button class="header-btn" onclick="mobileCreateGoods()">+</button>
         </header>
-        
         <div class="search-bar">
-            <input type="text" class="search-input" placeholder="Поиск товаров...">
+            <input type="text" class="search-input" id="goods-search" placeholder="Поиск..." oninput="loadGoods()">
         </div>
-        
         <div class="card">
-            <div class="card-body">
-                <div class="list-item">
-                    <span class="item-icon">📦</span>
-                    <div class="item-content">
-                        <div class="item-title">Стройматериалы</div>
-                        <div class="item-subtitle">Остаток: 500 кг</div>
-                    </div>
-                    <div class="item-value">100 ₽</div>
-                </div>
-                <div class="list-item">
-                    <span class="item-icon">🔧</span>
-                    <div class="item-content">
-                        <div class="item-title">Инструменты</div>
-                        <div class="item-subtitle">Остаток: 100 шт</div>
-                    </div>
-                    <div class="item-value">250 ₽</div>
-                </div>
-                <div class="list-item">
-                    <span class="item-icon">📦</span>
-                    <div class="item-content">
-                        <div class="item-title">Крепёж</div>
-                        <div class="item-subtitle">Остаток: 1000 кг</div>
-                    </div>
-                    <div class="item-value">50 ₽</div>
-                </div>
-            </div>
+            <div class="card-body" id="goods-list"><div class="m-loading"></div></div>
         </div>
     </div>
-    
-    <!-- Bills Page -->
+
     <div id="page-bills" class="page">
         <header class="header">
             <button class="header-btn" onclick="showPage('home')">←</button>
             <h1>Документы</h1>
-            <button class="header-btn">+</button>
+            <button class="header-btn" onclick="mobileCreateBill()">+</button>
         </header>
-        
-        <div class="tabs">
-            <div class="tab active">Все</div>
-            <div class="tab">Счета</div>
-            <div class="tab">Накладные</div>
+        <div class="search-bar">
+            <input type="text" class="search-input" id="bills-search" placeholder="Поиск..." oninput="loadBills()">
         </div>
-        
         <div class="card">
-            <div class="card-body">
-                <div class="list-item">
-                    <span class="item-icon">📄</span>
-                    <div class="item-content">
-                        <div class="item-title">INV-2026-089</div>
-                        <div class="item-subtitle">11.03.2026 • ООО ТехноСтрой</div>
-                    </div>
-                    <div class="item-value">50 000 ₽</div>
-                </div>
-                <div class="list-item">
-                    <span class="item-icon">📄</span>
-                    <div class="item-content">
-                        <div class="item-title">INV-2026-088</div>
-                        <div class="item-subtitle">10.03.2026 • ИП Иванов</div>
-                    </div>
-                    <div class="item-value">25 000 ₽</div>
-                </div>
-                <div class="list-item">
-                    <span class="item-icon">📄</span>
-                    <div class="item-content">
-                        <div class="item-title">INV-2026-087</div>
-                        <div class="item-subtitle">09.03.2026 • ООО МегаТрейд</div>
-                    </div>
-                    <div class="item-value">75 000 ₽</div>
-                </div>
+            <div class="card-body" id="bills-list"><div class="m-loading"></div></div>
+        </div>
+    </div>
+
+    <div id="page-accounting" class="page">
+        <header class="header">
+            <button class="header-btn" onclick="showPage('profile')">←</button>
+            <h1>Бухгалтерия</h1>
+        </header>
+        <div class="stats-scroll" id="acc-stats">
+            <div class="stat-card"><div class="stat-value">—</div><div class="stat-label">Загрузка...</div></div>
+        </div>
+        <div class="card">
+            <div class="card-header">Последние проводки <span id="acc-entries-count" style="font-size:12px;color:var(--text-secondary);"></span></div>
+            <div class="card-body" id="acc-entries"><div class="m-loading"></div></div>
+        </div>
+    </div>
+
+    <div id="page-payroll" class="page">
+        <header class="header">
+            <button class="header-btn" onclick="showPage('profile')">←</button>
+            <h1>Зарплата</h1>
+        </header>
+        <div class="card">
+            <div class="card-header">Сотрудники <span id="pr-employees-count" style="font-size:12px;color:var(--text-secondary);"></span></div>
+            <div class="card-body" id="pr-employees"><div class="m-loading"></div></div>
+        </div>
+        <div class="card">
+            <div class="card-header">Последние начисления</div>
+            <div class="card-body" id="pr-salaries"><div class="m-loading"></div></div>
+        </div>
+    </div>
+
+    <div id="page-stock" class="page">
+        <header class="header">
+            <button class="header-btn" onclick="showPage('home')">←</button>
+            <h1>Склад</h1>
+        </header>
+        <div class="tabs" style="background: var(--surface);">
+            <div class="tab active" onclick="switchMobileStockTab('balances',this)">Остатки</div>
+            <div class="tab" onclick="switchMobileStockTab('lots',this)">Партии</div>
+            <div class="tab" onclick="switchMobileStockTab('movements',this)">Движения</div>
+        </div>
+        <div class="card">
+            <div class="card-body" id="stock-list"><div class="m-loading"></div></div>
+        </div>
+    </div>
+
+    <div id="page-reports" class="page">
+        <header class="header">
+            <button class="header-btn" onclick="showPage('profile')">←</button>
+            <h1>Отчёты</h1>
+        </header>
+        <div class="card" style="margin:16px;">
+            <div class="card-body" id="reports-list" style="padding:20px;text-align:center;color:var(--text-secondary);">
+                <div style="font-size:32px;margin-bottom:12px;">📊</div>
+                <div>Генерация отчётов доступна в веб-версии</div>
             </div>
         </div>
     </div>
-    
-    <!-- Profile Page -->
+
     <div id="page-profile" class="page">
         <header class="header">
             <button class="header-btn" onclick="showPage('home')">←</button>
             <h1>Профиль</h1>
         </header>
-        
-        <div style="text-align: center; padding: 40px 20px;">
-            <div style="width: 80px; height: 80px; background: var(--primary); border-radius: 50%; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; font-size: 32px; color: white;">👤</div>
-            <h2 style="margin-bottom: 4px;">Администратор</h2>
-            <p style="color: var(--text-secondary);">admin@surypus.local</p>
+        <div style="text-align:center;padding:40px 20px;">
+            <div style="width:80px;height:80px;background:var(--primary);border-radius:50%;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:32px;color:white;">👤</div>
+            <h2 style="margin-bottom:4px;" id="profile-name">Администратор</h2>
+            <p style="color:var(--text-secondary);" id="profile-email">admin@surypus.local</p>
         </div>
-        
         <div class="card">
             <div class="menu-list">
-                <div class="menu-item"><span class="menu-icon">⚙️</span><span class="menu-text">Настройки</span></div>
+                <div class="menu-item" onclick="showPage('accounting')"><span class="menu-icon">💰</span><span class="menu-text">Бухгалтерия</span></div>
+                <div class="menu-item" onclick="showPage('payroll')"><span class="menu-icon">👔</span><span class="menu-text">Зарплата</span></div>
+                <div class="menu-item" onclick="showPage('stock')"><span class="menu-icon">📦</span><span class="menu-text">Склад</span></div>
+                <div class="menu-item" onclick="showPage('reports')"><span class="menu-icon">📊</span><span class="menu-text">Отчёты</span></div>
+                <div class="menu-item" onclick="showPage('settings')"><span class="menu-icon">⚙️</span><span class="menu-text">Настройки</span></div>
                 <div class="menu-item"><span class="menu-icon">❓</span><span class="menu-text">Справка</span></div>
-                <div class="menu-item"><span class="menu-icon">🚪</span><span class="menu-text">Выход</span></div>
+                <div class="menu-item" onclick="logout()"><span class="menu-icon">🚪</span><span class="menu-text">Выход</span></div>
             </div>
         </div>
     </div>
-    
-    <!-- Accounting Page -->
-    <div id="page-accounting" class="page">
-        <header class="header">
-            <button class="header-btn" onclick="showPage('home')">←</button>
-            <h1>Бухгалтерия</h1>
-            <button class="header-btn">+</button>
-        </header>
-        
-        <div class="stats-scroll">
-            <div class="stat-card">
-                <div class="stat-value" style="color: var(--success);">+450K</div>
-                <div class="stat-label">Доходы</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" style="color: var(--error);">-380K</div>
-                <div class="stat-label">Расходы</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" style="color: var(--warning);">45K</div>
-                <div class="stat-label">НДС</div>
-            </div>
-        </div>
-        
-        <div class="card">
-            <div class="card-header">Последние проводки</div>
-            <div class="card-body">
-                <div class="list-item">
-                    <div class="item-content">
-                        <div class="item-title">Дт 62.1 - Кт 90.1</div>
-                        <div class="item-subtitle">Продажа</div>
-                    </div>
-                    <div class="item-value" style="color: var(--success);">+50 000 ₽</div>
-                </div>
-                <div class="list-item">
-                    <div class="item-content">
-                        <div class="item-title">Дт 51 - Кт 62.1</div>
-                        <div class="item-subtitle">Оплата</div>
-                    </div>
-                    <div class="item-value" style="color: var(--success);">+50 000 ₽</div>
-                </div>
-                <div class="list-item">
-                    <div class="item-content">
-                        <div class="item-title">Дт 41.1 - Кт 60.1</div>
-                        <div class="item-subtitle">Поступление</div>
-                    </div>
-                    <div class="item-value" style="color: var(--error);">-30 000 ₽</div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Stock Page -->
-    <div id="page-stock" class="page">
-        <header class="header">
-            <button class="header-btn" onclick="showPage('home')">←</button>
-            <h1>Склад</h1>
-            <button class="header-btn">+</button>
-        </header>
-        
-        <div class="tabs" style="padding: 12px 16px; background: var(--surface);">
-            <div class="tab active" style="flex: 1; text-align: center;">Остатки</div>
-            <div class="tab" style="flex: 1; text-align: center;">Движения</div>
-        </div>
-        
-        <div class="card">
-            <div class="card-body">
-                <div class="list-item">
-                    <span class="item-icon">📦</span>
-                    <div class="item-content">
-                        <div class="item-title">Стройматериалы</div>
-                        <div class="item-subtitle">500 кг</div>
-                    </div>
-                    <div style="text-align: right;">
-                        <div class="item-value">100 ₽</div>
-                        <div style="font-size: 11px; color: var(--success);">В наличии</div>
-                    </div>
-                </div>
-                <div class="list-item" style="background: #FFF3E0;">
-                    <span class="item-icon">⚠️</span>
-                    <div class="item-content">
-                        <div class="item-title">Крепёж</div>
-                        <div class="item-subtitle">50 кг</div>
-                    </div>
-                    <div style="text-align: right;">
-                        <div class="item-value">50 ₽</div>
-                        <div style="font-size: 11px; color: var(--warning);">Мало</div>
-                    </div>
-                </div>
-                <div class="list-item">
-                    <span class="item-icon">🔧</span>
-                    <div class="item-content">
-                        <div class="item-title">Инструменты</div>
-                        <div class="item-subtitle">100 шт</div>
-                    </div>
-                    <div style="text-align: right;">
-                        <div class="item-value">250 ₽</div>
-                        <div style="font-size: 11px; color: var(--success);">В наличии</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Reports Page -->
-    <div id="page-reports" class="page">
-        <header class="header">
-            <button class="header-btn" onclick="showPage('home')">←</button>
-            <h1>Отчёты</h1>
-        </header>
-        
-        <div class="card" style="margin: 16px;">
-            <div class="card-body" style="padding: 20px; text-align: center; cursor: pointer;">
-                <div style="font-size: 32px; margin-bottom: 12px;">📊</div>
-                <div style="font-weight: 600; margin-bottom: 4px;">Продажи</div>
-                <div style="font-size: 12px; color: var(--text-secondary);">за Март 2026</div>
-            </div>
-        </div>
-        
-        <div class="card" style="margin: 16px; margin-top: 0;">
-            <div class="card-body" style="padding: 20px; text-align: center; cursor: pointer;">
-                <div style="font-size: 32px; margin-bottom: 12px;">💰</div>
-                <div style="font-weight: 600; margin-bottom: 4px;">Прибыльность</div>
-                <div style="font-size: 12px; color: var(--text-secondary);">за Март 2026</div>
-            </div>
-        </div>
-        
-        <div class="card" style="margin: 16px; margin-top: 0;">
-            <div class="card-header">Готовые отчёты</div>
-            <div class="card-body">
-                <div class="list-item">
-                    <span class="item-icon">📄</span>
-                    <div class="item-content">
-                        <div class="item-title">Продажи</div>
-                        <div class="item-subtitle">Март 2026</div>
-                    </div>
-                    <button class="btn" style="padding: 6px 12px; background: var(--primary); color: white; border: none; border-radius: 4px;">📥</button>
-                </div>
-                <div class="list-item">
-                    <span class="item-icon">📄</span>
-                    <div class="item-content">
-                        <div class="item-title">Остатки</div>
-                        <div class="item-subtitle">26.03.2026</div>
-                    </div>
-                    <button class="btn" style="padding: 6px 12px; background: var(--primary); color: white; border: none; border-radius: 4px;">📥</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Settings Page -->
+
     <div id="page-settings" class="page">
         <header class="header">
-            <button class="header-btn" onclick="showPage('home')">←</button>
+            <button class="header-btn" onclick="showPage('profile')">←</button>
             <h1>Настройки</h1>
         </header>
-        
         <div class="card">
             <div class="menu-list">
-                <div class="menu-item"><span class="menu-icon">🏢</span><span class="menu-text">Организация</span><span>→</span></div>
-                <div class="menu-item"><span class="menu-icon">👥</span><span class="menu-text">Пользователи</span><span>→</span></div>
-                <div class="menu-item"><span class="menu-icon">🔔</span><span class="menu-text">Уведомления</span><span>→</span></div>
-                <div class="menu-item"><span class="menu-icon">🔗</span><span class="menu-text">Интеграции</span><span>→</span></div>
+                <div class="menu-item" onclick="showPage('profile')"><span class="menu-icon">👤</span><span class="menu-text">Профиль</span></div>
             </div>
         </div>
-        
         <div class="card">
             <div class="card-header">О системе</div>
-            <div class="card-body" style="padding: 16px;">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                    <span style="color: var(--text-secondary);">Версия</span>
-                    <span>0.1.0</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                    <span style="color: var(--text-secondary);">База данных</span>
-                    <span style="color: var(--success);">Подключена</span>
-                </div>
-                <div style="display: flex; justify-content: space-between;">
-                    <span style="color: var(--text-secondary);">API</span>
-                    <span style="color: var(--success);">Онлайн</span>
-                </div>
+            <div class="card-body" style="padding:16px;">
+                <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span style="color:var(--text-secondary);">Версия</span><span>0.1.0</span></div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span style="color:var(--text-secondary);">База данных</span><span id="sys-db-status" style="color:var(--text-secondary);">Проверка...</span></div>
+                <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-secondary);">API</span><span id="sys-api-status" style="color:var(--text-secondary);">Проверка...</span></div>
             </div>
         </div>
     </div>
-    
-    <!-- Bottom Navigation -->
+
     <nav class="bottom-nav">
-        <a href="#" class="nav-item active" onclick="showPage('home')">
-            <span class="nav-icon">🏠</span>
-            <span>Главная</span>
-        </a>
-        <a href="#" class="nav-item" onclick="showPage('persons')">
-            <span class="nav-icon">👥</span>
-            <span>Контрагенты</span>
-        </a>
-        <a href="#" class="nav-item" onclick="showPage('goods')">
-            <span class="nav-icon">📦</span>
-            <span>Товары</span>
-        </a>
-        <a href="#" class="nav-item" onclick="showPage('bills')">
-            <span class="nav-icon">📋</span>
-            <span>Документы</span>
-        </a>
-        <a href="#" class="nav-item" onclick="showPage('settings')">
-            <span class="nav-icon">⚙️</span>
-            <span>Ещё</span>
-        </a>
+        <div class="nav-item active" onclick="showPage('home')"><span class="nav-icon">🏠</span><span>Главная</span></div>
+        <div class="nav-item" onclick="showPage('persons')"><span class="nav-icon">👥</span><span>Контрагенты</span></div>
+        <div class="nav-item" onclick="showPage('goods')"><span class="nav-icon">📦</span><span>Товары</span></div>
+        <div class="nav-item" onclick="showPage('bills')"><span class="nav-icon">📋</span><span>Документы</span></div>
+        <div class="nav-item" onclick="showPage('profile')"><span class="nav-icon">⚙️</span><span>Ещё</span></div>
     </nav>
-    
-    <!-- FAB -->
-    <button class="fab">+</button>
-    
+
+    <button class="fab" onclick="showPage('bills')">+</button>
+
+    <script src="js/api.js"></script>
+
     <script>
-        function showPage(pageId) {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.getElementById('page-' + pageId).classList.add('active');
-            
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            event.target.closest('.nav-item')?.classList.add('active');
+    var mobileStockTab = 'balances';
+
+    function showPage(pageId) {
+        document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+        document.getElementById('page-' + pageId).classList.add('active');
+        document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
+        var navItems = document.querySelectorAll('.nav-item');
+        var navMap = { home: 0, persons: 1, goods: 2, bills: 3, profile: 4 };
+        if (navMap[pageId] !== undefined) navItems[navMap[pageId]].classList.add('active');
+        loadPageData(pageId);
+    }
+
+    function loadPageData(pageId) {
+        switch (pageId) {
+            case 'home': loadHomeData(); break;
+            case 'persons': loadPersons(); break;
+            case 'goods': loadGoods(); break;
+            case 'bills': loadBills(); break;
+            case 'accounting': loadAccountingData(); break;
+            case 'payroll': loadPayrollData(); break;
+            case 'stock': loadMobileStockData(); break;
+            case 'settings': checkSystemStatus(); break;
         }
+    }
+
+    function showError(el, msg) { el.innerHTML = '<div class="m-error">' + (msg || 'Ошибка загрузки') + '</div>'; }
+
+    function offline() {
+        document.getElementById('offline-banner').style.display = 'block';
+        setTimeout(function() { document.getElementById('offline-banner').style.display = 'none'; }, 5000);
+    }
+
+    async function loadHomeData() {
+        try {
+            var res = await Promise.all([
+                api.persons.list().catch(function() { return { data: [] }; }),
+                api.goods.list().catch(function() { return { data: [] }; }),
+                api.bills.list().catch(function() { return { data: [] }; }),
+                api.stock.list().catch(function() { return { data: [] }; })
+            ]);
+            var persons = res[0].data, goods = res[1].data, bills = res[2].data, stock = res[3].data;
+            document.getElementById('home-stats').innerHTML =
+                '<div class="stat-card"><div class="stat-value">' + (persons.length || 0) + '</div><div class="stat-label">Контрагенты</div></div>' +
+                '<div class="stat-card"><div class="stat-value">' + (goods.length || 0) + '</div><div class="stat-label">Товары</div></div>' +
+                '<div class="stat-card"><div class="stat-value">' + (bills.length || 0) + '</div><div class="stat-label">Документы</div></div>' +
+                '<div class="stat-card"><div class="stat-value">' + (stock.length || 0) + '</div><div class="stat-label">Остатки</div></div>';
+            renderMobileBills(bills);
+        } catch (e) { offline(); }
+    }
+
+    function renderMobileBills(bills) {
+        var el = document.getElementById('home-docs');
+        if (!bills || bills.length === 0) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">📄</div>Нет документов</div>'; return; }
+        el.innerHTML = bills.slice(0, 5).map(function(b) {
+            return '<div class="list-item"><span class="item-icon">📄</span><div class="item-content"><div class="item-title">' + (b.billNumber || '#' + b.billId) + '</div><div class="item-subtitle">' + (helpers.formatDate(b.billDate) || '') + '</div></div><div class="item-value">' + (b.billTotal ? helpers.formatMoney(b.billTotal) : '') + '</div></div>';
+        }).join('');
+    }
+
+    async function loadPersons() {
+        var el = document.getElementById('persons-list');
+        el.innerHTML = '<div class="m-loading"></div>';
+        try {
+            var q = document.getElementById('persons-search').value;
+            var res = await api.persons.list({ search: q || undefined });
+            var items = res.data;
+            if (!items || items.length === 0) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">👤</div>Нет контрагентов</div>'; return; }
+            el.innerHTML = items.map(function(p) {
+                var icon = p.personType === 2 ? '👤' : '🏢';
+                var typeLabel = p.personType === 2 ? 'Физ. лицо' : 'Юр. лицо';
+                return '<div class="list-item"><span class="item-icon">' + icon + '</span><div class="item-content"><div class="item-title">' + helpers.escapeHtml(p.personName || '') + '</div><div class="item-subtitle">' + (p.personINN ? 'ИНН: ' + p.personINN : typeLabel) + '</div></div><span class="status status-active">Активен</span></div>';
+            }).join('');
+        } catch (e) { showError(el); offline(); }
+    }
+
+    async function loadGoods() {
+        var el = document.getElementById('goods-list');
+        el.innerHTML = '<div class="m-loading"></div>';
+        try {
+            var q = document.getElementById('goods-search').value;
+            var res = await api.goods.list({ search: q || undefined });
+            var items = res.data;
+            if (!items || items.length === 0) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">📦</div>Нет товаров</div>'; return; }
+            el.innerHTML = items.map(function(g) {
+                return '<div class="list-item"><span class="item-icon">📦</span><div class="item-content"><div class="item-title">' + helpers.escapeHtml(g.goodsName || '') + '</div><div class="item-subtitle">' + (g.goodsCode ? 'Код: ' + g.goodsCode : '') + '</div></div></div>';
+            }).join('');
+        } catch (e) { showError(el); offline(); }
+    }
+
+    async function loadBills() {
+        var el = document.getElementById('bills-list');
+        el.innerHTML = '<div class="m-loading"></div>';
+        try {
+            var q = document.getElementById('bills-search').value;
+            var res = await api.bills.list({ search: q || undefined });
+            var items = res.data;
+            if (!items || items.length === 0) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div>Нет документов</div>'; return; }
+            el.innerHTML = items.map(function(b) {
+                return '<div class="list-item"><span class="item-icon">📄</span><div class="item-content"><div class="item-title">' + (b.billNumber || '#' + b.billId) + '</div><div class="item-subtitle">' + (helpers.formatDate(b.billDate) || '') + '</div></div><div class="item-value">' + (b.billTotal ? helpers.formatMoney(b.billTotal) : '') + '</div></div>';
+            }).join('');
+        } catch (e) { showError(el); offline(); }
+    }
+
+    async function loadAccountingData() {
+        try {
+            var [balRes, entriesRes] = await Promise.all([
+                api.accounting.balance({ period: 'month' }).catch(function() { return { data: null }; }),
+                api.accounting.entries.list({ limit: 10 }).catch(function() { return { data: [] }; })
+            ]);
+            var bal = balRes.data;
+            var statsEl = document.getElementById('acc-stats');
+            if (bal) {
+                statsEl.innerHTML =
+                    '<div class="stat-card"><div class="stat-value" style="color:var(--success);">+' + helpers.formatNumber(bal.income || 0) + '</div><div class="stat-label">Доходы</div></div>' +
+                    '<div class="stat-card"><div class="stat-value" style="color:var(--error);">-' + helpers.formatNumber(bal.expense || 0) + '</div><div class="stat-label">Расходы</div></div>' +
+                    '<div class="stat-card"><div class="stat-value" style="color:var(--warning);">' + helpers.formatNumber(bal.vat || 0) + '</div><div class="stat-label">НДС</div></div>';
+            }
+            var entries = entriesRes.data;
+            var entriesEl = document.getElementById('acc-entries');
+            document.getElementById('acc-entries-count').textContent = entries && entries.length ? entries.length + ' шт.' : '';
+            if (!entries || entries.length === 0) { entriesEl.innerHTML = '<div class="empty-state"><div class="empty-icon">💰</div>Нет проводок</div>'; return; }
+            entriesEl.innerHTML = entries.map(function(e) {
+                var amt = parseFloat(e.aeAmount || 0);
+                var color = amt >= 0 ? 'var(--success)' : 'var(--error)';
+                var sign = amt >= 0 ? '+' : '';
+                return '<div class="list-item"><div class="item-content"><div class="item-title">' + (e.aeDebit || '') + ' → ' + (e.aeCredit || '') + '</div><div class="item-subtitle">' + (e.aeDescription || '') + '</div></div><div class="item-value" style="color:' + color + ';">' + sign + helpers.formatMoney(amt) + '</div></div>';
+            }).join('');
+        } catch (e) { offline(); }
+    }
+
+    async function loadPayrollData() {
+        try {
+            var [empRes, salRes] = await Promise.all([
+                api.payroll.employees.list().catch(function() { return { data: [] }; }),
+                api.payroll.salaries.list().catch(function() { return { data: [] }; })
+            ]);
+            var employees = empRes.data, salaries = salRes.data;
+            var empEl = document.getElementById('pr-employees');
+            document.getElementById('pr-employees-count').textContent = employees && employees.length ? employees.length + ' шт.' : '';
+            if (!employees || employees.length === 0) { empEl.innerHTML = '<div class="empty-state"><div class="empty-icon">👔</div>Нет сотрудников</div>'; } else {
+                empEl.innerHTML = employees.map(function(e) {
+                    return '<div class="list-item"><span class="item-icon">👤</span><div class="item-content"><div class="item-title">' + helpers.escapeHtml(e.employeeName || '') + '</div><div class="item-subtitle">' + (e.employeePosition || '') + '</div></div></div>';
+                }).join('');
+            }
+            var salEl = document.getElementById('pr-salaries');
+            if (!salaries || salaries.length === 0) { salEl.innerHTML = '<div class="empty-state"><div class="empty-icon">💰</div>Нет начислений</div>'; return; }
+            salEl.innerHTML = salaries.slice(0, 10).map(function(s) {
+                return '<div class="list-item"><div class="item-content"><div class="item-title">' + helpers.formatMoney(s.salaryGross || 0) + '</div><div class="item-subtitle">' + (helpers.formatDate(s.salaryDate) || '') + '</div></div><div class="item-value" style="color:var(--success);">' + helpers.formatMoney((s.salaryGross || 0) - (s.salaryTax || 0) - (s.salaryPension || 0)) + '</div></div>';
+            }).join('');
+        } catch (e) { offline(); }
+    }
+
+    async function loadMobileStockData() {
+        var el = document.getElementById('stock-list');
+        el.innerHTML = '<div class="m-loading"></div>';
+        try {
+            if (mobileStockTab === 'balances') {
+                var res = await api.stock.list();
+                var items = res.data;
+                if (!items || items.length === 0) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">📦</div>Нет остатков</div>'; return; }
+                el.innerHTML = items.map(function(s) {
+                    var avail = s.stockQtty - s.stockResrvQtty;
+                    var warn = s.stockQtty < 10 ? ' style="background:#FFF3E0;"' : '';
+                    var statusLabel = s.stockQtty < 10 ? '<div style="font-size:11px;color:var(--warning);">Мало</div>' : '<div style="font-size:11px;color:var(--success);">В наличии</div>';
+                    return '<div class="list-item"' + warn + '><span class="item-icon">📦</span><div class="item-content"><div class="item-title">Товар #' + s.stockGoodsId + '</div><div class="item-subtitle">' + helpers.formatNumber(s.stockQtty) + ' шт.</div></div><div style="text-align:right;"><div class="item-value">' + helpers.formatNumber(avail) + '</div>' + statusLabel + '</div></div>';
+                }).join('');
+            } else if (mobileStockTab === 'lots') {
+                var res = await api.lots.list();
+                var items = res.data;
+                if (!items || items.length === 0) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">🏷️</div>Нет партий</div>'; return; }
+                el.innerHTML = items.map(function(l) {
+                    return '<div class="list-item"><span class="item-icon">🏷️</span><div class="item-content"><div class="item-title">Партия #' + l.lotId + '</div><div class="item-subtitle">Товар #' + l.lotGoodsId + ' — ' + helpers.formatNumber(l.lotRest) + ' шт.</div></div><div class="item-value">' + helpers.formatMoney(l.lotPrice) + '</div></div>';
+                }).join('');
+            } else if (mobileStockTab === 'movements') {
+                var movRes = await api.stock.movements.list().catch(function() { return { data: [] }; });
+                var items = movRes.data;
+                if (!items || items.length === 0) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">📊</div>Нет движений</div>'; return; }
+                var typeMap = { 0: 'Пост.', 1: 'Спис.', 2: 'Перем.', 3: 'Корр.', 4: 'Возвр.' };
+                el.innerHTML = items.slice(0, 20).map(function(m) {
+                    var qty = parseFloat(m.smQtty);
+                    var color = qty > 0 ? 'var(--success)' : 'var(--error)';
+                    var sign = qty > 0 ? '+' : '';
+                    return '<div class="list-item"><div class="item-content"><div class="item-title">Товар #' + m.smGoodsId + ' <span style="color:' + color + ';">' + sign + helpers.formatNumber(qty) + '</span></div><div class="item-subtitle">' + helpers.formatDate(m.smMovementDate) + ' — ' + (typeMap[m.smMovementType] || 'Др.') + (m.smNotes ? ' (' + m.smNotes + ')' : '') + '</div></div></div>';
+                }).join('');
+            }
+        } catch (e) { showError(el); offline(); }
+    }
+
+    function switchMobileStockTab(tab, el) {
+        mobileStockTab = tab;
+        document.querySelectorAll('#page-stock .tab').forEach(function(t) { t.classList.remove('active'); });
+        el.classList.add('active');
+        loadMobileStockData();
+    }
+
+    async function checkSystemStatus() {
+        try {
+            var res = await api.health.check();
+            document.getElementById('sys-db-status').textContent = 'Подключена';
+            document.getElementById('sys-db-status').style.color = 'var(--success)';
+            document.getElementById('sys-api-status').textContent = 'Онлайн';
+            document.getElementById('sys-api-status').style.color = 'var(--success)';
+        } catch (e) {
+            document.getElementById('sys-db-status').textContent = 'Недоступна';
+            document.getElementById('sys-db-status').style.color = 'var(--error)';
+            document.getElementById('sys-api-status').textContent = 'Офлайн';
+            document.getElementById('sys-api-status').style.color = 'var(--error)';
+        }
+    }
+
+    function mobileCreatePerson() { alert('Создание контрагента — используйте веб-версию'); }
+    function mobileCreateGoods() { alert('Создание товара — используйте веб-версию'); }
+    function mobileCreateBill() { alert('Создание документа — используйте веб-версию'); }
+
+    function loadAllData() {
+        var pages = ['home', 'persons', 'goods', 'bills'];
+        loadHomeData();
+        pages.forEach(function(p) {
+            var el = document.getElementById(p === 'home' ? 'home-stats' : p === 'persons' ? 'persons-list' : p === 'goods' ? 'goods-list' : 'bills-list');
+            if (el && el.querySelector('.m-loading')) { loadPageData(p); }
+        });
+    }
+
+    loadHomeData();
+    checkSystemStatus();
     </script>
 
     <script src="js/offline.js"></script>
-
-    <!-- Service Worker -->
     <script>
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .catch(err => console.error('SW registration failed:', err));
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js').catch(function(err) { console.error('SW:', err); });
             });
         }
     </script>

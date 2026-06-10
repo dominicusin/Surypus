@@ -57,6 +57,12 @@ getBillLines = ORM.getBillLines
 getStockAll :: ConnectionPool -> IO (QueryResult [Stock])
 getStockAll = ORM.getStockAll
 
+getStockMovements :: ConnectionPool -> IO (QueryResult [StockMovement])
+getStockMovements = ORM.getStockMovements
+
+getStockMovementsByGoods :: ConnectionPool -> Int64 -> IO (QueryResult [StockMovement])
+getStockMovementsByGoods = ORM.getStockMovementsByGoods
+
 getStockByLocation :: ConnectionPool -> Int64 -> IO (QueryResult [Stock])
 getStockByLocation = ORM.getStockByLocation
 
