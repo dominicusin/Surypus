@@ -56,6 +56,7 @@ import qualified Surypus.API.Integrations as Integrations
 import qualified Surypus.API.Logger as Log
 import qualified Surypus.API.Notifications as Notifications
 import qualified Surypus.API.Orders as Orders
+import qualified Surypus.API.Push as Push
 import qualified Surypus.API.Payment as Payments
 import qualified Surypus.API.Payroll as Payroll
 import qualified Surypus.API.Persons as Persons
@@ -108,6 +109,7 @@ data Env = Env
      , envLogger :: Log.Logger
      , envMetrics :: Metrics
      , envWSHandler :: Maybe WS.WebSocketHandler
+     , envPushStore :: Push.PushStore
      }
 
 correlationMiddleware :: Log.Logger -> Application -> Application
@@ -139,8 +141,9 @@ apiServer connPool logger metrics publicPaths checkPermission = do
     let rlConfig = RL.defaultRateLimiterConfig
     rlState <- RL.initRateLimiter rlConfig
     wsHandler <- WS.initWebSocketHandler
+    pushStore <- Push.newPushStore
     let metricsCfg = MetricsMiddlewareConfig metrics publicPaths
-        env = Env connPool logger metrics (Just wsHandler)
+        env = Env connPool logger metrics (Just wsHandler) pushStore
         wsApp pending = do
             let path = NetWS.requestPath (NetWS.pendingRequest pending)
             if path == "/api/v1/ws"
@@ -243,6 +246,9 @@ type SurypusApi =
                 :<|> "notifications" :> "prefs" :> ReqBody '[JSON] Notifications.NotificationPrefInput :> Put '[JSON] Notifications.NotificationPref
                 :<|> "notifications" :> "test" :> Post '[JSON] ()
                 :<|> "notifications" :> "digest" :> Capture "frequency" Text :> Post '[JSON] ()
+                -- Push notifications
+                :<|> "notifications" :> "push" :> "subscribe" :> Header "Authorization" Text :> ReqBody '[JSON] Push.PushSubscriptionRequest :> Post '[JSON] ()
+                :<|> "notifications" :> "push" :> "unsubscribe" :> Header "Authorization" Text :> Post '[JSON] ()
                 -- Reports
                 :<|> "reports" :> "pnl" :> Get '[JSON] Reports.Report
                 :<|> "reports" :> "inventory" :> Get '[JSON] Reports.Report
@@ -359,6 +365,8 @@ server env =
         :<|> notificationsUpdatePrefs env
         :<|> notificationsSendTest env
         :<|> notificationsSendDigest env
+        :<|> pushSubscribe env
+        :<|> pushUnsubscribe env
         :<|> reportsPnL env
         :<|> reportsInventory env
         :<|> reportsExport env
@@ -610,6 +618,27 @@ handleJournalEntries env s e = liftQ $ Accounting.getJournalEntries (envConnecti
 
 handleCreateEntry :: Env -> DAL.AccTurnInput -> Handler DAL.MutationResult
 handleCreateEntry env input = liftQ $ DAL.Mutations.createAccTurn (envConnectionPool env) input
+
+-- Push notification handlers
+pushSubscribe :: Env -> Maybe Text -> Push.PushSubscriptionRequest -> Handler ()
+pushSubscribe env mbAuth req = do
+    uid <- extractUserId mbAuth
+    liftIO $ Push.subscribe (envPushStore env) uid req
+
+pushUnsubscribe :: Env -> Maybe Text -> Handler ()
+pushUnsubscribe env mbAuth = do
+    uid <- extractUserId mbAuth
+    liftIO $ Push.unsubscribe (envPushStore env) uid
+
+extractUserId :: Maybe Text -> Handler Int64
+extractUserId mbAuth = do
+    token <- case mbAuth >>= DT.stripPrefix "Bearer " of
+        Nothing -> throwError err401
+        Just t -> pure t
+    result <- liftIO $ JWT.verifyToken token
+    case result of
+        Left _ -> throwError err401
+        Right claims -> pure (JWT.ucUserId claims)
 
 graphQLServer :: Env -> Server GraphQL.GraphQLAPI
 graphQLServer env = GraphQL.graphqlHandler (envConnectionPool env)

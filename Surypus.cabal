@@ -124,6 +124,7 @@ library
     Surypus.API.Logger
     Surypus.API.Notifications
     Surypus.API.Orders
+    Surypus.API.Push
     Surypus.API.Payment
     Surypus.API.Payroll
     Surypus.API.Persons

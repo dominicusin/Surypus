@@ -852,5 +852,17 @@
             event.target.closest('.nav-item')?.classList.add('active');
         }
     </script>
+
+    <script src="js/offline.js"></script>
+
+    <!-- Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .catch(err => console.error('SW registration failed:', err));
+            });
+        }
+    </script>
 </body>
 </html>

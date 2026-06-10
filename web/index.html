@@ -3,6 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#1976D2">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Surypus ERP - Управление предприятием</title>
     <style>
         * {
@@ -48,6 +52,19 @@
             right: 0;
             z-index: 1000;
         }
+
+        .offline-indicator {
+            display: flex; align-items: center; gap: 6px;
+            font-size: 12px; padding: 4px 10px; border-radius: 12px;
+            margin-left: 12px; white-space: nowrap;
+        }
+        .offline-indicator.online { background: rgba(255,255,255,0.1); }
+        .offline-indicator.offline { background: rgba(244,67,54,0.25); color: #ffcdd2; }
+        .offline-indicator.pending { background: rgba(255,193,7,0.2); color: #fff9c4; }
+        .offline-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+        .online .offline-dot { background: #4CAF50; box-shadow: 0 0 4px #4CAF50; }
+        .offline .offline-dot { background: #F44336; box-shadow: 0 0 4px #F44336; }
+        .pending .offline-dot { background: #FFC107; box-shadow: 0 0 4px #FFC107; }
         
         .logo {
             display: flex;
@@ -899,9 +916,16 @@
             <div class="logo-icon">🏢</div>
             <span>Surypus ERP</span>
             <span class="tenant-badge" id="tenantBadge" style="font-size:11px;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:4px;margin-left:8px;">загрузка...</span>
+            <div id="offline-status" class="offline-indicator online" style="display:none;">
+                <span class="offline-dot"></span>
+                <span class="offline-text">Online</span>
+            </div>
         </div>
         <div class="header-actions">
             <input type="text" class="search-box" placeholder="Поиск (Ctrl+F)..." id="searchInput">
+            <button id="installBtn" class="btn" style="background: transparent; color: white; display:none; font-size:12px; padding:4px 8px;" onclick="installPWA()">
+                📲 Установить
+            </button>
             <button class="btn" style="background: transparent; color: white;" onclick="showNotifications()">
                 🔔 <span class="nav-badge" id="notifBadge">3</span>
             </button>
@@ -2156,6 +2180,7 @@
     </div> <!-- /app-shell -->
     
     <script src="js/api.js"></script>
+    <script src="js/offline.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <script>
         // Auth guard
@@ -2785,6 +2810,42 @@
                 this.classList.add('active');
             });
         });
+    </script>
+
+    <!-- PWA Install Prompt -->
+    <script>
+        let deferredPrompt = null;
+        window.addEventListener('beforeinstallprompt', function(e) {
+            e.preventDefault();
+            deferredPrompt = e;
+            var btn = document.getElementById('installBtn');
+            if (btn) btn.style.display = 'inline-flex';
+        });
+        window.addEventListener('appinstalled', function() {
+            deferredPrompt = null;
+            var btn = document.getElementById('installBtn');
+            if (btn) btn.style.display = 'none';
+            console.log('Surypus PWA installed');
+        });
+        function installPWA() {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then(function(choice) {
+                deferredPrompt = null;
+                var btn = document.getElementById('installBtn');
+                if (btn) btn.style.display = 'none';
+            });
+        }
+    </script>
+
+    <!-- Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .catch(err => console.error('SW registration failed:', err));
+            });
+        }
     </script>
 </body>
 </html>
