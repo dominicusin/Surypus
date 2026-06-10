@@ -1096,27 +1096,6 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td>INV-2026-089</td>
-                                <td>2026-03-11</td>
-                                <td>ООО ТехноСтрой</td>
-                                <td>50 000 ₽</td>
-                                <td><span class="status-badge status-completed">Проведён</span></td>
-                            </tr>
-                            <tr>
-                                <td>INV-2026-088</td>
-                                <td>2026-03-10</td>
-                                <td>ИП Иванов</td>
-                                <td>25 000 ₽</td>
-                                <td><span class="status-badge status-pending">На утверждении</span></td>
-                            </tr>
-                            <tr>
-                                <td>INV-2026-087</td>
-                                <td>2026-03-09</td>
-                                <td>ООО МегаТрейд</td>
-                                <td>75 000 ₽</td>
-                                <td><span class="status-badge status-draft">Черновик</span></td>
-                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -1146,32 +1125,6 @@
                             </tr>
                         </thead>
                         <tbody id="personsTable">
-                            <tr>
-                                <td>P001</td>
-                                <td>ООО ТехноСтрой</td>
-                                <td>7701234567890</td>
-                                <td>Юр. лицо</td>
-                                <td>+7 495 123-4567</td>
-                                <td>info@tehnostroy.ru</td>
-                                <td><span class="status-badge status-active">Активен</span></td>
-                                <td>
-                                    <button class="btn btn-secondary" style="padding: 4px 8px;">✏️</button>
-                                    <button class="btn btn-secondary" style="padding: 4px 8px;">🗑️</button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>P002</td>
-                                <td>ИП Иванов</td>
-                                <td>7709876543210</td>
-                                <td>ИП</td>
-                                <td>+7 916 123-4567</td>
-                                <td>ivanov@mail.ru</td>
-                                <td><span class="status-badge status-active">Активен</span></td>
-                                <td>
-                                    <button class="btn btn-secondary" style="padding: 4px 8px;">✏️</button>
-                                    <button class="btn btn-secondary" style="padding: 4px 8px;">🗑️</button>
-                                </td>
-                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -1199,25 +1152,7 @@
                                 <th>Статус</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <tr>
-                                <td>G001</td>
-                                <td>Стройматериалы</td>
-                                <td>кг</td>
-                                <td>100 ₽</td>
-                                <td>500</td>
-                                <td>Стройматериалы</td>
-                                <td><span class="status-badge status-active">Активен</span></td>
-                            </tr>
-                            <tr>
-                                <td>G002</td>
-                                <td>Инструменты</td>
-                                <td>шт</td>
-                                <td>250 ₽</td>
-                                <td>100</td>
-                                <td>Инструменты</td>
-                                <td><span class="status-badge status-active">Активен</span></td>
-                            </tr>
+                        <tbody id="goodsTable">
                         </tbody>
                     </table>
                 </div>
@@ -1244,23 +1179,7 @@
                                 <th>Статус</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <tr>
-                                <td>INV-2026-089</td>
-                                <td>2026-03-11</td>
-                                <td>Счёт</td>
-                                <td>ООО ТехноСтрой</td>
-                                <td>50 000 ₽</td>
-                                <td><span class="status-badge status-completed">Проведён</span></td>
-                            </tr>
-                            <tr>
-                                <td>INV-2026-088</td>
-                                <td>2026-03-10</td>
-                                <td>Счёт</td>
-                                <td>ИП Иванов</td>
-                                <td>25 000 ₽</td>
-                                <td><span class="status-badge status-pending">На утверждении</span></td>
-                            </tr>
+                        <tbody id="billsTable">
                         </tbody>
                     </table>
                 </div>
@@ -1899,9 +1818,9 @@
                                     <th>Роль</th>
                                     <th>Статус</th>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
+                        </thead>
+                        <tbody>
+                            <tr>
                                     <td>admin</td>
                                     <td>Администратор</td>
                                     <td><span class="status-badge status-active">Активен</span></td>
@@ -2369,6 +2288,10 @@
             // Update nav
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             document.querySelector('[data-page="' + page + '"]').classList.add('active');
+
+            // Auto-load page data
+            var loadMap = { dashboard: loadDashboardData, persons: loadPersonsData, goods: loadGoodsData, bills: loadBillsData, accounting: loadAccountingData, payroll: loadPayrollData, stock: loadStockData };
+            if (loadMap[page]) setTimeout(loadMap[page], 50);
         }
         
         // Modal
@@ -2407,6 +2330,82 @@
             });
         });
         
+        // Data loading for all pages
+        async function loadDashboardData() {
+            try {
+                var [kpRes, locRes, perRes, bilRes] = await Promise.all([
+                    api.dashboard.stats(),
+                    api.locations.list().catch(function() { return { data: [] }; }),
+                    api.persons.list({ limit: 1 }).catch(function() { return { data: [] }; }),
+                    api.bills.list({ limit: 100 }).catch(function() { return { data: [] }; })
+                ]);
+                var kpi = kpRes.data;
+                var locs = locRes.data || [];
+                var personsCount = kpi.kpiPartners || 0;
+                var billsData = bilRes.data || [];
+
+                document.querySelector('.stat-card:nth-child(1) .stat-value').textContent = helpers.formatNumber(personsCount);
+                document.querySelector('.stat-card:nth-child(2) .stat-value').textContent = helpers.formatNumber(kpi.kpiActiveGoods || 0);
+                document.querySelector('.stat-card:nth-child(3) .stat-value').textContent = helpers.formatNumber(kpi.kpiOrders || 0);
+                if (locs.length) {
+                    document.querySelector('.stat-card:nth-child(5) .stat-value').textContent = helpers.formatNumber(locs.length);
+                }
+
+                document.querySelector('.nav-badge').textContent = personsCount || '0';
+                document.querySelectorAll('.nav-badge')[1].textContent = (billsData.length || billsData.total || kpi.kpiOrders || '0').toString();
+
+                var recentBody = document.querySelector('#page-dashboard table tbody');
+                if (recentBody && billsData.length) {
+                    recentBody.innerHTML = billsData.slice(0, 5).map(function(b) {
+                        var statusText = b.billStatus || 'draft';
+                        var statusClass = statusText === 'POSTED' ? 'status-completed' : statusText === 'PENDING' ? 'status-pending' : 'status-draft';
+                        var statusLabel = statusText === 'POSTED' ? 'Проведён' : statusText === 'PENDING' ? 'На утверждении' : 'Черновик';
+                        return '<tr><td>' + (b.billNumber || '#' + b.billId) + '</td><td>' + helpers.formatDate(b.billDate) + '</td><td>#' + b.billPersonId + '</td><td>' + helpers.formatMoney(b.billTotal) + '</td><td><span class="status-badge ' + statusClass + '">' + statusLabel + '</span></td></tr>';
+                    }).join('');
+                }
+            } catch (e) { console.error('Dashboard load error:', e); }
+        }
+
+        async function loadPersonsData() {
+            try {
+                var res = await api.persons.list();
+                var items = res.data || [];
+                var body = document.getElementById('personsTable');
+                if (!items.length) { body.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-secondary);">Нет контрагентов</td></tr>'; return; }
+                body.innerHTML = items.map(function(p) {
+                    var typeLabel = p.personType === 1 ? 'Юр. лицо' : p.personType === 2 ? 'Физ. лицо' : 'ИП';
+                    return '<tr><td>' + (p.personCode || 'P' + p.personId) + '</td><td>' + helpers.escapeHtml(p.personName) + '</td><td>' + (p.personINN || '—') + '</td><td>' + typeLabel + '</td><td>' + (p.personPhone || '—') + '</td><td>' + (p.personEmail || '—') + '</td><td><span class="status-badge status-active">Активен</span></td><td><button class="btn btn-secondary" style="padding:4px 8px;">✏️</button> <button class="btn btn-secondary" style="padding:4px 8px;">🗑️</button></td></tr>';
+                }).join('');
+            } catch (e) { document.getElementById('personsTable').innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--danger);">Ошибка загрузки</td></tr>'; }
+        }
+
+        async function loadGoodsData() {
+            try {
+                var res = await api.goods.list();
+                var items = res.data || [];
+                var body = document.getElementById('goodsTable');
+                if (!items.length) { body.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-secondary);">Нет товаров</td></tr>'; return; }
+                body.innerHTML = items.map(function(g) {
+                    return '<tr><td>' + (g.goodsCode || 'G' + g.goodsId) + '</td><td>' + helpers.escapeHtml(g.goodsName) + '</td><td>' + (g.goodsUnitId || '—') + '</td><td>' + helpers.formatMoney(g.goodsPrice || 0) + '</td><td>—</td><td>—</td><td><span class="status-badge status-active">Активен</span></td></tr>';
+                }).join('');
+            } catch (e) { document.getElementById('goodsTable').innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--danger);">Ошибка загрузки</td></tr>'; }
+        }
+
+        async function loadBillsData() {
+            try {
+                var res = await api.bills.list();
+                var items = res.data || [];
+                var body = document.getElementById('billsTable');
+                if (!items.length) { body.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-secondary);">Нет документов</td></tr>'; return; }
+                body.innerHTML = items.map(function(b) {
+                    var statusText = b.billStatus || 'draft';
+                    var statusClass = statusText === 'POSTED' ? 'status-completed' : statusText === 'PENDING' ? 'status-pending' : 'status-draft';
+                    var statusLabel = statusText === 'POSTED' ? 'Проведён' : statusText === 'PENDING' ? 'На утверждении' : 'Черновик';
+                    return '<tr><td>' + (b.billNumber || '#' + b.billId) + '</td><td>' + helpers.formatDate(b.billDate) + '</td><td>Счёт</td><td>#' + b.billPersonId + '</td><td>' + helpers.formatMoney(b.billTotal) + '</td><td><span class="status-badge ' + statusClass + '">' + statusLabel + '</span></td></tr>';
+                }).join('');
+            } catch (e) { document.getElementById('billsTable').innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--danger);">Ошибка загрузки</td></tr>'; }
+        }
+
         // Accounting data loading
         function getDateRange() {
             const filter = document.getElementById('acc-filter-date').value;
@@ -2771,16 +2770,19 @@
         async function loadStockData() {
             document.getElementById('st-loading').style.display = 'block';
             try {
-                const [balRes, locRes, lotsRes, movRes] = await Promise.all([
+                const [balRes, locRes, lotsRes, movRes, goodsRes] = await Promise.all([
                     api.stock.list(),
                     api.locations.list(),
                     api.lots.list(),
-                    api.stock.movements.list().catch(function() { return { data: [] }; })
+                    api.stock.movements.list().catch(function() { return { data: [] }; }),
+                    api.goods.list().catch(function() { return { data: [] }; })
                 ]);
-                renderStockBalances(balRes.data);
+                var goodsMap = {};
+                (goodsRes.data || []).forEach(function(g) { goodsMap[g.goodsId] = g.goodsName || 'Товар #' + g.goodsId; });
+                renderStockBalances(balRes.data, goodsMap);
                 renderLocations(locRes.data);
-                renderLots(lotsRes.data);
-                renderStockMovements(movRes.data);
+                renderLots(lotsRes.data, goodsMap);
+                renderStockMovements(movRes.data, goodsMap);
             } catch (err) {
                 console.error('Stock load error:', err);
                 document.getElementById('st-balances-body').innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--danger);">Ошибка</td></tr>';
@@ -2789,7 +2791,7 @@
             }
         }
 
-        function renderStockBalances(items) {
+        function renderStockBalances(items, goodsMap) {
             const body = document.getElementById('st-balances-body');
             if (!items || items.length === 0) {
                 body.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-secondary);">Нет остатков</td></tr>';
@@ -2799,8 +2801,9 @@
             body.innerHTML = items.map(function(s) {
                 var avail = s.stockQtty - s.stockResrvQtty;
                 var warnStyle = s.stockQtty < 10 ? ' style="background:#FFF3E0;"' : '';
+                var gName = (goodsMap || {})[s.stockGoodsId] || 'Товар #' + s.stockGoodsId;
                 return '<tr' + warnStyle + '>' +
-                    '<td>' + s.stockGoodsId + '</td>' +
+                    '<td>' + helpers.escapeHtml(gName) + '</td>' +
                     '<td>' + s.stockLocationId + '</td>' +
                     '<td>' + helpers.formatNumber(s.stockQtty) + '</td>' +
                     '<td>' + helpers.formatNumber(s.stockResrvQtty) + '</td>' +
@@ -2825,7 +2828,7 @@
             }).join('') + '</div>';
         }
 
-        function renderLots(items) {
+        function renderLots(items, goodsMap) {
             var body = document.getElementById('st-lots-body');
             if (!items || items.length === 0) {
                 body.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-secondary);">Нет партий</td></tr>';
@@ -2833,9 +2836,10 @@
                 return;
             }
             body.innerHTML = items.map(function(l) {
+                var gName = (goodsMap || {})[l.lotGoodsId] || 'Товар #' + l.lotGoodsId;
                 return '<tr>' +
                     '<td>' + l.lotId + '</td>' +
-                    '<td>' + l.lotGoodsId + '</td>' +
+                    '<td>' + helpers.escapeHtml(gName) + '</td>' +
                     '<td>' + l.lotLocationId + '</td>' +
                     '<td>' + helpers.formatDate(l.lotDate) + '</td>' +
                     '<td>' + (l.lotExpiry ? helpers.formatDate(l.lotExpiry) : '—') + '</td>' +
@@ -2847,7 +2851,7 @@
             document.getElementById('st-lots-count').textContent = items.length;
         }
 
-        function renderStockMovements(items) {
+        function renderStockMovements(items, goodsMap) {
             var body = document.getElementById('st-movements-body');
             if (!items || items.length === 0) {
                 body.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-secondary);">Нет движений</td></tr>';
@@ -2859,9 +2863,10 @@
                 var qty = parseFloat(m.smQtty);
                 var color = qty > 0 ? 'var(--success)' : 'var(--error)';
                 var sign = qty > 0 ? '+' : '';
+                var gName = (goodsMap || {})[m.smGoodsId] || 'Товар #' + m.smGoodsId;
                 return '<tr>' +
                     '<td>' + helpers.formatDate(m.smMovementDate) + '</td>' +
-                    '<td>' + m.smGoodsId + '</td>' +
+                    '<td>' + helpers.escapeHtml(gName) + '</td>' +
                     '<td>' + (typeMap[m.smMovementType] || 'Другое') + '</td>' +
                     '<td>' + (m.smLocationFromId || '—') + '</td>' +
                     '<td>' + (m.smLocationToId || '—') + '</td>' +
@@ -2958,16 +2963,7 @@
             }
         }
 
-        // Auto-load on navigate
-        document.querySelector('[data-page="accounting"]').addEventListener('click', function() {
-            setTimeout(loadAccountingData, 100);
-        });
-        document.querySelector('[data-page="payroll"]').addEventListener('click', function() {
-            setTimeout(loadPayrollData, 100);
-        });
-        document.querySelector('[data-page="stock"]').addEventListener('click', function() {
-            setTimeout(loadStockData, 100);
-        });
+        // (auto-load handled in navigateTo)
         
         // Filter chips
         document.querySelectorAll('.filter-chip').forEach(chip => {

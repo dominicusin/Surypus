@@ -9,8 +9,7 @@ import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Time (Day)
 import Database.Esqueleto.Experimental
-import Database.Persist.Sql (runSqlPool, toSqlKey)
-import Database.Persist.Postgresql (ConnectionPool)
+import Database.Persist.Sql (ConnectionPool, Entity, runSqlPool, toSqlKey, rawSql)
 import DAL.Schema
 import DAL.Types
 import DAL.Conversion
@@ -212,11 +211,12 @@ getUnpaidBills = ORM.getBills
 getLowStockGoods :: ConnectionPool -> IO (QueryResult [Goods])
 getLowStockGoods pool = do
     entities <- liftIO $ runSqlPool
-        (select $ do
-            g <- from $ table @GoodsEntity
-            where_ $ isNothing (g ^. GoodsEntityMinStock)
-            return g
-        ) pool
+        (rawSql
+            "SELECT ?? FROM goods g \
+            \WHERE g.min_stock IS NOT NULL \
+            \  AND (SELECT COALESCE(SUM(s.qtty), 0) FROM stock s WHERE s.goods_id = g.id) <= g.min_stock"
+            [])
+        pool
     return $ QuerySuccess (map goodsFromEntity entities)
 
 getInventoryDocuments :: ConnectionPool -> IO (QueryResult [Bill])

@@ -94,7 +94,7 @@
             <button class="header-btn" onclick="mobileCreatePerson()">+</button>
         </header>
         <div class="search-bar">
-            <input type="text" class="search-input" id="persons-search" placeholder="Поиск..." oninput="loadPersons()">
+            <input type="text" class="search-input" id="persons-search" placeholder="Поиск..." oninput="debouncedLoadPersons()">
         </div>
         <div class="card">
             <div class="card-body" id="persons-list"><div class="m-loading"></div></div>
@@ -108,7 +108,7 @@
             <button class="header-btn" onclick="mobileCreateGoods()">+</button>
         </header>
         <div class="search-bar">
-            <input type="text" class="search-input" id="goods-search" placeholder="Поиск..." oninput="loadGoods()">
+            <input type="text" class="search-input" id="goods-search" placeholder="Поиск..." oninput="debouncedLoadGoods()">
         </div>
         <div class="card">
             <div class="card-body" id="goods-list"><div class="m-loading"></div></div>
@@ -122,7 +122,7 @@
             <button class="header-btn" onclick="mobileCreateBill()">+</button>
         </header>
         <div class="search-bar">
-            <input type="text" class="search-input" id="bills-search" placeholder="Поиск..." oninput="loadBills()">
+            <input type="text" class="search-input" id="bills-search" placeholder="Поиск..." oninput="debouncedLoadBills()">
         </div>
         <div class="card">
             <div class="card-body" id="bills-list"><div class="m-loading"></div></div>
@@ -264,14 +264,34 @@
             case 'payroll': loadPayrollData(); break;
             case 'stock': loadMobileStockData(); break;
             case 'settings': checkSystemStatus(); break;
+            case 'profile': loadProfile(); break;
+        }
+    }
+
+    async function loadProfile() {
+        try {
+            var res = await api.auth.me();
+            var u = res.data;
+            document.getElementById('profile-name').textContent = u.userName || u.name || 'Пользователь';
+            document.getElementById('profile-email').textContent = u.userEmail || u.email || '';
+        } catch (e) {
+            document.getElementById('profile-name').textContent = 'Пользователь';
+            document.getElementById('profile-email').textContent = '';
         }
     }
 
     function showError(el, msg) { el.innerHTML = '<div class="m-error">' + (msg || 'Ошибка загрузки') + '</div>'; }
 
+    var debouncedLoadPersons = helpers.debounce(loadPersons, 250);
+    var debouncedLoadGoods = helpers.debounce(loadGoods, 250);
+    var debouncedLoadBills = helpers.debounce(loadBills, 250);
+
     function offline() {
         document.getElementById('offline-banner').style.display = 'block';
-        setTimeout(function() { document.getElementById('offline-banner').style.display = 'none'; }, 5000);
+    }
+
+    function online() {
+        document.getElementById('offline-banner').style.display = 'none';
     }
 
     async function loadHomeData() {
@@ -397,6 +417,8 @@
         var el = document.getElementById('stock-list');
         el.innerHTML = '<div class="m-loading"></div>';
         try {
+            var goodsMap = {};
+            try { var gr = await api.goods.list(); (gr.data || []).forEach(function(g) { goodsMap[g.goodsId] = g.goodsName || 'Товар #' + g.goodsId; }); } catch(e) {}
             if (mobileStockTab === 'balances') {
                 var res = await api.stock.list();
                 var items = res.data;
@@ -405,14 +427,16 @@
                     var avail = s.stockQtty - s.stockResrvQtty;
                     var warn = s.stockQtty < 10 ? ' style="background:#FFF3E0;"' : '';
                     var statusLabel = s.stockQtty < 10 ? '<div style="font-size:11px;color:var(--warning);">Мало</div>' : '<div style="font-size:11px;color:var(--success);">В наличии</div>';
-                    return '<div class="list-item"' + warn + '><span class="item-icon">📦</span><div class="item-content"><div class="item-title">Товар #' + s.stockGoodsId + '</div><div class="item-subtitle">' + helpers.formatNumber(s.stockQtty) + ' шт.</div></div><div style="text-align:right;"><div class="item-value">' + helpers.formatNumber(avail) + '</div>' + statusLabel + '</div></div>';
+                    var gName = goodsMap[s.stockGoodsId] || 'Товар #' + s.stockGoodsId;
+                    return '<div class="list-item"' + warn + '><span class="item-icon">📦</span><div class="item-content"><div class="item-title">' + helpers.escapeHtml(gName) + '</div><div class="item-subtitle">' + helpers.formatNumber(s.stockQtty) + ' шт.</div></div><div style="text-align:right;"><div class="item-value">' + helpers.formatNumber(avail) + '</div>' + statusLabel + '</div></div>';
                 }).join('');
             } else if (mobileStockTab === 'lots') {
                 var res = await api.lots.list();
                 var items = res.data;
                 if (!items || items.length === 0) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">🏷️</div>Нет партий</div>'; return; }
                 el.innerHTML = items.map(function(l) {
-                    return '<div class="list-item"><span class="item-icon">🏷️</span><div class="item-content"><div class="item-title">Партия #' + l.lotId + '</div><div class="item-subtitle">Товар #' + l.lotGoodsId + ' — ' + helpers.formatNumber(l.lotRest) + ' шт.</div></div><div class="item-value">' + helpers.formatMoney(l.lotPrice) + '</div></div>';
+                    var gName = goodsMap[l.lotGoodsId] || 'Товар #' + l.lotGoodsId;
+                    return '<div class="list-item"><span class="item-icon">🏷️</span><div class="item-content"><div class="item-title">Партия #' + l.lotId + '</div><div class="item-subtitle">' + helpers.escapeHtml(gName) + ' — ' + helpers.formatNumber(l.lotRest) + ' шт.</div></div><div class="item-value">' + helpers.formatMoney(l.lotPrice) + '</div></div>';
                 }).join('');
             } else if (mobileStockTab === 'movements') {
                 var movRes = await api.stock.movements.list().catch(function() { return { data: [] }; });
@@ -423,7 +447,8 @@
                     var qty = parseFloat(m.smQtty);
                     var color = qty > 0 ? 'var(--success)' : 'var(--error)';
                     var sign = qty > 0 ? '+' : '';
-                    return '<div class="list-item"><div class="item-content"><div class="item-title">Товар #' + m.smGoodsId + ' <span style="color:' + color + ';">' + sign + helpers.formatNumber(qty) + '</span></div><div class="item-subtitle">' + helpers.formatDate(m.smMovementDate) + ' — ' + (typeMap[m.smMovementType] || 'Др.') + (m.smNotes ? ' (' + m.smNotes + ')' : '') + '</div></div></div>';
+                    var gName = goodsMap[m.smGoodsId] || 'Товар #' + m.smGoodsId;
+                    return '<div class="list-item"><div class="item-content"><div class="item-title">' + helpers.escapeHtml(gName) + ' <span style="color:' + color + ';">' + sign + helpers.formatNumber(qty) + '</span></div><div class="item-subtitle">' + helpers.formatDate(m.smMovementDate) + ' — ' + (typeMap[m.smMovementType] || 'Др.') + (m.smNotes ? ' (' + m.smNotes + ')' : '') + '</div></div></div>';
                 }).join('');
             }
         } catch (e) { showError(el); offline(); }
@@ -466,6 +491,7 @@
 
     loadHomeData();
     checkSystemStatus();
+    loadProfile();
     </script>
 
     <script src="js/offline.js"></script>
