@@ -79,6 +79,30 @@ locationFromEntity (Entity pid e) = T.Location
   , T.locationType = locationEntityLocationType e
   }
 
+lotFromEntity :: Entity LotEntity -> T.Lot
+lotFromEntity (Entity pid e) = T.Lot
+  { T.lotId = keyToInt pid
+  , T.lotGoodsId = lotEntityGoodsId e
+  , T.lotLocationId = lotEntityLocationId e
+  , T.lotBillId = lotEntityBillId e
+  , T.lotDate = lotEntityDt e
+  , T.lotExpiry = lotEntityExpDt e
+  , T.lotRest = lotEntityRest e
+  , T.lotCost = lotEntityCost e
+  , T.lotPrice = lotEntityPrice e
+  , T.lotSerial = lotEntitySerial e
+  , T.lotFlags = lotEntityFlags e
+  }
+
+tenantFromEntity :: Entity TenantEntity -> T.Tenant
+tenantFromEntity (Entity pid e) = T.Tenant
+  { T.tenantId = keyToInt pid
+  , T.tenantName = tenantEntityName e
+  , T.tenantSlug = tenantEntitySlug e
+  , T.tenantSchemaName = tenantEntitySchemaName e
+  , T.tenantIsActive = tenantEntityIsActive e
+  }
+
 stockFromEntity :: Entity StockEntity -> T.Stock
 stockFromEntity (Entity pid e) = T.Stock
   { T.stockId = keyToInt pid

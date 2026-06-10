@@ -11,8 +11,11 @@ module Surypus.API.Server (apiServer) where
 
 import Control.Monad.IO.Class (liftIO)
 import qualified DAL.Mutations
+import qualified DAL.QueriesORM
 import qualified DAL.Types as DAL
 import DAL.Pool (ConnectionPool)
+import Crypto.Hash (hash, SHA256)
+import Data.ByteString (ByteString)
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Int (Int64)
 import Data.Text (Text)
@@ -20,12 +23,13 @@ import qualified Data.Text as DT
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as LBS
-import Data.Time.Calendar (fromGregorian)
+import Data.Time.Calendar (Day, fromGregorian)
 import qualified Data.UUID as UUID
 import qualified Data.UUID.V4 as UUIDv4
 import Database.Persist.Sql (runSqlPool, rawSql, Single(..))
+import Database.Persist.PersistValue (PersistValue(..))
 import GHC.Generics (Generic)
-import Network.HTTP.Types (status200, status401, status429, status503)
+import Network.HTTP.Types (status200, status401, status503)
 import Network.Wai as W
 import Network.Wai.Handler.WebSockets (websocketsOr)
 import qualified Network.WebSockets as NetWS
@@ -42,6 +46,7 @@ import Surypus (
      User (..),
      UserInput (..)
     )
+import qualified Surypus.API.Accounting as Accounting
 import qualified Surypus.API.Bills as Bills
 import qualified Surypus.API.CRM as CRM
 import qualified Surypus.API.Classifiers as Classifiers
@@ -52,6 +57,7 @@ import qualified Surypus.API.Logger as Log
 import qualified Surypus.API.Notifications as Notifications
 import qualified Surypus.API.Orders as Orders
 import qualified Surypus.API.Payment as Payments
+import qualified Surypus.API.Payroll as Payroll
 import qualified Surypus.API.Persons as Persons
 import qualified Surypus.API.Reports as Reports
 import qualified Surypus.API.Workflow as Workflow
@@ -62,7 +68,7 @@ import Surypus.API.AuthMiddleware (withAuthzResolverAdvanced)
 import Surypus.API.MetricsMiddleware (MetricsMiddlewareConfig(..), withMetricsCollection)
 import Surypus.Metrics (Metrics, renderPrometheus)
 import qualified MultiTenancy.Middleware as MT
-import qualified MultiTenancy.Isolation as MTI
+
 
 -- Local type definitions for API
 data LoginRequest = LoginRequest
@@ -80,6 +86,22 @@ data LoginResponse = LoginResponse
     }
     deriving (Generic, Show, Eq)
 instance ToJSON LoginResponse
+
+data RegisterRequest = RegisterRequest
+    { rrUsername :: Text
+    , rrPassword :: Text
+    , rrEmail :: Maybe Text
+    }
+    deriving (Generic, Show, Eq)
+instance FromJSON RegisterRequest
+
+data UserInfoResponse = UserInfoResponse
+    { uirId :: Int64
+    , uirUsername :: Text
+    , uirEmail :: Maybe Text
+    }
+    deriving (Generic, Show, Eq)
+instance ToJSON UserInfoResponse
 
 data Env = Env
      { envConnectionPool :: ConnectionPool
@@ -148,7 +170,13 @@ healthEndpoint connPool app req respond =
             case result of
                 [Single (1 :: Int64)] -> respond $ W.responseLBS status200 [("Content-Type", "text/plain")] "DB OK"
                 _ -> respond $ W.responseLBS status503 [("Content-Type", "text/plain")] "DB ERROR"
-        _ -> app req respond
+        path -> do
+            let pathStr = TE.decodeUtf8 path
+            if "/api/v1/reports/download/" `DT.isPrefixOf` pathStr
+                then do
+                    let filename = DT.replace "/api/v1/reports/download/" "" pathStr
+                    Reports.serveReportFile filename req respond
+                else app req respond
 
 metricsEndpoint :: Metrics -> Application -> Application
 metricsEndpoint metrics app req respond =
@@ -166,6 +194,8 @@ type SurypusApi =
     "api"
         :> "v1"
         :> ( "login" :> ReqBody '[JSON] LoginRequest :> Post '[JSON] LoginResponse
+                :<|> "register" :> ReqBody '[JSON] RegisterRequest :> Post '[JSON] LoginResponse
+                :<|> "auth" :> "me" :> Header "Authorization" Text :> Get '[JSON] UserInfoResponse
                 -- GraphQL endpoint
                 :<|> "graphql" :> GraphQL.GraphQLAPI
                 -- Bills
@@ -216,6 +246,20 @@ type SurypusApi =
                 -- Reports
                 :<|> "reports" :> "pnl" :> Get '[JSON] Reports.Report
                 :<|> "reports" :> "inventory" :> Get '[JSON] Reports.Report
+                :<|> "reports" :> "export" :> ReqBody '[JSON] Reports.ReportExportRequest :> Post '[JSON] Reports.ReportExportResponse
+                -- Stock
+                :<|> "stock" :> Get '[JSON] [DAL.Stock]
+                -- Lots
+                :<|> "lots" :> Get '[JSON] [DAL.Lot]
+                :<|> "lots" :> Capture "id" Int64 :> Get '[JSON] DAL.Lot
+                :<|> "lots" :> "goods" :> Capture "goodsId" Int64 :> Get '[JSON] [DAL.Lot]
+                :<|> "lots" :> "location" :> Capture "locationId" Int64 :> Get '[JSON] [DAL.Lot]
+                -- Tenants
+                :<|> "tenants" :> Get '[JSON] [DAL.Tenant]
+                :<|> "tenants" :> Capture "id" Int64 :> Get '[JSON] DAL.Tenant
+                :<|> "tenants" :> ReqBody '[JSON] DAL.TenantInput :> Post '[JSON] DAL.MutationResult
+                -- Locations
+                :<|> "locations" :> Get '[JSON] [DAL.Location]
                 -- Orders
                 :<|> "orders" :> Get '[JSON] [Orders.Order]
                 :<|> "orders" :> ReqBody '[JSON] Orders.OrderInput :> Post '[JSON] Orders.Order
@@ -254,6 +298,17 @@ type SurypusApi =
                 :<|> "classifiers" :> "okud" :> Get '[JSON] [DAL.OkudRecord]
                 :<|> "classifiers" :> "okfs" :> Get '[JSON] [DAL.OkfsRecord]
                 :<|> "classifiers" :> "oknpo" :> Get '[JSON] [DAL.OknpoRecord]
+                -- Balance sheet
+                -- Payroll
+                :<|> "payroll" :> "employees" :> Get '[JSON] [DAL.Employee]
+                :<|> "payroll" :> "employees" :> Capture "id" Int64 :> Get '[JSON] DAL.Employee
+                :<|> "payroll" :> "salaries" :> Get '[JSON] [DAL.Salary]
+                :<|> "payroll" :> "salaries" :> Capture "empId" Int64 :> Get '[JSON] [DAL.Salary]
+                -- Balance sheet
+                :<|> "balance" :> QueryParam "startDate" Day :> QueryParam "endDate" Day :> Get '[JSON] Accounting.BalanceResponse
+                -- Accounting entries
+                :<|> "accounting" :> "entries" :> QueryParam "startDate" Day :> QueryParam "endDate" Day :> Get '[JSON] [Accounting.JournalEntry]
+                :<|> "accounting" :> "entries" :> ReqBody '[JSON] DAL.AccTurnInput :> Post '[JSON] DAL.MutationResult
            )
 
 -- ── Server ───────────────────────────────────────────────────────────────────
@@ -261,6 +316,8 @@ type SurypusApi =
 server :: Env -> Server SurypusApi
 server env =
     handleLogin env
+        :<|> handleRegister env
+        :<|> handleAuthMe env
         :<|> graphQLServer env
         :<|> billsList env
         :<|> billsCreate env
@@ -304,6 +361,16 @@ server env =
         :<|> notificationsSendDigest env
         :<|> reportsPnL env
         :<|> reportsInventory env
+        :<|> reportsExport env
+        :<|> stockList env
+        :<|> lotsList env
+        :<|> lotGet env
+        :<|> lotsByGoods env
+        :<|> lotsByLocation env
+        :<|> tenantsList env
+        :<|> tenantGet env
+        :<|> tenantCreate env
+        :<|> locationsList env
         :<|> ordersList env
         :<|> ordersCreate env
         :<|> ordersGet env
@@ -337,6 +404,13 @@ server env =
         :<|> classifiersOkudList env
         :<|> classifiersOkfsList env
         :<|> classifiersOknpoList env
+        :<|> payrollEmployeesList env
+        :<|> payrollEmployeeGet env
+        :<|> payrollSalariesList env
+        :<|> payrollSalaryByEmployee env
+        :<|> handleBalance env
+        :<|> handleJournalEntries env
+        :<|> handleCreateEntry env
 
 -- ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -350,6 +424,9 @@ liftQ action = liftIO action >>= \r -> ok r pure
 
 -- ── Handlers ─────────────────────────────────────────────────────────────────
 
+hashPassword :: Text -> Text
+hashPassword pwd = DT.pack $ show $ hash @ByteString @SHA256 (TE.encodeUtf8 pwd)
+
 handleLogin :: Env -> LoginRequest -> Handler LoginResponse
 handleLogin env req = do
     result <- liftIO $ DAL.Mutations.authenticateUser (envConnectionPool env) (lrUsername req) (lrPassword req)
@@ -359,6 +436,33 @@ handleLogin env req = do
         QuerySuccess (Just user) -> do
             token <- liftIO $ JWT.generateToken (envConnectionPool env) user
             pure $ LoginResponse token Nothing (DAL.userId user) 3600
+
+handleRegister :: Env -> RegisterRequest -> Handler LoginResponse
+handleRegister env req = do
+    let pwdHash = hashPassword (rrPassword req)
+        input = DAL.UserInput (rrUsername req) pwdHash Nothing 1
+    result <- liftIO $ DAL.Mutations.createUser (envConnectionPool env) input
+    case result of
+        QueryError e -> throwError $ err500{errBody = LBS.encodeUtf8 (TL.fromStrict e)}
+        QuerySuccess mr -> case DAL.mrId mr of
+            Just uid -> do
+                let user = DAL.User uid (rrUsername req) (Just pwdHash) (rrEmail req) Nothing 1 0
+                token <- liftIO $ JWT.generateToken (envConnectionPool env) user
+                pure $ LoginResponse token Nothing uid 3600
+            Nothing -> throwError $ err500{errBody = "Failed to create user"}
+
+handleAuthMe :: Env -> Maybe Text -> Handler UserInfoResponse
+handleAuthMe env mbAuth = do
+    case mbAuth >>= DT.stripPrefix "Bearer " of
+        Nothing -> throwError err401
+        Just token -> do
+            result <- liftIO $ JWT.verifyToken token
+            case result of
+                Left _ -> throwError err401
+                Right claims -> do
+                    let uid = JWT.ucUserId claims
+                        uname = JWT.ucUsername claims
+                    pure $ UserInfoResponse uid uname Nothing
 
 billsList env = liftQ $ Bills.listBills (envConnectionPool env)
 billsCreate env i = liftQ $ fmap (const (Bill 0 Nothing 0 0 (fromGregorian 2000 1 1) Nothing Nothing 0 0 0)) <$> Bills.createBill (envConnectionPool env) i
@@ -408,6 +512,50 @@ notificationsSendDigest env f = liftQ $ Notifications.sendDigestNotification (en
 reportsPnL env = liftQ $ Reports.getPnLReport (envConnectionPool env)
 reportsInventory env = liftQ $ Reports.getInventoryReport (envConnectionPool env)
 
+reportsExport :: Env -> Reports.ReportExportRequest -> Handler Reports.ReportExportResponse
+reportsExport env req = do
+    let rptType = Reports.rerReportType req
+    result <- liftIO $ Reports.generateReportPdf (envConnectionPool env) rptType
+    case result of
+        Left err -> throwError $ err500{errBody = LBS.encodeUtf8 (TL.fromStrict err)}
+        Right filename -> do
+            let url = DT.concat ["/api/v1/reports/download/", filename]
+            return $ Reports.ReportExportResponse url "ok"
+
+stockList :: Env -> Handler [DAL.Stock]
+stockList env = liftQ $ DAL.QueriesORM.getStockAll (envConnectionPool env)
+
+lotsList :: Env -> Handler [DAL.Lot]
+lotsList env = liftQ $ DAL.QueriesORM.getLots (envConnectionPool env)
+
+lotGet :: Env -> Int64 -> Handler DAL.Lot
+lotGet env lid = liftQ $ DAL.QueriesORM.getLotById (envConnectionPool env) lid
+
+lotsByGoods :: Env -> Int64 -> Handler [DAL.Lot]
+lotsByGoods env gid = liftQ $ DAL.QueriesORM.getLotsByGoods (envConnectionPool env) gid
+
+lotsByLocation :: Env -> Int64 -> Handler [DAL.Lot]
+lotsByLocation env lid = liftQ $ DAL.QueriesORM.getLotsByLocation (envConnectionPool env) lid
+
+tenantsList :: Env -> Handler [DAL.Tenant]
+tenantsList env = liftQ $ DAL.QueriesORM.getTenants (envConnectionPool env)
+
+tenantGet :: Env -> Int64 -> Handler DAL.Tenant
+tenantGet env tid = liftQ $ DAL.QueriesORM.getTenantById (envConnectionPool env) tid
+
+tenantCreate :: Env -> DAL.TenantInput -> Handler DAL.MutationResult
+tenantCreate env input = liftIO $ do
+    result <- runSqlPool
+        (rawSql "INSERT INTO tenants (name, slug, schema_name, is_active) VALUES (?, ?, 'public', true) RETURNING id"
+            [PersistText (DAL.tiTenantName input), PersistText (DAL.tiSlug input)])
+        (envConnectionPool env)
+    case result of
+        [Single (insertedId :: Int64)] -> return $ DAL.MutationResult True (Just insertedId) "Tenant created"
+        _ -> return $ DAL.MutationResult False Nothing "Failed to create tenant"
+
+locationsList :: Env -> Handler [DAL.Location]
+locationsList env = liftQ $ DAL.QueriesORM.getLocations (envConnectionPool env)
+
 ordersList env = liftQ $ Orders.listOrders (envConnectionPool env)
 ordersCreate env i = liftQ $ Orders.createOrder (envConnectionPool env) i
 ordersGet env oid = liftQ $ Orders.getOrder (envConnectionPool env) oid
@@ -446,6 +594,22 @@ classifiersOkunList env = liftQ $ Classifiers.listOkun (envConnectionPool env)
 classifiersOkudList env = liftQ $ Classifiers.listOkud (envConnectionPool env)
 classifiersOkfsList env = liftQ $ Classifiers.listOkfs (envConnectionPool env)
 classifiersOknpoList env = liftQ $ Classifiers.listOknpo (envConnectionPool env)
+
+-- ── Payroll handlers ───────────────────────────────────────────────────────
+payrollEmployeesList env = liftQ $ Payroll.getEmployees (envConnectionPool env)
+payrollEmployeeGet env eid = liftQ $ Payroll.getEmployeeById (envConnectionPool env) eid
+payrollSalariesList env = liftQ $ Payroll.getSalaries (envConnectionPool env)
+payrollSalaryByEmployee env eid = liftQ $ Payroll.getSalaryByEmployee (envConnectionPool env) eid
+
+-- ── Accounting handlers ─────────────────────────────────────────────────────
+handleBalance :: Env -> Maybe Day -> Maybe Day -> Handler Accounting.BalanceResponse
+handleBalance env s e = liftQ $ Accounting.getBalance (envConnectionPool env) s e
+
+handleJournalEntries :: Env -> Maybe Day -> Maybe Day -> Handler [Accounting.JournalEntry]
+handleJournalEntries env s e = liftQ $ Accounting.getJournalEntries (envConnectionPool env) s e
+
+handleCreateEntry :: Env -> DAL.AccTurnInput -> Handler DAL.MutationResult
+handleCreateEntry env input = liftQ $ DAL.Mutations.createAccTurn (envConnectionPool env) input
 
 graphQLServer :: Env -> Server GraphQL.GraphQLAPI
 graphQLServer env = GraphQL.graphqlHandler (envConnectionPool env)

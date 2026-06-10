@@ -32,6 +32,12 @@ billKey n = toSqlKey n
 locationKey :: Int64 -> P.Key LocationEntity
 locationKey n = toSqlKey n
 
+lotKey :: Int64 -> P.Key LotEntity
+lotKey n = toSqlKey n
+
+tenantKey :: Int64 -> P.Key TenantEntity
+tenantKey n = toSqlKey n
+
 taxKey :: Int64 -> P.Key TaxEntity
 taxKey n = toSqlKey n
 
@@ -297,6 +303,54 @@ getStockByGoods pool gid = do
     pool
   return $ QuerySuccess $ map stockFromEntity entities
 
+-- | Get all lots
+getLots :: ConnectionPool -> IO (QueryResult [Lot])
+getLots pool = do
+  entities <- liftIO $ runSqlPool
+    (select $ do
+      l <- from $ table @LotEntity
+      orderBy [desc $ l ^. LotEntityDt, desc $ l ^. LotEntityId]
+      return l)
+    pool
+  return $ QuerySuccess $ map lotFromEntity entities
+
+-- | Get lots by goods
+getLotsByGoods :: ConnectionPool -> Int64 -> IO (QueryResult [Lot])
+getLotsByGoods pool gid = do
+  entities <- liftIO $ runSqlPool
+    (select $ do
+      l <- from $ table @LotEntity
+      where_ $ l ^. LotEntityGoodsId ==. val gid
+      orderBy [desc $ l ^. LotEntityDt, desc $ l ^. LotEntityId]
+      return l)
+    pool
+  return $ QuerySuccess $ map lotFromEntity entities
+
+-- | Get lots by location
+getLotsByLocation :: ConnectionPool -> Int64 -> IO (QueryResult [Lot])
+getLotsByLocation pool lid = do
+  entities <- liftIO $ runSqlPool
+    (select $ do
+      l <- from $ table @LotEntity
+      where_ $ l ^. LotEntityLocationId ==. val lid
+      orderBy [desc $ l ^. LotEntityDt, desc $ l ^. LotEntityId]
+      return l)
+    pool
+  return $ QuerySuccess $ map lotFromEntity entities
+
+-- | Get lot by ID
+getLotById :: ConnectionPool -> Int64 -> IO (QueryResult Lot)
+getLotById pool lid = do
+  result <- liftIO $ runSqlPool
+    (selectOne $ do
+      l <- from $ table @LotEntity
+      where_ $ l ^. LotEntityId ==. val (lotKey lid)
+      return l)
+    pool
+  return $ case result of
+    Just entity -> QuerySuccess $ lotFromEntity entity
+    Nothing -> QueryError "Not Found"
+
 -- | Get users (employees with roles - simplified)
 getUsers :: ConnectionPool -> IO (QueryResult [User])
 getUsers pool = do
@@ -428,6 +482,30 @@ getReports pool = do
       return r)
     pool
   return $ QuerySuccess $ map reportTemplateFromEntity entities
+
+-- | Get all tenants
+getTenants :: ConnectionPool -> IO (QueryResult [Tenant])
+getTenants pool = do
+  entities <- liftIO $ runSqlPool
+    (select $ do
+      t <- from $ table @TenantEntity
+      orderBy [asc $ t ^. TenantEntityId]
+      return t)
+    pool
+  return $ QuerySuccess $ map tenantFromEntity entities
+
+-- | Get tenant by ID
+getTenantById :: ConnectionPool -> Int64 -> IO (QueryResult Tenant)
+getTenantById pool tid = do
+  result <- liftIO $ runSqlPool
+    (selectOne $ do
+      t <- from $ table @TenantEntity
+      where_ $ t ^. TenantEntityId ==. val (tenantKey tid)
+      return t)
+    pool
+  return $ case result of
+    Just entity -> QuerySuccess $ tenantFromEntity entity
+    Nothing -> QueryError "Not Found"
 
 -- | Get currencies
 getCurrencies :: ConnectionPool -> IO (QueryResult [Currency])

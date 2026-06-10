@@ -75,10 +75,7 @@ generateToken :: ConnectionPool -> User -> IO Text
 generateToken _pool user = do
     now <- getCurrentTime
     let uid = T.pack $ show $ userId user
-        tenantId = maybe (Number 0) (\t -> Number (fromIntegral t)) $
-          case userPersonId user of
-            Just pid -> Just 0
-            Nothing -> Nothing
+        realTenantId = userTenantId user
     secret <- getSigningKey
     result <- runJOSE @JWTError $ do
         let jwk = fromOctets secret
@@ -87,7 +84,7 @@ generateToken _pool user = do
                 addClaim "sub" (toJSON uid) $
                     addClaim "name" (toJSON $ userName user) $
                         addClaim "role" (toJSON ([] :: [Text])) $
-                            addClaim "tenant_id" (Number 0) $
+                            addClaim "tenant_id" (Number (fromIntegral realTenantId)) $
                                 emptyClaimsSet
                                     & claimIat ?~ NumericDate now
                                     & claimExp ?~ NumericDate (addUTCTime 3600 now)

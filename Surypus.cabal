@@ -110,6 +110,7 @@ library
     Surypus.AI.Anthropic
     Surypus.AI.OpenAI
     Surypus.Api
+    Surypus.API.Accounting
     Surypus.API.AI
     Surypus.API.Bills
     Surypus.API.Bridge
@@ -124,6 +125,7 @@ library
     Surypus.API.Notifications
     Surypus.API.Orders
     Surypus.API.Payment
+    Surypus.API.Payroll
     Surypus.API.Persons
     Surypus.API.Production
     Surypus.API.RateLimiter
@@ -458,6 +460,8 @@ library
     , unordered-containers >=0.2
     , deriving-aeson >=0.2
     , network >=3.1
+    , process >=1.6
+    , temporary >=1.3
 
 
 executable surypus-server

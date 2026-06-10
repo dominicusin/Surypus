@@ -20,9 +20,13 @@ module DAL.Types (
     Payment   (..),
     PaymentInput   (..),
     UserInput   (..),
+    Tenant   (..),
+    TenantInput   (..),
     Location   (..),
     LocationInput   (..),
     Stock   (..),
+    Lot   (..),
+    LotInput   (..),
     User   (..),
     AccPlan   (..),
     AccPlanInput   (..),
@@ -285,6 +289,43 @@ data Stock = Stock
 instance ToJSON Stock
 instance FromJSON Stock
 
+-- | Lot type
+data Lot = Lot
+  { lotId :: !Int64,
+    lotGoodsId :: !Int64,
+    lotLocationId :: !Int64,
+    lotBillId :: !(Maybe Int64),
+    lotDate :: !Day,
+    lotExpiry :: !(Maybe Day),
+    lotRest :: !Double,
+    lotCost :: !Double,
+    lotPrice :: !Double,
+    lotSerial :: !(Maybe Text),
+    lotFlags :: !Int
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON Lot
+instance FromJSON Lot
+
+-- | Lot input type
+data LotInput = LotInput
+  { loiGoodsId :: !Int64,
+    loiLocationId :: !Int64,
+    loiBillId :: !(Maybe Int64),
+    loiDate :: !Day,
+    loiExpiry :: !(Maybe Day),
+    loiRest :: !Double,
+    loiCost :: !Double,
+    loiPrice :: !Double,
+    loiSerial :: !(Maybe Text),
+    loiFlags :: !Int
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON LotInput
+instance FromJSON LotInput
+
 -- | User type
 data User = User
   { userId :: !Int64,
@@ -311,6 +352,29 @@ data UserInput = UserInput
 
 instance ToJSON UserInput
 instance FromJSON UserInput
+
+-- | Tenant type
+data Tenant = Tenant
+  { tenantId :: !Int64,
+    tenantName :: !Text,
+    tenantSlug :: !Text,
+    tenantSchemaName :: !Text,
+    tenantIsActive :: !Bool
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON Tenant
+instance FromJSON Tenant
+
+-- | Tenant input type
+data TenantInput = TenantInput
+  { tiTenantName :: !Text,
+    tiSlug :: !Text
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON TenantInput
+instance FromJSON TenantInput
 
 -- | Mutation result type
 data MutationResult = MutationResult

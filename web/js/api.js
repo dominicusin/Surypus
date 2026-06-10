@@ -1,13 +1,83 @@
-// Surypus - API Client (Updated to match actual API routes)
+// Surypus - API Client with JWT auth
 
 const API_BASE = window.location.origin + '/api/v1';
+
+// JWT token management
+let authToken = localStorage.getItem('surypus_token');
+let authUser = JSON.parse(localStorage.getItem('surypus_user') || 'null');
+
+// Axios interceptor: auto-attach token
+axios.interceptors.request.use(function(config) {
+    if (authToken) {
+        config.headers.Authorization = 'Bearer ' + authToken;
+    }
+    return config;
+});
+
+// Axios interceptor: redirect on 401
+axios.interceptors.response.use(
+    function(response) { return response; },
+    function(error) {
+        if (error.response && error.response.status === 401 && !window.location.hash.includes('#login')) {
+            clearAuth();
+        }
+        return Promise.reject(error);
+    }
+);
+
+function login(username, password) {
+    return axios.post(`${API_BASE}/login`, { lrUsername: username, lrPassword: password })
+        .then(function(res) {
+            authToken = res.data.lAccessToken;
+            localStorage.setItem('surypus_token', authToken);
+            var user = { id: res.data.lUserId, name: username };
+            authUser = user;
+            localStorage.setItem('surypus_user', JSON.stringify(user));
+            return res;
+        });
+}
+
+function register(username, password, email) {
+    return axios.post(`${API_BASE}/register`, { rrUsername: username, rrPassword: password, rrEmail: email || null })
+        .then(function(res) {
+            authToken = res.data.lAccessToken;
+            localStorage.setItem('surypus_token', authToken);
+            var user = { id: res.data.lUserId, name: username };
+            authUser = user;
+            localStorage.setItem('surypus_user', JSON.stringify(user));
+            return res;
+        });
+}
+
+function clearAuth() {
+    authToken = null;
+    authUser = null;
+    localStorage.removeItem('surypus_token');
+    localStorage.removeItem('surypus_user');
+}
+
+function logout() {
+    clearAuth();
+    window.location.reload();
+}
+
+function isAuthenticated() {
+    return authToken !== null;
+}
 
 const api = {
     // Auth API
     auth: {
-        login: (username, password) => axios.post(`${API_BASE}/login`, { lrUsername: username, lrPassword: password }),
-        logout: () => axios.post(`${API_BASE}/auth/logout`),
-        me: () => axios.get(`${API_BASE}/auth/me`)
+        login: login,
+        register: register,
+        logout: logout,
+        clearAuth: clearAuth,
+        me: () => {
+            if (!authToken) return Promise.reject(new Error('Not authenticated'));
+            return axios.get(`${API_BASE}/auth/me`);
+        },
+        isAuthenticated: isAuthenticated,
+        getUser: () => authUser
     },
 
     // Goods API
@@ -90,19 +160,10 @@ const api = {
 
     // Accounting API
     accounting: {
-        accounts: {
-            list: () => axios.get(`${API_BASE}/accounting/accounts`),
-            get: (id) => axios.get(`${API_BASE}/accounting/accounts/${id}`),
-            create: (data) => axios.post(`${API_BASE}/accounting/accounts`, data),
-            update: (id, data) => axios.put(`${API_BASE}/accounting/accounts/${id}`, data),
-            delete: (id) => axios.delete(`${API_BASE}/accounting/accounts/${id}`)
-        },
+        balance: (params = {}) => axios.get(`${API_BASE}/balance`, { params }),
         entries: {
-            list: () => axios.get(`${API_BASE}/accounting/entries`),
-            get: (id) => axios.get(`${API_BASE}/accounting/entries/${id}`),
-            create: (data) => axios.post(`${API_BASE}/accounting/entries`, data),
-            update: (id, data) => axios.put(`${API_BASE}/accounting/entries/${id}`, data),
-            delete: (id) => axios.delete(`${API_BASE}/accounting/entries/${id}`)
+            list: (params = {}) => axios.get(`${API_BASE}/accounting/entries`, { params }),
+            create: (data) => axios.post(`${API_BASE}/accounting/entries`, data)
         }
     },
 
@@ -112,6 +173,26 @@ const api = {
         byGoods: (goodsId) => axios.get(`${API_BASE}/stock/goods/${goodsId}`),
         byGoodsAndLocation: (goodsId, locationId) => axios.get(`${API_BASE}/stock/${goodsId}/locations/${locationId}`),
         summary: () => axios.get(`${API_BASE}/stock/summary`)
+    },
+
+    // Lots API
+    lots: {
+        list: () => axios.get(`${API_BASE}/lots`),
+        get: (id) => axios.get(`${API_BASE}/lots/${id}`),
+        byGoods: (goodsId) => axios.get(`${API_BASE}/lots/goods/${goodsId}`),
+        byLocation: (locationId) => axios.get(`${API_BASE}/lots/location/${locationId}`)
+    },
+
+    // Tenants API
+    tenants: {
+        list: () => axios.get(`${API_BASE}/tenants`),
+        get: (id) => axios.get(`${API_BASE}/tenants/${id}`),
+        create: (data) => axios.post(`${API_BASE}/tenants`, data)
+    },
+
+    // Locations API
+    locations: {
+        list: () => axios.get(`${API_BASE}/locations`)
     },
 
     // Payroll API
@@ -147,7 +228,8 @@ const api = {
         get: (id) => axios.get(`${API_BASE}/reports/${id}`),
         metadata: () => axios.get(`${API_BASE}/reports/metadata`),
         jrxml: (name) => axios.get(`${API_BASE}/reports/jrxml/${name}`),
-        create: (data) => axios.post(`${API_BASE}/reports`, data)
+        create: (data) => axios.post(`${API_BASE}/reports`, data),
+        export: (data) => axios.post(`${API_BASE}/reports/export`, data)
     },
 
     // Jobs API
@@ -212,6 +294,12 @@ const helpers = {
         return str.length > length ? str.substring(0, length) + '...' : str;
     },
 
+    escapeHtml: (str) => {
+        if (!str) return '';
+        return String(str).replace(/[&<>"']/g, function(m) {
+            return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m] || m;
+        });
+    },
     debounce: (func, wait) => {
         let timeout;
         return function executedFunction(...args) {

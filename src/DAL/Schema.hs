@@ -80,6 +80,19 @@ StockEntity sql=stock
   resrvQtty Double
   deriving Show Eq
 
+LotEntity sql=lot
+  goodsId Int64
+  locationId Int64
+  billId Int64 Maybe
+  dt Day
+  expDt Day Maybe
+  rest Double
+  cost Double
+  price Double
+  serial Text Maybe
+  flags Int
+  deriving Show Eq
+
 EmployeeEntity sql=employee
   code Text
   name Text
