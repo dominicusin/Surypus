@@ -95,7 +95,7 @@ directExchange bus routingKey msg = do
 
 -- | Topic exchange with pattern matching
 topicExchange :: EventBusAdvanced -> Text -> Text -> IO ()
-topicExchange bus pattern msg = do
+topicExchange bus pattern' msg = do
   -- Simplified pattern matching
-  return ()
-  -- when (pattern `elem` words msg) $ publishAdvanced bus msg
+  pure ()
+  -- when (pattern' `elem` words msg) $ publishAdvanced bus msg

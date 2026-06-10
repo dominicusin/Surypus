@@ -25,7 +25,7 @@ initTraceContext :: IO TraceContext
 initTraceContext = do
   tid <- UUID.toText <$> nextRandom
   sid <- UUID.toText <$> nextRandom
-  return $ TraceContext tid sid Nothing True
+  pure $ TraceContext tid sid Nothing True
 
 -- | Start a new span
 data Span = Span
@@ -42,7 +42,7 @@ startSpan :: Text -> IO Span
 startSpan name = do
   now <- getCurrentTime
   tid <- UUID.toText <$> nextRandom
-  return $ Span tid name now [] [] []
+  pure $ Span tid name now [] [] []
 
 -- | Add tag to span
 addSpanTag :: Span -> Text -> Text -> Span
@@ -52,11 +52,11 @@ addSpanTag span key value = span { spanTags = (key, value) : spanTags span }
 addSpanLog :: Span -> Text -> IO Span
 addSpanLog span msg = do
   now <- getCurrentTime
-  return $ span { spanLogs = (now, msg) : spanLogs span }
+  pure $ span { spanLogs = (now, msg) : spanLogs span }
 
 -- | Finish span
 endSpan :: Span -> IO ()
-endSpan _ = return ()
+endSpan _ = pure ()
 
 -- | Trace an operation with automatic span management
 traceOperation :: Text -> IO a -> IO (a, Span)

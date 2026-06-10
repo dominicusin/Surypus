@@ -30,7 +30,7 @@ data EventBus = EventBus
 newEventBus :: Bool -> IO EventBus
 newEventBus kafkaEnabled = do
   chan <- newChan
-  return $ EventBus chan kafkaEnabled
+  pure $ EventBus chan kafkaEnabled
 
 -- | Publish event to bus
 publishEvent :: EventBus -> DomainEvent -> IO ()
@@ -38,14 +38,14 @@ publishEvent EventBus{..} event = do
   writeChan ebChan event
   when ebKafkaEnabled $ do
     -- TODO: Send to Kafka
-    putStrLn $ "Would send to Kafka: " ++ show (deType event)
+    putStrLn $ "Would send to Kafka: " <> show (deType event)
 
 -- | Create domain event
 createEvent :: Text -> Value -> Text -> IO DomainEvent
 createEvent eventType payload source = do
   uuid <- T.pack . UUID.toString <$> UUIDv4.nextRandom
   timestamp <- getCurrentTime
-  return $ DomainEvent uuid eventType timestamp payload source
+  pure $ DomainEvent uuid eventType timestamp payload source
 
 -- | Start event processor
 startProcessor :: EventBus -> IO ()

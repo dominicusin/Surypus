@@ -7,7 +7,7 @@
 {-# LANGUAGE TypeFamilies #-}
 
 module DAL.Repository (
-    AppError (..),
+    DALAppError (..),
     RepositoryError (..),
     HasRepository (..),
     RepositoryT,
@@ -22,7 +22,7 @@ import DAL.Types (Pagination (..))
 import Data.Text (Text)
 import qualified Data.Text as T
 
-data AppError = AppError Text deriving (Show, Eq)
+newtype DALAppError = DALAppError Text deriving (Show, Eq)
 
 data RepositoryError
     = NotFound Text
