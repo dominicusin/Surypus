@@ -18,7 +18,7 @@ Page {
         spacing: 16
 
         RowLayout {
-            Button { text: "➕ Добавить"; onClicked: console.log("Add goods") }
+            Button { text: "➕ Добавить"; onClicked: goodsDialog.open() }
             Button { text: "📁 Группы"; onClicked: console.log("Groups") }
             Button { text: "📊 Остатки"; onClicked: console.log("Stock") }
             Item { Layout.fillWidth: true }
@@ -51,5 +51,16 @@ Page {
         ListElement { code: "G001"; name: "Стройматериалы"; unit: "кг"; price: "100"; quantity: "500"; group: "Стройматериалы"; vatRate: "20"; status: "Активен" }
         ListElement { code: "G002"; name: "Инструменты"; unit: "шт"; price: "250"; quantity: "100"; group: "Инструменты"; vatRate: "20"; status: "Активен" }
         ListElement { code: "G003"; name: "Крепёж"; unit: "кг"; price: "50"; quantity: "1000"; group: "Крепёж"; vatRate: "20"; status: "Активен" }
+    }
+
+    GoodsDialog {
+        id: goodsDialog
+        onSaved: function(data) {
+            console.log("Goods saved:", JSON.stringify(data));
+            if (restClient) restClient.createGoods(data, function() {
+                console.log("Goods created");
+                if (restClient.loadGoods) restClient.loadGoods();
+            });
+        }
     }
 }

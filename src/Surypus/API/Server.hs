@@ -308,8 +308,10 @@ type SurypusApi =
                 -- Payroll
                 :<|> "payroll" :> "employees" :> Get '[JSON] [DAL.Employee]
                 :<|> "payroll" :> "employees" :> Capture "id" Int64 :> Get '[JSON] DAL.Employee
+                :<|> "payroll" :> "employees" :> ReqBody '[JSON] DAL.EmployeeInput :> Post '[JSON] DAL.MutationResult
                 :<|> "payroll" :> "salaries" :> Get '[JSON] [DAL.Salary]
                 :<|> "payroll" :> "salaries" :> Capture "empId" Int64 :> Get '[JSON] [DAL.Salary]
+                :<|> "payroll" :> "salaries" :> ReqBody '[JSON] DAL.SalaryInput :> Post '[JSON] DAL.MutationResult
                 -- Balance sheet
                 :<|> "balance" :> QueryParam "startDate" Day :> QueryParam "endDate" Day :> Get '[JSON] Accounting.BalanceResponse
                 -- Accounting entries
@@ -414,8 +416,10 @@ server env =
         :<|> classifiersOknpoList env
         :<|> payrollEmployeesList env
         :<|> payrollEmployeeGet env
+        :<|> payrollEmployeeCreate env
         :<|> payrollSalariesList env
         :<|> payrollSalaryByEmployee env
+        :<|> payrollSalaryCreate env
         :<|> handleBalance env
         :<|> handleJournalEntries env
         :<|> handleCreateEntry env
@@ -608,6 +612,8 @@ payrollEmployeesList env = liftQ $ Payroll.getEmployees (envConnectionPool env)
 payrollEmployeeGet env eid = liftQ $ Payroll.getEmployeeById (envConnectionPool env) eid
 payrollSalariesList env = liftQ $ Payroll.getSalaries (envConnectionPool env)
 payrollSalaryByEmployee env eid = liftQ $ Payroll.getSalaryByEmployee (envConnectionPool env) eid
+payrollEmployeeCreate env input = liftQ $ Payroll.createEmployee (envConnectionPool env) input
+payrollSalaryCreate env input = liftQ $ Payroll.createSalary (envConnectionPool env) input
 
 -- ── Accounting handlers ─────────────────────────────────────────────────────
 handleBalance :: Env -> Maybe Day -> Maybe Day -> Handler Accounting.BalanceResponse

@@ -16,4 +16,9 @@ QtObject {
     property var paginator: Qt.resolvedUrl("Paginator.qml")
     property var dateField: Qt.resolvedUrl("DateField.qml")
     property var menuButton: Qt.resolvedUrl("MenuButton.qml")
+    property var billDialog: Qt.resolvedUrl("dialogs/BillDialog.qml")
+    property var goodsDialog: Qt.resolvedUrl("dialogs/GoodsDialog.qml")
+    property var personDialog: Qt.resolvedUrl("dialogs/PersonDialog.qml")
+    property var locationDialog: Qt.resolvedUrl("dialogs/LocationDialog.qml")
+    property var paymentDialog: Qt.resolvedUrl("dialogs/PaymentDialog.qml")
 }

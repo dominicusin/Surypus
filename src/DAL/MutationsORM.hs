@@ -46,7 +46,9 @@ module DAL.MutationsORM (
     deleteAccPlan,
     createAccTurn,
     updateAccTurn,
-    deleteAccTurn
+    deleteAccTurn,
+    createEmployee,
+    createSalary
 ) where
 
 import Control.Monad.IO.Class (liftIO)
@@ -522,3 +524,34 @@ deleteAccTurn pool turnId = do
 
 accTurnKey :: Int64 -> P.Key AccTurnEntity
 accTurnKey n = toSqlKey n
+
+employeeKey :: Int64 -> P.Key EmployeeEntity
+employeeKey n = toSqlKey n
+
+salaryKey :: Int64 -> P.Key SalaryEntity
+salaryKey n = toSqlKey n
+
+createEmployee :: ConnectionPool -> EmployeeInput -> IO (QueryResult MutationResult)
+createEmployee pool input = do
+    let entity = EmployeeEntity { employeeEntityCode = eiCode input
+        , employeeEntityName = eiName input
+        , employeeEntityTabNum = eiTabNum input
+        , employeeEntityHireDate = eiHireDate input
+        , employeeEntityStatus = eiStatus input
+        }
+    key <- liftIO $ runSqlPool (P.insert entity) pool
+    return $ QuerySuccess (MutationResult True (Just $ keyToInt key) "Employee created")
+
+createSalary :: ConnectionPool -> SalaryInput -> IO (QueryResult MutationResult)
+createSalary pool input = do
+    let net = siGross input - siTax input - siPension input - siOther input
+        entity = SalaryEntity { salaryEntityEmployeeId = siEmpId input
+        , salaryEntityDate = siDate input
+        , salaryEntityGross = siGross input
+        , salaryEntityNet = net
+        , salaryEntityTaxAmount = siTax input
+        , salaryEntityPension = siPension input
+        , salaryEntityOther = siOther input
+        }
+    key <- liftIO $ runSqlPool (P.insert entity) pool
+    return $ QuerySuccess (MutationResult True (Just $ keyToInt key) "Salary created")

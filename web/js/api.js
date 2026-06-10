@@ -199,11 +199,13 @@ const api = {
     payroll: {
         employees: {
             list: () => axios.get(`${API_BASE}/payroll/employees`),
-            get: (id) => axios.get(`${API_BASE}/payroll/employees/${id}`)
+            get: (id) => axios.get(`${API_BASE}/payroll/employees/${id}`),
+            create: (data) => axios.post(`${API_BASE}/payroll/employees`, data)
         },
         salaries: {
             list: () => axios.get(`${API_BASE}/payroll/salaries`),
-            byEmployee: (empId) => axios.get(`${API_BASE}/payroll/salary/${empId}`)
+            byEmployee: (empId) => axios.get(`${API_BASE}/payroll/salary/${empId}`),
+            create: (data) => axios.post(`${API_BASE}/payroll/salaries`, data)
         }
     },
 

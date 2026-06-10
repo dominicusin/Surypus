@@ -2032,37 +2032,35 @@
             <div class="modal-body">
                 <div class="form-group">
                     <label class="form-label">Сотрудник *</label>
-                    <select class="form-input">
+                    <select class="form-input" id="salary-emp-id">
                         <option value="">Выберите сотрудника</option>
-                        <option>Петров А.С. - Директор</option>
-                        <option>Сидорова Е.П. - Бухгалтер</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Период *</label>
-                    <input type="month" class="form-input" value="2026-03">
+                    <label class="form-label">Дата *</label>
+                    <input type="date" class="form-input" id="salary-date">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Вид начисления</label>
-                    <select class="form-input">
-                        <option>Оклад</option>
-                        <option>Премия</option>
-                        <option>Отпускные</option>
-                        <option>Больничный</option>
-                    </select>
+                    <label class="form-label">Начислено *</label>
+                    <input type="number" class="form-input" id="salary-gross" placeholder="0.00" step="0.01">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Сумма *</label>
-                    <input type="number" class="form-input" placeholder="0.00">
+                    <label class="form-label">НДФЛ</label>
+                    <input type="number" class="form-input" id="salary-tax" placeholder="0.00" step="0.01" value="0">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Комментарий</label>
-                    <textarea class="form-input" rows="2" placeholder="Примечание"></textarea>
+                    <label class="form-label">Пенсионные</label>
+                    <input type="number" class="form-input" id="salary-pension" placeholder="0.00" step="0.01" value="0">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Прочие удержания</label>
+                    <input type="number" class="form-input" id="salary-other" placeholder="0.00" step="0.01" value="0">
                 </div>
             </div>
             <div class="modal-footer">
+                <span id="salary-error" style="color:var(--danger);font-size:13px;display:none;"></span>
                 <button class="btn btn-secondary" onclick="closeModal('salaryModal')">Отмена</button>
-                <button class="btn btn-primary" onclick="closeModal('salaryModal')">Начислить</button>
+                <button class="btn btn-primary" onclick="submitSalary()">Начислить</button>
             </div>
         </div>
     </div>
@@ -2538,7 +2536,17 @@
         }
 
         function exportAccountingPDF() {
-            alert('Функция экспорта PDF будет доступна в Phase 5 (Report Export)');
+            var params = getDateRange();
+            var payload = { rerReportType: 'balance', rerFormat: 'pdf', rerParams: params };
+            api.reports.export(payload)
+                .then(function(res) {
+                    var url = res.data.downloadUrl;
+                    if (url) { window.open(url, '_blank'); }
+                    else { alert('PDF сформирован, но ссылка не получена'); }
+                })
+                .catch(function(err) {
+                    alert('Ошибка экспорта PDF: ' + (err.response?.data?.message || 'сервер недоступен'));
+                });
         }
 
         // Submit accounting entry
@@ -2625,13 +2633,53 @@
             }
         }
 
+        function populateSalaryEmployeeSelect(employees) {
+            const sel = document.getElementById('salary-emp-id');
+            if (!sel) return;
+            sel.innerHTML = '<option value="">Выберите сотрудника</option>';
+            (employees || []).forEach(function(e) {
+                var opt = document.createElement('option');
+                opt.value = e.employeeId;
+                opt.textContent = e.employeeName + ' (' + (e.employeeCode || '—') + ')';
+                sel.appendChild(opt);
+            });
+        }
+
+        function submitSalary() {
+            var empId = parseInt(document.getElementById('salary-emp-id').value);
+            var date = document.getElementById('salary-date').value;
+            var gross = parseFloat(document.getElementById('salary-gross').value);
+            var tax = parseFloat(document.getElementById('salary-tax').value) || 0;
+            var pension = parseFloat(document.getElementById('salary-pension').value) || 0;
+            var other = parseFloat(document.getElementById('salary-other').value) || 0;
+
+            if (!empId || !date || !gross || gross <= 0) {
+                document.getElementById('salary-error').textContent = 'Заполните сотрудника, дату и начисление';
+                document.getElementById('salary-error').style.display = 'block';
+                return;
+            }
+            document.getElementById('salary-error').style.display = 'none';
+
+            api.payroll.salaries.create({ siEmpId: empId, siDate: date, siGross: gross, siTax: tax, siPension: pension, siOther: other })
+                .then(function() {
+                    closeModal('salaryModal');
+                    loadPayrollData();
+                })
+                .catch(function(err) {
+                    document.getElementById('salary-error').textContent = 'Ошибка: ' + (err.response?.data?.message || 'сервер недоступен');
+                    document.getElementById('salary-error').style.display = 'block';
+                });
+        }
+
         function renderEmployees(employees) {
             const body = document.getElementById('pr-employees-body');
             if (!employees || employees.length === 0) {
                 body.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-secondary);">Нет сотрудников</td></tr>';
                 document.getElementById('pr-emp-count').textContent = '0';
+                populateSalaryEmployeeSelect([]);
                 return;
             }
+            populateSalaryEmployeeSelect(employees);
             const statusLabels = { 1: 'Работает', 2: 'В отпуске', 3: 'Уволен' };
             const statusColors = { 1: 'var(--success)', 2: '#FF9800', 3: 'var(--error)' };
             body.innerHTML = employees.map(e => {

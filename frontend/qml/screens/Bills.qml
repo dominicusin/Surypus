@@ -22,14 +22,9 @@ Page {
         spacing: 16
 
         RowLayout {
-            MenuButton {
+            Button {
                 text: "➕ Создать"
-                menu: ContextMenu {
-                    MenuItem { text: "Счёт на оплату"; onTriggered: console.log("Create bill") }
-                    MenuItem { text: "Счёт-фактура"; onTriggered: console.log("Create invoice") }
-                    MenuItem { text: "Товарная накладная"; onTriggered: console.log("Create waybill") }
-                    MenuItem { text: "Акт выполненных работ"; onTriggered: console.log("Create act") }
-                }
+                onClicked: billDialog.open()
             }
             Button { text: "📋 Шаблоны"; onClicked: console.log("Templates") }
             Item { Layout.fillWidth: true }
@@ -70,5 +65,13 @@ Page {
         ListElement { number: "INV-2026-089"; date: "27.03.2026"; type: "Счёт"; customer: "ООО ТехноСтрой"; total: "50 000"; vat: "8 333"; location: "Основной"; status: "Проведён"; author: "admin" }
         ListElement { number: "INV-2026-088"; date: "26.03.2026"; type: "Счёт"; customer: "ИП Иванов"; total: "25 000"; vat: "4 167"; location: "Основной"; status: "На утвержд."; author: "admin" }
         ListElement { number: "INV-2026-087"; date: "25.03.2026"; type: "Счёт"; customer: "ООО МегаТрейд"; total: "75 000"; vat: "12 500"; location: "Розничный"; status: "Черновик"; author: "buh" }
+    }
+
+    BillDialog {
+        id: billDialog
+        onSaved: function(data) {
+            console.log("Bill saved:", JSON.stringify(data));
+            if (restClient) restClient.createBill(data, function() { console.log("Bill created") });
+        }
     }
 }

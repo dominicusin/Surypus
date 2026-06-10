@@ -21,7 +21,7 @@ Page {
         spacing: 16
 
         RowLayout {
-            Button { text: "➕ Добавить"; icon.source: "qrc:/icons/add.png"; onClicked: console.log("Add person") }
+            Button { text: "➕ Добавить"; icon.source: "qrc:/icons/add.png"; onClicked: personDialog.open() }
             Button { text: "📥 Импорт"; onClicked: console.log("Import") }
             Button { text: "📤 Экспорт"; onClicked: console.log("Export") }
             Item { Layout.fillWidth: true }
@@ -58,5 +58,16 @@ Page {
         ListElement { code: "P001"; name: "ООО ТехноСтрой"; inn: "7701234567890"; kpp: "770101001"; type: "Юр. лицо"; phone: "+7 495 123-4567"; email: "info@tehnostroy.ru"; status: "Активен" }
         ListElement { code: "P002"; name: "ИП Иванов И.И."; inn: "7709876543210"; kpp: ""; type: "ИП"; phone: "+7 916 123-4567"; email: "ivanov@mail.ru"; status: "Активен" }
         ListElement { code: "P003"; name: "ООО МегаТрейд"; inn: "7705555555555"; kpp: "770201001"; type: "Юр. лицо"; phone: "+7 495 987-6543"; email: "info@megatrade.ru"; status: "Активен" }
+    }
+
+    PersonDialog {
+        id: personDialog
+        onSaved: function(data) {
+            console.log("Person saved:", JSON.stringify(data));
+            if (restClient) restClient.createPerson(data, function() {
+                console.log("Person created");
+                if (restClient.loadPersons) restClient.loadPersons();
+            });
+        }
     }
 }

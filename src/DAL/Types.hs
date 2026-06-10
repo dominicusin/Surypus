@@ -33,7 +33,9 @@ module DAL.Types (
     AccTurn   (..),
     AccTurnInput   (..),
     Salary   (..),
+    SalaryInput   (..),
     Employee   (..),
+    EmployeeInput   (..),
     PayrollResult   (..),
     ReportTemplate   (..),
     Order   (..),
@@ -480,6 +482,33 @@ data Employee = Employee
 
 instance ToJSON Employee
 instance FromJSON Employee
+
+-- | Employee input type
+data EmployeeInput = EmployeeInput
+  { eiName :: !Text,
+    eiCode :: !Text,
+    eiTabNum :: !(Maybe Text),
+    eiHireDate :: !(Maybe Day),
+    eiStatus :: !Int
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON EmployeeInput
+instance FromJSON EmployeeInput
+
+-- | Salary input type
+data SalaryInput = SalaryInput
+  { siEmpId :: !Int64,
+    siDate :: !Day,
+    siGross :: !Double,
+    siTax :: !Double,
+    siPension :: !Double,
+    siOther :: !Double
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON SalaryInput
+instance FromJSON SalaryInput
 
 -- | ReportTemplate type
 data ReportTemplate = ReportTemplate
