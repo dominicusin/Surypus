@@ -3,6 +3,7 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
 
@@ -22,8 +23,9 @@ import qualified Data.Text.Lazy.Encoding as LBS
 import Data.Time.Calendar (fromGregorian)
 import qualified Data.UUID as UUID
 import qualified Data.UUID.V4 as UUIDv4
+import Database.Persist.Sql (runSqlPool, rawSql, Single(..))
 import GHC.Generics (Generic)
-import Network.HTTP.Types (status200, status401, status429)
+import Network.HTTP.Types (status200, status401, status429, status503)
 import Network.Wai as W
 import Network.Wai.Handler.WebSockets (websocketsOr)
 import qualified Network.WebSockets as NetWS
@@ -125,7 +127,7 @@ apiServer connPool logger metrics publicPaths checkPermission = do
                     WS.handleWebSocket wsHandler conn
                 else
                     NetWS.rejectRequest pending "Not a WebSocket request"
-        baseApp = metricsEndpoint metrics
+        servantApp = metricsEndpoint metrics
             $ RL.rateLimiterMiddleware rlConfig rlState
             $ withMetricsCollection metricsCfg
             $ correlationMiddleware logger
@@ -133,7 +135,20 @@ apiServer connPool logger metrics publicPaths checkPermission = do
             $ authMiddleware
             $ withAuthzResolverAdvanced publicPaths checkPermission
             $ serve (Proxy @SurypusApi) (server env)
+        baseApp = healthEndpoint connPool servantApp
     return $ websocketsOr NetWS.defaultConnectionOptions wsApp baseApp
+
+healthEndpoint :: ConnectionPool -> Application -> Application
+healthEndpoint connPool app req respond =
+    case W.rawPathInfo req of
+        "/api/v1/health" -> do
+            respond $ W.responseLBS status200 [("Content-Type", "text/plain")] "OK"
+        "/api/v1/health/db" -> do
+            result <- runSqlPool (rawSql "SELECT 1 as health" []) connPool
+            case result of
+                [Single (1 :: Int64)] -> respond $ W.responseLBS status200 [("Content-Type", "text/plain")] "DB OK"
+                _ -> respond $ W.responseLBS status503 [("Content-Type", "text/plain")] "DB ERROR"
+        _ -> app req respond
 
 metricsEndpoint :: Metrics -> Application -> Application
 metricsEndpoint metrics app req respond =

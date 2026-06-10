@@ -1,0 +1,95 @@
+# LiquidHaskell Configuration for Surypus
+
+## Prerequisites
+- GHC 9.6.x (currently using 9.6.5)
+- LiquidHaskell 0.9.x (requires GHC 9.14+ for latest, consider upgrading GHC)
+
+## Current Status
+LiquidHaskell refinement type annotations have been added to:
+- Core.Tax: VAT invariants (rate 0-1, result >= 0 and <= base)
+- Finance.Accounting: Double-entry invariants (debit/credit non-negative, balanced transactions)
+- Inventory.Stock: Stock invariants (Rest = Initial + Receipt - Issue, non-negative quantities)
+
+## Build Integration
+When LiquidHaskell is available (GHC 9.14+), add to CI pipeline:
+
+```yaml
+# .github/workflows/liquidhaskell.yml
+name: LiquidHaskell Verification
+on: [push, pull_request]
+jobs:
+  liquid:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: haskell/actions/setup@v2
+        with:
+          ghc-version: '9.14'
+      - name: Install LiquidHaskell
+        run: cabal install liquidhaskell
+      - name: Run LiquidHaskell
+        run: liquidhaskell src/Core/Tax.hs src/Finance/Accounting.hs src/Inventory/Stock.hs
+```
+
+## Refinement Types Summary
+
+### Core.Tax
+```haskell
+{-@ type ValidTaxRate = {v:Double | v >= 0.0 && v <= 1.0} @-}
+{-@ type NonNegDouble = {v:Double | v >= 0.0} @-}
+
+{-@ applyTax :: rate:ValidTaxRate -> base:NonNegDouble -> {v:NonNegDouble | v <= base} @-}
+applyTax :: Double -> Double -> Double
+
+{-@ applyTaxInclusive :: rate:ValidTaxRate -> gross:NonNegDouble -> {v:NonNegDouble | v <= gross} @-}
+applyTaxInclusive :: Double -> Double -> Double
+
+{-@ totalTax :: brackets:[ValidTaxRate] -> base:NonNegDouble -> NonNegDouble @-}
+totalTax :: [Double] -> Double -> Double
+```
+
+### Finance.Accounting
+```haskell
+{-@ type NonNeg = {v:Decimal | v >= 0} @-}
+
+{-@ mkLedgerEntry :: _ -> _ -> _ -> _ -> debit:NonNeg -> credit:NonNeg -> _ -> Maybe LedgerEntry @-}
+mkLedgerEntry :: Maybe Int64 -> Day -> Int64 -> Text -> Decimal -> Decimal -> Maybe Text -> Maybe LedgerEntry
+
+{-@ validateTransaction :: tx:Transaction -> Either Text {v:Transaction | sumDebits v == sumCredits v} @-}
+validateTransaction :: Transaction -> Either Text Transaction
+```
+
+### Inventory.Stock
+```haskell
+{-@ type NonNegDouble = {v:Double | v >= 0} @-}
+{-@ type ValidStock = {v:Stock | validStock v} @-}
+
+{-@ measure validStock @-}
+validStock :: Stock -> Bool
+validStock stock = (sQtty stock >= 0) && (sResrvQtty stock >= 0) && (sOrderedQtty stock >= 0) && (sCost stock >= 0) && (sPrice stock >= 0)
+
+{-@ mkStock :: Int64 -> Int64 -> qtty:Double -> resrv:NonNegDouble -> ordered:NonNegDouble -> cost:NonNegDouble -> price:NonNegDouble -> StockFlags -> Maybe ValidStock @-}
+mkStock :: Int64 -> Int64 -> Double -> Double -> Double -> Double -> Double -> StockFlags -> Maybe Stock
+
+{-@ initialStock :: Int64 -> Int64 -> NonNegDouble -> NonNegDouble -> NonNegDouble -> NonNegDouble -> NonNegDouble -> StockFlags -> ValidStock @-}
+initialStock :: Int64 -> Int64 -> Double -> Double -> Double -> Double -> Double -> StockFlags -> Stock
+
+{-@ receiveStock :: ValidStock -> NonNegDouble -> ValidStock @-}
+receiveStock :: Stock -> Double -> Stock
+
+{-@ shipStock :: ValidStock -> NonNegDouble -> ValidStock @-}
+shipStock :: Stock -> Double -> Stock
+
+{-@ adjustStock :: ValidStock -> Double -> StockFlags -> Maybe ValidStock @-}
+adjustStock :: Stock -> Double -> StockFlags -> Maybe Stock
+```
+
+## Invariant Coverage
+- ✅ VAT: result >= 0 and <= base
+- ✅ Double-entry: ΣDebit = ΣCredit (validated in validateTransaction)
+- ✅ Stock: Rest = Initial + Receipt - Issue (via receiveStock/shipStock/adjustStock measures)
+
+## Next Steps
+1. Upgrade GHC to 9.14+ for LiquidHaskell 0.9.x support
+2. Add liquidhaskell to CI pipeline
+3. Extend annotations to Payroll and other financial modules

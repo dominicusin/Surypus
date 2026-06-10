@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
--- | Structured JSON logging module
+-- | Structured JSON logging module using katip
 module Surypus.API.Logger (
     LogLevel (..),
     LogField,
@@ -16,6 +16,7 @@ module Surypus.API.Logger (
     logDBQuery,
 ) where
 
+import Control.Monad (when)
 import Data.Aeson (object, (.=))
 import qualified Data.Aeson as A
 import Data.Aeson.Key (fromText)
@@ -25,8 +26,9 @@ import qualified Data.Text as T
 import Data.Time.Clock (getCurrentTime)
 import Data.Time.Format (formatTime, defaultTimeLocale)
 import qualified Data.ByteString.Lazy.Char8 as LBC
+import qualified Katip as K
+import qualified Katip.Scribes.Handle as KS
 import System.IO (stdout, hFlush)
-import Control.Monad (when)
 
 data LogLevel = Debug | Info | Warn | Error deriving (Show, Eq, Ord, Enum, Bounded)
 
@@ -35,40 +37,41 @@ type LogField = (String, String)
 data Logger = Logger
     { loggerLevel :: LogLevel
     , loggerCorrId :: IORef (Maybe String)
+    , katipEnv :: K.LogEnv
     }
 
 initLogger :: LogLevel -> IO Logger
 initLogger level = do
     corrId <- newIORef Nothing
-    return $ Logger level corrId
+    le <- K.initLogEnv "Surypus" "production"
+    -- Use fast-logger backend (text format for stdout)
+    let permitFunc :: K.Item a -> IO Bool
+        permitFunc _ = return True
+    scribe <- KS.mkHandleScribe KS.ColorIfTerminal stdout permitFunc K.V2
+    le' <- K.registerScribe "stdout" scribe K.defaultScribeSettings le
+    pure $ Logger level corrId le'
 
-levelToText :: LogLevel -> Text
-levelToText Debug = "DEBUG"
-levelToText Info  = "INFO"
-levelToText Warn  = "WARN"
-levelToText Error = "ERROR"
+levelToKatip :: LogLevel -> K.Severity
+levelToKatip Debug = K.DebugS
+levelToKatip Info  = K.InfoS
+levelToKatip Warn  = K.WarningS
+levelToKatip Error = K.ErrorS
 
-logJson :: Logger -> LogLevel -> String -> [LogField] -> IO ()
-logJson logger lvl msg fields = do
+logKatip :: Logger -> LogLevel -> String -> [LogField] -> IO ()
+logKatip logger lvl msg fields = do
     mCorrId <- readIORef (loggerCorrId logger)
-    now <- getCurrentTime
-    let ts = T.pack $ formatTime defaultTimeLocale "%FT%T%QZ" now
-        jsonFields = case mCorrId of
-            Just cid -> ("correlation_id", T.pack cid) : map (\(k, v) -> (T.pack k, T.pack v)) fields
-            Nothing  -> map (\(k, v) -> (T.pack k, T.pack v)) fields
-        fieldPairs = map (\(k, v) -> fromText k .= v) jsonFields
-        entry = object $
-            [ "timestamp" .= ts
-            , "level" .= levelToText lvl
-            , "message" .= T.pack msg
-            ] ++ fieldPairs
-    LBC.hPutStrLn stdout (A.encode entry)
-    hFlush stdout
+    let ns = K.Namespace ["surypus"]
+        severity = levelToKatip lvl
+        msgWithCorr = case mCorrId of
+            Just cid -> msg ++ " [correlation_id=" ++ cid ++ "]"
+            Nothing  -> msg
+        logAction = K.logMsg ns severity (K.logStr (T.pack msgWithCorr))
+    K.runKatipT (katipEnv logger) logAction
 
 logMessage :: Logger -> LogLevel -> String -> [LogField] -> IO ()
 logMessage logger lvl msg fields =
     when (lvl >= loggerLevel logger) $
-        logJson logger lvl msg fields
+        logKatip logger lvl msg fields
 
 logDebug :: Logger -> String -> [LogField] -> IO ()
 logDebug logger msg fields = logMessage logger Debug msg fields

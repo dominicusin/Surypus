@@ -20,9 +20,10 @@ import qualified Data.Text.Encoding as TE
 import Data.Time.Clock (NominalDiffTime, UTCTime, diffUTCTime, getCurrentTime)
 import Network.HTTP.Types (status429)
 import Network.Socket (SockAddr(..))
-import Network.Wai (Application, Request, requestHeaders, responseLBS)
+import Network.Wai (Application, Request, requestHeaders, responseLBS, mapResponseHeaders)
 import qualified Network.Wai as W
 import qualified Surypus.JWT.Token as JWT
+import qualified Data.ByteString.Char8 as BS
 
 data RateLimiterConfig = RateLimiterConfig
   { rlcDefaultIpLimit :: !Int
@@ -54,15 +55,15 @@ rateLimiterMiddleware :: RateLimiterConfig -> RateLimiterState -> Application ->
 rateLimiterMiddleware cfg state app req respond = do
   let clientIp = extractClientIp req
 
-  ipLimitOk <- checkSlidingWindow
+  (ipLimitOk, ipRemaining, ipReset) <- checkSlidingWindowWithHeaders
     (rlsIpWindows state)
     clientIp
     (rlcDefaultIpLimit cfg)
     (rlcWindowSec cfg)
   if not ipLimitOk
-    then respond rateLimitedResponse
+    then respond $ rateLimitedResponse 0 (rlcWindowSec cfg)
     else do
-      tenantCheck <- case extractBearerToken req of
+      (tenantOk, tenantRemaining, tenantReset) <- case extractBearerToken req of
         Just token -> do
           result <- JWT.verifyToken token
           case result of
@@ -70,19 +71,37 @@ rateLimiterMiddleware cfg state app req respond = do
               Just tid -> do
                 let limit = fromMaybe (rlcDefaultTenantLimit cfg)
                           (M.lookup tid (rlcTenantOverrides cfg))
-                checkSlidingWindow (rlsTenantWindows state) tid limit (rlcWindowSec cfg)
-              Nothing -> return True
-            Left _ -> return True
-        Nothing -> return True
-      if tenantCheck
-        then app req respond
-        else respond rateLimitedResponse
+                checkSlidingWindowWithHeaders (rlsTenantWindows state) tid limit (rlcWindowSec cfg)
+              Nothing -> return (True, rlcDefaultTenantLimit cfg, rlcWindowSec cfg)
+            Left _ -> return (True, rlcDefaultTenantLimit cfg, rlcWindowSec cfg)
+        Nothing -> return (True, rlcDefaultTenantLimit cfg, rlcWindowSec cfg)
+      let limit = min (rlcDefaultIpLimit cfg) (if tenantOk then tenantRemaining else rlcDefaultTenantLimit cfg)
+          remaining = min (ipRemaining) (if tenantOk then tenantRemaining else ipRemaining)
+          resetTime = max (ipReset) tenantReset
+      if tenantOk
+        then app req $ \res ->
+          respond $ addRateLimitHeaders limit remaining resetTime res
+        else respond $ rateLimitedResponse remaining tenantReset
 
-rateLimitedResponse :: W.Response
-rateLimitedResponse =
+rateLimitedResponse :: Int -> Int -> W.Response
+rateLimitedResponse remaining resetSec =
   responseLBS status429
-    [("Content-Type", "application/json")]
+    [ ("Content-Type", "application/json")
+    , ("RateLimit-Limit", BS.pack (show remaining))
+    , ("RateLimit-Remaining", "0")
+    , ("RateLimit-Reset", BS.pack (show resetSec))
+    ]
     "{\"error\":\"Rate limit exceeded\"}"
+
+addRateLimitHeaders :: Int -> Int -> Int -> W.Response -> W.Response
+addRateLimitHeaders limit remaining resetSec res =
+  let headers = W.responseHeaders res
+      newHeaders = headers ++
+        [ ("RateLimit-Limit", BS.pack (show limit))
+        , ("RateLimit-Remaining", BS.pack (show remaining))
+        , ("RateLimit-Reset", BS.pack (show resetSec))
+        ]
+  in W.mapResponseHeaders (const newHeaders) res
 
 extractClientIp :: Request -> Text
 extractClientIp req =
@@ -101,14 +120,21 @@ extractBearerToken req = do
 
 checkSlidingWindow :: (Ord k) => TVar (Map k (Seq UTCTime)) -> k -> Int -> Int -> IO Bool
 checkSlidingWindow var key limit windowSec = do
+  (ok, _, _) <- checkSlidingWindowWithHeaders var key limit windowSec
+  return ok
+
+checkSlidingWindowWithHeaders :: (Ord k) => TVar (Map k (Seq UTCTime)) -> k -> Int -> Int -> IO (Bool, Int, Int)
+checkSlidingWindowWithHeaders var key limit windowSec = do
   now <- getCurrentTime
   let windowSize = fromIntegral windowSec :: NominalDiffTime
   atomically $ do
     m <- readTVar var
     let reqs = fromMaybe Seq.empty (M.lookup key m)
         valid = Seq.dropWhileL (\t -> diffUTCTime now t > windowSize) reqs
+        remaining = limit - Seq.length valid
+        resetSec = windowSec
     if Seq.length valid < limit
       then do
         writeTVar var (M.insert key (valid Seq.|> now) m)
-        return True
-      else return False
+        return (True, remaining, resetSec)
+      else return (False, 0, resetSec)

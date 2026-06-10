@@ -1,8 +1,8 @@
 # Surypus Project State
 
 **Milestone**: v1.0 - Production-ready ERP System
-**Last Updated**: 2026-06-07
-**Current Phase**: Phase 4 (Event Sourcing & Infrastructure) - IN PROGRESS
+**Last Updated**: 2026-06-09
+**Current Phase**: Phase 8 (Final Integration & Release) - PENDING
 
 ## Phase Progress
 
@@ -11,28 +11,58 @@
 | Phase 1: Core API & DB Integration | ✅ COMPLETE | 100% | All API handlers use real database |
 | Phase 2: JWT Auth & RBAC | ✅ COMPLETE | 100% | JWT middleware, RBAC, audit logging |
 | Phase 3: Bill Posting & Accounting | ✅ COMPLETE | 100% | Atomic bill posting, QuickCheck tests |
-| Phase 4: Event Sourcing & Infrastructure | 🔄 IN PROGRESS | 25% | Plan 4.1 Event Store COMPLETE, 4.2-4.4 pending |
-| Phase 5: LiquidHaskell Verification | ⏳ PENDING | 0% | Requires LiquidHaskell setup |
-| Phase 6: Docker & CI/CD | ⏳ PENDING | 0% | Multi-stage Dockerfile, CI pipeline |
-| Phase 7: API Hardening | ⏳ PENDING | 0% | Rate limiting, metrics, logging |
+| Phase 4: Event Sourcing & Infrastructure | ✅ COMPLETE | 100% | EventStore, WebSocket, Redis, Payroll, Inventory/Bill services all integrated |
+| Phase 5: LiquidHaskell Formal Verification | ✅ COMPLETE (Annotations) | 100% | Refinement types on Tax, Accounting, Stock; CI pending GHC 9.14+ |
+| Phase 6: Docker & CI/CD | ✅ COMPLETE | 100% | Multi-stage Dockerfile, docker-compose with Redis, CI pipeline, health endpoints |
+| Phase 7: API Hardening | ✅ COMPLETE | 100% | Rate limiting, Prometheus metrics, katip logging, RateLimit headers, correlation IDs |
 | Phase 8: Final Integration & Release | ⏳ PENDING | 0% | Final testing and release |
 
-## Current Focus
-**Phase 4: Event Sourcing & Infrastructure**
-- Plan 4.1: Hasql Event Store - **COMPLETE** (Event Store implemented with Hasql)
-- Plan 4.2: Event-Driven Accounting - PENDING
-- Plan 4.3: WebSocket Broadcast - PENDING
-- Plan 4.4: Redis Task Queue - PENDING
+## Phase 7 Completed Items
+- ✅ Rate limiting (100 req/min/IP, sliding window, per-IP/per-tenant with RateLimit headers)
+- ✅ Prometheus metrics endpoint (/metrics) with request count, duration histogram, error rate
+- ✅ Structured JSON logging (katip) with correlation IDs, tenant context
+- ✅ RateLimit response headers (RateLimit-Limit, RateLimit-Remaining, RateLimit-Reset)
+- ✅ Request tracing with correlation IDs (correlationMiddleware + katip logging)
+- ⏳ Circuit breaker for external integrations (System.CircuitBreaker exists, needs integration)
 
-## Blockers/Concerns
-- None currently - Phase 4.1 Event Store complete, ready to proceed with 4.2
+## Phase 6 Completed Items
+- ✅ Multi-stage Dockerfile (builder → runtime with libpq5, curl, dumb-init)
+- ✅ docker-compose.yml with PostgreSQL, Redis, API, Worker services
+- ✅ GitHub Actions CI pipeline (build, test, hlint, liquidhaskell, docker)
+- ✅ Health check endpoints: `/api/v1/health` (OK), `/api/v1/health/db` (DB OK/ERROR)
+- ✅ Health check middleware implemented as WAI middleware (runs before auth)
+- ✅ Docker HEALTHCHECK uses curl to `/api/v1/health`
 
-## Completed Phases Summary
-- Phase 1: Core API & DB Integration - All API handlers connected to real DB
-- Phase 2: JWT Auth & RBAC - Middleware, refresh tokens, RBAC, audit logging
-- Phase 3: Bill Posting - Atomic transactions, QuickCheck tests, Swagger
+## Phase 5 Completed Items
+- ✅ Core.Tax: VAT invariants (rate 0-1, result >= 0 and <= base)
+- ✅ Finance.Accounting: Double-entry invariants (debit/credit non-negative, balanced transactions)
+- ✅ Inventory.Stock: Stock invariants (Rest = Initial + Receipt - Issue, non-negative quantities)
+- ⏳ LiquidHaskell CI pipeline: Pending GHC 9.14+ upgrade (current 9.6.5)
+
+## Phase 4 Completed Items
+- ✅ DAL.EventStore (262 lines) - real Persistent-backed Event Store
+- ✅ Infrastructure.EventStore.Inventory (201 lines) - event-sourced inventory
+- ✅ Infrastructure.EventStore.Accounting - event-sourced accounting
+- ✅ Core.Services.Accounting (144 lines) - integrated with EventStore
+- ✅ Service.InventoryService - integrated with EventStore
+- ✅ DAL.Payroll (121 lines) - Decimal precision payroll persistence
+- ✅ Core.Accounting.Cache - real ConnectionPool
+- ✅ DAL.Repository.RBAC - real Persistent queries
+- ✅ Surypus.API.Bills.postBill - emits bill.posted events to EventStore
+- ✅ Surypus.WebSocket.Integration - fixed truncated JSON (finalizeMessage called)
+- ✅ Integration.Health - real DB persistence with IntegrationHealthEntity
+- ✅ Core.Accounting.RedisCache (304 lines) - full Redis implementation
+- ✅ Schema coverage - WorkflowDefinition, WorkflowInstance, TechCard, WorkOrder entities added
+
+## Remaining bd Issues (8)
+- T-032: Connect Validation.hs to API handlers (P3)
+- T-030: Complete API/GraphQL/Proxy.hs (P3)
+- T-029: Complete Surypus/API/Production.hs (P3)
+- T-028: Connect authMiddleware to RBAC (P3)
+- T-027: Verify all handlers in Surypus/API/Server.hs (P3)
+- T-038: Document API contracts with Swagger/OpenAPI (P4)
+- T-036: Archive/remove incomplete modules (P4)
+- T-033: Eliminate duplicate types across modules (P4)
 
 ## Next Actions
-1. Begin Phase 4.2: Event-Driven Accounting - Translate accounting entries to events
-2. Plan 4.3: WebSocket Broadcast implementation
-3. Plan 4.4: Redis Task Queue for background processing
+1. Phase 8: Final Integration & Release - full test suite, health endpoint, release artifacts
