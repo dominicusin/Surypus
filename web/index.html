@@ -975,7 +975,7 @@
                 <span class="nav-icon">📦</span>
                 <span>Товары</span>
             </div>
-            <div class="nav-item" data-page="locations" onclick="navigateTo('locations')">
+            <div class="nav-item" data-page="stock" onclick="navigateTo('stock')">
                 <span class="nav-icon">🏭</span>
                 <span>Склады</span>
             </div>
@@ -983,14 +983,6 @@
                 <span class="nav-icon">📋</span>
                 <span>Документы</span>
                 <span class="nav-badge">12</span>
-            </div>
-            <div class="nav-item" data-page="stock" onclick="navigateTo('stock')">
-                <span class="nav-icon">📈</span>
-                <span>Складской учёт</span>
-            </div>
-            <div class="nav-item" data-page="locations" onclick="navigateTo('locations')">
-                <span class="nav-icon">🏪</span>
-                <span>Склады</span>
             </div>
             <div class="nav-item" data-page="accounting" onclick="navigateTo('accounting')">
                 <span class="nav-icon">💰</span>
@@ -1044,9 +1036,9 @@
                     <div class="stat-value">12</div>
                     <div class="stat-label">Задачи</div>
                 </div>
-                <div class="stat-card" onclick="navigateTo('locations')">
+                <div class="stat-card" onclick="navigateTo('stock')">
                     <div class="stat-icon" style="background: #FFF3E0; color: #FF9800;">🏭</div>
-                    <div class="stat-value">5</div>
+                    <div class="stat-value" id="stat-locations">5</div>
                     <div class="stat-label">Склады</div>
                 </div>
             </div>
@@ -1756,21 +1748,21 @@
                     <div class="card-body" style="padding: 20px;">
                         <div class="form-group">
                             <label class="form-label">Название организации</label>
-                            <input type="text" class="form-input" value="ООО ТехноСтрой">
+                            <input type="text" class="form-input" id="settings-org-name" placeholder="Загрузка...">
                         </div>
                         <div class="form-group">
                             <label class="form-label">ИНН</label>
-                            <input type="text" class="form-input" value="7701234567890">
+                            <input type="text" class="form-input" id="settings-org-inn" placeholder="Загрузка...">
                         </div>
                         <div class="form-group">
                             <label class="form-label">КПП</label>
-                            <input type="text" class="form-input" value="770101001">
+                            <input type="text" class="form-input" id="settings-org-kpp" placeholder="Загрузка...">
                         </div>
                         <div class="form-group">
                             <label class="form-label">ОГРН</label>
-                            <input type="text" class="form-input" value="1167746701245">
+                            <input type="text" class="form-input" id="settings-org-ogrn" placeholder="Загрузка...">
                         </div>
-                        <button class="btn btn-primary">Сохранить</button>
+                        <button class="btn btn-primary" id="settings-save-btn" style="display:none;">Сохранить</button>
                     </div>
                 </div>
                 
@@ -1818,18 +1810,9 @@
                                     <th>Роль</th>
                                     <th>Статус</th>
                                 </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                    <td>admin</td>
-                                    <td>Администратор</td>
-                                    <td><span class="status-badge status-active">Активен</span></td>
-                                </tr>
-                                <tr>
-                                    <td>buh</td>
-                                    <td>Бухгалтер</td>
-                                    <td><span class="status-badge status-active">Активен</span></td>
-                                </tr>
+                            </thead>
+                            <tbody id="settings-users-body">
+                                <tr><td colspan="3" style="text-align:center;color:var(--text-secondary);">Загрузка...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -1839,21 +1822,8 @@
                     <div class="card-header">
                         <span class="card-title">Подключения</span>
                     </div>
-                    <div class="card-body" style="padding: 20px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--divider);">
-                            <div>
-                                <div style="font-weight: 500;">PostgreSQL</div>
-                                <div style="font-size: 12px; color: var(--text-secondary);">localhost:5432</div>
-                            </div>
-                            <span class="status-badge status-active">Подключено</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--divider);">
-                            <div>
-                                <div style="font-weight: 500;">API Server</div>
-                                <div style="font-size: 12px; color: var(--text-secondary);">localhost:8080</div>
-                            </div>
-                            <span class="status-badge status-active">Подключено</span>
-                        </div>
+                    <div class="card-body" id="settings-connections-body" style="padding: 20px;">
+                        <div style="text-align:center;color:var(--text-secondary);">Загрузка...</div>
                     </div>
                 </div>
             </div>
@@ -1862,8 +1832,8 @@
     
     <!-- Footer -->
     <footer class="footer">
-        <div>Пользователь: Администратор | Организация: ООО ТехноСтрой</div>
-        <div>База данных: Подключена ✓ | Версия: 0.1.0</div>
+        <div><span id="footer-user">Пользователь</span> | <span id="footer-org">Организация</span></div>
+        <div>База данных: Подключена ✓ | Версия: <span id="footer-version">0.1.0</span></div>
     </footer>
     
     <!-- Modal: Person -->
@@ -2192,6 +2162,7 @@
             if (user) {
                 document.querySelectorAll('.user-name').forEach(function(el) { el.textContent = user.name; });
                 document.querySelectorAll('.user-email').forEach(function(el) { el.textContent = 'ID: ' + user.id; });
+                document.getElementById('footer-user').textContent = user.name;
             }
         }
         function doLogout() {
@@ -2290,7 +2261,7 @@
             document.querySelector('[data-page="' + page + '"]').classList.add('active');
 
             // Auto-load page data
-            var loadMap = { dashboard: loadDashboardData, persons: loadPersonsData, goods: loadGoodsData, bills: loadBillsData, accounting: loadAccountingData, payroll: loadPayrollData, stock: loadStockData };
+            var loadMap = { dashboard: loadDashboardData, persons: loadPersonsData, goods: loadGoodsData, bills: loadBillsData, accounting: loadAccountingData, payroll: loadPayrollData, stock: loadStockData, settings: loadSettingsData };
             if (loadMap[page]) setTimeout(loadMap[page], 50);
         }
         
@@ -2354,6 +2325,9 @@
                 document.querySelector('.nav-badge').textContent = personsCount || '0';
                 document.querySelectorAll('.nav-badge')[1].textContent = (billsData.length || billsData.total || kpi.kpiOrders || '0').toString();
 
+                var tn = localStorage.getItem('surypus_tenant_name');
+                if (tn) document.getElementById('footer-org').textContent = tn;
+
                 var recentBody = document.querySelector('#page-dashboard table tbody');
                 if (recentBody && billsData.length) {
                     recentBody.innerHTML = billsData.slice(0, 5).map(function(b) {
@@ -2364,6 +2338,50 @@
                     }).join('');
                 }
             } catch (e) { console.error('Dashboard load error:', e); }
+        }
+
+        async function loadSettingsData() {
+            try {
+                var [tenantRes, usersRes, healthRes] = await Promise.all([
+                    api.tenants.list().catch(function() { return { data: [] }; }),
+                    api.users.list().catch(function() { return { data: [] }; }),
+                    api.health.check().catch(function() { return { data: {} }; })
+                ]);
+                var tenants = tenantRes.data || [];
+                var users = usersRes.data || [];
+                var health = healthRes.data || {};
+
+                var currentTenantId = parseInt(localStorage.getItem('surypus_tenant_id') || '0');
+                var currentTenant = tenants.find(function(t) { return t.tenantId === currentTenantId; }) || tenants[0];
+
+                if (currentTenant) {
+                    document.getElementById('settings-org-name').value = currentTenant.tenantName || '';
+                    document.getElementById('settings-org-inn').value = currentTenant.inn || '';
+                    document.getElementById('settings-org-kpp').value = currentTenant.kpp || '';
+                    document.getElementById('settings-org-ogrn').value = currentTenant.ogrn || '';
+                    document.getElementById('settings-save-btn').style.display = 'inline-block';
+                }
+
+                var usersBody = document.getElementById('settings-users-body');
+                if (!users.length) {
+                    usersBody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-secondary);">Нет пользователей</td></tr>';
+                } else {
+                    usersBody.innerHTML = users.map(function(u) {
+                        var roleLabel = u.userRole === 'admin' ? 'Администратор' : u.userRole === 'accountant' ? 'Бухгалтер' : u.userRole;
+                        var statusClass = u.userStatus === 'active' ? 'status-active' : 'status-pending';
+                        var statusLabel = u.userStatus === 'active' ? 'Активен' : 'Ожидает';
+                        return '<tr><td>' + helpers.escapeHtml(u.username || u.userName || '#' + u.userId) + '</td><td>' + roleLabel + '</td><td><span class="status-badge ' + statusClass + '">' + statusLabel + '</span></td></tr>';
+                    }).join('');
+                }
+
+                var connBody = document.getElementById('settings-connections-body');
+                var dbStatus = health.database ? 'Подключена' : 'Недоступна';
+                var dbClass = health.database ? 'status-active' : 'status-error';
+                var apiStatus = health.api ? 'Онлайн' : 'Офлайн';
+                var apiClass = health.api ? 'status-active' : 'status-error';
+                connBody.innerHTML = '<div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--divider);"><div><div style="font-weight: 500;">PostgreSQL</div><div style="font-size: 12px; color: var(--text-secondary);">' + (health.dbHost || 'localhost:5432') + '</div></div><span class="status-badge ' + dbClass + '">' + dbStatus + '</span></div><div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0;"><div><div style="font-weight: 500;">API Server</div><div style="font-size: 12px; color: var(--text-secondary);">' + (health.apiHost || 'localhost:8080') + '</div></div><span class="status-badge ' + apiClass + '">' + apiStatus + '</span></div>';
+
+            } catch (e) { console.error('Settings load error:', e); }
         }
 
         async function loadPersonsData() {

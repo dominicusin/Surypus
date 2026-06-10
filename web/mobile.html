@@ -179,10 +179,7 @@
             <h1>Отчёты</h1>
         </header>
         <div class="card" style="margin:16px;">
-            <div class="card-body" id="reports-list" style="padding:20px;text-align:center;color:var(--text-secondary);">
-                <div style="font-size:32px;margin-bottom:12px;">📊</div>
-                <div>Генерация отчётов доступна в веб-версии</div>
-            </div>
+            <div class="card-body" id="reports-list"><div class="m-loading"></div></div>
         </div>
     </div>
 
@@ -265,7 +262,24 @@
             case 'stock': loadMobileStockData(); break;
             case 'settings': checkSystemStatus(); break;
             case 'profile': loadProfile(); break;
+            case 'reports': loadReports(); break;
         }
+    }
+
+    async function loadReports() {
+        var el = document.getElementById('reports-list');
+        el.innerHTML = '<div class="m-loading"></div>';
+        try {
+            var res = await api.reports.list().catch(function() { return { data: [] }; });
+            var items = res.data || [];
+            if (!items.length) {
+                el.innerHTML = '<div class="empty-state"><div class="empty-icon">📊</div>Нет отчётов</div>';
+                return;
+            }
+            el.innerHTML = items.map(function(r) {
+                return '<div class="list-item"><span class="item-icon">📄</span><div class="item-content"><div class="item-title">' + helpers.escapeHtml(r.reportName || r.name || 'Отчёт') + '</div><div class="item-subtitle">' + (r.reportType || r.type || '') + '</div></div></div>';
+            }).join('');
+        } catch (e) { showError(el); offline(); }
     }
 
     async function loadProfile() {

@@ -202,12 +202,6 @@ getPaymentsByStatus pool statusVal = do
         ) pool
     return $ QuerySuccess (map paymentFromEntity entities)
 
-getPaymentTotalByBill :: ConnectionPool -> Int64 -> IO (QueryResult Double)
-getPaymentTotalByBill _ _ = return $ QuerySuccess 0
-
-getUnpaidBills :: ConnectionPool -> IO (QueryResult [Bill])
-getUnpaidBills = ORM.getBills
-
 getLowStockGoods :: ConnectionPool -> IO (QueryResult [Goods])
 getLowStockGoods pool = do
     entities <- liftIO $ runSqlPool
@@ -218,64 +212,3 @@ getLowStockGoods pool = do
             [])
         pool
     return $ QuerySuccess (map goodsFromEntity entities)
-
-getInventoryDocuments :: ConnectionPool -> IO (QueryResult [Bill])
-getInventoryDocuments = getBills
-
-getDashboardStats :: ConnectionPool -> IO (QueryResult DashboardStats)
-getDashboardStats _ = return $ QuerySuccess (DashboardStats 0 0 0 0)
-
-getBillsPaginated :: ConnectionPool -> BillFilter -> Pagination -> Maybe BillSortBy -> Maybe SortDir -> IO (QueryResult (PaginatedResult Bill))
-getBillsPaginated pool _ _ _ _ = do
-    items <- getBills pool
-    return $ QuerySuccess $ PaginatedResult
-        { prItems = case items of QuerySuccess l -> l; _ -> []
-        , prTotal = case items of QuerySuccess l -> length l; _ -> 0
-        , prLimit = 0
-        , prOffset = 0
-        }
-
-getOrdersPaginated :: ConnectionPool -> OrderFilter -> Pagination -> Maybe OrderSortBy -> Maybe SortDir -> IO (QueryResult (PaginatedResult Order))
-getOrdersPaginated pool _ _ _ _ = do
-    items <- getOrders pool
-    return $ QuerySuccess $ PaginatedResult
-        { prItems = case items of QuerySuccess l -> l; _ -> []
-        , prTotal = case items of QuerySuccess l -> length l; _ -> 0
-        , prLimit = 0
-        , prOffset = 0
-        }
-
-getPersonsPaginated :: ConnectionPool -> PersonFilter -> Maybe PersonSortBy -> Maybe SortDir -> Pagination -> IO (QueryResult (PaginatedResult Person))
-getPersonsPaginated pool _ _ _ _ = do
-    items <- getPersons pool
-    return $ QuerySuccess $ PaginatedResult
-        { prItems = case items of QuerySuccess l -> l; _ -> []
-        , prTotal = case items of QuerySuccess l -> length l; _ -> 0
-        , prLimit = 0
-        , prOffset = 0
-        }
-
-getGoodsPaginated :: ConnectionPool -> GoodsFilter -> Pagination -> Maybe GoodsSortBy -> Maybe SortDir -> IO (QueryResult (PaginatedResult Goods))
-getGoodsPaginated pool _ _ _ _ = do
-    items <- getGoods pool
-    return $ QuerySuccess $ PaginatedResult
-        { prItems = case items of QuerySuccess l -> l; _ -> []
-        , prTotal = case items of QuerySuccess l -> length l; _ -> 0
-        , prLimit = 0
-        , prOffset = 0
-        }
-
-getSalesSummary :: ConnectionPool -> Int64 -> Int64 -> IO (QueryResult [(Day, Double)])
-getSalesSummary _ _ _ = return $ QuerySuccess []
-
-getTopSellingGoods :: ConnectionPool -> Int64 -> IO (QueryResult [(Int64, Text, Double)])
-getTopSellingGoods _ _ = return $ QuerySuccess []
-
-getStockSummary :: ConnectionPool -> IO (QueryResult [(Int64, Text, Int, Double, Double)])
-getStockSummary _ = return $ QuerySuccess []
-
-getRoles :: ConnectionPool -> IO (QueryResult [(Int64, Text, [Text])])
-getRoles _ = return $ QuerySuccess []
-
-getInventory :: ConnectionPool -> IO (QueryResult [(Int64, Text, Text, Text, Double, Double, Double)])
-getInventory _ = return $ QuerySuccess []
