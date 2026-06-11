@@ -1167,7 +1167,8 @@
             </div>
             <div style="margin-bottom:16px;">
                 <button class="btn btn-sm btn-secondary" onclick="toggleAgingReport()" style="margin-right:8px;">📊 Просрочка</button>
-                <button class="btn btn-sm btn-secondary" onclick="loadPayments()">💳 Платежи</button>
+                <button class="btn btn-sm btn-secondary" onclick="loadPayments()" style="margin-right:8px;">💳 Платежи</button>
+                <button class="btn btn-sm btn-secondary" onclick="loadTemplates()">📋 Шаблоны</button>
             </div>
             <div id="aging-report" style="display:none;margin-bottom:16px;">
                 <div class="card">
@@ -2275,6 +2276,7 @@
             </div>
             <div class="modal-footer">
                 <div id="bill-error" style="color:var(--danger);font-size:13px;display:none;"></div>
+                <button class="btn btn-sm btn-secondary" onclick="saveAsTemplate()" style="margin-right:auto;">💾 Шаблон</button>
                 <button class="btn btn-secondary" onclick="closeModal('billModal')">Отмена</button>
                 <button class="btn btn-primary" onclick="submitBill()">Создать счёт</button>
             </div>
@@ -2788,8 +2790,77 @@
                     body.innerHTML = items.map(function(p) {
                         return '<tr><td>#' + p.paymentId + '</td><td>' + helpers.formatDate(p.paymentDate) + '</td><td>' + helpers.formatMoney(p.paymentAmount) + '</td><td>—</td><td>—</td><td>#' + (p.paymentPersonId || '—') + '</td></tr>';
                     }).join('');
-                } catch (e) { document.getElementById('payments-body').innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--danger);">Ошибка загрузки</td></tr>'; }
+                    } catch (e) { document.getElementById('payments-body').innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--danger);">Ошибка загрузки</td></tr>'; }
             }
+        }
+
+        async function saveAsTemplate() {
+            var name = prompt('Название шаблона:');
+            if (!name) return;
+            var content = JSON.stringify({
+                code: document.getElementById('bill-code').value,
+                type: document.getElementById('bill-type').value,
+                personId: document.getElementById('bill-person').value,
+                locationId: document.getElementById('bill-location').value,
+                discount: document.getElementById('bill-discount').value
+            });
+            try {
+                await api.billTemplates.save(name, content);
+                alert('Шаблон сохранён');
+            } catch (e) { alert('Ошибка: ' + helpers.handleApiError(e)); }
+        }
+
+        var templatesVisible = false;
+        async function loadTemplates() {
+            templatesVisible = !templatesVisible;
+            var el = document.getElementById('templates-list');
+            if (!el) {
+                var card = document.createElement('div');
+                card.id = 'templates-list';
+                card.style.marginBottom = '16px';
+                card.innerHTML = '<div class="card"><div class="card-header"><h3 style="margin:0;font-size:14px;">Шаблоны счетов</h3></div><div class="card-body"><div id="templates-body">Загрузка...</div></div></div>';
+                document.querySelector('#page-bills .card').before(card);
+            }
+            el = document.getElementById('templates-list');
+            el.style.display = templatesVisible ? 'block' : 'none';
+            if (!templatesVisible) return;
+            try {
+                var res = await api.billTemplates.list();
+                var items = res.data || [];
+                var body = document.getElementById('templates-body');
+                if (!items.length) { body.innerHTML = '<div style="color:var(--text-secondary);font-size:13px;">Нет сохранённых шаблонов</div>'; return; }
+                body.innerHTML = items.map(function(t) {
+                    var ct = '0';
+                    try { var parsed = JSON.parse(t.btiContent); ct = parsed.code || '—'; } catch(e) {}
+                    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--divider);font-size:13px;">' +
+                        '<span><strong>' + helpers.escapeHtml(t.btiName) + '</strong></span>' +
+                        '<div><button class="btn btn-sm btn-primary" onclick="applyTemplate(' + t.btiId + ')" style="margin-right:4px;">Применить</button>' +
+                        '<button class="btn btn-sm btn-secondary" onclick="deleteTemplate(' + t.btiId + ')" style="color:var(--danger);">Удалить</button></div></div>';
+                }).join('');
+            } catch (e) { document.getElementById('templates-body').innerHTML = '<div style="color:var(--danger);font-size:13px;">Ошибка загрузки</div>'; }
+        }
+
+        async function applyTemplate(id) {
+            try {
+                var res = await api.billTemplates.list();
+                var tmpl = (res.data || []).find(function(t) { return t.btiId === id; });
+                if (!tmpl) return;
+                var data = JSON.parse(tmpl.btiContent);
+                if (data.code) document.getElementById('bill-code').value = data.code;
+                if (data.type) document.getElementById('bill-type').value = data.type;
+                if (data.personId) document.getElementById('bill-person').value = data.personId;
+                if (data.locationId) document.getElementById('bill-location').value = data.locationId;
+                if (data.discount) document.getElementById('bill-discount').value = data.discount;
+                openModal('billModal');
+            } catch (e) { alert('Ошибка: ' + helpers.handleApiError(e)); }
+        }
+
+        async function deleteTemplate(id) {
+            if (!confirm('Удалить шаблон?')) return;
+            try {
+                await api.billTemplates.delete(id);
+                loadTemplates();
+            } catch (e) { alert('Ошибка: ' + helpers.handleApiError(e)); }
         }
 
         // Accounting data loading

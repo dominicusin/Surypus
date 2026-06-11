@@ -113,6 +113,7 @@ library
     Surypus.API.Accounting
     Surypus.API.AI
     Surypus.API.Bills
+    Surypus.API.BillTemplates
     Surypus.API.Bridge
     Surypus.API.Bridge.AuthBridge
     Surypus.API.Classifiers

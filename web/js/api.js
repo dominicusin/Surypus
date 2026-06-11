@@ -122,6 +122,13 @@ const api = {
         delete: (id) => axios.delete(`${API_BASE}/orders/${id}`)
     },
 
+    // Bill Templates API
+    billTemplates: {
+        list: () => axios.get(`${API_BASE}/bill-templates`),
+        save: (name, content) => axios.post(`${API_BASE}/bill-templates`, null, { params: { name, content } }),
+        delete: (id) => axios.delete(`${API_BASE}/bill-templates/${id}`)
+    },
+
     // Payment API
     payments: {
         list: () => axios.get(`${API_BASE}/payments`),

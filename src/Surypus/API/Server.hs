@@ -49,6 +49,7 @@ import Surypus (
      UserInput (..)
     )
 import qualified Surypus.API.Accounting as Accounting
+import qualified Surypus.API.BillTemplates as BillTemplates
 import qualified Surypus.API.Bills as Bills
 import qualified Surypus.API.CRM as CRM
 import qualified Surypus.API.Classifiers as Classifiers
@@ -210,6 +211,10 @@ type SurypusApi =
                 :<|> "bills" :> Capture "id" Int64 :> "post" :> Post '[JSON] ()
                 :<|> "bills" :> Capture "id" Int64 :> "status" :> QueryParam "status" Int :> Put '[JSON] ()
                 :<|> "bills" :> Capture "id" Int64 :> Delete '[JSON] ()
+                -- Bill templates
+                :<|> "bill-templates" :> Get '[JSON] [BillTemplates.BillTemplateInfo]
+                :<|> "bill-templates" :> QueryParam "name" Text :> QueryParam "content" Text :> Post '[JSON] MutationResult
+                :<|> "bill-templates" :> Capture "id" Int64 :> Delete '[JSON] ()
                 -- Goods / Persons / Payments
                 :<|> "goods" :> Get '[JSON] [Goods]
                 :<|> "persons" :> Get '[JSON] [Person]
@@ -346,6 +351,9 @@ server env =
         :<|> billPost env
         :<|> billStatusUpdate env
         :<|> billDelete env
+        :<|> billTemplatesList env
+        :<|> billTemplateCreate env
+        :<|> billTemplateDelete env
         :<|> goodsList env
         :<|> personsList env
         :<|> paymentsList env
@@ -514,6 +522,11 @@ billStatusUpdate env bid mstatus = case mstatus of
     Just s -> liftQ $ Bills.updateBillStatus (envConnectionPool env) bid s
     Nothing -> liftQ $ return $ QueryError "status query parameter required"
 billDelete env bid = liftQ $ Bills.deleteBill (envConnectionPool env) bid
+billTemplatesList env = liftQ $ BillTemplates.listTemplates (envConnectionPool env)
+billTemplateCreate env mname mcontent = case (mname, mcontent) of
+    (Just n, Just c) -> liftQ $ BillTemplates.saveTemplate (envConnectionPool env) n c
+    _ -> liftQ $ return $ QueryError "name and content query parameters required"
+billTemplateDelete env tid = liftQ $ BillTemplates.deleteTemplate (envConnectionPool env) tid
 
 goodsList env = liftQ $ Goods.listGoods (envConnectionPool env)
 personsList env = liftQ $ Persons.listPersons (envConnectionPool env) Nothing Nothing Nothing Nothing Nothing
