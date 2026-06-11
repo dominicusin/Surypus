@@ -17,6 +17,7 @@ import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Time (Day, UTCTime)
 import Data.ByteString (ByteString)
+import Data.UUID (UUID)
 import Database.Persist.TH
 
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
@@ -419,6 +420,20 @@ AuditLogEntity sql=audit_log
   newValues Text Maybe
   ipAddress Text
   createdAt UTCTime
+  deriving Show Eq
+
+AccountingEventEntity sql=accounting_events
+  eventId UUID
+  aggregateId Int64
+  aggregateType Text
+  eventType Text
+  eventVersion Int
+  eventData Text
+  metadata Text Maybe
+  sequenceNumber Int64
+  occurredAt UTCTime
+  createdAt UTCTime
+  UniqueSequence aggregateId sequenceNumber
   deriving Show Eq
 
 PayrollResultEntity sql=payroll_results
