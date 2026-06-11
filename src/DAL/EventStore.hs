@@ -6,6 +6,8 @@ module DAL.EventStore
    ( Event (..),
      Snapshot (..),
      Broadcaster,
+     AccountingEvent (..),
+     AccountBalance (..),
      currentEventSchemaVersion,
      appendEvent,
      appendEventBroadcast,
@@ -17,6 +19,11 @@ module DAL.EventStore
      getLatestSnapshot,
      replayFromSnapshot,
      upgradeEvent,
+     appendAccountingEvent,
+     getAccountingEvents,
+     getAccountingEventsFrom,
+     replayAccountBalance,
+     verifyBalanceConsistency,
      newBroadcaster,
      subscribe,
      unsubscribe,
@@ -29,6 +36,7 @@ import DAL.Database (ConnectionPool, runDb)
 import DAL.Schema
   ( EventStoreEntity (..),
     EventSnapshotEntity (..),
+    AccountingEventEntity (..),
     EntityField
       ( EventStoreEntityAggregateId
       , EventStoreEntityAggregateType
@@ -43,6 +51,16 @@ import DAL.Schema
       , EventSnapshotEntitySnapshotAggregateId
       , EventSnapshotEntitySnapshotAggregateType
       , EventSnapshotEntitySnapshotVersion
+      , AccountingEventEntityEventId
+      , AccountingEventEntityAggregateId
+      , AccountingEventEntityAggregateType
+      , AccountingEventEntityEventType
+      , AccountingEventEntityEventVersion
+      , AccountingEventEntityEventData
+      , AccountingEventEntityMetadata
+      , AccountingEventEntitySequenceNumber
+      , AccountingEventEntityOccurredAt
+      , AccountingEventEntityCreatedAt
       ),
   )
 import Data.Aeson (Value, encode, decode)
