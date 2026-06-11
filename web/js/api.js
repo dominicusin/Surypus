@@ -164,7 +164,9 @@ const api = {
         entries: {
             list: (params = {}) => axios.get(`${API_BASE}/accounting/entries`, { params }),
             create: (data) => axios.post(`${API_BASE}/accounting/entries`, data)
-        }
+        },
+        generalLedger: (params = {}) => axios.get(`${API_BASE}/accounting/entries`, { params }),
+        balanceHistory: (params = {}) => axios.get(`${API_BASE}/accounting/balance-history`, { params })
     },
 
     // Stock API

@@ -137,6 +137,7 @@ requiredPermissionForPathMethod method path =
               | isPut -> "accounting:write"
               | isDelete -> "accounting:write"
               | otherwise -> "accounting:read"
+        ["accounting", "balance-history"] -> Just "accounting:read"
         ["payroll"] -> Just "payroll:read"
         ["payroll", "employees"] -> Just "payroll:read"
         ["payroll", "employees", _id] -> Just "payroll:read"

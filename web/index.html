@@ -1252,6 +1252,7 @@
                 <div class="tab" data-acc-tab="accounts">Счета</div>
                 <div class="tab" data-acc-tab="ledger">Журнал операций</div>
                 <div class="tab" data-acc-tab="balance">Баланс</div>
+                <div class="tab" data-acc-tab="history">Динамика</div>
             </div>
             
             <div class="filter-bar" id="acc-filter-bar">
@@ -1381,10 +1382,11 @@
                                     <th>Счет Дт</th>
                                     <th>Счет Кт</th>
                                     <th>Сумма</th>
+                                    <th>Сальдо</th>
                                 </tr>
                             </thead>
                             <tbody id="acc-ledger-body">
-                                <tr><td colspan="4" style="text-align:center;color:var(--text-secondary);">Загрузка...</td></tr>
+                                <tr><td colspan="5" style="text-align:center;color:var(--text-secondary);">Загрузка...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -1422,6 +1424,51 @@
                                     <td id="acc-bal-total-bal">0</td>
                                 </tr>
                             </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Balance History -->
+            <div id="acc-tab-history" class="acc-tab-content" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">Динамика сальдо</span>
+                        <div class="card-actions">
+                            <select class="form-input" id="history-account" style="width: 250px;" onchange="loadBalanceHistory()">
+                                <option value="">Выберите счет</option>
+                            </select>
+                            <select class="form-input" id="history-interval" style="width: 150px;" onchange="loadBalanceHistory()">
+                                <option value="day">День</option>
+                                <option value="week">Неделя</option>
+                                <option value="month" selected>Месяц</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="balance-history-chart" height="300"></canvas>
+                    </div>
+                </div>
+                <div class="card" style="margin-top: 16px;">
+                    <div class="card-header">
+                        <span class="card-title">Данные</span>
+                        <div class="card-actions">
+                            <button class="btn btn-secondary" onclick="exportBalanceHistoryCSV()">📥 CSV</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Период</th>
+                                    <th>Дебет</th>
+                                    <th>Кредит</th>
+                                    <th>Сальдо</th>
+                                </tr>
+                            </thead>
+                            <tbody id="acc-history-body">
+                                <tr><td colspan="4" style="text-align:center;color:var(--text-secondary);">Выберите счет</td></tr>
+                            </tbody>
                         </table>
                     </div>
                 </div>
@@ -2472,7 +2519,7 @@
                 renderBalance(balRes.data);
                 renderEntries(entRes.data);
                 renderAccounts(balRes.data);
-                renderLedger(entRes.data);
+                renderLedger(entRes.data, null);
             } catch (err) {
                 console.error('Accounting load error:', err);
                 document.querySelectorAll('.acc-tab-content tbody').forEach(t => {
@@ -2497,8 +2544,8 @@
             body.innerHTML = entries.map(e => {
                 const balClass = e.beBalance >= 0 ? 'var(--success)' : 'var(--danger)';
                 const typeLabel = ['Актив', 'Пассив', 'Капитал', 'Доход', 'Расход'][e.beAccType - 1] || '—';
-                return '<tr>' +
-                    '<td>' + e.beCode + '</td>' +
+                return '<tr class="drill-row" data-account-id="' + e.beAccountId + '" data-account-name="' + helpers.escapeHtml(e.beName) + '" title="Показать проводки по счету">' +
+                    '<td><strong>' + e.beCode + '</strong></td>' +
                     '<td>' + typeLabel + ' ' + helpers.escapeHtml(e.beName) + '</td>' +
                     '<td style="color:var(--primary);">' + helpers.formatMoney(e.beTotalDebit) + '</td>' +
                     '<td style="color:var(--success);">' + helpers.formatMoney(e.beTotalCredit) + '</td>' +
@@ -2523,6 +2570,16 @@
             const liabilities = entries.filter(e => e.beAccType === 2 || e.beAccType === 3).reduce((s, e) => s + e.beBalance, 0);
             document.getElementById('acc-assets').textContent = helpers.formatMoney(Math.abs(assets));
             document.getElementById('acc-liabilities').textContent = helpers.formatMoney(Math.abs(liabilities));
+
+            // Populate history account selector
+            var histSelect = document.getElementById('history-account');
+            var currentVal = histSelect.value;
+            histSelect.innerHTML = '<option value="">Выберите счет</option>' +
+                entries.map(function(e) {
+                    var selected = e.beAccountId === parseInt(currentVal) ? ' selected' : '';
+                    return '<option value="' + e.beAccountId + '"' + selected + '>' +
+                        helpers.escapeHtml(e.beCode + ' ' + e.beName) + '</option>';
+                }).join('');
         }
 
         function renderEntries(entries) {
@@ -2567,23 +2624,192 @@
             document.getElementById('acc-accounts-count').textContent = entries.length + ' счетов';
         }
 
-        function renderLedger(entries) {
+        function renderLedger(entries, accountId) {
             const body = document.getElementById('acc-ledger-body');
             if (!entries || entries.length === 0) {
-                body.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-secondary);">Нет данных</td></tr>';
+                body.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-secondary);">Нет данных</td></tr>';
                 document.getElementById('acc-ledger-count').textContent = '0';
                 return;
             }
-            body.innerHTML = entries.map(e => {
-                return '<tr>' +
+            var runningBal = 0;
+            var rows = [];
+            for (var i = entries.length - 1; i >= 0; i--) {
+                var e = entries[i];
+                if (e.jeDebitAcc === accountId) runningBal += e.jeAmount;
+                if (e.jeCreditAcc === accountId) runningBal -= e.jeAmount;
+            }
+            entries.forEach(function(e) {
+                if (e.jeDebitAcc === accountId) runningBal += e.jeAmount;
+                if (e.jeCreditAcc === accountId) runningBal -= e.jeAmount;
+                rows.push('<tr>' +
                     '<td>' + e.jeDate + '</td>' +
                     '<td>' + helpers.escapeHtml(e.jeDebitName || 'сч.' + e.jeDebitAcc) + '</td>' +
                     '<td>' + helpers.escapeHtml(e.jeCreditName || 'сч.' + e.jeCreditAcc) + '</td>' +
                     '<td style="font-weight:bold;">' + helpers.formatMoney(e.jeAmount) + '</td>' +
-                    '</tr>';
-            }).join('');
+                    '<td style="font-weight:bold;color:' + (runningBal >= 0 ? 'var(--success)' : 'var(--danger)') + ';">' + helpers.formatMoney(runningBal) + '</td>' +
+                    '</tr>');
+            });
+            body.innerHTML = rows.join('');
             document.getElementById('acc-ledger-count').textContent = entries.length + ' записей';
         }
+
+        var balanceHistoryChart = null;
+
+        function loadBalanceHistory() {
+            var accountId = document.getElementById('history-account').value;
+            if (!accountId) {
+                document.getElementById('acc-history-body').innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-secondary);">Выберите счет</td></tr>';
+                return;
+            }
+            var interval = document.getElementById('history-interval').value;
+            var range = getDateRange();
+            var params = { accountId: parseInt(accountId), interval: interval };
+            if (range.startDate) params.startDate = range.startDate;
+            if (range.endDate) params.endDate = range.endDate;
+
+            api.accounting.balanceHistory(params)
+                .then(function(res) {
+                    renderBalanceHistory(res.data, accountId, interval);
+                })
+                .catch(function() {
+                    document.getElementById('acc-history-body').innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--danger);">Ошибка загрузки</td></tr>';
+                });
+        }
+
+        function renderBalanceHistory(data, accountId, interval) {
+            var body = document.getElementById('acc-history-body');
+            if (!data || data.length === 0) {
+                body.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-secondary);">Нет данных за выбранный период</td></tr>';
+                return;
+            }
+            var rows = data.map(function(e) {
+                var balClass = e.bheBalance >= 0 ? 'var(--success)' : 'var(--danger)';
+                return '<tr>' +
+                    '<td>' + e.bhePeriodStart + '</td>' +
+                    '<td style="color:var(--primary);">' + helpers.formatMoney(e.bheDebitTotal) + '</td>' +
+                    '<td style="color:var(--success);">' + helpers.formatMoney(e.bheCreditTotal) + '</td>' +
+                    '<td style="color:' + balClass + ';font-weight:bold;">' + helpers.formatMoney(e.bheBalance) + '</td>' +
+                    '</tr>';
+            }).join('');
+            body.innerHTML = rows;
+
+            var labels = data.map(function(e) { return e.bhePeriodStart; });
+            var balances = data.map(function(e) { return e.bheBalance; });
+            var debits = data.map(function(e) { return e.bheDebitTotal; });
+            var credits = data.map(function(e) { return e.bheCreditTotal; });
+
+            if (balanceHistoryChart) balanceHistoryChart.destroy();
+            var ctx = document.getElementById('balance-history-chart').getContext('2d');
+            balanceHistoryChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Сальдо',
+                        data: balances,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        fill: true,
+                        tension: 0.3
+                    }, {
+                        label: 'Дебет',
+                        data: debits,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        borderDash: [5, 5]
+                    }, {
+                        label: 'Кредит',
+                        data: credits,
+                        borderColor: '#ef4444',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        borderDash: [5, 5]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(ctx) {
+                                    return ctx.dataset.label + ': ' + helpers.formatMoney(ctx.parsed.y);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { title: { display: true, text: interval === 'day' ? 'День' : interval === 'week' ? 'Неделя' : 'Месяц' } },
+                        y: { title: { display: true, text: 'Сумма' }, beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        function exportBalanceHistoryCSV() {
+            var table = document.getElementById('acc-history-body');
+            var rows = table.querySelectorAll('tr');
+            if (rows.length === 0) { alert('Нет данных для экспорта'); return; }
+            var csv = '\uFEFFПериод;Дебет;Кредит;Сальдо\n';
+            rows.forEach(function(row) {
+                var cells = row.querySelectorAll('td');
+                if (cells.length >= 4) {
+                    csv += cells[0].textContent + ';' +
+                        cells[1].textContent.replace(/[^0-9,.\s]/g, '').trim() + ';' +
+                        cells[2].textContent.replace(/[^0-9,.\s]/g, '').trim() + ';' +
+                        cells[3].textContent.replace(/[^0-9,.\s]/g, '').trim() + '\n';
+                }
+            });
+            var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            var link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'balance-history.csv';
+            link.click();
+        }
+
+        function drillToLedger(accountId, accountName) {
+            var tabs = document.querySelectorAll('#accounting-tabs .tab');
+            tabs.forEach(function(t) {
+                if (t.getAttribute('data-acc-tab') === 'ledger') {
+                    t.classList.add('active');
+                } else {
+                    t.classList.remove('active');
+                }
+            });
+            document.querySelectorAll('.acc-tab-content').forEach(function(c) { c.style.display = 'none'; });
+            document.getElementById('acc-tab-ledger').style.display = 'block';
+            var ledgerTitle = document.querySelector('#acc-tab-ledger .card-title');
+            if (ledgerTitle) {
+                ledgerTitle.textContent = 'Журнал операций — ' + helpers.escapeHtml(accountName);
+            }
+            loadLedgerData(accountId);
+        }
+
+        function loadLedgerData(accountId) {
+            var params = getDateRange();
+            if (accountId) params.accountId = accountId;
+            api.accounting.entries.list(params)
+                .then(function(res) {
+                    renderLedger(res.data, accountId);
+                })
+                .catch(function() {
+                    document.getElementById('acc-ledger-body').innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--danger);">Ошибка загрузки</td></tr>';
+                });
+        }
+
+        // Drill-down click handler for balance sheet rows
+        document.addEventListener('click', function(e) {
+            var row = e.target.closest('.drill-row');
+            if (row) {
+                var accountId = parseInt(row.getAttribute('data-account-id'));
+                var accountName = row.getAttribute('data-account-name');
+                drillToLedger(accountId, accountName);
+            }
+        });
 
         function exportAccountingPDF() {
             var params = getDateRange();

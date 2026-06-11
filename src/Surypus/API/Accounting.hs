@@ -7,8 +7,10 @@ module Surypus.API.Accounting
     ( BalanceEntry (..)
     , BalanceResponse (..)
     , JournalEntry (..)
+    , BalanceHistoryEntry (..)
     , getBalance
     , getJournalEntries
+    , getBalanceHistory
     ) where
 
 import Control.Monad.IO.Class (liftIO)
@@ -102,9 +104,9 @@ getBalance pool mStart mEnd = do
         , brTotalBalance = totalDebit - totalCredit
         }
 
--- | Get journal entries with optional period filtering
-getJournalEntries :: ConnectionPool -> Maybe Day -> Maybe Day -> IO (QueryResult [JournalEntry])
-getJournalEntries pool mStart mEnd = do
+-- | Get journal entries with optional period and account filtering
+getJournalEntries :: ConnectionPool -> Maybe Day -> Maybe Day -> Maybe Int64 -> IO (QueryResult [JournalEntry])
+getJournalEntries pool mStart mEnd mAccountId = do
     let startSql = maybe "1900-01-01" show mStart
         endSql = maybe "2999-12-31" show mEnd
     result <- liftIO $ runSqlPool
@@ -115,14 +117,75 @@ getJournalEntries pool mStart mEnd = do
             \LEFT JOIN acc_plan d ON t.dbt_acc_id = d.id \
             \LEFT JOIN acc_plan c ON t.crd_acc_id = c.id \
             \WHERE t.date >= ? AND t.date <= ? \
+            \  AND (?::bigint IS NULL OR t.dbt_acc_id = ?::bigint OR t.crd_acc_id = ?::bigint) \
             \ORDER BY t.date DESC, t.id DESC"
             [ PersistText (T.pack startSql)
             , PersistText (T.pack endSql)
+            , maybe PersistNull PersistInt64 mAccountId
+            , maybe PersistNull PersistInt64 mAccountId
+            , maybe PersistNull PersistInt64 mAccountId
             ]) pool
     let entries = [ JournalEntry id docId dbtId dbtName crdId crdName amt dt
                   | (Single (id :: Int64), Single (docId :: Maybe Int64)
                     , Single (dbtId :: Int64), Single (dbtName :: Text)
                     , Single (crdId :: Int64), Single (crdName :: Text)
                     , Single (amt :: Double), Single (dt :: Day)) <- result
+                  ]
+    return $ QuerySuccess entries
+
+-- | Balance history entry for time-series chart
+data BalanceHistoryEntry = BalanceHistoryEntry
+    { bhePeriodStart :: !Day
+    , bheDebitTotal  :: !Double
+    , bheCreditTotal :: !Double
+    , bheBalance     :: !Double
+    } deriving (Show, Eq, Generic)
+
+instance ToJSON BalanceHistoryEntry
+
+-- | Get balance history for an account over time intervals
+getBalanceHistory :: ConnectionPool -> Int64 -> Day -> Day -> Text -> IO (QueryResult [BalanceHistoryEntry])
+getBalanceHistory pool accountId startDate endDate interval = do
+    let intervalStr = case interval of
+            "day"   -> "day"
+            "week"  -> "week"
+            _       -> "month"
+        startStr = T.pack (show startDate)
+        endStr = T.pack (show endDate)
+        sql = "SELECT period, \
+              \  COALESCE(d.total_debit, 0), \
+              \  COALESCE(c.total_credit, 0), \
+              \  COALESCE(d.total_debit, 0) - COALESCE(c.total_credit, 0) \
+              \FROM ( \
+              \  SELECT date_trunc('" <> intervalStr <> "', date)::date AS period \
+              \  FROM generate_series(?::date, ?::date, '1 day'::interval) AS date \
+              \) p \
+              \LEFT JOIN ( \
+              \  SELECT date_trunc('" <> intervalStr <> "', date)::date AS period, SUM(amount) AS total_debit \
+              \  FROM acc_turn \
+              \  WHERE dbt_acc_id = ? AND date >= ? AND date <= ? \
+              \  GROUP BY date_trunc('" <> intervalStr <> "', date) \
+              \) d ON p.period = d.period \
+              \LEFT JOIN ( \
+              \  SELECT date_trunc('" <> intervalStr <> "', date)::date AS period, SUM(amount) AS total_credit \
+              \  FROM acc_turn \
+              \  WHERE crd_acc_id = ? AND date >= ? AND date <= ? \
+              \  GROUP BY date_trunc('" <> intervalStr <> "', date) \
+              \) c ON p.period = c.period \
+              \ORDER BY p.period"
+    result <- liftIO $ runSqlPool
+        (rawSql sql
+            [ PersistText startStr
+            , PersistText endStr
+            , PersistInt64 accountId
+            , PersistText startStr
+            , PersistText endStr
+            , PersistInt64 accountId
+            , PersistText startStr
+            , PersistText endStr
+            ]) pool
+    let entries = [ BalanceHistoryEntry period debit credit balance
+                  | (Single (period :: Day), Single (debit :: Double)
+                    , Single (credit :: Double), Single (balance :: Double)) <- result
                   ]
     return $ QuerySuccess entries

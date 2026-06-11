@@ -23,6 +23,7 @@ import qualified Data.Text as DT
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as LBS
+import Data.Maybe (fromMaybe)
 import Data.Time.Calendar (Day, fromGregorian)
 import qualified Data.UUID as UUID
 import qualified Data.UUID.V4 as UUIDv4
@@ -318,8 +319,9 @@ type SurypusApi =
                 -- Balance sheet
                 :<|> "balance" :> QueryParam "startDate" Day :> QueryParam "endDate" Day :> Get '[JSON] Accounting.BalanceResponse
                 -- Accounting entries
-                :<|> "accounting" :> "entries" :> QueryParam "startDate" Day :> QueryParam "endDate" Day :> Get '[JSON] [Accounting.JournalEntry]
+                :<|> "accounting" :> "entries" :> QueryParam "startDate" Day :> QueryParam "endDate" Day :> QueryParam "accountId" Int64 :> Get '[JSON] [Accounting.JournalEntry]
                 :<|> "accounting" :> "entries" :> ReqBody '[JSON] DAL.AccTurnInput :> Post '[JSON] DAL.MutationResult
+                :<|> "accounting" :> "balance-history" :> QueryParam "accountId" Int64 :> QueryParam "startDate" Day :> QueryParam "endDate" Day :> QueryParam "interval" Text :> Get '[JSON] [Accounting.BalanceHistoryEntry]
            )
 
 -- ── Server ───────────────────────────────────────────────────────────────────
@@ -429,6 +431,7 @@ server env =
         :<|> handleBalance env
         :<|> handleJournalEntries env
         :<|> handleCreateEntry env
+        :<|> handleBalanceHistory env
 
 -- ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -634,11 +637,21 @@ payrollSalaryCreate env input = liftQ $ Payroll.createSalary (envConnectionPool 
 handleBalance :: Env -> Maybe Day -> Maybe Day -> Handler Accounting.BalanceResponse
 handleBalance env s e = liftQ $ Accounting.getBalance (envConnectionPool env) s e
 
-handleJournalEntries :: Env -> Maybe Day -> Maybe Day -> Handler [Accounting.JournalEntry]
-handleJournalEntries env s e = liftQ $ Accounting.getJournalEntries (envConnectionPool env) s e
+handleJournalEntries :: Env -> Maybe Day -> Maybe Day -> Maybe Int64 -> Handler [Accounting.JournalEntry]
+handleJournalEntries env s e a = liftQ $ Accounting.getJournalEntries (envConnectionPool env) s e a
 
 handleCreateEntry :: Env -> DAL.AccTurnInput -> Handler DAL.MutationResult
 handleCreateEntry env input = liftQ $ DAL.Mutations.createAccTurn (envConnectionPool env) input
+
+handleBalanceHistory :: Env -> Maybe Int64 -> Maybe Day -> Maybe Day -> Maybe Text -> Handler [Accounting.BalanceHistoryEntry]
+handleBalanceHistory env mAccountId mStart mEnd mInterval =
+    case mAccountId of
+        Nothing -> throwError err400 { errBody = "accountId is required" }
+        Just accountId -> do
+            let startDate = fromMaybe (fromGregorian 2000 1 1) mStart
+                endDate = fromMaybe (fromGregorian 2099 12 31) mEnd
+                interval = fromMaybe "month" mInterval
+            liftQ $ Accounting.getBalanceHistory (envConnectionPool env) accountId startDate endDate interval
 
 -- Push notification handlers
 pushSubscribe :: Env -> Maybe Text -> Push.PushSubscriptionRequest -> Handler ()
