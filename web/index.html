@@ -1161,9 +1161,63 @@
         <div id="page-bills" style="display: none;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
                 <h1>Документы</h1>
-                <button class="btn btn-primary" onclick="openModal('billModal')">➕ Создать счёт</button>
+                <div>
+                    <button class="btn btn-primary" onclick="openModal('billModal')">➕ Создать счёт</button>
+                </div>
             </div>
-            
+            <div style="margin-bottom:16px;">
+                <button class="btn btn-sm btn-secondary" onclick="toggleAgingReport()" style="margin-right:8px;">📊 Просрочка</button>
+                <button class="btn btn-sm btn-secondary" onclick="loadPayments()">💳 Платежи</button>
+            </div>
+            <div id="aging-report" style="display:none;margin-bottom:16px;">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 style="margin:0;font-size:14px;">Отчёт по просроченной задолженности</h3>
+                    </div>
+                    <div class="card-body">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>№ счёта</th>
+                                    <th>Контрагент</th>
+                                    <th>Сумма</th>
+                                    <th>Оплачено</th>
+                                    <th>Остаток</th>
+                                    <th>Дней</th>
+                                    <th>Период</th>
+                                </tr>
+                            </thead>
+                            <tbody id="aging-body">
+                                <tr><td colspan="7" style="text-align:center;color:var(--text-secondary);">Загрузка...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div id="payments-list" style="display:none;margin-bottom:16px;">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 style="margin:0;font-size:14px;">Платежи</h3>
+                    </div>
+                    <div class="card-body">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Дата</th>
+                                    <th>Сумма</th>
+                                    <th>Метод</th>
+                                    <th>Статус</th>
+                                    <th>№ счёта</th>
+                                </tr>
+                            </thead>
+                            <tbody id="payments-body">
+                                <tr><td colspan="6" style="text-align:center;color:var(--text-secondary);">Загрузка...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
             <div class="card">
                 <div class="card-body">
                     <table>
@@ -2702,6 +2756,40 @@
                 await api.bills.delete(id);
                 loadBillsData();
             } catch (e) { alert('Ошибка: ' + helpers.handleApiError(e)); }
+        }
+
+        var agingVisible = false;
+        async function toggleAgingReport() {
+            agingVisible = !agingVisible;
+            document.getElementById('aging-report').style.display = agingVisible ? 'block' : 'none';
+            if (agingVisible) {
+                try {
+                    var res = await api.payments.aging();
+                    var rows = res.data || [];
+                    var body = document.getElementById('aging-body');
+                    if (!rows.length) { body.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-secondary);">Нет просроченных счетов</td></tr>'; return; }
+                    body.innerHTML = rows.map(function(r) {
+                        var bucketClass = r.parBucket === '90+' ? 'status-cancelled' : r.parBucket === '61-90' ? 'status-pending' : '';
+                        return '<tr class="' + bucketClass + '"><td>' + (r.parBillCode || '#' + r.parBillId) + '</td><td>' + helpers.escapeHtml(r.parPersonName || '—') + '</td><td>' + helpers.formatMoney(r.parTotal) + '</td><td>' + helpers.formatMoney(r.parPaid) + '</td><td><strong>' + helpers.formatMoney(r.parBalance) + '</strong></td><td>' + r.parDaysOverdue + '</td><td><span class="status-badge ' + (bucketClass || 'status-draft') + '">' + r.parBucket + '</span></td></tr>';
+                    }).join('');
+                } catch (e) { document.getElementById('aging-body').innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--danger);">Ошибка загрузки</td></tr>'; }
+            }
+        }
+
+        async function loadPayments() {
+            var list = document.getElementById('payments-list');
+            list.style.display = list.style.display === 'none' ? 'block' : 'none';
+            if (list.style.display === 'block') {
+                try {
+                    var res = await api.payments.list();
+                    var items = res.data || [];
+                    var body = document.getElementById('payments-body');
+                    if (!items.length) { body.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-secondary);">Нет платежей</td></tr>'; return; }
+                    body.innerHTML = items.map(function(p) {
+                        return '<tr><td>#' + p.paymentId + '</td><td>' + helpers.formatDate(p.paymentDate) + '</td><td>' + helpers.formatMoney(p.paymentAmount) + '</td><td>—</td><td>—</td><td>#' + (p.paymentPersonId || '—') + '</td></tr>';
+                    }).join('');
+                } catch (e) { document.getElementById('payments-body').innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--danger);">Ошибка загрузки</td></tr>'; }
+            }
         }
 
         // Accounting data loading

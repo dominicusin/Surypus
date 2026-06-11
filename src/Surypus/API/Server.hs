@@ -42,6 +42,7 @@ import Surypus (
      Goods (..),
      MutationResult (..),
      Payment (..),
+     PaymentInput (..),
      Person (..),
      QueryResult (..),
      User (..),
@@ -213,6 +214,11 @@ type SurypusApi =
                 :<|> "goods" :> Get '[JSON] [Goods]
                 :<|> "persons" :> Get '[JSON] [Person]
                 :<|> "payments" :> Get '[JSON] [Payment]
+                :<|> "payments" :> ReqBody '[JSON] PaymentInput :> Post '[JSON] MutationResult
+                :<|> "payments" :> Capture "id" Int64 :> Get '[JSON] Payment
+                :<|> "payments" :> Capture "id" Int64 :> ReqBody '[JSON] PaymentInput :> Put '[JSON] Payment
+                :<|> "payments" :> Capture "id" Int64 :> Delete '[JSON] ()
+                :<|> "payments" :> "aging" :> Get '[JSON] [Payments.PaymentAgingRow]
                 -- Dashboard
                 :<|> "dashboard" :> Get '[JSON] Dashboard.DashboardKPI
                 :<|> "dashboard" :> "revenue" :> Get '[JSON] [Dashboard.RevenuePoint]
@@ -343,6 +349,11 @@ server env =
         :<|> goodsList env
         :<|> personsList env
         :<|> paymentsList env
+        :<|> paymentsCreate env
+        :<|> paymentsGet env
+        :<|> paymentsUpdate env
+        :<|> paymentsDelete env
+        :<|> paymentsAging env
         :<|> dashboardKPI env
         :<|> dashboardRevenue env
         :<|> dashboardOrders env
@@ -507,6 +518,11 @@ billDelete env bid = liftQ $ Bills.deleteBill (envConnectionPool env) bid
 goodsList env = liftQ $ Goods.listGoods (envConnectionPool env)
 personsList env = liftQ $ Persons.listPersons (envConnectionPool env) Nothing Nothing Nothing Nothing Nothing
 paymentsList env = liftQ $ Payments.listPayments (envConnectionPool env)
+paymentsCreate env i = liftQ $ Payments.createPayment (envConnectionPool env) i
+paymentsGet env pid = liftQ $ Payments.getPayment (envConnectionPool env) pid
+paymentsUpdate env pid i = liftQ $ Payments.updatePayment (envConnectionPool env) pid i
+paymentsDelete env pid = liftQ $ Payments.deletePayment (envConnectionPool env) pid
+paymentsAging env = liftQ $ Payments.getAgingReport (envConnectionPool env)
 
 dashboardKPI env = liftQ $ Dashboard.getDashboardKPI (envConnectionPool env)
 dashboardRevenue env = liftQ $ Dashboard.getRevenueTrend (envConnectionPool env)

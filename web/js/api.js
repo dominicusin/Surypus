@@ -128,7 +128,8 @@ const api = {
         get: (id) => axios.get(`${API_BASE}/payments/${id}`),
         create: (data) => axios.post(`${API_BASE}/payments`, data),
         update: (id, data) => axios.put(`${API_BASE}/payments/${id}`, data),
-        delete: (id) => axios.delete(`${API_BASE}/payments/${id}`)
+        delete: (id) => axios.delete(`${API_BASE}/payments/${id}`),
+        aging: () => axios.get(`${API_BASE}/payments/aging`)
     },
 
     // Location API
