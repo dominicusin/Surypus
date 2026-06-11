@@ -28,6 +28,7 @@ import Data.Time.Calendar (Day, fromGregorian)
 import qualified Data.UUID as UUID
 import qualified Data.UUID.V4 as UUIDv4
 import Database.Persist.Sql (runSqlPool, rawSql, Single(..))
+import qualified Service.PayrollService as PR
 import Database.Persist.PersistValue (PersistValue(..))
 import GHC.Generics (Generic)
 import Network.HTTP.Types (status200, status401, status503)
@@ -76,6 +77,19 @@ import qualified MultiTenancy.Middleware as MT
 
 
 -- Local type definitions for API
+data PayrollCalcRequest = PayrollCalcRequest
+  { pcrEmployeeId :: Int64
+  , pcrTenantId :: Int64
+  , pcrPeriod :: Day
+  , pcrBaseSalary :: Double
+  , pcrBonus :: Double
+  , pcrDaysWorked :: Int
+  , pcrVacationDays :: Int
+  , pcrSickDays :: Int
+  , pcrUserId :: Int64
+  } deriving (Generic, Show, Eq)
+instance FromJSON PayrollCalcRequest
+
 data LoginRequest = LoginRequest
     { lrUsername :: Text
     , lrPassword :: Text
@@ -333,6 +347,17 @@ type SurypusApi =
                 :<|> "payroll" :> "salaries" :> Get '[JSON] [DAL.Salary]
                 :<|> "payroll" :> "salaries" :> Capture "empId" Int64 :> Get '[JSON] [DAL.Salary]
                 :<|> "payroll" :> "salaries" :> ReqBody '[JSON] DAL.SalaryInput :> Post '[JSON] DAL.MutationResult
+                :<|> "payroll" :> "employees" :> Capture "eid" Int64 :> ReqBody '[JSON] DAL.EmployeeInput :> Put '[JSON] DAL.MutationResult
+                :<|> "payroll" :> "employees" :> Capture "eid" Int64 :> Delete '[JSON] DAL.MutationResult
+                :<|> "payroll" :> "salaries" :> Capture "sid" Int64 :> Delete '[JSON] DAL.MutationResult
+                :<|> "payroll" :> "calculate" :> ReqBody '[JSON] PayrollCalcRequest :> Post '[JSON] PR.PayrollResult
+                :<|> "payroll" :> "calculate-and-save" :> ReqBody '[JSON] PayrollCalcRequest :> Post '[JSON] DAL.PayrollResult
+                :<|> "payroll" :> "results" :> Get '[JSON] [DAL.PayrollResult]
+                :<|> "payroll" :> "results" :> Capture "employeeId" Int64 :> Get '[JSON] [DAL.PayrollResult]
+                :<|> "timesheets" :> Get '[JSON] [DAL.Timesheet]
+                :<|> "timesheets" :> ReqBody '[JSON] DAL.TimesheetInput :> Post '[JSON] DAL.MutationResult
+                :<|> "timesheets" :> Capture "tsid" Int64 :> ReqBody '[JSON] DAL.TimesheetInput :> Put '[JSON] DAL.MutationResult
+                :<|> "timesheets" :> Capture "tsid" Int64 :> Delete '[JSON] DAL.MutationResult
                 -- Balance sheet
                 :<|> "balance" :> QueryParam "startDate" Day :> QueryParam "endDate" Day :> Get '[JSON] Accounting.BalanceResponse
                 -- Accounting entries
@@ -458,6 +483,17 @@ server env =
         :<|> payrollSalariesList env
         :<|> payrollSalaryByEmployee env
         :<|> payrollSalaryCreate env
+        :<|> payrollEmployeeUpdate env
+        :<|> payrollEmployeeDelete env
+        :<|> payrollSalaryDelete env
+        :<|> payrollCalculate env
+        :<|> payrollCalculateAndSave env
+        :<|> payrollResultsList env
+        :<|> payrollResultsByEmployee env
+        :<|> timesheetsList env
+        :<|> timesheetsCreate env
+        :<|> timesheetsUpdate env
+        :<|> timesheetsDelete env
         :<|> handleBalance env
         :<|> handleJournalEntries env
         :<|> handleCreateEntry env
@@ -691,6 +727,45 @@ payrollSalariesList env = liftQ $ Payroll.getSalaries (envConnectionPool env)
 payrollSalaryByEmployee env eid = liftQ $ Payroll.getSalaryByEmployee (envConnectionPool env) eid
 payrollEmployeeCreate env input = liftQ $ Payroll.createEmployee (envConnectionPool env) input
 payrollSalaryCreate env input = liftQ $ Payroll.createSalary (envConnectionPool env) input
+payrollEmployeeUpdate env eid input = liftQ $ Payroll.updateEmployee (envConnectionPool env) eid input
+payrollEmployeeDelete env eid = liftQ $ Payroll.deleteEmployee (envConnectionPool env) eid
+payrollSalaryDelete env sid = liftQ $ Payroll.deleteSalary (envConnectionPool env) sid
+
+payrollCalculate :: Env -> PayrollCalcRequest -> Handler PR.PayrollResult
+payrollCalculate env req =
+    let prReq = PR.PayrollRequest
+          { PR.prEmployeeId = pcrEmployeeId req
+          , PR.prTenantId = pcrTenantId req
+          , PR.prPeriod = pcrPeriod req
+          , PR.prBaseSalary = fromRational (toRational (pcrBaseSalary req))
+          , PR.prBonus = fromRational (toRational (pcrBonus req))
+          , PR.prDaysWorked = pcrDaysWorked req
+          , PR.prVacationDays = pcrVacationDays req
+          , PR.prSickDays = pcrSickDays req
+          }
+    in pure $ PR.calculatePayroll prReq
+
+payrollCalculateAndSave :: Env -> PayrollCalcRequest -> Handler DAL.PayrollResult
+payrollCalculateAndSave env req = do
+  let prReq = PR.PayrollRequest
+        { PR.prEmployeeId = pcrEmployeeId req
+        , PR.prTenantId = pcrTenantId req
+        , PR.prPeriod = pcrPeriod req
+        , PR.prBaseSalary = fromRational (toRational (pcrBaseSalary req))
+        , PR.prBonus = fromRational (toRational (pcrBonus req))
+        , PR.prDaysWorked = pcrDaysWorked req
+        , PR.prVacationDays = pcrVacationDays req
+        , PR.prSickDays = pcrSickDays req
+        }
+  liftQ $ PR.calculateAndSavePayroll (envConnectionPool env) prReq (pcrUserId req)
+
+payrollResultsList env = liftQ $ Payroll.getPayrollResults (envConnectionPool env)
+payrollResultsByEmployee env eid = liftQ $ Payroll.getPayrollResultsByEmployee (envConnectionPool env) eid
+
+timesheetsList env = liftQ $ Payroll.getTimesheets (envConnectionPool env)
+timesheetsCreate env input = liftQ $ Payroll.createTimesheet (envConnectionPool env) input
+timesheetsUpdate env tsid input = liftQ $ Payroll.updateTimesheet (envConnectionPool env) tsid input
+timesheetsDelete env tsid = liftQ $ Payroll.deleteTimesheet (envConnectionPool env) tsid
 
 -- ── Accounting handlers ─────────────────────────────────────────────────────
 handleBalance :: Env -> Maybe Day -> Maybe Day -> Handler Accounting.BalanceResponse

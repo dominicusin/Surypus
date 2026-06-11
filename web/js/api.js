@@ -211,13 +211,28 @@ const api = {
         employees: {
             list: () => axios.get(`${API_BASE}/payroll/employees`),
             get: (id) => axios.get(`${API_BASE}/payroll/employees/${id}`),
-            create: (data) => axios.post(`${API_BASE}/payroll/employees`, data)
+            create: (data) => axios.post(`${API_BASE}/payroll/employees`, data),
+            update: (id, data) => axios.put(`${API_BASE}/payroll/employees/${id}`, data),
+            delete: (id) => axios.delete(`${API_BASE}/payroll/employees/${id}`)
         },
         salaries: {
             list: () => axios.get(`${API_BASE}/payroll/salaries`),
             byEmployee: (empId) => axios.get(`${API_BASE}/payroll/salary/${empId}`),
-            create: (data) => axios.post(`${API_BASE}/payroll/salaries`, data)
+            create: (data) => axios.post(`${API_BASE}/payroll/salaries`, data),
+            delete: (id) => axios.delete(`${API_BASE}/payroll/salaries/${id}`)
+        },
+        calculate: (data) => axios.post(`${API_BASE}/payroll/calculate`, data),
+        calculateAndSave: (data) => axios.post(`${API_BASE}/payroll/calculate-and-save`, data),
+        results: {
+            list: () => axios.get(`${API_BASE}/payroll/results`),
+            byEmployee: (empId) => axios.get(`${API_BASE}/payroll/results/${empId}`)
         }
+    },
+    timesheets: {
+        list: () => axios.get(`${API_BASE}/timesheets`),
+        create: (data) => axios.post(`${API_BASE}/timesheets`, data),
+        update: (id, data) => axios.put(`${API_BASE}/timesheets/${id}`, data),
+        delete: (id) => axios.delete(`${API_BASE}/timesheets/${id}`)
     },
 
     // Units API

@@ -540,3 +540,14 @@ getCurrencies pool = do
       return c)
     pool
   return $ QuerySuccess $ map currencyFromEntity entities
+
+-- | Get all timesheets
+getTimesheets :: ConnectionPool -> IO (QueryResult [Timesheet])
+getTimesheets pool = do
+  entities <- liftIO $ runSqlPool
+    (select $ do
+      t <- from $ table @TimesheetEntity
+      orderBy [desc $ t ^. TimesheetEntityDate]
+      return t)
+    pool
+  return $ QuerySuccess $ map timesheetFromEntity entities

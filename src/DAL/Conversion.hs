@@ -176,6 +176,17 @@ salaryFromEntity (Entity pid e) = T.Salary
   , T.salaryOther = salaryEntityOther e
   }
 
+timesheetFromEntity :: Entity TimesheetEntity -> T.Timesheet
+timesheetFromEntity (Entity pid e) = T.Timesheet
+  { T.timesheetId = keyToInt pid
+  , T.timesheetEmployeeId = timesheetEntityEmployeeId e
+  , T.timesheetDate = timesheetEntityDate e
+  , T.timesheetHoursWorked = timesheetEntityHoursWorked e
+  , T.timesheetNotes = timesheetEntityNotes e
+  , T.timesheetCreatedBy = timesheetEntityCreatedBy e
+  , T.timesheetCreatedAt = timesheetEntityCreatedAt e
+  }
+
 stockMovementFromEntity :: Entity StockMovementEntity -> T.StockMovement
 stockMovementFromEntity (Entity pid e) = T.StockMovement
   { T.smId = keyToInt pid

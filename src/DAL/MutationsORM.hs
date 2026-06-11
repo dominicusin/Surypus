@@ -48,14 +48,20 @@ module DAL.MutationsORM (
     updateAccTurn,
     deleteAccTurn,
     createEmployee,
+    updateEmployee,
+    deleteEmployee,
     createSalary,
-    createStockMovement
+    deleteSalary,
+    createStockMovement,
+    createTimesheet,
+    updateTimesheet,
+    deleteTimesheet
 ) where
 
 import Control.Monad.IO.Class (liftIO)
 import Data.Int (Int64)
 import Data.Text (Text)
-import Data.Time (Day, fromGregorian)
+import Data.Time (Day, UTCTime, fromGregorian, getCurrentTime)
 import Database.Esqueleto.Experimental
 import qualified Database.Persist as P
 import Database.Persist.Sql (runSqlPool, toSqlKey)
@@ -576,3 +582,55 @@ createSalary pool input = do
         }
     key <- liftIO $ runSqlPool (P.insert entity) pool
     return $ QuerySuccess (MutationResult True (Just $ keyToInt key) "Salary created")
+
+updateEmployee :: ConnectionPool -> Int64 -> EmployeeInput -> IO (QueryResult MutationResult)
+updateEmployee pool eid input = do
+    liftIO $ runSqlPool (P.update (employeeKey eid)
+        [ EmployeeEntityCode P.=. eiCode input
+        , EmployeeEntityName P.=. eiName input
+        , EmployeeEntityTabNum P.=. eiTabNum input
+        , EmployeeEntityHireDate P.=. eiHireDate input
+        , EmployeeEntityStatus P.=. eiStatus input
+        ]) pool
+    return $ QuerySuccess (MutationResult True (Just eid) "Employee updated")
+
+deleteEmployee :: ConnectionPool -> Int64 -> IO (QueryResult MutationResult)
+deleteEmployee pool eid = do
+    liftIO $ runSqlPool (P.delete (employeeKey eid)) pool
+    return $ QuerySuccess (MutationResult True (Just eid) "Employee deleted")
+
+deleteSalary :: ConnectionPool -> Int64 -> IO (QueryResult MutationResult)
+deleteSalary pool sid = do
+    liftIO $ runSqlPool (P.delete (salaryKey sid)) pool
+    return $ QuerySuccess (MutationResult True (Just sid) "Salary deleted")
+
+createTimesheet :: ConnectionPool -> TimesheetInput -> IO (QueryResult MutationResult)
+createTimesheet pool input = do
+    let entity = TimesheetEntity
+          { timesheetEntityEmployeeId = tsiEmployeeId input
+          , timesheetEntityDate = tsiDate input
+          , timesheetEntityHoursWorked = tsiHoursWorked input
+          , timesheetEntityNotes = tsiNotes input
+          , timesheetEntityCreatedBy = 0
+          , timesheetEntityCreatedAt = Nothing
+          }
+    key <- liftIO $ runSqlPool (P.insert entity) pool
+    return $ QuerySuccess (MutationResult True (Just $ keyToInt key) "Timesheet created")
+
+updateTimesheet :: ConnectionPool -> Int64 -> TimesheetInput -> IO (QueryResult MutationResult)
+updateTimesheet pool tsid input = do
+    liftIO $ runSqlPool (P.update (timesheetKey tsid)
+        [ TimesheetEntityEmployeeId P.=. tsiEmployeeId input
+        , TimesheetEntityDate P.=. tsiDate input
+        , TimesheetEntityHoursWorked P.=. tsiHoursWorked input
+        , TimesheetEntityNotes P.=. tsiNotes input
+        ]) pool
+    return $ QuerySuccess (MutationResult True (Just tsid) "Timesheet updated")
+
+deleteTimesheet :: ConnectionPool -> Int64 -> IO (QueryResult MutationResult)
+deleteTimesheet pool tsid = do
+    liftIO $ runSqlPool (P.delete (timesheetKey tsid)) pool
+    return $ QuerySuccess (MutationResult True (Just tsid) "Timesheet deleted")
+
+timesheetKey :: Int64 -> P.Key TimesheetEntity
+timesheetKey n = toSqlKey n

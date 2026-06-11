@@ -1,6 +1,7 @@
 -- | Payroll Service — orchestrates payroll calculations and persistence
 -- Uses Data.Decimal for all monetary amounts (PYR-02)
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 module Service.PayrollService
   ( PayrollRequest(..)
@@ -12,6 +13,8 @@ module Service.PayrollService
   , calculateYearEndSummary
   ) where
 
+import Data.Aeson (ToJSON, FromJSON, object, (.=))
+import qualified Data.Aeson as A
 import Data.Decimal (Decimal)
 import Data.Int (Int64)
 import Data.Text (Text)
@@ -51,6 +54,24 @@ data PayrollResult = PayrollResult
   , prTotalToPay :: Decimal
   , prCurrency :: Text
   } deriving (Show, Eq)
+
+instance ToJSON PayrollResult where
+  toJSON r = A.object
+    [ "employeeId" .= prCalcEmployeeId r
+    , "tenantId"   .= prCalcTenantId r
+    , "period"     .= prCalcPeriod r
+    , "gross"      .= show (prGrossSalary r)
+    , "incomeTax"  .= show (prIncomeTax r)
+    , "socialTax"  .= show (prSocialTax r)
+    , "deductions" .= show (prDeductions r)
+    , "net"        .= show (prNetSalary r)
+    , "advance"    .= show (prAdvance r)
+    , "bonus"      .= show (prBonusAmount r)
+    , "vacationPay" .= show (prVacationPay r)
+    , "sickPay"    .= show (prSickPay r)
+    , "totalToPay" .= show (prTotalToPay r)
+    , "currency"   .= prCurrency r
+    ]
 
 -- | Calculate full payroll for an employee
 calculatePayroll :: PayrollRequest -> PayrollResult

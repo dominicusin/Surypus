@@ -37,6 +37,8 @@ module DAL.Types (
     Employee   (..),
     EmployeeInput   (..),
     PayrollResult   (..),
+    Timesheet   (..),
+    TimesheetInput   (..),
     ReportTemplate   (..),
     Order   (..),
     OrderInput   (..),
@@ -965,6 +967,31 @@ instance FromJSON PayrollResult where
       <*> v .:  "createdBy"
       <*> v .:  "createdAt"
       <*> v .:  "updatedAt"
+
+-- ============================================================
+-- Timesheet Types
+-- ============================================================
+
+data Timesheet = Timesheet
+  { timesheetId :: !Int64
+  , timesheetEmployeeId :: !Int64
+  , timesheetDate :: !Day
+  , timesheetHoursWorked :: !Double
+  , timesheetNotes :: !(Maybe Text)
+  , timesheetCreatedBy :: !Int64
+  , timesheetCreatedAt :: !(Maybe UTCTime)
+  } deriving (Show, Eq, Generic)
+instance ToJSON Timesheet
+instance FromJSON Timesheet
+
+data TimesheetInput = TimesheetInput
+  { tsiEmployeeId :: !Int64
+  , tsiDate :: !Day
+  , tsiHoursWorked :: !Double
+  , tsiNotes :: !(Maybe Text)
+  } deriving (Show, Eq, Generic)
+instance FromJSON TimesheetInput
+instance ToJSON TimesheetInput
 
 -- ============================================================
 -- All-Russian Classifiers (Общероссийские классификаторы)

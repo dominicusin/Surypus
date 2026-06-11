@@ -1556,6 +1556,8 @@
             <div class="tabs" id="payroll-tabs">
                 <div class="tab active" data-pr-tab="employees">Сотрудники</div>
                 <div class="tab" data-pr-tab="salaries">Начисления</div>
+                <div class="tab" data-pr-tab="timesheets">Табель</div>
+                <div class="tab" data-pr-tab="results">Расчёты</div>
             </div>
             
             <div class="stats-grid" id="pr-stats">
@@ -1637,6 +1639,64 @@
                             </thead>
                             <tbody id="pr-salaries-body">
                                 <tr><td colspan="6" style="text-align:center;color:var(--text-secondary);">Загрузка...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Timesheets -->
+            <div id="pr-tab-timesheets" class="pr-tab-content" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">Табель учёта рабочего времени</span>
+                        <div class="card-actions">
+                            <button class="btn btn-secondary" onclick="openTimesheetModal()">➕ Добавить запись</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Дата</th>
+                                    <th>Сотрудник</th>
+                                    <th>Часы</th>
+                                    <th>Примечание</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="pr-timesheets-body">
+                                <tr><td colspan="5" style="text-align:center;color:var(--text-secondary);">Загрузка...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Payroll Results -->
+            <div id="pr-tab-results" class="pr-tab-content" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">Результаты расчёта</span>
+                        <div class="card-actions">
+                            <button class="btn btn-primary" onclick="openPayrollCalcModal()">🧮 Рассчитать</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Период</th>
+                                    <th>Сотрудник</th>
+                                    <th>Начислено</th>
+                                    <th>НДФЛ</th>
+                                    <th>Соц.</th>
+                                    <th>Удержано</th>
+                                    <th>К выплате</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pr-results-body">
+                                <tr><td colspan="7" style="text-align:center;color:var(--text-secondary);">Загрузка...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -2127,6 +2187,87 @@
         </div>
     </div>
     
+    <!-- Modal: Timesheet -->
+    <div class="modal-overlay" id="timesheetModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">Запись в табель</span>
+                <button class="modal-close" onclick="closeModal('timesheetModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Сотрудник</label>
+                    <select id="ts-employee" class="form-input"></select>
+                </div>
+                <div class="form-group">
+                    <label>Дата</label>
+                    <input type="date" id="ts-date" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>Часы</label>
+                    <input type="number" id="ts-hours" class="form-input" step="0.5" min="0" max="24" value="8">
+                </div>
+                <div class="form-group">
+                    <label>Примечание</label>
+                    <input type="text" id="ts-notes" class="form-input" placeholder="Опционально">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('timesheetModal')">Отмена</button>
+                <button class="btn btn-primary" onclick="submitTimesheet()">Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Payroll Calculation -->
+    <div class="modal-overlay" id="payrollCalcModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">Расчёт зарплаты</span>
+                <button class="modal-close" onclick="closeModal('payrollCalcModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Сотрудник</label>
+                    <select id="pc-employee" class="form-input"></select>
+                </div>
+                <div class="form-group">
+                    <label>Период</label>
+                    <input type="date" id="pc-period" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>Оклад</label>
+                    <input type="number" id="pc-salary" class="form-input" step="100" min="0" value="50000">
+                </div>
+                <div class="form-group">
+                    <label>Премия</label>
+                    <input type="number" id="pc-bonus" class="form-input" step="100" min="0" value="0">
+                </div>
+                <div class="form-group">
+                    <label>Отработано дней</label>
+                    <input type="number" id="pc-days" class="form-input" step="1" min="0" max="31" value="22">
+                </div>
+                <div class="form-group">
+                    <label>Дней отпуска</label>
+                    <input type="number" id="pc-vacation" class="form-input" step="1" min="0" value="0">
+                </div>
+                <div class="form-group">
+                    <label>Дней больничного</label>
+                    <input type="number" id="pc-sick" class="form-input" step="1" min="0" value="0">
+                </div>
+                <div id="pc-result" style="display:none;background:var(--bg-secondary);border-radius:8px;padding:16px;margin-top:12px;">
+                    <div style="font-weight:500;margin-bottom:8px;">Результат расчёта:</div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px;" id="pc-result-grid"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('payrollCalcModal')">Закрыть</button>
+                <button class="btn btn-primary" id="pc-calc-btn" onclick="submitPayrollCalc()">🧮 Рассчитать</button>
+                <button class="btn btn-success" id="pc-save-btn" style="display:none;" onclick="submitPayrollCalcAndSave()">💾 Сохранить</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal: Stock Movement -->
     <div class="modal-overlay" id="stockModal">
         <div class="modal">
@@ -3335,12 +3476,16 @@
         async function loadPayrollData() {
             document.getElementById('pr-loading').style.display = 'block';
             try {
-                const [empRes, salRes] = await Promise.all([
+                const [empRes, salRes, tsRes, prRes] = await Promise.all([
                     api.payroll.employees.list(),
-                    api.payroll.salaries.list()
+                    api.payroll.salaries.list(),
+                    api.timesheets.list().catch(function() { return { data: [] }; }),
+                    api.payroll.results.list().catch(function() { return { data: [] }; })
                 ]);
                 renderEmployees(empRes.data);
                 renderSalaries(salRes.data);
+                renderTimesheets(tsRes.data, empRes.data);
+                renderPayrollResults(prRes.data, empRes.data);
             } catch (err) {
                 console.error('Payroll load error:', err);
                 document.querySelectorAll('.pr-tab-content tbody').forEach(t => {
@@ -3440,6 +3585,175 @@
             const totalNet = salaries.reduce((s, x) => s + x.salaryNet, 0);
             document.getElementById('pr-payroll').textContent = helpers.formatMoney(totalGross);
             document.getElementById('pr-avg').textContent = helpers.formatMoney(salaries.length > 0 ? Math.round(totalNet / salaries.length) : 0);
+        }
+
+        function renderTimesheets(items, employees) {
+            var body = document.getElementById('pr-timesheets-body');
+            if (!items || items.length === 0) {
+                body.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-secondary);">Нет записей</td></tr>';
+                return;
+            }
+            var empMap = {};
+            (employees || []).forEach(function(e) { empMap[e.employeeId] = e.employeeName; });
+            body.innerHTML = items.map(function(t) {
+                var name = empMap[t.timesheetEmployeeId] || '#' + t.timesheetEmployeeId;
+                return '<tr>' +
+                    '<td>' + t.timesheetDate + '</td>' +
+                    '<td>' + helpers.escapeHtml(name) + '</td>' +
+                    '<td>' + helpers.formatNumber(t.timesheetHoursWorked) + '</td>' +
+                    '<td>' + helpers.escapeHtml(t.timesheetNotes || '') + '</td>' +
+                    '<td><button class="btn btn-sm btn-danger" onclick="deleteTimesheet(' + t.timesheetId + ')">×</button></td>' +
+                    '</tr>';
+            }).join('');
+        }
+
+        function renderPayrollResults(items, employees) {
+            var body = document.getElementById('pr-results-body');
+            if (!items || items.length === 0) {
+                body.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-secondary);">Нет результатов</td></tr>';
+                return;
+            }
+            var empMap = {};
+            (employees || []).forEach(function(e) { empMap[e.employeeId] = e.employeeName; });
+            body.innerHTML = items.map(function(r) {
+                var name = empMap[r.employeeId] || '#' + r.employeeId;
+                return '<tr>' +
+                    '<td>' + r.period + '</td>' +
+                    '<td>' + helpers.escapeHtml(name) + '</td>' +
+                    '<td>' + helpers.formatMoney(parseFloat(r.gross)) + '</td>' +
+                    '<td>' + helpers.formatMoney(parseFloat(r.incomeTax)) + '</td>' +
+                    '<td>' + helpers.formatMoney(parseFloat(r.socialTax)) + '</td>' +
+                    '<td>' + helpers.formatMoney(parseFloat(r.deductions)) + '</td>' +
+                    '<td style="font-weight:bold;color:var(--primary);">' + helpers.formatMoney(parseFloat(r.totalToPay)) + '</td>' +
+                    '</tr>';
+            }).join('');
+        }
+
+        async function openTimesheetModal() {
+            try {
+                var empRes = await api.payroll.employees.list();
+                var sel = document.getElementById('ts-employee');
+                sel.innerHTML = '<option value="">Выберите сотрудника</option>';
+                (empRes.data || []).forEach(function(e) {
+                    sel.innerHTML += '<option value="' + e.employeeId + '">' + helpers.escapeHtml(e.employeeName) + '</option>';
+                });
+                document.getElementById('ts-date').value = new Date().toISOString().slice(0, 10);
+                document.getElementById('ts-hours').value = 8;
+                document.getElementById('ts-notes').value = '';
+            } catch (e) { console.error('Timesheet modal error:', e); }
+            openModal('timesheetModal');
+        }
+
+        async function submitTimesheet() {
+            var empId = parseInt(document.getElementById('ts-employee').value);
+            var date = document.getElementById('ts-date').value;
+            var hours = parseFloat(document.getElementById('ts-hours').value);
+            var notes = document.getElementById('ts-notes').value.trim() || null;
+            if (!empId || !date || !hours) { alert('Заполните сотрудника, дату и часы'); return; }
+            try {
+                await api.timesheets.create({ tsiEmployeeId: empId, tsiDate: date, tsiHoursWorked: hours, tsiNotes: notes });
+                closeModal('timesheetModal');
+                loadPayrollData();
+            } catch (e) { alert('Ошибка: ' + (e.response?.data?.message || e.message)); }
+        }
+
+        async function deleteTimesheet(id) {
+            if (!confirm('Удалить запись?')) return;
+            try {
+                await api.timesheets.delete(id);
+                loadPayrollData();
+            } catch (e) { alert('Ошибка: ' + (e.response?.data?.message || e.message)); }
+        }
+
+        async function openPayrollCalcModal() {
+            try {
+                var empRes = await api.payroll.employees.list();
+                var sel = document.getElementById('pc-employee');
+                sel.innerHTML = '<option value="">Выберите сотрудника</option>';
+                (empRes.data || []).forEach(function(e) {
+                    sel.innerHTML += '<option value="' + e.employeeId + '">' + helpers.escapeHtml(e.employeeName) + '</option>';
+                });
+                var now = new Date();
+                var firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+                document.getElementById('pc-period').value = firstDay;
+                document.getElementById('pc-salary').value = 50000;
+                document.getElementById('pc-bonus').value = 0;
+                document.getElementById('pc-days').value = 22;
+                document.getElementById('pc-vacation').value = 0;
+                document.getElementById('pc-sick').value = 0;
+                document.getElementById('pc-result').style.display = 'none';
+                document.getElementById('pc-calc-btn').style.display = 'inline-block';
+                document.getElementById('pc-save-btn').style.display = 'none';
+            } catch (e) { console.error('Payroll calc modal error:', e); }
+            openModal('payrollCalcModal');
+        }
+
+        async function submitPayrollCalc() {
+            var empId = parseInt(document.getElementById('pc-employee').value);
+            if (!empId) { alert('Выберите сотрудника'); return; }
+            var payload = {
+                pcrEmployeeId: empId,
+                pcrTenantId: 1,
+                pcrPeriod: document.getElementById('pc-period').value,
+                pcrBaseSalary: parseFloat(document.getElementById('pc-salary').value) || 0,
+                pcrBonus: parseFloat(document.getElementById('pc-bonus').value) || 0,
+                pcrDaysWorked: parseInt(document.getElementById('pc-days').value) || 0,
+                pcrVacationDays: parseInt(document.getElementById('pc-vacation').value) || 0,
+                pcrSickDays: parseInt(document.getElementById('pc-sick').value) || 0,
+                pcrUserId: 1
+            };
+            var btn = document.getElementById('pc-calc-btn');
+            btn.disabled = true;
+            btn.textContent = 'Расчёт...';
+            try {
+                var res = await api.payroll.calculate(payload);
+                var r = res.data;
+                var grid = document.getElementById('pc-result-grid');
+                grid.innerHTML =
+                    '<div style="color:var(--text-secondary);">Начислено:</div><div><strong>' + helpers.formatMoney(parseFloat(r.gross)) + '</strong></div>' +
+                    '<div style="color:var(--text-secondary);">НДФЛ:</div><div style="color:var(--error);">-' + helpers.formatMoney(parseFloat(r.incomeTax)) + '</div>' +
+                    '<div style="color:var(--text-secondary);">Соц. взносы:</div><div style="color:var(--error);">-' + helpers.formatMoney(parseFloat(r.socialTax)) + '</div>' +
+                    '<div style="color:var(--text-secondary);">Удержано всего:</div><div style="color:var(--error);">-' + helpers.formatMoney(parseFloat(r.deductions)) + '</div>' +
+                    '<div style="color:var(--text-secondary);">Аванс:</div><div>' + helpers.formatMoney(parseFloat(r.advance)) + '</div>' +
+                    '<div style="color:var(--text-secondary);">К выплате:</div><div style="font-weight:bold;color:var(--primary);font-size:18px;">' + helpers.formatMoney(parseFloat(r.totalToPay)) + '</div>';
+                document.getElementById('pc-result').style.display = 'block';
+                // Enable save button
+                document.getElementById('pc-save-btn').style.display = 'inline-block';
+                document.getElementById('pc-save-btn').dataset.empId = empId;
+            } catch (e) {
+                alert('Ошибка расчёта: ' + (e.response?.data?.message || e.message));
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🧮 Рассчитать';
+            }
+        }
+
+        async function submitPayrollCalcAndSave() {
+            var empId = parseInt(document.getElementById('pc-employee').value);
+            var payload = {
+                pcrEmployeeId: empId,
+                pcrTenantId: 1,
+                pcrPeriod: document.getElementById('pc-period').value,
+                pcrBaseSalary: parseFloat(document.getElementById('pc-salary').value) || 0,
+                pcrBonus: parseFloat(document.getElementById('pc-bonus').value) || 0,
+                pcrDaysWorked: parseInt(document.getElementById('pc-days').value) || 0,
+                pcrVacationDays: parseInt(document.getElementById('pc-vacation').value) || 0,
+                pcrSickDays: parseInt(document.getElementById('pc-sick').value) || 0,
+                pcrUserId: 1
+            };
+            var btn = document.getElementById('pc-save-btn');
+            btn.disabled = true;
+            btn.textContent = 'Сохранение...';
+            try {
+                await api.payroll.calculateAndSave(payload);
+                closeModal('payrollCalcModal');
+                loadPayrollData();
+            } catch (e) {
+                alert('Ошибка сохранения: ' + (e.response?.data?.message || e.message));
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '💾 Сохранить';
+            }
         }
 
         // Payroll tabs

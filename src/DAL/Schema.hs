@@ -442,6 +442,15 @@ PayrollResultEntity sql=payroll_results
   updatedAt UTCTime
   deriving Show Eq
 
+TimesheetEntity sql=timesheets
+  employeeId Int64
+  date Day
+  hoursWorked Double
+  notes Text Maybe
+  createdBy Int64
+  createdAt UTCTime Maybe
+  deriving Show Eq
+
 StockMovementEntity sql=stock_movement
   goodsId Int64
   locationFromId Int64 Maybe

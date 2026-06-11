@@ -16,8 +16,10 @@ module DAL.Mutations (
     createCurrency, updateCurrency, deleteCurrency,
     createAccPlan, updateAccPlan, deleteAccPlan,
     createAccTurn, updateAccTurn, deleteAccTurn,
-    createEmployee, createSalary,
-    createStockMovement
+    createEmployee, updateEmployee, deleteEmployee,
+    createSalary, deleteSalary,
+    createStockMovement,
+    createTimesheet, updateTimesheet, deleteTimesheet
 ) where
 
 import Data.Int (Int64)
@@ -193,6 +195,24 @@ createEmployee = DAL.MutationsORM.createEmployee
 
 createSalary :: ConnectionPool -> SalaryInput -> IO (QueryResult MutationResult)
 createSalary = DAL.MutationsORM.createSalary
+
+updateEmployee :: ConnectionPool -> Int64 -> EmployeeInput -> IO (QueryResult MutationResult)
+updateEmployee = DAL.MutationsORM.updateEmployee
+
+deleteEmployee :: ConnectionPool -> Int64 -> IO (QueryResult MutationResult)
+deleteEmployee = DAL.MutationsORM.deleteEmployee
+
+deleteSalary :: ConnectionPool -> Int64 -> IO (QueryResult MutationResult)
+deleteSalary = DAL.MutationsORM.deleteSalary
+
+createTimesheet :: ConnectionPool -> TimesheetInput -> IO (QueryResult MutationResult)
+createTimesheet = DAL.MutationsORM.createTimesheet
+
+updateTimesheet :: ConnectionPool -> Int64 -> TimesheetInput -> IO (QueryResult MutationResult)
+updateTimesheet = DAL.MutationsORM.updateTimesheet
+
+deleteTimesheet :: ConnectionPool -> Int64 -> IO (QueryResult MutationResult)
+deleteTimesheet = DAL.MutationsORM.deleteTimesheet
 
 createStockMovement :: ConnectionPool -> StockMovementInput -> IO (QueryResult MutationResult)
 createStockMovement = DAL.MutationsORM.createStockMovement
