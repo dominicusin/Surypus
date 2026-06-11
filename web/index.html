@@ -1655,6 +1655,7 @@
                 <div class="tab active" data-st-tab="balances">Остатки</div>
                 <div class="tab" data-st-tab="lots">Партии</div>
                 <div class="tab" data-st-tab="movements">Движения</div>
+                <div class="tab" data-st-tab="valuation">Оценка</div>
                 <div class="tab" data-st-tab="locations">Склады</div>
             </div>
             
@@ -1754,6 +1755,32 @@
                     </div>
                     <div class="card-body" id="st-locations-body" style="padding: 20px;">
                         <p style="color:var(--text-secondary);">Загрузка...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="st-tab-valuation" class="st-tab-content" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">Оценка запасов</span>
+                        <div class="card-actions">
+                            <span style="font-size: 12px; color: var(--text-secondary);" id="st-valuation-total"></span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Товар</th>
+                                    <th>Кол-во</th>
+                                    <th>Себестоимость</th>
+                                    <th>Общая стоимость</th>
+                                </tr>
+                            </thead>
+                            <tbody id="st-valuation-body">
+                                <tr><td colspan="4" style="text-align:center;color:var(--text-secondary);">Загрузка...</td></tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -3429,12 +3456,13 @@
         async function loadStockData() {
             document.getElementById('st-loading').style.display = 'block';
             try {
-                const [balRes, locRes, lotsRes, movRes, goodsRes] = await Promise.all([
+                const [balRes, locRes, lotsRes, movRes, goodsRes, valRes] = await Promise.all([
                     api.stock.list(),
                     api.locations.list(),
                     api.lots.list(),
                     api.stock.movements.list().catch(function() { return { data: [] }; }),
-                    api.goods.list().catch(function() { return { data: [] }; })
+                    api.goods.list().catch(function() { return { data: [] }; }),
+                    api.stock.valuation().catch(function() { return { data: [] }; })
                 ]);
                 var goodsMap = {};
                 (goodsRes.data || []).forEach(function(g) { goodsMap[g.goodsId] = g.goodsName || 'Товар #' + g.goodsId; });
@@ -3442,6 +3470,7 @@
                 renderLocations(locRes.data);
                 renderLots(lotsRes.data, goodsMap);
                 renderStockMovements(movRes.data, goodsMap);
+                renderValuation(valRes.data, goodsMap);
             } catch (err) {
                 console.error('Stock load error:', err);
                 document.getElementById('st-balances-body').innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--danger);">Ошибка</td></tr>';
@@ -3508,6 +3537,31 @@
                     '</tr>';
             }).join('');
             document.getElementById('st-lots-count').textContent = items.length;
+        }
+
+        function renderValuation(items, goodsMap) {
+            var body = document.getElementById('st-valuation-body');
+            var totalEl = document.getElementById('st-valuation-total');
+            if (!items || items.length === 0) {
+                body.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-secondary);">Нет данных</td></tr>';
+                if (totalEl) totalEl.textContent = '';
+                return;
+            }
+            var grandTotal = 0;
+            body.innerHTML = items.map(function(v) {
+                var name = v.svrGoodsName || (goodsMap || {})[v.svrGoodsId] || 'Товар #' + v.svrGoodsId;
+                var qty = parseFloat(v.svrQuantity) || 0;
+                var cost = parseFloat(v.svrCost) || 0;
+                var total = parseFloat(v.svrTotalValue) || cost * qty;
+                grandTotal += total;
+                return '<tr>' +
+                    '<td>' + helpers.escapeHtml(name) + '</td>' +
+                    '<td>' + helpers.formatNumber(qty) + '</td>' +
+                    '<td>' + helpers.formatMoney(cost) + '</td>' +
+                    '<td><strong>' + helpers.formatMoney(total) + '</strong></td>' +
+                    '</tr>';
+            }).join('');
+            if (totalEl) totalEl.textContent = 'Итого: ' + helpers.formatMoney(grandTotal);
         }
 
         function renderStockMovements(items, goodsMap) {
