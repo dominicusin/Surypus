@@ -132,8 +132,15 @@ requiredPermissionForPathMethod method path =
               | otherwise -> "location:read"
         ["stock"] -> Just "stock:read"
         ["stock", "summary"] -> Just "stock:read"
+        ["stock", "valuation"] -> Just "stock:read"
+        ["stock", "movements"] -> Just $ case () of
+          _ | isGet -> "stock:read"
+            | isPost -> "stock:write"
+            | otherwise -> "stock:read"
+        ["stock", "movements", "goods", _gid] -> Just "stock:read"
         ["stock", _gid, _lid] -> Just "stock:read"
         ["stock", "bygoods", _gid] -> Just "stock:read"
+        ["goods", "low-stock"] -> Just "stock:read"
         ["accounting"] ->
           Just $ case () of
             _ | isGet -> "accounting:read"

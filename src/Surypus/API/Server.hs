@@ -64,6 +64,7 @@ import qualified Surypus.API.Payment as Payments
 import qualified Surypus.API.Payroll as Payroll
 import qualified Surypus.API.Persons as Persons
 import qualified Surypus.API.Reports as Reports
+import qualified Surypus.API.Stock as StockAPI
 import qualified Surypus.API.Workflow as Workflow
 import qualified Surypus.API.GraphQL as GraphQL
 import qualified Surypus.JWT.Token as JWT
@@ -272,6 +273,9 @@ type SurypusApi =
                 :<|> "stock" :> "movements" :> Get '[JSON] [DAL.StockMovement]
                 :<|> "stock" :> "movements" :> ReqBody '[JSON] DAL.StockMovementInput :> Post '[JSON] DAL.MutationResult
                 :<|> "stock" :> "movements" :> "goods" :> Capture "goodsId" Int64 :> Get '[JSON] [DAL.StockMovement]
+                :<|> "stock" :> "summary" :> Get '[JSON] StockAPI.StockSummary
+                :<|> "stock" :> "valuation" :> Get '[JSON] [StockAPI.StockValuationRow]
+                :<|> "goods" :> "low-stock" :> Get '[JSON] [StockAPI.LowStockAlert]
                 -- Lots
                 :<|> "lots" :> Get '[JSON] [DAL.Lot]
                 :<|> "lots" :> Capture "id" Int64 :> Get '[JSON] DAL.Lot
@@ -404,6 +408,9 @@ server env =
         :<|> stockMovementsList env
         :<|> stockMovementCreate env
         :<|> stockMovementsByGoods env
+        :<|> stockSummary env
+        :<|> stockValuation env
+        :<|> goodsLowStock env
         :<|> lotsList env
         :<|> lotGet env
         :<|> lotsByGoods env
@@ -597,6 +604,15 @@ stockMovementCreate env input = liftQ $ DAL.Mutations.createStockMovement (envCo
 
 stockMovementsByGoods :: Env -> Int64 -> Handler [DAL.StockMovement]
 stockMovementsByGoods env gid = liftQ $ DAL.QueriesORM.getStockMovementsByGoods (envConnectionPool env) gid
+
+stockSummary :: Env -> Handler StockAPI.StockSummary
+stockSummary env = liftQ $ StockAPI.getStockSummary (envConnectionPool env)
+
+stockValuation :: Env -> Handler [StockAPI.StockValuationRow]
+stockValuation env = liftQ $ StockAPI.getValuation (envConnectionPool env)
+
+goodsLowStock :: Env -> Handler [StockAPI.LowStockAlert]
+goodsLowStock env = liftQ $ StockAPI.getLowStock (envConnectionPool env)
 
 lotsList :: Env -> Handler [DAL.Lot]
 lotsList env = liftQ $ DAL.QueriesORM.getLots (envConnectionPool env)

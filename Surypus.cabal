@@ -133,6 +133,7 @@ library
     Surypus.API.RateLimiter
     Surypus.API.Reports
     Surypus.API.Server
+    Surypus.API.Stock
     Surypus.API.Workflow
     Surypus.Codecs
     Surypus.Core

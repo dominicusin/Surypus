@@ -1075,12 +1075,21 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Low Stock Alert -->
+            <div class="card" id="dashboard-low-stock" style="display:none;border-left:4px solid var(--danger);">
+                <div class="card-header">
+                    <span class="card-title">⚠️ Товары заканчиваются (<span class="alert-count">0</span>)</span>
+                </div>
+                <div class="card-body">
+                    <div class="alert-list"></div>
+                </div>
+            </div>
             
             <!-- Recent Documents -->
             <div class="card">
                 <div class="card-header">
                     <span class="card-title">Последние документы</span>
-                    <button class="btn btn-secondary" onclick="navigateTo('bills')">Все документы →</button>
                 </div>
                 <div class="card-body">
                     <table>
@@ -2621,11 +2630,12 @@
         // Data loading for all pages
         async function loadDashboardData() {
             try {
-                var [kpRes, locRes, perRes, bilRes] = await Promise.all([
+                var [kpRes, locRes, perRes, bilRes, lowRes] = await Promise.all([
                     api.dashboard.stats(),
                     api.locations.list().catch(function() { return { data: [] }; }),
                     api.persons.list({ limit: 1 }).catch(function() { return { data: [] }; }),
-                    api.bills.list({ limit: 100 }).catch(function() { return { data: [] }; })
+                    api.bills.list({ limit: 100 }).catch(function() { return { data: [] }; }),
+                    api.goods.lowStock().catch(function() { return { data: [] }; })
                 ]);
                 var kpi = kpRes.data;
                 var locs = locRes.data || [];
@@ -2654,6 +2664,19 @@
                         return '<tr><td>' + (b.billNumber || '#' + b.billId) + '</td><td>' + helpers.formatDate(b.billDate) + '</td><td>#' + b.billPersonId + '</td><td>' + helpers.formatMoney(b.billTotal) + '</td><td><span class="status-badge ' + statusClass + '">' + statusLabel + '</span></td></tr>';
                     }).join('');
                 }
+                // Low stock alerts
+                var lowItems = lowRes.data || [];
+                var alertEl = document.getElementById('dashboard-low-stock');
+                if (alertEl && lowItems.length) {
+                    alertEl.style.display = 'block';
+                    alertEl.querySelector('.alert-count').textContent = lowItems.length;
+                    var listEl = alertEl.querySelector('.alert-list');
+                    listEl.innerHTML = lowItems.slice(0, 10).map(function(a) {
+                        return '<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--divider);">' +
+                            '<span>' + helpers.escapeHtml(a.lsaGoodsName) + '</span>' +
+                            '<span style="color:var(--danger);">' + helpers.formatNumber(a.lsaCurrentStock) + ' / ' + helpers.formatNumber(a.lsaMinLevel) + '</span></div>';
+                    }).join('');
+                } else if (alertEl) { alertEl.style.display = 'none'; }
             } catch (e) { console.error('Dashboard load error:', e); }
         }
 

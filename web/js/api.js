@@ -183,6 +183,7 @@ const api = {
         byGoods: (goodsId) => axios.get(`${API_BASE}/stock/goods/${goodsId}`),
         byGoodsAndLocation: (goodsId, locationId) => axios.get(`${API_BASE}/stock/${goodsId}/locations/${locationId}`),
         summary: () => axios.get(`${API_BASE}/stock/summary`),
+        valuation: () => axios.get(`${API_BASE}/stock/valuation`),
         movements: {
             list: (params = {}) => axios.get(`${API_BASE}/stock/movements`, { params }),
             byGoods: (goodsId) => axios.get(`${API_BASE}/stock/movements/goods/${goodsId}`)
