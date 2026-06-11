@@ -8,6 +8,7 @@ module Surypus.API.Bills (
     updateBill,
     deleteBill,
     postBill,
+    updateBillStatus,
 )
 where
 
@@ -48,3 +49,23 @@ postBill pool bid = do
         QuerySuccess True -> return $ QuerySuccess ()
         QuerySuccess False -> return $ QueryError "Failed to post bill: check bill status"
         QueryError err -> return $ QueryError err
+
+updateBillStatus :: ConnectionPool -> Int64 -> Int -> IO (QueryResult ())
+updateBillStatus pool bid status
+    | status == 2 = do
+        result <- Proc.postBill pool bid
+        case result of
+            QuerySuccess True -> return $ QuerySuccess ()
+            QuerySuccess False -> return $ QueryError "Failed to post bill: check bill status"
+            QueryError err -> return $ QueryError err
+    | status == 3 = do
+        result <- Proc.cancelBill pool bid
+        case result of
+            QuerySuccess True -> return $ QuerySuccess ()
+            QuerySuccess False -> return $ QueryError "Failed to cancel bill: check bill status"
+            QueryError err -> return $ QueryError err
+    | otherwise = do
+        result <- Mut.updateBillStatus pool bid status
+        case result of
+            QuerySuccess _ -> return $ QuerySuccess ()
+            QueryError err -> return $ QueryError err

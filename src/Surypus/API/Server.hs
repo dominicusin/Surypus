@@ -207,6 +207,8 @@ type SurypusApi =
                 :<|> "bills" :> ReqBody '[JSON] BillInput :> Post '[JSON] Bill
                 :<|> "bills" :> Capture "id" Int64 :> Get '[JSON] Bill
                 :<|> "bills" :> Capture "id" Int64 :> "post" :> Post '[JSON] ()
+                :<|> "bills" :> Capture "id" Int64 :> "status" :> QueryParam "status" Int :> Put '[JSON] ()
+                :<|> "bills" :> Capture "id" Int64 :> Delete '[JSON] ()
                 -- Goods / Persons / Payments
                 :<|> "goods" :> Get '[JSON] [Goods]
                 :<|> "persons" :> Get '[JSON] [Person]
@@ -336,6 +338,8 @@ server env =
         :<|> billsCreate env
         :<|> billGet env
         :<|> billPost env
+        :<|> billStatusUpdate env
+        :<|> billDelete env
         :<|> goodsList env
         :<|> personsList env
         :<|> paymentsList env
@@ -486,9 +490,19 @@ handleAuthMe env mbAuth = do
                     pure $ UserInfoResponse uid uname Nothing
 
 billsList env = liftQ $ Bills.listBills (envConnectionPool env)
-billsCreate env i = liftQ $ fmap (const (Bill 0 Nothing 0 0 (fromGregorian 2000 1 1) Nothing Nothing 0 0 0)) <$> Bills.createBill (envConnectionPool env) i
+billsCreate env input = do
+    result <- liftIO $ Bills.createBill (envConnectionPool env) input
+    case result of
+        QuerySuccess mr -> case mrId mr of
+            Just bid -> liftQ $ Bills.getBill (envConnectionPool env) bid
+            Nothing -> liftQ $ return $ QueryError "Bill created but no ID returned"
+        QueryError err -> liftQ $ return $ QueryError err
 billGet env bid = liftQ $ Bills.getBill (envConnectionPool env) bid
 billPost env bid = liftQ $ Bills.postBill (envConnectionPool env) bid
+billStatusUpdate env bid mstatus = case mstatus of
+    Just s -> liftQ $ Bills.updateBillStatus (envConnectionPool env) bid s
+    Nothing -> liftQ $ return $ QueryError "status query parameter required"
+billDelete env bid = liftQ $ Bills.deleteBill (envConnectionPool env) bid
 
 goodsList env = liftQ $ Goods.listGoods (envConnectionPool env)
 personsList env = liftQ $ Persons.listPersons (envConnectionPool env) Nothing Nothing Nothing Nothing Nothing

@@ -342,6 +342,7 @@
         .status-pending { background: #FFF3E0; color: var(--warning); }
         .status-completed { background: #E3F2FD; color: var(--primary); }
         .status-draft { background: #F5F5F5; color: var(--text-secondary); }
+        .status-cancelled { background: #FFEBEE; color: var(--danger); }
         
         /* Buttons */
         .btn {
@@ -373,6 +374,11 @@
         
         .btn-secondary:hover {
             background: #F5F5F5;
+        }
+
+        .btn-sm {
+            padding: 4px 10px;
+            font-size: 12px;
         }
         
         /* Forms */
@@ -1169,6 +1175,7 @@
                                 <th>Контрагент</th>
                                 <th>Сумма</th>
                                 <th>Статус</th>
+                                <th>Действия</th>
                             </tr>
                         </thead>
                         <tbody id="billsTable">
@@ -2120,6 +2127,106 @@
         </div>
     </div>
 
+    <!-- Bill Modal -->
+    <div class="modal-overlay" id="billModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">Новый счёт</span>
+                <button class="modal-close" onclick="closeModal('billModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Номер</label>
+                    <input type="text" class="form-input" id="bill-code" placeholder="СЧ-001">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Тип</label>
+                    <select class="form-input" id="bill-type">
+                        <option value="1">Приход</option>
+                        <option value="2">Расход</option>
+                        <option value="3">Перемещение</option>
+                    </select>
+                </div>
+                <div class="form-row" style="display:flex;gap:12px;">
+                    <div class="form-group" style="flex:1;">
+                        <label class="form-label">Дата *</label>
+                        <input type="date" class="form-input" id="bill-date">
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label class="form-label">Контрагент</label>
+                        <select class="form-input" id="bill-person">
+                            <option value="">— Без контрагента —</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Склад</label>
+                    <select class="form-input" id="bill-location">
+                        <option value="">— Без склада —</option>
+                    </select>
+                </div>
+                <hr style="margin:16px 0;border-color:var(--border);">
+                <label class="form-label">Товары / Услуги</label>
+                <div style="margin-bottom:8px;font-size:12px;color:var(--text-secondary);">Заполните строки документа</div>
+                <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                    <thead>
+                        <tr style="background:var(--bg-secondary);">
+                            <th style="padding:6px 8px;text-align:left;width:40%;">Товар</th>
+                            <th style="padding:6px 8px;text-align:right;width:12%;">Кол-во</th>
+                            <th style="padding:6px 8px;text-align:right;width:15%;">Цена</th>
+                            <th style="padding:6px 8px;text-align:right;width:12%;">Скидка</th>
+                            <th style="padding:6px 8px;text-align:right;width:15%;">Сумма</th>
+                            <th style="padding:6px 8px;width:6%;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="bill-lines-body">
+                        <tr>
+                            <td style="padding:4px;">
+                                <select class="form-input bill-line-goods" style="font-size:12px;padding:4px 6px;">
+                                    <option value="">Выберите товар</option>
+                                </select>
+                            </td>
+                            <td style="padding:4px;">
+                                <input type="number" class="form-input bill-line-qty" value="1" min="0.01" step="0.01" style="font-size:12px;padding:4px 6px;text-align:right;width:80px;">
+                            </td>
+                            <td style="padding:4px;">
+                                <input type="number" class="form-input bill-line-price" value="0" min="0" step="0.01" style="font-size:12px;padding:4px 6px;text-align:right;width:90px;">
+                            </td>
+                            <td style="padding:4px;">
+                                <input type="number" class="form-input bill-line-discount" value="0" min="0" step="0.01" style="font-size:12px;padding:4px 6px;text-align:right;width:70px;">
+                            </td>
+                            <td style="padding:4px;">
+                                <input type="number" class="form-input bill-line-amount" value="0" min="0" step="0.01" readonly style="font-size:12px;padding:4px 6px;text-align:right;width:90px;background:var(--bg-secondary);">
+                            </td>
+                            <td style="padding:4px;text-align:center;">
+                                <button class="btn-remove-line" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:16px;padding:2px 6px;" onclick="this.closest('tr').remove();calcBillTotal();">×</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div style="margin-top:8px;">
+                    <button class="btn btn-secondary" style="font-size:12px;padding:4px 12px;" onclick="addBillLine()">+ Добавить строку</button>
+                </div>
+                <hr style="margin:16px 0;border-color:var(--border);">
+                <div class="form-row" style="display:flex;gap:12px;align-items:flex-end;">
+                    <div class="form-group" style="flex:1;">
+                        <label class="form-label">Скидка на документ</label>
+                        <input type="number" class="form-input" id="bill-discount" value="0" min="0" step="0.01" oninput="calcBillTotal()">
+                    </div>
+                    <div class="form-group" style="flex:1;text-align:right;">
+                        <label class="form-label">Итого:</label>
+                        <div style="font-size:20px;font-weight:700;" id="bill-total-display">0.00 ₽</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div id="bill-error" style="color:var(--danger);font-size:13px;display:none;"></div>
+                <button class="btn btn-secondary" onclick="closeModal('billModal')">Отмена</button>
+                <button class="btn btn-primary" onclick="submitBill()">Создать счёт</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Tenant Modal -->
     <div class="modal-overlay" id="tenantModal" style="display:none;">
         <div class="modal-content" style="width:400px;">
@@ -2315,10 +2422,117 @@
         // Modal
         function openModal(id) {
             document.getElementById(id).classList.add('active');
+            if (id === 'billModal') initBillModal();
         }
         
         function closeModal(id) {
             document.getElementById(id).classList.remove('active');
+        }
+
+        // Bill Modal
+        async function initBillModal() {
+            document.getElementById('bill-date').value = new Date().toISOString().split('T')[0];
+            document.getElementById('bill-error').style.display = 'none';
+            try {
+                var [perRes, goodsRes, locRes] = await Promise.all([
+                    api.persons.list(), api.goods.list(), api.locations.list()
+                ]);
+                var personSelect = document.getElementById('bill-person');
+                var currentVal = personSelect.value;
+                personSelect.innerHTML = '<option value="">— Без контрагента —</option>' +
+                    (perRes.data || []).map(function(p) {
+                        return '<option value="' + p.personId + '">' + helpers.escapeHtml(p.personName) + '</option>';
+                    }).join('');
+                personSelect.value = currentVal;
+
+                var goodsSelects = document.querySelectorAll('#bill-lines-body .bill-line-goods');
+                var goodsOptions = '<option value="">Выберите товар</option>' +
+                    (goodsRes.data || []).map(function(g) {
+                        return '<option value="' + g.goodsId + '">' + helpers.escapeHtml(g.goodsName) + '</option>';
+                    }).join('');
+                goodsSelects.forEach(function(s) { s.innerHTML = goodsOptions; });
+
+                var locSelect = document.getElementById('bill-location');
+                locSelect.innerHTML = '<option value="">— Без склада —</option>' +
+                    (locRes.data || []).map(function(l) {
+                        return '<option value="' + l.locationId + '">' + helpers.escapeHtml(l.locationName) + '</option>';
+                    }).join('');
+            } catch (e) { console.error('initBillModal error:', e); }
+        }
+
+        function addBillLine() {
+            var body = document.getElementById('bill-lines-body');
+            var row = document.createElement('tr');
+            row.innerHTML =
+                '<td style="padding:4px;">' +
+                    '<select class="form-input bill-line-goods" style="font-size:12px;padding:4px 6px;">' +
+                        document.querySelector('#bill-lines-body .bill-line-goods')?.innerHTML || '<option value="">Выберите товар</option>' +
+                    '</select></td>' +
+                '<td style="padding:4px;"><input type="number" class="form-input bill-line-qty" value="1" min="0.01" step="0.01" style="font-size:12px;padding:4px 6px;text-align:right;width:80px;" oninput="calcBillTotal()"></td>' +
+                '<td style="padding:4px;"><input type="number" class="form-input bill-line-price" value="0" min="0" step="0.01" style="font-size:12px;padding:4px 6px;text-align:right;width:90px;" oninput="calcBillTotal()"></td>' +
+                '<td style="padding:4px;"><input type="number" class="form-input bill-line-discount" value="0" min="0" step="0.01" style="font-size:12px;padding:4px 6px;text-align:right;width:70px;" oninput="calcBillTotal()"></td>' +
+                '<td style="padding:4px;"><input type="number" class="form-input bill-line-amount" value="0" min="0" step="0.01" readonly style="font-size:12px;padding:4px 6px;text-align:right;width:90px;background:var(--bg-secondary);"></td>' +
+                '<td style="padding:4px;text-align:center;"><button class="btn-remove-line" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:16px;padding:2px 6px;" onclick="this.closest(\'tr\').remove();calcBillTotal();">×</button></td>';
+            body.appendChild(row);
+            // Copy goods options from first row
+            var firstGoods = document.querySelector('#bill-lines-body .bill-line-goods');
+            if (firstGoods) row.querySelector('.bill-line-goods').innerHTML = firstGoods.innerHTML;
+        }
+
+        function calcBillTotal() {
+            var total = 0;
+            document.querySelectorAll('#bill-lines-body tr').forEach(function(row) {
+                var qty = parseFloat(row.querySelector('.bill-line-qty')?.value) || 0;
+                var price = parseFloat(row.querySelector('.bill-line-price')?.value) || 0;
+                var discount = parseFloat(row.querySelector('.bill-line-discount')?.value) || 0;
+                var amount = qty * price - discount;
+                if (amount < 0) amount = 0;
+                var amtInput = row.querySelector('.bill-line-amount');
+                if (amtInput) amtInput.value = amount.toFixed(2);
+                total += amount;
+            });
+            var disc = parseFloat(document.getElementById('bill-discount')?.value) || 0;
+            total -= disc;
+            if (total < 0) total = 0;
+            document.getElementById('bill-total-display').textContent = helpers.formatMoney(total);
+        }
+
+        async function submitBill() {
+            var errorEl = document.getElementById('bill-error');
+            errorEl.style.display = 'none';
+            var date = document.getElementById('bill-date').value;
+            if (!date) { errorEl.textContent = 'Укажите дату документа'; errorEl.style.display = 'block'; return; }
+            var total = 0;
+            var disc = parseFloat(document.getElementById('bill-discount')?.value) || 0;
+            document.querySelectorAll('#bill-lines-body tr').forEach(function(row) {
+                var qty = parseFloat(row.querySelector('.bill-line-qty')?.value) || 0;
+                var price = parseFloat(row.querySelector('.bill-line-price')?.value) || 0;
+                var lineDisc = parseFloat(row.querySelector('.bill-line-discount')?.value) || 0;
+                var amount = qty * price - lineDisc;
+                if (amount < 0) amount = 0;
+                total += amount;
+            });
+            total -= disc;
+            if (total < 0) total = 0;
+            var input = {
+                biCode: document.getElementById('bill-code').value || null,
+                biType: parseInt(document.getElementById('bill-type').value),
+                biStatus: 1,
+                biDate: date,
+                biPersonId: parseInt(document.getElementById('bill-person').value) || null,
+                biLocationId: parseInt(document.getElementById('bill-location').value) || null,
+                biTotal: total,
+                biDiscount: disc,
+                biTax: 0
+            };
+            try {
+                await api.bills.create(input);
+                closeModal('billModal');
+                loadBillsData();
+            } catch (e) {
+                errorEl.textContent = helpers.handleApiError(e);
+                errorEl.style.display = 'block';
+            }
         }
         
         // Search
@@ -2461,14 +2675,33 @@
                 var res = await api.bills.list();
                 var items = res.data || [];
                 var body = document.getElementById('billsTable');
-                if (!items.length) { body.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-secondary);">Нет документов</td></tr>'; return; }
+                if (!items.length) { body.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-secondary);">Нет документов</td></tr>'; return; }
                 body.innerHTML = items.map(function(b) {
-                    var statusText = b.billStatus || 'draft';
-                    var statusClass = statusText === 'POSTED' ? 'status-completed' : statusText === 'PENDING' ? 'status-pending' : 'status-draft';
-                    var statusLabel = statusText === 'POSTED' ? 'Проведён' : statusText === 'PENDING' ? 'На утверждении' : 'Черновик';
-                    return '<tr><td>' + (b.billNumber || '#' + b.billId) + '</td><td>' + helpers.formatDate(b.billDate) + '</td><td>Счёт</td><td>#' + b.billPersonId + '</td><td>' + helpers.formatMoney(b.billTotal) + '</td><td><span class="status-badge ' + statusClass + '">' + statusLabel + '</span></td></tr>';
+                    var s = b.billStatus || 1;
+                    var statusClass = s === 2 ? 'status-completed' : s === 3 ? 'status-cancelled' : 'status-draft';
+                    var statusLabel = s === 2 ? 'Проведён' : s === 3 ? 'Аннулирован' : 'Черновик';
+                    var actions = '';
+                    if (s === 1) actions += '<button class="btn btn-sm btn-primary" onclick="updateBillStatus(' + b.billId + ',2)" style="font-size:11px;padding:2px 8px;margin-right:4px;">Провести</button>';
+                    if (s === 2) actions += '<button class="btn btn-sm btn-secondary" onclick="updateBillStatus(' + b.billId + ',3)" style="font-size:11px;padding:2px 8px;margin-right:4px;">Аннулировать</button>';
+                    if (s === 1) actions += '<button class="btn btn-sm btn-secondary" onclick="deleteBill(' + b.billId + ')" style="font-size:11px;padding:2px 8px;color:var(--danger);">Удалить</button>';
+                    return '<tr><td>' + (b.billCode || '#' + b.billId) + '</td><td>' + helpers.formatDate(b.billDate) + '</td><td>Счёт</td><td>#' + (b.billPersonId || '—') + '</td><td>' + helpers.formatMoney(b.billTotal) + '</td><td><span class="status-badge ' + statusClass + '">' + statusLabel + '</span></td><td>' + actions + '</td></tr>';
                 }).join('');
-            } catch (e) { document.getElementById('billsTable').innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--danger);">Ошибка загрузки</td></tr>'; }
+            } catch (e) { document.getElementById('billsTable').innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--danger);">Ошибка загрузки</td></tr>'; }
+        }
+
+        async function updateBillStatus(id, status) {
+            try {
+                await api.bills.updateStatus(id, status);
+                loadBillsData();
+            } catch (e) { alert('Ошибка: ' + helpers.handleApiError(e)); }
+        }
+
+        async function deleteBill(id) {
+            if (!confirm('Удалить документ #' + id + '?')) return;
+            try {
+                await api.bills.delete(id);
+                loadBillsData();
+            } catch (e) { alert('Ошибка: ' + helpers.handleApiError(e)); }
         }
 
         // Accounting data loading

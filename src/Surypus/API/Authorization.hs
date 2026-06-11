@@ -75,7 +75,17 @@ requiredPermissionForPathMethod method path =
               | isDelete -> "bill:delete"
               | otherwise -> "bill:read"
         ["bills"] ->
-          Just "bill:read"
+          Just $ case () of
+            _ | isGet -> "bill:read"
+              | isPost -> "bill:write"
+              | otherwise -> "bill:read"
+        ["bills", _id] ->
+          Just $ case () of
+            _ | isGet -> "bill:read"
+              | isDelete -> "bill:delete"
+              | otherwise -> "bill:read"
+        ["bills", _id, "status"] ->
+          Just "bill:post"
         ["payment"] ->
           Just $ case () of
             _ | isGet -> "payment:read"
