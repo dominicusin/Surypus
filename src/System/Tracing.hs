@@ -58,19 +58,26 @@ addSpanLog span msg = do
 endSpan :: Span -> IO ()
 endSpan _ = pure ()
 
+-- | Traced result - either success or failure
+data Traced a = Traced
+  { tracedValue :: Either SomeException a
+  , tracedSpan :: Span
+  } deriving (Show)
+
 -- | Trace an operation with automatic span management
-traceOperation :: Text -> IO a -> IO (a, Span)
+-- Returns Traced wrapper with Either result instead of crashing on error
+traceOperation :: Text -> IO a -> IO (Traced a)
 traceOperation operation action = do
   span <- startSpan operation
   result <- try @SomeException action
   case result of
     Right val -> do
       endSpan span
-      return (val, span)
+      return $ Traced (Right val) span
     Left err -> do
-      addSpanLog span ("Error: " <> pack (show err))
-      endSpan span
-      return (error (show err), span)
+      loggedSpan <- addSpanLog span ("Error: " <> pack (show err))
+      endSpan loggedSpan
+      return $ Traced (Left err) loggedSpan
 
 -- | Create trace context JSON
 instance ToJSON TraceContext where
