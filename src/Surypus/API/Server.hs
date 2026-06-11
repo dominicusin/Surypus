@@ -122,6 +122,31 @@ data UserInfoResponse = UserInfoResponse
     deriving (Generic, Show, Eq)
 instance ToJSON UserInfoResponse
 
+data AuditLogEntry = AuditLogEntry
+  { aleId :: Int64, aleUserId :: Int64, aleAction :: Text, aleResourceType :: Text
+  , aleResourceId :: Int64, aleOldValues :: Maybe Text, aleNewValues :: Maybe Text
+  , aleIpAddress :: Text, aleCreatedAt :: Text
+  } deriving (Generic, Show, Eq)
+instance FromJSON AuditLogEntry
+instance ToJSON AuditLogEntry
+
+data RoleEntry = RoleEntry
+  { reId :: Int64, reName :: Text
+  } deriving (Generic, Show, Eq)
+instance FromJSON RoleEntry
+instance ToJSON RoleEntry
+
+data RoleInput = RoleInput
+  { riName :: Text
+  } deriving (Generic, Show, Eq)
+instance FromJSON RoleInput
+
+data PermissionEntry = PermissionEntry
+  { peId :: Int64, peName :: Text
+  } deriving (Generic, Show, Eq)
+instance FromJSON PermissionEntry
+instance ToJSON PermissionEntry
+
 data Env = Env
      { envConnectionPool :: ConnectionPool
      , envLogger :: Log.Logger
@@ -312,6 +337,14 @@ type SurypusApi =
                 :<|> "users" :> ReqBody '[JSON] UserInput :> Post '[JSON] DAL.MutationResult
                 :<|> "users" :> Capture "id" Int64 :> Get '[JSON] User
                 :<|> "users" :> Capture "id" Int64 :> ReqBody '[JSON] UserInput :> Put '[JSON] DAL.MutationResult
+                :<|> "users" :> Capture "id" Int64 :> Delete '[JSON] DAL.MutationResult
+                :<|> "audit-log" :> QueryParam "userId" Int64 :> QueryParam "action" Text :> QueryParam "resourceType" Text :> QueryParam "limit" Int :> Get '[JSON] [AuditLogEntry]
+                :<|> "roles" :> Get '[JSON] [RoleEntry]
+                :<|> "roles" :> Capture "rid" Int64 :> Get '[JSON] RoleEntry
+                :<|> "roles" :> ReqBody '[JSON] RoleInput :> Post '[JSON] DAL.MutationResult
+                :<|> "roles" :> Capture "rid" Int64 :> ReqBody '[JSON] RoleInput :> Put '[JSON] DAL.MutationResult
+                :<|> "roles" :> Capture "rid" Int64 :> Delete '[JSON] DAL.MutationResult
+                :<|> "permissions" :> Get '[JSON] [PermissionEntry]
                 -- Integrations
                 :<|> "integrations" :> Get '[JSON] [Integrations.Integration]
                 :<|> "integrations" :> Capture "id" Int64 :> Get '[JSON] Integrations.Integration
@@ -453,6 +486,14 @@ server env =
         :<|> usersCreate env
         :<|> usersGet env
         :<|> usersUpdate env
+        :<|> usersDelete env
+        :<|> auditLogList env
+        :<|> rolesList env
+        :<|> roleGet env
+        :<|> roleCreate env
+        :<|> roleUpdate env
+        :<|> roleDelete env
+        :<|> permissionsList env
         :<|> integrationsList env
         :<|> integrationGet env
         :<|> integrationUpdateStatus env
@@ -695,6 +736,50 @@ usersList env = liftQ $ DAL.Mutations.listUsers (envConnectionPool env)
 usersCreate env i = liftQ $ DAL.Mutations.createUser (envConnectionPool env) i
 usersGet env uid = liftQ $ DAL.Mutations.getUser (envConnectionPool env) uid
 usersUpdate env uid i = liftQ $ DAL.Mutations.updateUser (envConnectionPool env) uid i
+usersDelete env uid = liftQ $ DAL.Mutations.deleteUser (envConnectionPool env) uid
+
+auditLogList :: Env -> Maybe Int64 -> Maybe Text -> Maybe Text -> Maybe Int -> Handler [AuditLogEntry]
+auditLogList env mUserId mAction mResourceType mLimit = do
+  let sql = "SELECT id, user_id, action, resource_type, resource_id, old_values, new_values, ip_address, CAST(created_at AS TEXT) FROM audit_log ORDER BY created_at DESC LIMIT ?"
+      limit = fromMaybe 100 mLimit
+  rows <- liftIO $ runSqlPool (rawSql sql [PersistInt64 (fromIntegral limit)]) (envConnectionPool env)
+  let entries = map (\(Single i, Single u, Single a, Single rt, Single ri, Single ov, Single nv, Single ip, Single ca) ->
+        AuditLogEntry i u a rt ri ov nv ip ca) rows
+  pure entries
+
+rolesList :: Env -> Handler [RoleEntry]
+rolesList env = do
+  rows <- liftIO $ runSqlPool (rawSql "SELECT id, name FROM role ORDER BY name" []) (envConnectionPool env)
+  pure $ map (\(Single i, Single n) -> RoleEntry i n) rows
+
+roleGet :: Env -> Int64 -> Handler RoleEntry
+roleGet env rid = do
+  rows <- liftIO $ runSqlPool (rawSql "SELECT id, name FROM role WHERE id = ?" [PersistInt64 rid]) (envConnectionPool env)
+  case rows of
+    [(Single i, Single n)] -> pure $ RoleEntry i n
+    _ -> throwError err404
+
+roleCreate :: Env -> RoleInput -> Handler DAL.MutationResult
+roleCreate env input = do
+  rows <- liftIO $ runSqlPool (rawSql "INSERT INTO role (name) VALUES (?) RETURNING id" [PersistText (riName input)]) (envConnectionPool env)
+  case rows of
+    [Single (i :: Int64)] -> pure $ DAL.MutationResult True (Just i) "Role created"
+    _ -> pure $ DAL.MutationResult True Nothing "Role created"
+
+roleUpdate :: Env -> Int64 -> RoleInput -> Handler DAL.MutationResult
+roleUpdate env rid input = do
+  (_ :: [Single Int64]) <- liftIO $ runSqlPool (rawSql "UPDATE role SET name = ? WHERE id = ?" [PersistText (riName input), PersistInt64 rid]) (envConnectionPool env)
+  pure $ DAL.MutationResult True (Just rid) "Role updated"
+
+roleDelete :: Env -> Int64 -> Handler DAL.MutationResult
+roleDelete env rid = do
+  (_ :: [Single Int64]) <- liftIO $ runSqlPool (rawSql "DELETE FROM role WHERE id = ?" [PersistInt64 rid]) (envConnectionPool env)
+  pure $ DAL.MutationResult True (Just rid) "Role deleted"
+
+permissionsList :: Env -> Handler [PermissionEntry]
+permissionsList env = do
+  rows <- liftIO $ runSqlPool (rawSql "SELECT id, name FROM permission ORDER BY name" []) (envConnectionPool env)
+  pure $ map (\(Single i, Single n) -> PermissionEntry i n) rows
 
 workflowsList env = liftQ $ Workflow.listWorkflows (envConnectionPool env)
 workflowsCreate env i = liftQ $ Workflow.createWorkflow (envConnectionPool env) i

@@ -10,7 +10,7 @@ module DAL.Mutations (
     updateStock, reserveStock, releaseStock,
     createOrder, updateOrderStatus, deleteOrder,
     createPayment, updatePayment, deletePayment,
-    createUser, updateUser, listUsers, getUser, authenticateUser,
+    createUser, updateUser, listUsers, getUser, deleteUser, authenticateUser,
     createPrice,
     createTax, updateTax, deleteTax,
     createCurrency, updateCurrency, deleteCurrency,
@@ -140,6 +140,11 @@ getUser pool uid = do
     case result of
         Nothing -> return $ QueryError "User not found"
         Just entity -> return $ QuerySuccess (userFromEntity entity)
+
+deleteUser :: ConnectionPool -> Int64 -> IO (QueryResult MutationResult)
+deleteUser pool uid = do
+    liftIO $ runSqlPool (P.delete (toSqlKey uid :: P.Key UserEntity)) pool
+    return $ QuerySuccess $ MutationResult True (Just uid) "User deleted"
 
 authenticateUser :: ConnectionPool -> Text -> Text -> IO (QueryResult (Maybe User))
 authenticateUser pool login password = do

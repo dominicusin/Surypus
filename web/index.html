@@ -1938,13 +1938,16 @@
         <div id="page-settings" style="display: none;">
             <h1 style="margin-bottom: 24px;">Настройки</h1>
             
-            <div class="tabs">
-                <div class="tab active">Общие</div>
-                <div class="tab">Пользователи</div>
-                <div class="tab">Интеграции</div>
-                <div class="tab">Уведомления</div>
+            <div class="tabs" id="settings-tabs">
+                <div class="tab active" data-set-tab="general">Общие</div>
+                <div class="tab" data-set-tab="users">Пользователи</div>
+                <div class="tab" data-set-tab="integrations">Интеграции</div>
+                <div class="tab" data-set-tab="notifications">Уведомления</div>
+                <div class="tab" data-set-tab="roles">Роли</div>
+                <div class="tab" data-set-tab="audit">Аудит</div>
             </div>
             
+            <div id="set-tab-general" class="set-tab-content">
             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
                 <div class="card">
                     <div class="card-header">
@@ -2030,6 +2033,72 @@
                     <div class="card-body" id="settings-connections-body" style="padding: 20px;">
                         <div style="text-align:center;color:var(--text-secondary);">Загрузка...</div>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="set-tab-users" class="set-tab-content" style="display: none;">
+            <div class="card">
+                <div class="card-header"><span class="card-title">Пользователи</span></div>
+                <div class="card-body">
+                    <table>
+                        <thead><tr><th>Пользователь</th><th>Роль</th><th>Статус</th></tr></thead>
+                        <tbody id="settings-users-body2"><tr><td colspan="3" style="text-align:center;color:var(--text-secondary);">Загрузка...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="set-tab-integrations" class="set-tab-content" style="display: none;">
+            <div class="card">
+                <div class="card-header"><span class="card-title">Интеграции</span></div>
+                <div class="card-body" id="settings-integrations-body" style="padding: 20px;">
+                    <p style="color:var(--text-secondary);">Настройки интеграций</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="set-tab-notifications" class="set-tab-content" style="display: none;">
+            <div class="card">
+                <div class="card-header"><span class="card-title">Уведомления</span></div>
+                <div class="card-body" style="padding: 20px;">
+                    <p style="color:var(--text-secondary);">Настройки уведомлений</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="set-tab-roles" class="set-tab-content" style="display: none;">
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Управление ролями</span>
+                    <div class="card-actions">
+                        <button class="btn btn-primary" onclick="openRoleModal()">➕ Добавить роль</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table>
+                        <thead><tr><th>ID</th><th>Название</th><th></th></tr></thead>
+                        <tbody id="set-roles-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="set-tab-audit" class="set-tab-content" style="display: none;">
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Журнал аудита</span>
+                    <div class="card-actions">
+                        <select id="audit-filter-action" class="form-input" style="width:auto;" onchange="loadAuditLog()">
+                            <option value="">Все действия</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table>
+                        <thead><tr><th>Время</th><th>Пользователь</th><th>Действие</th><th>Тип</th><th>ID ресурса</th></tr></thead>
+                        <tbody id="set-audit-body"><tr><td colspan="5" style="text-align:center;color:var(--text-secondary);">Загрузка...</td></tr></tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -2484,6 +2553,25 @@
             </div>
         </div>
     </div>
+    <!-- Modal: Role -->
+    <div class="modal-overlay" id="roleModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">Роль</span>
+                <button class="modal-close" onclick="closeModal('roleModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Название роли</label>
+                    <input type="text" id="role-name" class="form-input" placeholder="Например: Бухгалтер">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('roleModal')">Отмена</button>
+                <button class="btn btn-primary" onclick="submitRole()">Сохранить</button>
+            </div>
+        </div>
+    </div>
     </div> <!-- /app-shell -->
     
     <script src="js/api.js"></script>
@@ -2850,10 +2938,12 @@
 
         async function loadSettingsData() {
             try {
-                var [tenantRes, usersRes, healthRes] = await Promise.all([
+                var [tenantRes, usersRes, healthRes, rolesRes, auditRes] = await Promise.all([
                     api.tenants.list().catch(function() { return { data: [] }; }),
                     api.users.list().catch(function() { return { data: [] }; }),
-                    api.health.check().catch(function() { return { data: {} }; })
+                    api.health.check().catch(function() { return { data: {} }; }),
+                    api.roles.list().catch(function() { return { data: [] }; }),
+                    api.auditLog.list().catch(function() { return { data: [] }; })
                 ]);
                 var tenants = tenantRes.data || [];
                 var users = usersRes.data || [];
@@ -2874,12 +2964,15 @@
                 if (!users.length) {
                     usersBody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-secondary);">Нет пользователей</td></tr>';
                 } else {
-                    usersBody.innerHTML = users.map(function(u) {
+                    var usersHtml = users.map(function(u) {
                         var roleLabel = u.userRole === 'admin' ? 'Администратор' : u.userRole === 'accountant' ? 'Бухгалтер' : u.userRole;
                         var statusClass = u.userStatus === 'active' ? 'status-active' : 'status-pending';
                         var statusLabel = u.userStatus === 'active' ? 'Активен' : 'Ожидает';
                         return '<tr><td>' + helpers.escapeHtml(u.username || u.userName || '#' + u.userId) + '</td><td>' + roleLabel + '</td><td><span class="status-badge ' + statusClass + '">' + statusLabel + '</span></td></tr>';
                     }).join('');
+                    usersBody.innerHTML = usersHtml;
+                    var usersBody2 = document.getElementById('settings-users-body2');
+                    if (usersBody2) usersBody2.innerHTML = usersHtml;
                 }
 
                 var connBody = document.getElementById('settings-connections-body');
@@ -2889,7 +2982,84 @@
                 var apiClass = health.api ? 'status-active' : 'status-error';
                 connBody.innerHTML = '<div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--divider);"><div><div style="font-weight: 500;">PostgreSQL</div><div style="font-size: 12px; color: var(--text-secondary);">' + (health.dbHost || 'localhost:5432') + '</div></div><span class="status-badge ' + dbClass + '">' + dbStatus + '</span></div><div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0;"><div><div style="font-weight: 500;">API Server</div><div style="font-size: 12px; color: var(--text-secondary);">' + (health.apiHost || 'localhost:8080') + '</div></div><span class="status-badge ' + apiClass + '">' + apiStatus + '</span></div>';
 
+                var roles = rolesRes.data || [];
+                renderRoles(roles);
+
+                var auditEntries = auditRes.data || [];
+                renderAuditLog(auditEntries, users);
+                loadAuditLog();
+
             } catch (e) { console.error('Settings load error:', e); }
+        }
+
+        function renderRoles(roles) {
+            var body = document.getElementById('set-roles-body');
+            if (!roles || roles.length === 0) {
+                body.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-secondary);">Нет ролей</td></tr>';
+                return;
+            }
+            body.innerHTML = roles.map(function(r) {
+                return '<tr><td>' + r.reId + '</td><td>' + helpers.escapeHtml(r.reName) + '</td>' +
+                    '<td><button class="btn btn-sm btn-secondary" onclick="deleteRole(' + r.reId + ')" style="color:var(--danger);">🗑️</button></td></tr>';
+            }).join('');
+        }
+
+        function renderAuditLog(entries, users) {
+            var body = document.getElementById('set-audit-body');
+            var filterSel = document.getElementById('audit-filter-action');
+            if (!entries || entries.length === 0) {
+                body.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-secondary);">Нет записей</td></tr>';
+                return;
+            }
+            var actions = {};
+            entries.forEach(function(e) { actions[e.aleAction] = true; });
+            var currentFilter = filterSel.value;
+            filterSel.innerHTML = '<option value="">Все действия</option>';
+            Object.keys(actions).sort().forEach(function(a) {
+                var sel = a === currentFilter ? ' selected' : '';
+                filterSel.innerHTML += '<option value="' + helpers.escapeHtml(a) + '"' + sel + '>' + helpers.escapeHtml(a) + '</option>';
+            });
+            var userMap = {};
+            (users || []).forEach(function(u) { userMap[u.userId || u.id] = u.username || u.userName || '#' + (u.userId || u.id); });
+            var filtered = currentFilter ? entries.filter(function(e) { return e.aleAction === currentFilter; }) : entries;
+            body.innerHTML = filtered.slice(0, 50).map(function(e) {
+                var uname = userMap[e.aleUserId] || '#' + e.aleUserId;
+                return '<tr><td>' + helpers.escapeHtml(e.aleCreatedAt) + '</td><td>' + helpers.escapeHtml(uname) + '</td><td>' + helpers.escapeHtml(e.aleAction) + '</td><td>' + helpers.escapeHtml(e.aleResourceType) + '</td><td>' + e.aleResourceId + '</td></tr>';
+            }).join('');
+        }
+
+        function openRoleModal() {
+            document.getElementById('role-name').value = '';
+            openModal('roleModal');
+        }
+
+        async function submitRole() {
+            var name = document.getElementById('role-name').value.trim();
+            if (!name) { alert('Введите название роли'); return; }
+            try {
+                await api.roles.create({ riName: name });
+                closeModal('roleModal');
+                loadSettingsData();
+            } catch (e) { alert('Ошибка: ' + helpers.handleApiError(e)); }
+        }
+
+        async function deleteRole(id) {
+            if (!confirm('Удалить роль?')) return;
+            try {
+                await api.roles.delete(id);
+                loadSettingsData();
+            } catch (e) { alert('Ошибка: ' + helpers.handleApiError(e)); }
+        }
+
+        async function loadAuditLog() {
+            var filterAction = document.getElementById('audit-filter-action').value;
+            try {
+                var [auditRes, usersRes] = await Promise.all([
+                    api.auditLog.list(filterAction ? { action: filterAction } : {}),
+                    api.users.list().catch(function() { return { data: [] }; })
+                ]);
+                renderAuditLog(auditRes.data || [], usersRes.data || []);
+            } catch (e) { console.error('Audit load error:', e); }
         }
 
         async function loadPersonsData() {
@@ -3463,12 +3633,26 @@
         });
 
         // General tabs functionality (for non-accounting tabs)
-        document.querySelectorAll('.tabs:not(#accounting-tabs)').forEach(tabsContainer => {
+        document.querySelectorAll('.tabs:not(#accounting-tabs):not(#settings-tabs)').forEach(tabsContainer => {
             tabsContainer.querySelectorAll('.tab').forEach(tab => {
                 tab.addEventListener('click', function() {
                     tabsContainer.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                     this.classList.add('active');
                 });
+            });
+        });
+
+        // Settings tabs
+        document.querySelectorAll('#settings-tabs .tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('#settings-tabs .tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                var tabName = this.getAttribute('data-set-tab');
+                if (tabName === 'roles') loadSettingsData();
+                if (tabName === 'audit') loadAuditLog();
+                document.querySelectorAll('.set-tab-content').forEach(function(c) { c.style.display = 'none'; });
+                var el = document.getElementById('set-tab-' + tabName);
+                if (el) el.style.display = 'block';
             });
         });
 

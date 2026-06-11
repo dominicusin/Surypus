@@ -281,13 +281,24 @@ const api = {
 
     // Users API
     users: {
-        list: () => axios.get(`${API_BASE}/users`)
+        list: () => axios.get(`${API_BASE}/users`),
+        delete: (id) => axios.delete(`${API_BASE}/users/${id}`)
     },
 
     // Roles API
     roles: {
-        list: () => axios.get(`${API_BASE}/roles`)
-    }
+        list: () => axios.get(`${API_BASE}/roles`),
+        get: (id) => axios.get(`${API_BASE}/roles/${id}`),
+        create: (data) => axios.post(`${API_BASE}/roles`, data),
+        update: (id, data) => axios.put(`${API_BASE}/roles/${id}`, data),
+        delete: (id) => axios.delete(`${API_BASE}/roles/${id}`)
+    },
+    permissions: {
+        list: () => axios.get(`${API_BASE}/permissions`)
+    },
+    auditLog: {
+        list: (params) => axios.get(`${API_BASE}/audit-log`, { params })
+    },
 };
 
 // Helper functions
