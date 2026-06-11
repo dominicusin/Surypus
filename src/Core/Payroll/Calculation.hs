@@ -1,5 +1,10 @@
 -- | Payroll calculation — income tax, social tax, vacation, sick leave, bonuses
 -- Uses Data.Decimal for all monetary amounts (PYR-02)
+{-@ LIQUID "--reflection" @-}
+{-@ LIQUID "--ple" @-}
+
+{-@ type NonNegDec = {v:Decimal | v >= 0} @-}
+
 module Core.Payroll.Calculation
   ( calcIncomeTax
   , calcSocialTax
@@ -17,6 +22,7 @@ import Data.Time (Day, diffDays)
 
 -- | Calculate progressive income tax (НДФЛ)
 -- Brackets: 13% ≤500k, 15% ≤3.5M, 18% ≤5M, 20% >5M
+{-@ calcIncomeTax :: Decimal -> NonNegDec @-}
 calcIncomeTax :: Decimal -> Decimal
 calcIncomeTax salary
   | salary <= 0 = 0
@@ -27,6 +33,7 @@ calcIncomeTax salary
 
 -- | Calculate social tax (страховые взносы)
 -- 30% up to cap of 876000, then 0% above cap
+{-@ calcSocialTax :: Decimal -> NonNegDec @-}
 calcSocialTax :: Decimal -> Decimal
 calcSocialTax salary
   | salary <= 0 = 0
@@ -34,6 +41,7 @@ calcSocialTax salary
   | otherwise = 876000 * 0.30
 
 -- | Calculate net salary (gross - income tax - social tax)
+{-@ calcNetSalaryFromGross :: gross:Decimal -> {v:NonNegDec | v <= gross} @-}
 calcNetSalaryFromGross :: Decimal -> Decimal
 calcNetSalaryFromGross gross = gross - calcIncomeTax gross
 

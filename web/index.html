@@ -1007,6 +1007,10 @@
                 <span>Задачи</span>
                 <span class="nav-badge">3</span>
             </div>
+            <div class="nav-item" data-page="health" onclick="navigateTo('health')">
+                <span class="nav-icon">🩺</span>
+                <span>Мониторинг</span>
+            </div>
             <div class="nav-item" data-page="settings" onclick="navigateTo('settings')">
                 <span class="nav-icon">⚙️</span>
                 <span>Настройки</span>
@@ -1893,88 +1897,145 @@
         
         <!-- Reports Page -->
         <div id="page-reports" style="display: none;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                <h1>Отчёты</h1>
-                <button class="btn btn-primary" onclick="generateReport()">📄 Сформировать</button>
-            </div>
-            
-            <div class="filter-bar">
-                <button class="filter-chip active">Все</button>
-                <button class="filter-chip">Финансовые</button>
-                <button class="filter-chip">Складские</button>
-                <button class="filter-chip">Кадровые</button>
-                <button class="filter-chip">Продажи</button>
-            </div>
-            
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
-                <div class="card" onclick="generateReport('sales')" style="cursor: pointer;">
-                    <div class="card-body" style="padding: 24px; text-align: center;">
-                        <div style="font-size: 40px; margin-bottom: 16px;">📊</div>
-                        <h3 style="margin-bottom: 8px;">Продажи</h3>
-                        <p style="font-size: 12px; color: var(--text-secondary);">Анализ продаж за период</p>
-                    </div>
-                </div>
-                
-                <div class="card" onclick="generateReport('pnl')" style="cursor: pointer;">
+            <h1 style="margin-bottom: 24px;">Отчёты</h1>
+
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 24px;">
+                <div class="card" onclick="loadPnLReport()" style="cursor: pointer;">
                     <div class="card-body" style="padding: 24px; text-align: center;">
                         <div style="font-size: 40px; margin-bottom: 16px;">💰</div>
-                        <h3 style="margin-bottom: 8px;">Прибыльность</h3>
-                        <p style="font-size: 12px; color: var(--text-secondary);">Рентабельность по товарам</p>
+                        <h3 style="margin-bottom: 8px;">Прибыли и убытки (PNL)</h3>
+                        <p style="font-size: 12px; color: var(--text-secondary);">Отчёт о финансовых результатах</p>
                     </div>
                 </div>
-                
-                <div class="card" onclick="generateReport('inventory')" style="cursor: pointer;">
+                <div class="card" onclick="loadInventoryReport()" style="cursor: pointer;">
                     <div class="card-body" style="padding: 24px; text-align: center;">
                         <div style="font-size: 40px; margin-bottom: 16px;">📦</div>
-                        <h3 style="margin-bottom: 8px;">Остатки</h3>
-                        <p style="font-size: 12px; color: var(--text-secondary);">Складские остатки</p>
-                    </div>
-                </div>
-                
-                <div class="card" onclick="generateReport('debtors')" style="cursor: pointer;">
-                    <div class="card-body" style="padding: 24px; text-align: center;">
-                        <div style="font-size: 40px; margin-bottom: 16px;">👥</div>
-                        <h3 style="margin-bottom: 8px;">Дебиторы</h3>
-                        <p style="font-size: 12px; color: var(--text-secondary);">Задолженность контрагентов</p>
-                    </div>
-                </div>
-                
-                <div class="card" onclick="generateReport('vat')" style="cursor: pointer;">
-                    <div class="card-body" style="padding: 24px; text-align: center;">
-                        <div style="font-size: 40px; margin-bottom: 16px;">🧾</div>
-                        <h3 style="margin-bottom: 8px;">НДС</h3>
-                        <p style="font-size: 12px; color: var(--text-secondary);">Книга покупок/продаж</p>
-                    </div>
-                </div>
-                
-                <div class="card" onclick="generateReport('payroll')" style="cursor: pointer;">
-                    <div class="card-body" style="padding: 24px; text-align: center;">
-                        <div style="font-size: 40px; margin-bottom: 16px;">👨‍💼</div>
-                        <h3 style="margin-bottom: 8px;">Зарплата</h3>
-                        <p style="font-size: 12px; color: var(--text-secondary);">Фонд оплаты труда</p>
+                        <h3 style="margin-bottom: 8px;">Остатки товаров</h3>
+                        <p style="font-size: 12px; color: var(--text-secondary);;">Складские остатки и оценка</p>
                     </div>
                 </div>
             </div>
-            
-            <div class="card" style="margin-top: 24px;">
+
+            <div id="rpt-pnl-container" style="display: none;">
+                <div class="card" style="margin-bottom: 16px;">
+                    <div class="card-header">
+                        <span class="card-title">Прибыли и убытки</span>
+                        <div class="card-actions">
+                            <button class="btn btn-sm btn-secondary" onclick="document.getElementById('rpt-pnl-container').style.display='none'">✕</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Показатель</th>
+                                    <th style="text-align:right;">Сумма</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rpt-pnl-body">
+                                <tr><td colspan="2" style="text-align:center;color:var(--text-secondary);">Нажмите «Прибыли и убытки» для загрузки</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="rpt-inventory-container" style="display: none;">
+                <div class="card" style="margin-bottom: 16px;">
+                    <div class="card-header">
+                        <span class="card-title">Остатки товаров</span>
+                        <div class="card-actions">
+                            <button class="btn btn-sm btn-secondary" onclick="document.getElementById('rpt-inventory-container').style.display='none'">✕</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Наименование</th>
+                                    <th>Код</th>
+                                    <th style="text-align:right;">Количество</th>
+                                    <th style="text-align:right;">Себестоимость</th>
+                                    <th style="text-align:right;">Общая стоимость</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rpt-inventory-body">
+                                <tr><td colspan="5" style="text-align:center;color:var(--text-secondary);">Нажмите «Остатки товаров» для загрузки</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
                 <div class="card-header">
-                    <span class="card-title">История формирования</span>
+                    <span class="card-title">Экспорт отчёта</span>
                 </div>
                 <div class="card-body">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Дата</th>
-                                <th>Отчёт</th>
-                                <th>Период</th>
-                                <th>Статус</th>
-                                <th>Файл</th>
-                            </tr>
-                        </thead>
-                        <tbody id="rpt-history-body">
-                            <tr><td colspan="5" style="text-align:center;color:var(--text-secondary);">Нет сформированных отчётов</td></tr>
-                        </tbody>
-                    </table>
+                    <div style="display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end;">
+                        <div>
+                            <label style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Тип отчёта</label>
+                            <select id="rpt-export-type" class="form-input" style="min-width: 200px;">
+                                <option value="pnl">Прибыли и убытки</option>
+                                <option value="inventory">Остатки товаров</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Формат</label>
+                            <select id="rpt-export-format" class="form-input" style="min-width: 120px;">
+                                <option value="pdf">PDF</option>
+                                <option value="csv">CSV</option>
+                                <option value="excel">Excel</option>
+                            </select>
+                        </div>
+                        <div>
+                            <button class="btn btn-primary" onclick="exportReport()">📥 Экспортировать</button>
+                        </div>
+                        <div id="rpt-export-status" style="font-size: 13px; color: var(--text-secondary); display: none;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Health Page -->
+        <div id="page-health" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <h1>Состояние системы</h1>
+                <button class="btn btn-primary" onclick="loadHealthData()">🔄 Проверка соединений</button>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;">
+                <div class="card">
+                    <div class="card-body" style="padding: 24px; text-align: center;">
+                        <div style="font-size: 32px; margin-bottom: 12px;" id="health-db-icon">⏳</div>
+                        <h3 style="margin-bottom: 4px;">База данных</h3>
+                        <p style="font-size: 13px; color: var(--text-secondary);" id="health-db-status">Проверка...</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-body" style="padding: 24px; text-align: center;">
+                        <div style="font-size: 32px; margin-bottom: 12px;" id="health-api-icon">⏳</div>
+                        <h3 style="margin-bottom: 4px;">API сервер</h3>
+                        <p style="font-size: 13px; color: var(--text-secondary);" id="health-api-status">Проверка...</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-body" style="padding: 24px; text-align: center;">
+                        <div style="font-size: 32px; margin-bottom: 12px;" id="health-version-icon">ℹ️</div>
+                        <h3 style="margin-bottom: 4px;">Версия</h3>
+                        <p style="font-size: 13px; color: var(--text-secondary);" id="health-version-status">Загрузка...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Бэкап базы данных</span>
+                </div>
+                <div class="card-body">
+                    <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">Создать дамп базы данных через pg_dump</p>
+                    <button class="btn btn-primary" onclick="triggerBackup()">💾 Создать бэкап</button>
+                    <div id="health-backup-status" style="font-size: 13px; color: var(--text-secondary); margin-top: 12px; display: none;"></div>
                 </div>
             </div>
         </div>
@@ -2830,7 +2891,7 @@
             document.querySelector('[data-page="' + page + '"]').classList.add('active');
 
             // Auto-load page data
-            var loadMap = { dashboard: loadDashboardData, persons: loadPersonsData, goods: loadGoodsData, bills: loadBillsData, accounting: loadAccountingData, payroll: loadPayrollData, stock: loadStockData, settings: loadSettingsData, 'crm-deals': loadCRMData, 'crm-pipeline': loadPipelineData };
+            var loadMap = { dashboard: loadDashboardData, persons: loadPersonsData, goods: loadGoodsData, bills: loadBillsData, accounting: loadAccountingData, payroll: loadPayrollData, stock: loadStockData, settings: loadSettingsData, 'crm-deals': loadCRMData, 'crm-pipeline': loadPipelineData, reports: loadReportsData, health: loadHealthData };
             if (loadMap[page]) setTimeout(loadMap[page], 50);
         }
         
@@ -3084,6 +3145,141 @@
                 loadAuditLog();
 
             } catch (e) { console.error('Settings load error:', e); }
+        }
+
+        async function loadReportsData() {
+            document.getElementById('rpt-pnl-container').style.display = 'none';
+            document.getElementById('rpt-inventory-container').style.display = 'none';
+            document.getElementById('rpt-export-status').style.display = 'none';
+        }
+
+        async function loadPnLReport() {
+            var container = document.getElementById('rpt-pnl-container');
+            var body = document.getElementById('rpt-pnl-body');
+            container.style.display = 'block';
+            body.innerHTML = '<tr><td colspan="2" style="text-align:center;color:var(--text-secondary);">Загрузка...</td></tr>';
+            try {
+                var res = await api.reports.pnl();
+                var data = res.data;
+                if (data && data.rptData) {
+                    var json = JSON.parse(data.rptData);
+                    body.innerHTML =
+                        '<tr><td>Выручка</td><td style="text-align:right;">' + helpers.formatMoney(json.revenue) + '</td></tr>' +
+                        '<tr><td>Себестоимость</td><td style="text-align:right;">' + helpers.formatMoney(json.costOfGoodsSold) + '</td></tr>' +
+                        '<tr class="total-row"><td>Валовая прибыль</td><td style="text-align:right;">' + helpers.formatMoney(json.grossProfit) + '</td></tr>' +
+                        '<tr><td>Прочие доходы</td><td style="text-align:right;">' + helpers.formatMoney(json.totalIncome) + '</td></tr>' +
+                        '<tr><td>Расходы</td><td style="text-align:right;">' + helpers.formatMoney(json.totalExpenses) + '</td></tr>' +
+                        '<tr class="total-row"><td><strong>Чистая прибыль</strong></td><td style="text-align:right;"><strong>' + helpers.formatMoney(json.netProfit) + '</strong></td></tr>';
+                } else {
+                    body.innerHTML = '<tr><td colspan="2" style="text-align:center;color:var(--text-secondary);">Нет данных</td></tr>';
+                }
+            } catch (e) {
+                body.innerHTML = '<tr><td colspan="2" style="text-align:center;color:var(--error);">Ошибка загрузки отчёта</td></tr>';
+                console.error('PNL report error:', e);
+            }
+        }
+
+        async function loadInventoryReport() {
+            var container = document.getElementById('rpt-inventory-container');
+            var body = document.getElementById('rpt-inventory-body');
+            container.style.display = 'block';
+            body.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-secondary);">Загрузка...</td></tr>';
+            try {
+                var res = await api.reports.inventory();
+                var data = res.data;
+                if (data && data.rptData) {
+                    var json = JSON.parse(data.rptData);
+                    var items = json.items || [];
+                    if (items.length === 0) {
+                        body.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-secondary);">Нет товаров на складе</td></tr>';
+                    } else {
+                        body.innerHTML = items.map(function(item) {
+                            return '<tr><td>' + helpers.escapeHtml(item.invName) + '</td><td>' + helpers.escapeHtml(item.invCode) + '</td>' +
+                                '<td style="text-align:right;">' + helpers.formatNumber(item.invQty) + '</td>' +
+                                '<td style="text-align:right;">' + helpers.formatMoney(item.invUnitCost) + '</td>' +
+                                '<td style="text-align:right;">' + helpers.formatMoney(item.invTotalValue) + '</td></tr>';
+                        }).join('');
+                    }
+                } else {
+                    body.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-secondary);">Нет данных</td></tr>';
+                }
+            } catch (e) {
+                body.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--error);">Ошибка загрузки отчёта</td></tr>';
+                console.error('Inventory report error:', e);
+            }
+        }
+
+        async function exportReport() {
+            var type = document.getElementById('rpt-export-type').value;
+            var format = document.getElementById('rpt-export-format').value;
+            var statusEl = document.getElementById('rpt-export-status');
+            statusEl.style.display = 'block';
+            statusEl.textContent = 'Экспортирование...';
+            statusEl.style.color = 'var(--text-secondary)';
+            try {
+                var payload = { rerReportType: type, rerFormat: format };
+                var res = await api.reports.export(payload);
+                if (res.data && res.data.rerDownloadUrl) {
+                    statusEl.innerHTML = '✅ Отчёт готов: <a href="' + res.data.rerDownloadUrl + '" target="_blank">скачать</a>';
+                    statusEl.style.color = 'var(--success)';
+                } else {
+                    statusEl.textContent = '✅ Отчёт сформирован';
+                    statusEl.style.color = 'var(--success)';
+                }
+            } catch (e) {
+                statusEl.textContent = '❌ Ошибка экспорта: ' + helpers.handleApiError(e);
+                statusEl.style.color = 'var(--error)';
+                console.error('Export error:', e);
+            }
+        }
+
+        async function loadHealthData() {
+            try {
+                document.getElementById('health-db-icon').textContent = '⏳';
+                document.getElementById('health-api-icon').textContent = '⏳';
+                document.getElementById('health-db-status').textContent = 'Проверка...';
+                document.getElementById('health-api-status').textContent = 'Проверка...';
+
+                var res = await api.health.check();
+                var health = res.data || {};
+
+                var dbOk = health.database === true || health.database === 'ok' || health.db === 'ok';
+                document.getElementById('health-db-icon').textContent = dbOk ? '✅' : '❌';
+                document.getElementById('health-db-icon').style.color = dbOk ? 'var(--success)' : 'var(--error)';
+                document.getElementById('health-db-status').textContent = dbOk ? 'Подключена' : 'Недоступна';
+                document.getElementById('health-db-status').style.color = dbOk ? 'var(--success)' : 'var(--error)';
+
+                var apiOk = health.api === true || health.api === 'ok' || health.status === 'ok';
+                document.getElementById('health-api-icon').textContent = apiOk ? '✅' : '❌';
+                document.getElementById('health-api-icon').style.color = apiOk ? 'var(--success)' : 'var(--error)';
+                document.getElementById('health-api-status').textContent = apiOk ? 'Онлайн' : 'Офлайн';
+                document.getElementById('health-api-status').style.color = apiOk ? 'var(--success)' : 'var(--error)';
+
+                document.getElementById('health-version-icon').textContent = 'ℹ️';
+                document.getElementById('health-version-status').textContent = health.version || health.service || 'Surypus ERP v0.1';
+            } catch (e) {
+                document.getElementById('health-db-icon').textContent = '❌';
+                document.getElementById('health-api-icon').textContent = '❌';
+                document.getElementById('health-db-status').textContent = 'Ошибка соединения';
+                document.getElementById('health-api-status').textContent = 'Ошибка соединения';
+                console.error('Health check error:', e);
+            }
+        }
+
+        async function triggerBackup() {
+            var statusEl = document.getElementById('health-backup-status');
+            statusEl.style.display = 'block';
+            statusEl.textContent = 'Создание бэкапа...';
+            statusEl.style.color = 'var(--text-secondary)';
+            try {
+                var res = await api.backup.create();
+                statusEl.textContent = '✅ Бэкап создан (' + (res.data ? res.data.length + ' байт' : 'готов') + ')';
+                statusEl.style.color = 'var(--success)';
+            } catch (e) {
+                statusEl.textContent = '❌ Ошибка: ' + helpers.handleApiError(e);
+                statusEl.style.color = 'var(--error)';
+                console.error('Backup error:', e);
+            }
         }
 
         function renderRoles(roles) {

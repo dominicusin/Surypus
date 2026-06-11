@@ -58,6 +58,7 @@ library
     Commerce.Return
     Commerce.ServiceBill
     Commerce.Shipment
+    Core.Inventory
     Core.Payroll.Calculation
     CRM.Activity
     CRM.Company

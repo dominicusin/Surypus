@@ -24,6 +24,7 @@ import qualified Data.Text.Encoding as TE
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as LBS
 import Data.Maybe (fromMaybe)
+import System.Process (readProcess)
 import Data.Time.Calendar (Day, fromGregorian)
 import qualified Data.UUID as UUID
 import qualified Data.UUID.V4 as UUIDv4
@@ -397,6 +398,8 @@ type SurypusApi =
                 :<|> "accounting" :> "entries" :> QueryParam "startDate" Day :> QueryParam "endDate" Day :> QueryParam "accountId" Int64 :> Get '[JSON] [Accounting.JournalEntry]
                 :<|> "accounting" :> "entries" :> ReqBody '[JSON] DAL.AccTurnInput :> Post '[JSON] DAL.MutationResult
                 :<|> "accounting" :> "balance-history" :> QueryParam "accountId" Int64 :> QueryParam "startDate" Day :> QueryParam "endDate" Day :> QueryParam "interval" Text :> Get '[JSON] [Accounting.BalanceHistoryEntry]
+                -- Backup
+                :<|> "backup" :> Get '[JSON] Text
            )
 
 -- ── Server ───────────────────────────────────────────────────────────────────
@@ -539,6 +542,7 @@ server env =
         :<|> handleJournalEntries env
         :<|> handleCreateEntry env
         :<|> handleBalanceHistory env
+        :<|> backupHandler env
 
 -- ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -895,3 +899,8 @@ extractUserId mbAuth = do
 
 graphQLServer :: Env -> Server GraphQL.GraphQLAPI
 graphQLServer env = GraphQL.graphqlHandler (envConnectionPool env)
+
+backupHandler :: Env -> Handler Text
+backupHandler env = do
+    result <- liftIO $ readProcess "pg_dump" ["--dbname=postgresql://localhost:5432/surupus"] ""
+    pure $ TL.toStrict $ TL.pack $ take 1000 result

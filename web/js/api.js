@@ -257,7 +257,9 @@ const api = {
         metadata: () => axios.get(`${API_BASE}/reports/metadata`),
         jrxml: (name) => axios.get(`${API_BASE}/reports/jrxml/${name}`),
         create: (data) => axios.post(`${API_BASE}/reports`, data),
-        export: (data) => axios.post(`${API_BASE}/reports/export`, data)
+        export: (data) => axios.post(`${API_BASE}/reports/export`, data),
+        pnl: () => axios.get(`${API_BASE}/reports/pnl`),
+        inventory: () => axios.get(`${API_BASE}/reports/inventory`)
     },
 
     // Jobs API
@@ -272,6 +274,11 @@ const api = {
         check: () => axios.get(`${API_BASE}/health`),
         live: () => axios.get(`${API_BASE}/health/live`),
         ready: () => axios.get(`${API_BASE}/health/ready`)
+    },
+
+    // Backup API
+    backup: {
+        create: () => axios.get(`${API_BASE}/backup`)
     },
 
     // Document Types API
