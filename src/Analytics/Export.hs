@@ -6,23 +6,29 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import qualified Data.ByteString.Lazy as LBS
 import Data.Aeson (encode, object, (.=))
+import Data.Time (UTCTime, getCurrentTime)
 import Analytics.Dashboard
 
 -- | Export dashboard to Excel format
 exportToExcel :: [DataPoint] -> IO LBS.ByteString
 exportToExcel points = do
   let headers = "Label,Value,Color\n"
-  let rows = T.concat $ (".concat . map formatRow) points
+      rows = T.concat $ map formatRow points
   return $ LBS.fromStrict $ TE.encodeUtf8 (headers <> rows)
   where
-    formatRow dp = [dpLabel dp, ",", T.pack (show (dpValue dp)), ",", dpColor dp, "\n"]
+    formatRow dp = T.intercalate ","
+      [ dpLabel dp
+      , T.pack (show (dpValue dp))
+      , dpColor dp
+      ] <> "\n"
 
 -- | Export dashboard to PDF
 exportToPDF :: [DataPoint] -> Text -> IO LBS.ByteString
 exportToPDF points title = do
+  now <- getCurrentTime
   return $ encode $ object
     [ "title" .= title
-    , "generatedAt" .= (show (getCurrentTime :: UTCTime))
+    , "generatedAt" .= (show now)
     , "data" .= map formatDataPointForPDF points
     ]
   where
@@ -42,9 +48,10 @@ scheduleReport reportId cronSchedule = do
 -- | Generate comprehensive report
 exportToJSON :: [DataPoint] -> Text -> IO LBS.ByteString
 exportToJSON points reportType = do
+  now <- getCurrentTime
   let metadata = object
         [ "type" .= reportType
-        , "timestamp" .= (show (getCurrentTime :: UTCTime))
+        , "timestamp" .= (show now)
         , "totalPoints" .= (length points)
         , "minValue" .= minimum (dpValue <$> points)
         , "maxValue" .= maximum (dpValue <$> points)
@@ -55,8 +62,7 @@ exportToJSON points reportType = do
         , "values" .= (dpValue <$> points)
         , "colors" .= (dpColor <$> points)
         ]
-  return $ encode $ metadata `object` ["data" .= dataObject]
-
--- | Get current timestamp
-getCurrentTime :: IO UTCTime
-getCurrentTime = getCurrentTime
+  return $ encode $ object
+    [ "metadata" .= metadata
+    , "data" .= dataObject
+    ]

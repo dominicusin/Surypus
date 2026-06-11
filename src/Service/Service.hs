@@ -26,6 +26,7 @@
 --   type ServiceKey GoodsService = "goods"
 --   getPool = id
 -- @
+{-# LANGUAGE OverloadedStrings #-}
 module Service.Service
   ( -- * Service Types
     ServiceKey,
@@ -53,7 +54,7 @@ type ServiceKey = Text
 type Pool = ()
 
 -- | Settings service type
-newtype SettingsService = SettingsService
+newtype SettingsService = SettingsService { unSettingsService :: Pool }
 
 -- | Service-level errors
 data ServiceError
@@ -86,8 +87,5 @@ instance Service (PoolService s) where
   -- type ServiceKey (PoolService s) = s
   getPool = unPoolService
 
--- | Settings service type
-newtype SettingsService = SettingsService
-
 instance Service SettingsService where
-  getPool _ = ()
+  getPool s = unSettingsService s

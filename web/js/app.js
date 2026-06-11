@@ -697,51 +697,86 @@ class App {
 
     // ==================== Stock ====================
     async renderStock() {
+        const app = this;
         return `
             <h1 class="h3 mb-4">Остатки на складе</h1>
-            
-            <div class="card">
-                <div class="card-body">
-                    <div class="row mb-3">
-                        <div class="col-md-4">
-                            <input type="text" class="form-control" placeholder="Поиск по товару...">
+            <div id="st-loading" class="text-center py-4" style="display:none;">
+                <div class="spinner-border" role="status"></div>
+            </div>
+            <div id="st-content">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <input type="text" class="form-control" placeholder="Поиск по товару..." id="stockSearch">
+                            </div>
+                            <div class="col-md-3">
+                                <select class="form-select" id="stockLocationFilter">
+                                    <option value="">Все склады</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <button class="btn btn-outline-primary w-100" onclick="app.searchStock()">Найти</button>
+                            </div>
                         </div>
-                        <div class="col-md-3">
-                            <select class="form-select">
-                                <option value="">Все склады</option>
-                                <option value="1">Основной склад</option>
-                            </select>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Товар</th>
+                                        <th>Склад</th>
+                                        <th>Остаток</th>
+                                        <th>Резерв</th>
+                                        <th>Доступно</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="st-balances-body">
+                                    ${this.getLoadingRowHTML()}
+                                </tbody>
+                            </table>
                         </div>
-                        <div class="col-md-2">
-                            <button class="btn btn-outline-primary w-100">Найти</button>
-                        </div>
-                    </div>
-                    
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Товар</th>
-                                    <th>Код</th>
-                                    <th>Остаток</th>
-                                    <th>Цена</th>
-                                    <th>Стоимость</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>Товар А</td>
-                                    <td>001</td>
-                                    <td>100 шт</td>
-                                    <td>${helpers.formatMoney(500)}</td>
-                                    <td>${helpers.formatMoney(50000)}</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        <div class="mt-2">Всего: <span id="st-count">0</span></div>
                     </div>
                 </div>
             </div>
         `;
+    }
+
+    async loadStockData() {
+        try {
+            const [balRes, goodsRes] = await Promise.all([
+                api.stock.list(),
+                api.goods.list().catch(function() { return { data: [] }; })
+            ]);
+            var goodsMap = {};
+            (goodsRes.data || []).forEach(function(g) { goodsMap[g.goodsId] = g.goodsName || 'Товар #' + g.goodsId; });
+            this.renderStockBalances(balRes.data, goodsMap);
+        } catch (err) {
+            console.error('Stock load error:', err);
+            document.getElementById('st-balances-body').innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--danger);">Ошибка</td></tr>';
+        }
+    }
+
+    renderStockBalances(items, goodsMap) {
+        const body = document.getElementById('st-balances-body');
+        if (!items || items.length === 0) {
+            body.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-secondary);">Нет остатков</td></tr>';
+            document.getElementById('st-count').textContent = '0';
+            return;
+        }
+        body.innerHTML = items.map(function(s) {
+            var avail = s.stockQtty - s.stockResrvQtty;
+            var warnStyle = s.stockQtty < 10 ? ' style="background:#FFF3E0;"' : '';
+            var gName = (goodsMap || {})[s.stockGoodsId] || 'Товар #' + s.stockGoodsId;
+            return '<tr' + warnStyle + '>' +
+                '<td>' + helpers.escapeHtml(gName) + '</td>' +
+                '<td>' + s.stockLocationId + '</td>' +
+                '<td>' + helpers.formatNumber(s.stockQtty) + '</td>' +
+                '<td>' + helpers.formatNumber(s.stockResrvQtty) + '</td>' +
+                '<td style="font-weight:bold;">' + helpers.formatNumber(avail) + '</td>' +
+                '</tr>';
+        }).join('');
+        document.getElementById('st-count').textContent = items.length;
     }
 
     // ==================== Inventory ====================
@@ -799,6 +834,8 @@ class App {
         // Initialize any page-specific scripts
         if (pageName === 'goods-list') {
             this.loadGoods();
+        } else if (pageName === 'stock') {
+            this.loadStockData();
         }
     }
 
