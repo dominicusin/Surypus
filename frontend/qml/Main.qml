@@ -1,3 +1,7 @@
+<script>
+// Main QML component with dynamic data loading
+// This updates Main.qml to load user and organization data from the API
+
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
@@ -24,14 +28,52 @@ ApplicationWindow {
     readonly property color warningColor: "#FFC107"
     readonly property color errorColor: "#F44336"
 
-    property string userName: "Администратор"
-    property string userEmail: "admin@surypus.local"
-    property string companyName: "ООО ТехноСтрой"
+    // Dynamic properties - loaded from API
+    property string userName: ""
+    property string userEmail: ""
+    property string companyName: ""
     property string currentPage: "dashboard"
 
+    // Service instance for API calls
     AppState { id: appState }
     RestClient { id: restClient }
     WsClient { id: wsClient; authToken: restClient.jwtToken }
+
+    // Load user data on startup
+    Component.onCompleted: {
+        loadUserData();
+    }
+
+    function loadUserData() {
+        // Load current user from API
+        restClient.auth.me()
+            .then(function(response) {
+                var user = response.data;
+                userName = user.name || "";
+                console.log("Loaded user data:", user);
+            })
+            .catch(function(error) {
+                console.error("Failed to load user data, using default:", error);
+                // Fallback to default if API fails
+                userName = "Администратор";
+                userEmail = "admin@surypus.local";
+            });
+
+        // Load current tenant/company from API
+        restClient.tenants.list()
+            .then(function(response) {
+                var tenants = response.data || [];
+                var currentTenantId = parseInt(localStorage.getItem('surypus_tenant_id') || '0');
+                var currentTenant = tenants.find(function(t) { return t.tenantId === currentTenantId; }) || (tenants.length > 0 ? tenants[0] : null);
+                companyName = currentTenant ? currentTenant.tenantName || "" : "ООО ТехноСтрой";
+                console.log("Loaded tenant data:", currentTenant);
+            })
+            .catch(function(error) {
+                console.error("Failed to load tenant data, using default:", error);
+                // Fallback to default
+                companyName = "ООО ТехноСтрой";
+            });
+    }
 
     header: ToolBar {
         height: 64
@@ -105,9 +147,23 @@ ApplicationWindow {
                 Column {
                     anchors.centerIn: parent
                     spacing: 4
-                    Label { text: userName; font.pixelSize: 16; font.bold: true; color: "white" }
-                    Label { text: userEmail; font.pixelSize: 12; color: "white"; opacity: 0.8 }
-                    Label { text: "Статус: Онлайн"; font.pixelSize: 10; color: successColor }
+                    Label { 
+                        text: userName; 
+                        font.pixelSize: 16; 
+                        font.bold: true; 
+                        color: "white" 
+                    }
+                    Label { 
+                        text: userEmail; 
+                        font.pixelSize: 12; 
+                        color: "white"; 
+                        opacity: 0.8 
+                    }
+                    Label { 
+                        text: "Статус: Онлайн"; 
+                        font.pixelSize: 10; 
+                        color: successColor 
+                    }
                 }
             }
 

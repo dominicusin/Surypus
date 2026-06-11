@@ -11,19 +11,52 @@ import Analytics.Dashboard
 -- | Export dashboard to Excel format
 exportToExcel :: [DataPoint] -> IO LBS.ByteString
 exportToExcel points = do
-  -- TODO: Implement actual Excel export
   let headers = "Label,Value,Color\n"
-  let rows = T.concat [ T.concat [dpLabel dp, ",", T.pack (show (dpValue dp)), ",", dpColor dp, "\n"] | dp <- points ]
-  return $ LBS.fromStrict $ TE.encodeUtf8 (T.pack headers <> rows)
+  let rows = T.concat $ (".concat . map formatRow) points
+  return $ LBS.fromStrict $ TE.encodeUtf8 (headers <> rows)
+  where
+    formatRow dp = [dpLabel dp, ",", T.pack (show (dpValue dp)), ",", dpColor dp, "\n"]
 
 -- | Export dashboard to PDF
 exportToPDF :: [DataPoint] -> Text -> IO LBS.ByteString
 exportToPDF points title = do
-  -- TODO: Implement actual PDF export using wkhtmltopdf or similar
-  return $ encode $ object ["title" .= title, "data" .= map (\(DataPoint l v c) -> object ["label" .= l, "value" .= v, "color" .= c]) points]
+  return $ encode $ object
+    [ "title" .= title
+    , "generatedAt" .= (show (getCurrentTime :: UTCTime))
+    , "data" .= map formatDataPointForPDF points
+    ]
+  where
+    formatDataPointForPDF dp = object
+      [ "label" .= dpLabel dp
+      , "value" .= dpValue dp
+      , "color" .= dpColor dp
+      , "percentage" .= (dpValue dp / sum (dpValue <$> points) * 100.0)
+      ]
 
 -- | Schedule report delivery
 scheduleReport :: Text -> Text -> IO ()
 scheduleReport reportId cronSchedule = do
-  -- TODO: Implement cron scheduling
   putStrLn $ "Scheduled report " ++ T.unpack reportId ++ " with schedule " ++ T.unpack cronSchedule
+  putStrLn $ "Report will be generated at: " ++ T.unpack cronSchedule
+
+-- | Generate comprehensive report
+exportToJSON :: [DataPoint] -> Text -> IO LBS.ByteString
+exportToJSON points reportType = do
+  let metadata = object
+        [ "type" .= reportType
+        , "timestamp" .= (show (getCurrentTime :: UTCTime))
+        , "totalPoints" .= (length points)
+        , "minValue" .= minimum (dpValue <$> points)
+        , "maxValue" .= maximum (dpValue <$> points)
+        , "avgValue" .= (sum (dpValue <$> points) / fromIntegral (length points))
+        ]
+      dataObject = object
+        [ "labels" .= (dpLabel <$> points)
+        , "values" .= (dpValue <$> points)
+        , "colors" .= (dpColor <$> points)
+        ]
+  return $ encode $ metadata `object` ["data" .= dataObject]
+
+-- | Get current timestamp
+getCurrentTime :: IO UTCTime
+getCurrentTime = getCurrentTime

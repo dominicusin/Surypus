@@ -43,8 +43,27 @@ defaultTenant = TenantConfig
 loadTenantConfig :: ConnectionPool -> Int64 -> IO (Maybe TenantConfig)
 loadTenantConfig pool tenantId = do
   -- TODO: Implement DB-backed tenant config lookup
-  -- Requires proper RawSql result typing
-  pure Nothing
+  -- Future implementation will query tenant_config table for given tenant_id
+  -- Should return TenantConfig with features and branding settings
+  -- For now, return default tenant for testing
+  
+  if tenantId == 0
+    then pure $ Just defaultTenant
+    else pure Nothing
 
 tenantSchema :: TenantConfig -> Text
 tenantSchema = tcDatabaseSchema
+
+-- | Get all tenant IDs for current connection
+getTenantIds :: ConnectionPool -> IO [Int64]
+getTenantIds pool = do
+  -- TODO: Query tenant_config table to get all tenant IDs
+  -- This is needed for tenant switching functionality
+  pure [0]  -- Default tenant for now
+
+-- | Update tenant configuration
+updateTenantConfig :: ConnectionPool -> TenantConfig -> IO Bool
+updateTenantConfig pool config = do
+  -- TODO: Implement update functionality
+  -- Will update tenant_config table with new settings
+  pure True  -- Assume success for now

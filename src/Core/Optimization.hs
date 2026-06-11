@@ -43,9 +43,9 @@ data Constraint = Constraint
   } deriving (Show, Eq)
 
 data ConstraintType
-  = Leq  -- <=
-  | Geq  -- >=
-  | Eq   -- ==
+  = Leq
+  | Geq
+  | Eq
   deriving (Show, Eq)
 
 -- | State of the optimization solver
@@ -64,28 +64,22 @@ defOptimizationState vars = OptimizationState
   , osConverged = False
   }
 
-{-@ evaluateObjective :: Objective -> M.Map Text Double -> Double @-}
--- | Evaluate objective function at given variable values
--- Returns 0.0 if variables are empty (degenerate case)
 evaluateObjective :: Objective -> M.Map Text Double -> Double
 evaluateObjective !obj !vars
   | M.null vars = 0.0
   | otherwise =
     let coeffs = objCoefficients obj
-    in M.foldlWithKey' (\acc k v -> acc + v * M.findWithDefault 0.0 k vars) 0.0 coeffs
+        total = M.foldlWithKey (\acc k v -> acc + v * M.findWithDefault 0.0 k vars) 0.0 coeffs
+    in total
 
-{-@ checkConstraint :: Constraint -> M.Map Text Double -> Bool @-}
--- | Check if a constraint is satisfied at given variable values
 checkConstraint :: Constraint -> M.Map Text Double -> Bool
 checkConstraint !con !vars =
-  let lhs = M.foldlWithKey' (\acc k v -> acc + v * M.findWithDefault 0.0 k vars) 0.0 (conCoefficients con)
+  let lhs = M.foldlWithKey (\acc k v -> acc + v * M.findWithDefault 0.0 k vars) 0.0 (conCoefficients con)
   in case conType con of
        Leq -> lhs <= conRHS con
        Geq -> lhs >= conRHS con
        Eq  -> abs (lhs - conRHS con) < 1e-10
 
-{-@ optimize :: Objective -> [Constraint] -> M.Map Text Double -> OptimizationState @-}
--- | Simple gradient-free optimizer (grid search)
 optimize :: Objective -> [Constraint] -> M.Map Text Double -> OptimizationState
 optimize !obj !constraints !initialVars
   | M.null initialVars = defOptimizationState M.empty

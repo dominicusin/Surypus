@@ -22,8 +22,9 @@ Page {
             Layout.fillWidth: true
             ColumnLayout {
                 TextField { label: "Наименование"; text: "ООО ТехноСтрой" }
-                TextField { label: "ИНН"; text: "7701234567" }
+                TextField { label: "ИНН"; text: "7701234567890" }
                 TextField { label: "КПП"; text: "770101001" }
+                TextField { label: "ОГРН"; text: "1027700007654" }
             }
         }
 
@@ -37,11 +38,32 @@ Page {
         }
 
         GroupBox {
-            title: "Уведомления"
+            title: "Пользователи"
             Layout.fillWidth: true
             ColumnLayout {
-                CheckBox { text: "Email уведомления"; checked: true }
-                CheckBox { text: "Push уведомления"; checked: false }
+                Label { 
+                    text: "Загрузка пользователей..."; 
+                    color: "#757575"
+                }
+            }
+        }
+
+        GroupBox {
+            title: "Подключения"
+            Layout.fillWidth: true
+            ColumnLayout {
+                Label { 
+                    text: "PostgreSQL: Проверка...";
+                    color: "#757575"
+                }
+                Label { 
+                    text: "API сервер: Проверка...";
+                    color: "#757575"
+                }
+                Label { 
+                    text: "Версия: Загрузка...";
+                    color: "#757575"
+                }
             }
         }
 

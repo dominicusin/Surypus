@@ -52,6 +52,9 @@ type ServiceKey = Text
 -- | Stub type for Pool
 type Pool = ()
 
+-- | Settings service type
+newtype SettingsService = SettingsService
+
 -- | Service-level errors
 data ServiceError
   = ServiceNotFound ServiceKey
@@ -82,3 +85,9 @@ newtype PoolService s = PoolService {unPoolService :: Pool}
 instance Service (PoolService s) where
   -- type ServiceKey (PoolService s) = s
   getPool = unPoolService
+
+-- | Settings service type
+newtype SettingsService = SettingsService
+
+instance Service SettingsService where
+  getPool _ = ()
