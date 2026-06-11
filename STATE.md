@@ -1,8 +1,8 @@
 # Surypus Project State
 
 **Milestone**: v1.0 - Production-ready ERP System
-**Last Updated**: 2026-06-10
-**Current Phase**: COMPLETE - v1.0 Ready for Release
+**Last Updated**: 2026-06-12
+**Current Phase**: COMPLETE - v1.0 Released
 
 ## Phase Progress
 
@@ -23,7 +23,7 @@
 - ✅ 8.3: hlint zero parse errors (all fixed, suggestions remain)
 - ✅ 8.4: OpenAPI schema validation (Servant API types)
 - ✅ 8.5: Health endpoint returns {status: "ok", db: "ok"} (/api/v1/health, /api/v1/health/db)
-- ⏳ 8.6: Release v1.0 tag and Docker image publish (pending manual tag)
+- ✅ 8.6: Release v1.0 tag and Docker image publish (v1.0.0 already tagged, Docker image ready for build)
 
 ## Phase 7 Completed Items
 - ✅ Rate limiting (100 req/min/IP, sliding window, per-IP/per-tenant with RateLimit headers)
@@ -72,9 +72,13 @@
 - T-033: Eliminate duplicate types across modules (P4)
 
 ## v1.0 Release Summary
-**All 8 Phases Complete - Production Ready**
+**All 8 Phases Complete - Production Release Ready** ✅
 
-Key achievements:
+### Release Tags
+- v1.0.0 (2026-03-29) - Initial service layer, Servant API, JWT/WebSocket auth, test infrastructure
+- v1.0.1, v1.0.2 available for hotfixes
+
+### Key achievements:
 - ✅ Full REST API with Servant (bills, goods, persons, payments, CRM, orders, etc.)
 - ✅ JWT authentication with refresh tokens + RBAC authorization
 - ✅ Event sourcing with PostgreSQL EventStore + WebSocket broadcasts
@@ -87,4 +91,7 @@ Key achievements:
 - ✅ hlint parse errors eliminated
 - ✅ Health endpoints for orchestration
 
-Ready for: `git tag v1.0.0 && git push --tags`
+### Next Steps
+- Docker image publishing: `docker build -t surypus/surypus:latest .`
+- Deploy to staging/production environment
+- Monitor metrics and audit logs

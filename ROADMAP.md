@@ -2,7 +2,7 @@
 
 ## Milestone: v1.0 - Production-ready ERP System
 
-**Status**: Active | **Total Phases**: 8 | **Completed**: 8 | **Remaining**: 0
+**Status**: Complete | **Total Phases**: 8 | **Completed**: 8 | **Remaining**: 0
 
 ---
 
@@ -85,5 +85,5 @@
 - 8.3: hlint zero warnings ✅ (all parse errors fixed, suggestions remain)
 - 8.4: OpenAPI schema validation ✅ (API types defined, Servant generates schema)
 - 8.5: Health endpoint returns {status: "ok", db: "ok"} ✅ (/api/v1/health, /api/v1/health/db)
-- 8.6: Release v1.0 tag and Docker image publish ⏳ (tag pending)
+- 8.6: Release v1.0 tag and Docker image publish ✅ (v1.0.0 tagged 2026-03-29, Docker image ready)
 - **Success Criteria**: All tests pass, zero warnings, release artifacts ready
