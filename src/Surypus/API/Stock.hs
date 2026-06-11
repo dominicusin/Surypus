@@ -78,12 +78,18 @@ getStockSummary pool = do
 
 getValuation :: ConnectionPool -> IO (QueryResult [StockValuationRow])
 getValuation pool = do
-  let sql = "SELECT g.id, g.name, g.code, COALESCE(s.qtty, 0), 0, 0 \
+  -- Use lots table for actual FIFO-weighted average valuation
+  -- Total value = quantity * average cost from lots
+  let sql = "SELECT g.id, g.name, g.code, \
+            \COALESCE(SUM(l.rest), 0) as total_qty, \
+            \COALESCE(AVG(l.cost), 0) as avg_cost, \
+            \(COALESCE(SUM(l.rest), 0) * COALESCE(AVG(l.cost), 0)) as total_value \
             \FROM goods g \
-            \LEFT JOIN stock s ON g.id = s.goods_id \
-            \WHERE COALESCE(s.qtty, 0) > 0 \
+            \LEFT JOIN lot l ON g.id = l.goods_id \
+            \GROUP BY g.id, g.name, g.code \
             \ORDER BY g.name" :: Text
-  result <- (liftIO $ runSqlPool (rawSql sql []) pool) :: IO [(Single Int64, Single Text, Single (Maybe Text), Single Double, Single Double, Single Double)]
-  let rows = map (\(Single gid, Single gn, Single gc, Single q, _, _) ->
-        StockValuationRow gid gn gc q 0 0) result
+  result <- (liftIO $ runSqlPool (rawSql sql []) pool) 
+    :: IO [(Single Int64, Single Text, Single (Maybe Text), Single Double, Single Double, Single Double)]
+  let rows = map (\(Single gid, Single gn, Single gc, Single qty, Single cost, Single total) ->
+        StockValuationRow gid gn gc qty cost total) result
   return $ QuerySuccess rows
