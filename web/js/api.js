@@ -299,6 +299,40 @@ const api = {
     auditLog: {
         list: (params) => axios.get(`${API_BASE}/audit-log`, { params })
     },
+
+    // CRM API
+    crm: {
+        deals: {
+            list: () => axios.get(`${API_BASE}/crm/deals`),
+            get: (id) => axios.get(`${API_BASE}/crm/deals/${id}`),
+            create: (data) => axios.post(`${API_BASE}/crm/deals`, data),
+            updateStage: (id, stageId) => axios.post(`${API_BASE}/crm/deals/${id}/stage/${stageId}`),
+            history: (id) => axios.get(`${API_BASE}/crm/deals/${id}/history`),
+            activities: (id) => axios.get(`${API_BASE}/crm/deals/${id}/activities`)
+        },
+        contacts: {
+            list: () => axios.get(`${API_BASE}/crm/contacts`),
+            get: (id) => axios.get(`${API_BASE}/crm/contacts/${id}`),
+            create: (data) => axios.post(`${API_BASE}/crm/contacts`, data),
+            update: (id, data) => axios.put(`${API_BASE}/crm/contacts/${id}`, data),
+            delete: (id) => axios.post(`${API_BASE}/crm/contacts/${id}/delete`),
+            search: (q) => axios.get(`${API_BASE}/crm/contacts/search/${q}`)
+        },
+        companies: {
+            list: () => axios.get(`${API_BASE}/crm/companies`),
+            get: (id) => axios.get(`${API_BASE}/crm/companies/${id}`),
+            create: (data) => axios.post(`${API_BASE}/crm/companies`, data),
+            update: (id, data) => axios.put(`${API_BASE}/crm/companies/${id}`, data),
+            delete: (id) => axios.post(`${API_BASE}/crm/companies/${id}/delete`),
+            search: (q) => axios.get(`${API_BASE}/crm/companies/search/${q}`)
+        },
+        pipeline: {
+            forecast: () => axios.get(`${API_BASE}/crm/pipeline`),
+            stages: () => axios.get(`${API_BASE}/crm/pipeline/stages`),
+            stageRules: (id) => axios.get(`${API_BASE}/crm/pipeline/stages/${id}/rules`),
+            refreshForecast: () => axios.post(`${API_BASE}/crm/pipeline/forecast/refresh`)
+        }
+    }
 };
 
 // Helper functions

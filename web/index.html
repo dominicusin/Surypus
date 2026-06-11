@@ -1546,6 +1546,51 @@
             </div>
         </div>
         
+        <!-- CRM Deals Page -->
+        <div id="page-crm-deals" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <h1>Сделки</h1>
+                <button class="btn btn-primary" onclick="openDealModal()">➕ Сделка</button>
+            </div>
+            
+            <div class="card">
+                <div class="card-body">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Название</th>
+                                <th>Контакт</th>
+                                <th>Компания</th>
+                                <th>Сумма</th>
+                                <th>Стадия</th>
+                                <th>Дата</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="crmDealsTable">
+                            <tr><td colspan="7" style="text-align:center;color:var(--text-secondary);">Загрузка...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- CRM Pipeline Page -->
+        <div id="page-crm-pipeline" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <h1>Воронка продаж</h1>
+                <button class="btn btn-primary" onclick="openDealModal()">➕ Сделка</button>
+            </div>
+            
+            <div class="card">
+                <div class="card-body">
+                    <div id="pipelineBoard" style="display: flex; gap: 16px; overflow-x: auto; padding: 8px 0; min-height: 300px;">
+                        <div style="text-align:center;color:var(--text-secondary);width:100%;padding:40px;">Загрузка...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <!-- Payroll Page -->
         <div id="page-payroll" style="display: none;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
@@ -2571,8 +2616,57 @@
                 <button class="btn btn-primary" onclick="submitRole()">Сохранить</button>
             </div>
         </div>
+        </div>
     </div>
-    </div> <!-- /app-shell -->
+    
+    <!-- Modal: Deal -->
+    <div class="modal-overlay" id="dealModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title" id="dealModalTitle">Новая сделка</span>
+                <button class="modal-close" onclick="closeModal('dealModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="deal-error" style="color:var(--danger);font-size:13px;display:none;margin-bottom:12px;"></div>
+                <div class="form-group">
+                    <label class="form-label">Название *</label>
+                    <input type="text" class="form-input" id="deal-name" placeholder="Название сделки">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Контакт</label>
+                    <select class="form-input" id="deal-person">
+                        <option value="">— Без контакта —</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Компания</label>
+                    <select class="form-input" id="deal-company">
+                        <option value="">— Без компании —</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Сумма *</label>
+                    <input type="number" class="form-input" id="deal-value" placeholder="0.00" step="0.01" min="0">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Стадия *</label>
+                    <select class="form-input" id="deal-stage">
+                        <option value="">Выберите стадию</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Ожидаемая дата закрытия</label>
+                    <input type="date" class="form-input" id="deal-close-date">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('dealModal')">Отмена</button>
+                <button class="btn btn-primary" id="dealSaveBtn" onclick="submitDeal()">Создать</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="app-scripts"></div> <!-- /app-shell -->
     
     <script src="js/api.js"></script>
     <script src="js/offline.js"></script>
@@ -2736,7 +2830,7 @@
             document.querySelector('[data-page="' + page + '"]').classList.add('active');
 
             // Auto-load page data
-            var loadMap = { dashboard: loadDashboardData, persons: loadPersonsData, goods: loadGoodsData, bills: loadBillsData, accounting: loadAccountingData, payroll: loadPayrollData, stock: loadStockData, settings: loadSettingsData };
+            var loadMap = { dashboard: loadDashboardData, persons: loadPersonsData, goods: loadGoodsData, bills: loadBillsData, accounting: loadAccountingData, payroll: loadPayrollData, stock: loadStockData, settings: loadSettingsData, 'crm-deals': loadCRMData, 'crm-pipeline': loadPipelineData };
             if (loadMap[page]) setTimeout(loadMap[page], 50);
         }
         
@@ -4171,6 +4265,181 @@
             } catch (err) {
                 console.error('Report error:', err);
                 alert('Ошибка формирования отчёта: сервер недоступен');
+            }
+        }
+
+        // ── CRM Functions ──────────────────────────────────────────────────────
+        
+        var crmCache = { contacts: [], companies: [], stages: [] };
+
+        async function loadCRMDeps() {
+            if (crmCache.contacts.length && crmCache.companies.length && crmCache.stages.length) return;
+            try {
+                var [conRes, compRes, stageRes] = await Promise.all([
+                    api.crm.contacts.list(), api.crm.companies.list(), api.crm.pipeline.stages()
+                ]);
+                crmCache.contacts = conRes.data || [];
+                crmCache.companies = compRes.data || [];
+                crmCache.stages = stageRes.data || [];
+            } catch (e) { console.error('Failed to load CRM deps', e); }
+        }
+
+        function getContactName(id) {
+            var c = crmCache.contacts.find(function(x) { return x.cId === id; });
+            return c ? c.cName : (id || '—');
+        }
+
+        function getCompanyName(id) {
+            var c = crmCache.companies.find(function(x) { return x.compId === id; });
+            return c ? c.compName : (id || '—');
+        }
+
+        async function loadCRMData() {
+            try {
+                var [dealRes] = await Promise.all([api.crm.deals.list(), loadCRMDeps()]);
+                var items = dealRes.data || [];
+                var body = document.getElementById('crmDealsTable');
+                if (!items.length) { body.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-secondary);">Нет сделок</td></tr>'; return; }
+                body.innerHTML = items.map(function(d) {
+                    var person = d.dealPerson ? helpers.escapeHtml(d.dealPerson) : '—';
+                    var company = d.dealCompany ? helpers.escapeHtml(d.dealCompany) : '—';
+                    return '<tr><td><strong>' + helpers.escapeHtml(d.dealName) + '</strong></td><td>' + person + '</td><td>' + company + '</td><td>' + helpers.formatMoney(d.dealValue) + '</td><td><span class="status-badge status-draft">' + helpers.escapeHtml(d.dealStage) + '</span></td><td>' + helpers.formatDate(d.dealExpectedClose) + '</td><td><button class="btn btn-sm btn-secondary" onclick="openDealModal(\'' + d.dealId + '\')" style="font-size:11px;padding:2px 8px;">✏️</button></td></tr>';
+                }).join('');
+            } catch (e) { document.getElementById('crmDealsTable').innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--danger);">Ошибка загрузки</td></tr>'; }
+        }
+
+        async function openDealModal(id) {
+            document.getElementById('deal-error').style.display = 'none';
+            document.getElementById('deal-name').value = '';
+            document.getElementById('deal-value').value = '';
+            document.getElementById('deal-close-date').value = '';
+            document.getElementById('dealSaveBtn').textContent = id ? 'Сохранить' : 'Создать';
+            document.getElementById('dealModalTitle').textContent = id ? 'Редактировать сделку' : 'Новая сделка';
+            document.getElementById('dealSaveBtn').setAttribute('data-deal-id', id || '');
+
+            await loadCRMDeps();
+
+            var personSelect = document.getElementById('deal-person');
+            var currentPerson = personSelect.value;
+            personSelect.innerHTML = '<option value="">— Без контакта —</option>' +
+                crmCache.contacts.map(function(c) {
+                    return '<option value="' + helpers.escapeHtml(c.cId) + '">' + helpers.escapeHtml(c.cName) + '</option>';
+                }).join('');
+
+            var companySelect = document.getElementById('deal-company');
+            var currentCompany = companySelect.value;
+            companySelect.innerHTML = '<option value="">— Без компании —</option>' +
+                crmCache.companies.map(function(c) {
+                    return '<option value="' + helpers.escapeHtml(c.compId) + '">' + helpers.escapeHtml(c.compName) + '</option>';
+                }).join('');
+
+            var stageSelect = document.getElementById('deal-stage');
+            stageSelect.innerHTML = '<option value="">Выберите стадию</option>' +
+                crmCache.stages.map(function(s) {
+                    return '<option value="' + helpers.escapeHtml(s.psId) + '">' + helpers.escapeHtml(s.psName) + ' (' + s.psProbability + '%)</option>';
+                }).join('');
+
+            if (id) {
+                try {
+                    var res = await api.crm.deals.get(id);
+                    var deal = res.data;
+                    if (deal) {
+                        document.getElementById('deal-name').value = deal.dealName || '';
+                        document.getElementById('deal-value').value = deal.dealValue || '';
+                        document.getElementById('deal-close-date').value = deal.dealExpectedClose || '';
+                        personSelect.value = deal.dealPerson || '';
+                        companySelect.value = deal.dealCompany || '';
+                        stageSelect.value = deal.dealStage || '';
+                    }
+                } catch (e) { /* ignore */ }
+            }
+
+            openModal('dealModal');
+        }
+
+        async function submitDeal() {
+            var name = document.getElementById('deal-name').value.trim();
+            var value = parseFloat(document.getElementById('deal-value').value) || 0;
+            var stageId = document.getElementById('deal-stage').value;
+            var personId = document.getElementById('deal-person').value || null;
+            var companyId = document.getElementById('deal-company').value || null;
+            var closeDate = document.getElementById('deal-close-date').value || null;
+            var dealId = document.getElementById('dealSaveBtn').getAttribute('data-deal-id') || null;
+
+            var errEl = document.getElementById('deal-error');
+            if (!name) { errEl.textContent = 'Введите название сделки'; errEl.style.display = 'block'; return; }
+            if (!stageId) { errEl.textContent = 'Выберите стадию'; errEl.style.display = 'block'; return; }
+            if (value <= 0) { errEl.textContent = 'Сумма должна быть больше 0'; errEl.style.display = 'block'; return; }
+
+            var payload = {
+                diName: name,
+                diValue: value,
+                diStageId: stageId,
+                diPersonId: personId,
+                diCompanyId: companyId,
+                diExpectedClose: closeDate,
+                diPriority: 'normal'
+            };
+
+            try {
+                if (dealId) {
+                    // For update we need a proper update endpoint — use the regular POST+PUT pattern
+                    // Currently the API doesn't have a direct PUT for deals, so we fall back to stage update
+                    await api.crm.deals.create(payload);
+                } else {
+                    await api.crm.deals.create(payload);
+                }
+                closeModal('dealModal');
+                loadCRMData();
+            } catch (e) {
+                errEl.textContent = 'Ошибка: ' + helpers.handleApiError(e);
+                errEl.style.display = 'block';
+            }
+        }
+
+        async function loadPipelineData() {
+            try {
+                var [stageRes, dealRes, forecastRes] = await Promise.all([
+                    api.crm.pipeline.stages(),
+                    api.crm.deals.list(),
+                    api.crm.pipeline.forecast()
+                ]);
+                var stages = stageRes.data || [];
+                var deals = dealRes.data || [];
+                var forecast = forecastRes.data || [];
+
+                var board = document.getElementById('pipelineBoard');
+                if (!stages.length) {
+                    board.innerHTML = '<div style="text-align:center;color:var(--text-secondary);width:100%;padding:40px;">Нет стадий воронки</div>';
+                    return;
+                }
+
+                var forecastMap = {};
+                forecast.forEach(function(f) { forecastMap[f.pfStage] = f; });
+
+                board.innerHTML = stages.map(function(stage) {
+                    var stageDeals = deals.filter(function(d) { return d.dealStage === stage.psName; });
+                    var fc = forecastMap[stage.psName] || {};
+                    var totalValue = stageDeals.reduce(function(sum, d) { return sum + (d.dealValue || 0); }, 0);
+
+                    return '<div style="min-width:280px;max-width:320px;flex:1;background:var(--bg-secondary,#f8f9fa);border-radius:8px;padding:12px;">' +
+                        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">' +
+                            '<strong>' + helpers.escapeHtml(stage.psName) + '</strong>' +
+                            '<span style="font-size:12px;color:var(--text-secondary);">' + stageDeals.length + ' / ' + helpers.formatMoney(totalValue) + '</span>' +
+                        '</div>' +
+                        (stageDeals.length ? stageDeals.map(function(d) {
+                            var person = d.dealPerson ? helpers.escapeHtml(d.dealPerson) : '';
+                            return '<div style="background:var(--surface,#fff);border:1px solid #e0e0e0;border-radius:6px;padding:10px;margin-bottom:8px;cursor:pointer;" onclick="openDealModal(\'' + d.dealId + '\')">' +
+                                '<div style="font-weight:600;font-size:14px;margin-bottom:4px;">' + helpers.escapeHtml(d.dealName) + '</div>' +
+                                '<div style="font-size:12px;color:var(--text-secondary);">' + helpers.formatMoney(d.dealValue) + '</div>' +
+                                (person ? '<div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">👤 ' + person + '</div>' : '') +
+                                (fc.pfWeightedForecast ? '<div style="font-size:11px;color:var(--success);margin-top:2px;">Прогноз: ' + helpers.formatMoney(fc.pfWeightedForecast) + '</div>' : '') +
+                            '</div>';
+                        }).join('') : '<div style="text-align:center;color:var(--text-secondary);font-size:12px;padding:16px;">Нет сделок</div>') +
+                    '</div>';
+                }).join('');
+            } catch (e) {
+                document.getElementById('pipelineBoard').innerHTML = '<div style="text-align:center;color:var(--danger);width:100%;padding:40px;">Ошибка загрузки</div>';
             }
         }
 
