@@ -150,14 +150,14 @@ selectByWeight servers =
   case servers of
     [] -> Nothing
     (s:_) ->
-      case filter ((> 0) . serverWeight) (s:servers) of
-        [] -> Just s
+      case filter ((> 0) . serverWeight) servers of
+        [] -> Just s  -- All servers have zero weight, return first server
         weighted ->
           let totalWeight = sum (map serverWeight weighted)
               target = if totalWeight > 0 then totalWeight `div` 2 else 0
-              (acc, _) = L.foldl' (\ (srv, curr) s ->
-                if curr >= target || serverWeight s <= 0
+              (acc, _) = L.foldl' (\ (srv, curr) svr ->
+                if curr >= target || serverWeight svr <= 0
                   then (srv, curr)
-                  else (s, curr + serverWeight s))
+                  else (svr, curr + serverWeight svr))
                 (head weighted, 0) weighted
           in Just acc
