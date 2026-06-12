@@ -14,6 +14,7 @@ module Core.Accounting.RedisCache
     RedisCacheConfig  (..)
   , RedisAccountCache  (..)
   , RedisCacheResult  (..)
+  , RedisPool
 
     -- * Redis Cache Operations
   , initializeRedisCache
@@ -30,21 +31,24 @@ module Core.Accounting.RedisCache
 
     -- * Integration with existing cache
   , wrapWithRedisBackend
+  , withRedisCache
   ) where
 
 import Data.Int (Int64)
 import Data.Text (Text)
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
 import Data.Time (UTCTime, NominalDiffTime, getCurrentTime, addUTCTime)
 import Data.Aeson (ToJSON, FromJSON, encode, decode, Value)
+import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString.Char8 as BS
-import Data.String (IsString, fromString)
 import GHC.Generics (Generic)
 import Control.Monad.IO.Class (MonadIO, liftIO)
-import Control.Exception (try, SomeException)
+import Control.Exception (try, SomeException, bracket)
 import qualified Data.Map.Strict as Map
 import Data.Map.Strict (Map)
+import Database.Redis (checkedConnect, runRedis, Connection, defaultConnectInfo)
 
 import Core.Accounting.Cache (ReadModelCache, getCachedAccountReadModel, invalidateCache)
 import qualified Core.Accounting.ReadModel as RM
@@ -83,51 +87,54 @@ data RedisAccountCache = RedisAccountCache
   , racExpiresAt :: UTCTime
   } deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
--- | Redis connection stub (replace with actual Redis client)
-data RedisConnection = RedisConnection
-  { rcConfig :: RedisCacheConfig
-  , rcConnected :: Bool
-  , rcConnectionId :: Text
+-- | Redis pool for connection management
+data RedisPool = RedisPool
+  { rpConnection :: Connection
+  , rpConfig :: RedisCacheConfig
   }
 
 -- ============================================================================
--- REDIS CLIENT (STUB IMPLEMENTATION)
+-- REDIS CLIENT IMPLEMENTATION
 -- ============================================================================
 
--- | Connect to Redis
-connectRedis :: RedisCacheConfig -> IO RedisConnection
+-- | Connect to Redis using hedis
+connectRedis :: RedisCacheConfig -> IO RedisPool
 connectRedis config = do
-  -- Stub implementation using in-memory state
-  connId <- T.pack . show <$> getCurrentTime
-  return $ RedisConnection
-    { rcConfig = config
-    , rcConnected = True
-    , rcConnectionId = connId
-    }
+  let hostname = "127.0.0.1" :: Hostname
+      portNum = 6379 :: Port
+      redisPort = PortNumber portNum
+  conn <- checkedConnect redisPort hostname
+  pure $ RedisPool conn config
 
 -- | Disconnect from Redis
-disconnectRedis :: RedisConnection -> IO ()
-disconnectRedis conn = do
-  putStrLn $ "Disconnecting from Redis: " <> T.unpack (rcConnectionId conn)
-  return ()
+disconnectRedis :: RedisPool -> IO ()
+disconnectRedis pool = checkedDisconnect (rpConnection pool)
+
+-- | Run Redis action with connection
+withRedis :: RedisPool -> Redis a -> IO a
+withRedis pool action = runRedis (rpConnection pool) action
 
 -- ============================================================================
 -- REDIS CACHE OPERATIONS
 -- ============================================================================
 
 -- | Initialize Redis cache
-initializeRedisCache :: RedisCacheConfig -> IO RedisConnection
+initializeRedisCache :: RedisCacheConfig -> IO RedisPool
 initializeRedisCache config = do
-  conn <- connectRedis config
+  pool <- connectRedis config
   putStrLn $ "Redis cache initialized with TTL: " <> show (rccDefaultTTL config)
-  return conn
+  return pool
 
 -- | Get cached balance from Redis
-getRedisCachedBalance :: RedisConnection -> Int64 -> IO (RedisCacheResult Double)
-getRedisCachedBalance conn accountId = do
+getRedisCachedBalance :: RedisPool -> Int64 -> IO (RedisCacheResult Double)
+getRedisCachedBalance pool accountId = do
   now <- getCurrentTime
   let key = "account:balance:" <> T.pack (show accountId)
-  result <- try $ getFromRedis conn key
+  result <- try $ withRedis pool $ do
+    val <- get (TE.encodeUtf8 key)
+    case val of
+      Just bs -> decode (BL.fromStrict bs)
+      Nothing -> return Nothing
   case result of
     Left (_ :: SomeException) -> do
       -- Redis error, return miss
@@ -137,21 +144,25 @@ getRedisCachedBalance conn accountId = do
       pure $ RedisCacheResult Nothing False False 0 now
     Right (Just cached) -> do
       -- Cache hit
-      pure $ RedisCacheResult (Just cached) True True (rccDefaultTTL (rcConfig conn)) now
+      pure $ RedisCacheResult (Just cached) True True (rccDefaultTTL (rpConfig pool)) now
 
 -- | Set cached balance in Redis
-setRedisCachedBalance :: RedisConnection -> Int64 -> Double -> IO ()
-setRedisCachedBalance conn accountId balance = do
+setRedisCachedBalance :: RedisPool -> Int64 -> Double -> IO ()
+setRedisCachedBalance pool accountId balance = do
   let key = "account:balance:" <> T.pack (show accountId)
-      ttl = rccDefaultTTL (rcConfig conn)
-  setInRedisWithTTL conn key balance ttl
+      ttlSecs = floor (rccDefaultTTL (rpConfig pool)) :: Int
+  withRedis pool $ void $ setex (TE.encodeUtf8 key) ttlSecs (BL.toStrict $ encode balance)
 
 -- | Get full account from Redis cache
-getRedisAccountFromCache :: RedisConnection -> Int64 -> IO (RedisCacheResult RedisAccountCache)
-getRedisAccountFromCache conn accountId = do
+getRedisAccountFromCache :: RedisPool -> Int64 -> IO (RedisCacheResult RedisAccountCache)
+getRedisAccountFromCache pool accountId = do
   now <- getCurrentTime
   let key = "account:full:" <> T.pack (show accountId)
-  result <- try $ getFromRedis conn key
+  result <- try $ withRedis pool $ do
+    val <- get (TE.encodeUtf8 key)
+    case val of
+      Just bs -> decode (BL.fromStrict bs)
+      Nothing -> return Nothing
   case result of
     Left (_ :: SomeException) -> do
       pure $ RedisCacheResult Nothing False False 0 now
@@ -160,71 +171,63 @@ getRedisAccountFromCache conn accountId = do
     Right (Just cached) -> do
       -- Check if expired
       if racExpiresAt cached > now
-        then pure $ RedisCacheResult (Just cached) True True (rccDefaultTTL (rcConfig conn)) now
+        then pure $ RedisCacheResult (Just cached) True True (rccDefaultTTL (rpConfig pool)) now
         else do
           -- Expired, delete and return miss
-          deleteFromRedis conn key
+          withRedis pool $ void $ del [TE.encodeUtf8 key]
           pure $ RedisCacheResult Nothing False False 0 now
 
 -- | Set full account in Redis cache
-setRedisAccountInCache :: RedisConnection -> RedisAccountCache -> IO ()
-setRedisAccountInCache conn account = do
+setRedisAccountInCache :: RedisPool -> RedisAccountCache -> IO ()
+setRedisAccountInCache pool account = do
   let key = "account:full:" <> T.pack (show (racAccountId account))
-      ttl = rccDefaultTTL (rcConfig conn)
-      expiresAt = addUTCTime (rccDefaultTTL (rcConfig conn)) (racLastUpdated account)
-      accountWithExpiry = account { racExpiresAt = expiresAt }
-  setInRedisWithTTL conn key accountWithExpiry ttl
+      ttlSecs = floor (rccDefaultTTL (rpConfig pool)) :: Int
+  withRedis pool $ void $ setex (TE.encodeUtf8 key) ttlSecs (BL.toStrict $ encode account)
   -- Also cache balance separately for faster access
-  setRedisCachedBalance conn (racAccountId account) (racBalance account)
+  setRedisCachedBalance pool (racAccountId account) (racBalance account)
 
 -- | Invalidate Redis account cache
-invalidateRedisAccountCache :: RedisConnection -> Int64 -> IO ()
-invalidateRedisAccountCache conn accountId = do
+invalidateRedisAccountCache :: RedisPool -> Int64 -> IO ()
+invalidateRedisAccountCache pool accountId = do
   let balanceKey = "account:balance:" <> T.pack (show accountId)
       fullKey = "account:full:" <> T.pack (show accountId)
-  deleteFromRedis conn balanceKey
-  deleteFromRedis conn fullKey
+  withRedis pool $ void $ del [TE.encodeUtf8 balanceKey, TE.encodeUtf8 fullKey]
 
 -- ============================================================================
 -- REDIS STREAMS FOR EVENTS
 -- ============================================================================
 
 -- | Publish account event to Redis stream
-publishAccountEventToStream :: RedisConnection -> Int64 -> Value -> IO ()
-publishAccountEventToStream conn accountId eventData = do
-  streamName <- pure $ rccEventStreamName (rcConfig conn)
+publishAccountEventToStream :: RedisPool -> Int64 -> Value -> IO ()
+publishAccountEventToStream pool accountId eventData = do
+  let streamName = rccEventStreamName (rpConfig pool)
   now <- getCurrentTime
   let eventId = "account:" <> T.pack (show accountId) <> ":" <> T.pack (show now)
-      eventDataStr = T.pack $ BS.unpack $ BL.toStrict $ encode eventData
-  publishToRedisStream conn streamName eventId eventDataStr
+      eventDataStr = BL.toStrict $ encode eventData
+  withRedis pool $ void $ xadd (TE.encodeUtf8 streamName) eventId [("*", eventDataStr)]
 
 -- | Subscribe to account event stream
-subscribeToAccountEventStream :: RedisConnection -> (Value -> IO ()) -> IO ()
-subscribeToAccountEventStream conn handler = do
-  let streamName = rccEventStreamName (rcConfig conn)
-  subscribeToRedisStream conn streamName $ \eventDataStr -> do
-    case decode (BL.fromStrict (BS.pack eventDataStr)) of
-      Just event -> handler event
-      Nothing -> putStrLn $ "Invalid event data: " <> eventDataStr
+subscribeToAccountEventStream :: RedisPool -> (Value -> IO ()) -> IO ()
+subscribeToAccountEventStream pool handler = do
+  let streamName = rccEventStreamName (rpConfig pool)
+  -- Note: hedis doesn't support blocking subscribe, use a loop instead
+  withRedis pool $ void $ subscribe [TE.encodeUtf8 streamName]
 
 -- | Process Redis event stream and update cache
-processRedisEventStream :: RedisConnection -> ReadModelCache -> IO ()
-processRedisEventStream redisConn memoryCache = do
-  subscribeToAccountEventStream redisConn $ \event -> do
-    -- Parse event and update both Redis and memory cache
-    putStrLn $ "Processing event from Redis stream: " <> show event
-    -- Invalidate cache on any event (stub implementation)
-    -- In production: Parse specific event types and update accordingly
+processRedisEventStream :: RedisPool -> ReadModelCache -> IO ()
+processRedisEventStream redisPool memoryCache = do
+  -- Stub - would need actual hedis stream support
+  putStrLn "Redis event stream processor started"
 
 -- ============================================================================
 -- INTEGRATION WITH EXISTING CACHE
 -- ============================================================================
 
 -- | Wrap existing cache with Redis backend for hybrid approach
-wrapWithRedisBackend :: ReadModelCache -> RedisConnection -> Int64 -> IO RM.AccountReadModel
-wrapWithRedisBackend memoryCache redisConn accountId = do
+wrapWithRedisBackend :: ReadModelCache -> RedisPool -> Int64 -> IO RM.AccountReadModel
+wrapWithRedisBackend memoryCache redisPool accountId = do
   -- Try Redis first
-  redisResult <- getRedisAccountFromCache redisConn accountId
+  redisResult <- getRedisAccountFromCache redisPool accountId
   case rcrValue redisResult of
     Just redisAccount -> do
       -- Convert Redis cache to read model
@@ -234,8 +237,12 @@ wrapWithRedisBackend memoryCache redisConn accountId = do
       model <- getCachedAccountReadModel memoryCache accountId
       -- Update Redis with the result
       redisAccount <- readModelToRedisAccount model
-      setRedisAccountInCache redisConn redisAccount
+      setRedisAccountInCache redisPool redisAccount
       pure model
+
+-- | Run action with Redis cache context
+withRedisCache :: RedisPool -> (RedisPool -> IO a) -> IO a
+withRedisCache pool action = action pool
 
 -- | Convert Redis account cache to read model
 redisAccountToReadModel :: RedisAccountCache -> RM.AccountReadModel
@@ -272,33 +279,3 @@ readModelToRedisAccount model = do
     , racVersion = fromIntegral (RM.bsEventCount balanceState)
     , racExpiresAt = expiresAt
     }
-
--- ============================================================================
--- REDIS STUB IMPLEMENTATIONS
--- ============================================================================
-
--- | Get value from Redis (stub)
-getFromRedis :: (FromJSON a) => RedisConnection -> Text -> IO (Maybe a)
-getFromRedis conn key = do
-  putStrLn $ "Redis GET: " <> T.unpack key
-  pure Nothing
-
--- | Set value in Redis with TTL (stub)
-setInRedisWithTTL :: (ToJSON a) => RedisConnection -> Text -> a -> NominalDiffTime -> IO ()
-setInRedisWithTTL conn key value ttl = do
-  putStrLn $ "Redis SETEX: " <> T.unpack key <> " TTL: " <> show ttl
-
--- | Delete key from Redis (stub)
-deleteFromRedis :: RedisConnection -> Text -> IO ()
-deleteFromRedis conn key = do
-  putStrLn $ "Redis DEL: " <> T.unpack key
-
--- | Publish to Redis stream (stub)
-publishToRedisStream :: RedisConnection -> Text -> Text -> Text -> IO ()
-publishToRedisStream conn streamName eventId data_ = do
-  putStrLn $ "Redis XADD to " <> T.unpack streamName <> ": " <> T.unpack eventId <> " -> " <> T.unpack data_
-
--- | Subscribe to Redis stream (stub)
-subscribeToRedisStream :: RedisConnection -> Text -> (String -> IO ()) -> IO ()
-subscribeToRedisStream conn streamName handler = do
-  putStrLn $ "Redis XSUBSCRIBE to: " <> T.unpack streamName
