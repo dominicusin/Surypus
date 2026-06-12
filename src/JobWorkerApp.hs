@@ -1,9 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Main where
+module JobWorkerApp where
 
-main :: IO ()
-main = do
+jobWorkerMain :: IO ()
+jobWorkerMain = do
     putStrLn "========================================="
     putStrLn "  Surypus Job Worker"
     putStrLn "  Version 0.1.0"
