@@ -182,6 +182,19 @@ library
     Commerce.Procurement.Procurement
     Commerce.Visits.Visit
     Core
+    Core.DSL
+    Core.DSL.AST
+    Core.DSL.Parser
+    Core.DSL.Parser.ERPDSL
+    Core.DSL.Datalog
+    Core.DSL.Souffle
+    Core.DSL.RA
+    Core.DSL.SQLGen
+    Core.DSL.CodeGen
+    Core.DSL.Migration
+    Core.DSL.Migration.Types
+    Core.DSL.Migration.Diff
+    Core.DSL.Migration.Generate
     Core.Accounting.Cache
     Core.Accounting.ReadModel
     Core.Accounting.RedisCache
