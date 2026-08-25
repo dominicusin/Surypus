@@ -185,7 +185,6 @@ library
     Core.DSL
     Core.DSL.AST
     Core.DSL.Parser
-    Core.DSL.Migration
     Core.Accounting.Cache
     Core.Accounting.ReadModel
     Core.Accounting.RedisCache
