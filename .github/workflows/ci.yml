@@ -21,10 +21,9 @@ jobs:
           sh /tmp/stack.sh -d ~/.local/bin || true
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
-      - name: Setup GHC
-        uses: haskell/actions/setup@v2
-        with:
-          ghc-version: ${{ matrix.ghc }}
+      - name: Setup GHC (stack-managed)
+        run: |
+          echo "GHC managed by stack per stack.yaml (resolver)"
 
       - name: Build
         run: |
