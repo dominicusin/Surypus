@@ -16,7 +16,10 @@ jobs:
 
       - name: Install Haskell Stack
         run: |
-          curl -sSL https://get.haskellstack.org/ | sh
+          mkdir -p ~/.local/bin
+          curl -sSL https://get.haskellstack.org/ -o /tmp/stack.sh
+          sh /tmp/stack.sh -d ~/.local/bin || true
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Setup GHC
         uses: haskell/actions/setup@v2
@@ -53,7 +56,10 @@ jobs:
 
       - name: Install Haskell Stack
         run: |
-          curl -sSL https://get.haskellstack.org/ | sh
+          mkdir -p ~/.local/bin
+          curl -sSL https://get.haskellstack.org/ -o /tmp/stack.sh
+          sh /tmp/stack.sh -d ~/.local/bin || true
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Install LiquidHaskell
         run: |
