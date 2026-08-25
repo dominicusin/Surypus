@@ -19,6 +19,7 @@ import Data.Time (Day, UTCTime)
 import Data.ByteString (ByteString)
 import Data.UUID (UUID)
 import Database.Persist.TH
+import DAL.UUIDOrphans ()
 
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
 PersonEntity sql=person
