@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Surypus — справка</title>
+<style>
+:root{--bg:#0d1117;--fg:#e6edf3;--mut:#8b949e;--acc:#58a6ff;--card:#161b22;--bd:#30363d}
+*{box-sizing:border-box;margin:0}
+body{background:var(--bg);color:var(--fg);font:16px/1.65 -apple-system,'Segoe UI',Roboto,sans-serif;max-width:860px;margin:0 auto;padding:2.5rem 1.25rem 4rem}
+a{color:var(--acc);text-decoration:none} a:hover{text-decoration:underline}
+code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--card);border-radius:6px}
+code{padding:.15em .4em;font-size:.9em} pre{padding:1rem;overflow-x:auto;margin:.75rem 0} pre code{padding:0;background:none}
+h1{font-size:1.9rem;line-height:1.2;margin-bottom:.35rem;border-bottom:1px solid var(--bd);padding-bottom:.6rem}
+h2{font-size:1.35rem;margin:1.8rem 0 .6rem} h3{font-size:1.1rem;margin:1.4rem 0 .4rem}
+.meta{display:flex;flex-wrap:wrap;gap:.45rem;margin:1rem 0 1.6rem}
+.tag{background:var(--card);border:1px solid var(--bd);border-radius:999px;padding:.18rem .75rem;font-size:.82rem;color:var(--mut)}
+.tag.acc{color:var(--acc);border-color:var(--acc)}
+.tag.warn{color:#f85149;border-color:#f85149}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:1rem 1.25rem;margin:1.2rem 0;color:var(--mut);font-size:.92rem}
+.muted{color:var(--mut)}
+.btn{display:inline-block;background:var(--acc);color:#04121f;font-weight:600;padding:.55rem 1.1rem;border-radius:8px;margin-top:1rem}
+ul{padding-left:1.4rem;margin:.5rem 0} li{margin:.2rem 0}
+footer{margin-top:3rem;border-top:1px solid var(--bd);padding-top:1rem;color:var(--mut);font-size:.85rem}
+</style></head><body>
+<h1>Surypus</h1>
+<div class=meta><span class="tag acc">dominicusin</span><span class=tag>JavaScript</span><span class=tag>MPL-2.0</span><span class=tag>обновлено 2026-08-25</span></div>
+<p class=muted>Surypus ERP/CRM - Haskell implementation </p>
+<div class=card>&#128230; Справочная страница репозитория <a href="https://github.com/dominicusin/Surypus" target="_blank"><code>dominicusin/Surypus</code></a>. Ниже — выдержка из README; полная документация — в репозитории.</div>
+<h2>О проекте / Documentation</h2>
+<h2>Surypus ERP/CRM</h2>
+<p><strong>Система управления предприятием нового поколения на Haskell с формальной верификацией</strong></p>
+<h3>✅ Verification &amp; Test Stats</h3>
+<p>| Metric | Value |</p>
+<p>|---|---|</p>
+<p>| License | MPL-2.0 |</p>
+<p>| Haskell modules | 486 |</p>
+<p>| Test suites (Haskell) | 69 files in <code>test/</code> |</p>
+<p>| Property-based tests | 3 — <code>Domain/HRPropertySpec</code>, <code>Domain/ProductionPropertySpec</code>, <code>Integration/PropertySpec</code> |</p>
+<p>| Integration suites | 8 — CRUD, inventory lifecycle, negative paths, performance, pool, validation |</p>
+<p>| SQL test scripts | 116 in <code>sql/test/</code> (of 511 SQL files total) |</p>
+<p>| RBAC permissions | 33 |</p>
+<p>| Formal verification | LiquidHaskell (optional), event-sourced audit trail |</p>
+<p>| Toolchain | GHC 9.6.5 · Persistent 2.18 · Esqueleto 3.6 · PostgreSQL · Scotty |</p>
+<p><strong>Milestone status:</strong> v2.0 GUI &amp; Features complete (Phases 13–21 ✅); infrastructure cycles Phases 160–171 ✅.</p>
+<p><strong>Known debt:</strong> <code>DAL/Queries.hs</code> type conversions pending fixes before full-suite DB test run.</p>
+<h3>Quick Start</h3>
+<pre>
+# Build project
+stack build Surypus
+# Run tests
+stack test
+# Run the API server
+stack run
+</pre>
+<h3>API Documentation</h3>
+<p>Comprehensive API documentation is available in [API_DOCUMENTATION.md](API_DOCUMENTATION.md), including:</p>
+<ul>
+<li>Accounting API endpoints (ledgers, transactions, balances)</li>
+<li>Inventory API endpoints (goods, stock levels, movements)</li>
+<li>Tax API endpoints (rates, calculations)</li>
+<li>Reports API endpoints (balance sheet, income statement, inventory)</li>
+<li>Integration API endpoints (bank statement upload, health checks, status)</li>
+</ul>
+<h3>Module St</h3>
+<a class=btn href="https://github.com/dominicusin/Surypus" target="_blank">Открыть репозиторий на GitHub &#8599;</a>
+<footer>Сгенерировано автоматически · 2026-08-25 · <a href="https://github.com/dominicusin?tab=repositories" target="_blank">все репозитории dominicusin</a></footer>
+</body></html>
