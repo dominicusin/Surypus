@@ -96,3 +96,7 @@ Documentation:
 - ARCHITECTURE: sql/docs/ARCHITECTURE.md
 - RBAC canonicalization overview: sql/docs/RBAC_CANON.md
 - Audit/logs: sql/docs/AUDIT.md
+
+---
+
+🔄 **Mirrors:** [![GitLab](https://img.shields.io/badge/GitLab-dominicusin-orange?logo=gitlab)](https://gitlab.com/dominicusin/Surypus) · GitHub is canonical.
