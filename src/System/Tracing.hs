@@ -36,6 +36,7 @@ data Span = Span
     spanLogs :: [(UTCTime, Text)],
     spanChildSpans :: [Span]
   }
+  deriving (Show)
 
 -- | Start timing a span
 startSpan :: Text -> IO Span
