@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 -- | Orphan PersistField instances for Data.UUID (persistent lacks them out of the box).
 module DAL.UUIDOrphans () where
 
