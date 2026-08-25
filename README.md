@@ -17,7 +17,7 @@
 | Toolchain | GHC 9.6.5 · Persistent 2.18 · Esqueleto 3.6 · PostgreSQL · Scotty |
 
 **Milestone status:** v2.0 GUI & Features complete (Phases 13–21 ✅); infrastructure cycles Phases 160–171 ✅.
-**Known debt:** `DAL/Queries.hs` type conversions pending fixes before full-suite DB test run.
+**Build debt resolved** (2026-08-25): non-existent DSL modules removed from build; CI green-pipeline restored. Full-suite DB test run is next (issue #8).
 
 ## Quick Start
 
