@@ -14,10 +14,10 @@ Completed Phases:
 
 Build Status:
 - Core modules compile with applied fixes
-- Remaining: DAL/Queries.hs type mismatches require fixes
+- RESOLVED (2026-08-25): build fixed by removing non-existent DSL module references; Queries.hs delegates verified against ORM
 
 Next Steps:
-1. Fix remaining DAL/Queries.hs type conversions
+1. [x] Fix DAL/build debt (2026-08-25)
 2. Run full test suite with database
 3. Milestone v2.0 audit and archive
 4. Begin Milestone v3.0 (AI & Advanced Features)
