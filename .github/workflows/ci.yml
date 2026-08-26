@@ -58,25 +58,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Haskell Stack
+      - name: Install GHC/cabal + LiquidHaskell
         run: |
-          mkdir -p ~/.local/bin
-          curl -sSL https://get.haskellstack.org/ -o /tmp/stack.sh
-          sh /tmp/stack.sh -d ~/.local/bin || true
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          sudo apt-get update -qq
+          sudo apt-get install -y cabal-install ghc libtinfo-dev
+          cabal update
+          # LiquidHaskell for GHC 9.6 — install with a bounded timeout; if it fails we
+          # fall back to documenting the refinement specs (annotations are GHC-transparent).
+          timeout 600 cabal install liquidhaskell --constraint "liquidhaskell >= 0.9" || echo "LH_INSTALL_FAILED"
 
-      - name: Install LiquidHaskell
-        run: |
-          stack install liquidhaskell 2>/dev/null || echo "LH install skipped (may not be available for this GHC)"
-
-      - name: Verify LiquidHaskell annotations
+      - name: Verify LiquidHaskell refinements
         run: |
           if command -v liquid &> /dev/null; then
-            liquid src/Finance/Tax.hs src/Finance/Accounting.hs --notermination
-            echo "LiquidHaskell verification passed"
+            set -o pipefail
+            liquid --notermination \
+              src/Finance/Tax.hs src/Finance/Accounting.hs \
+              src/Finance/Currency.hs src/Inventory/Stock.hs \
+              && echo "LiquidHaskell verification passed"
           else
-            echo "LiquidHaskell not available — refinement type annotations present for documentation"
-            grep -r "{-@" src/Finance/Tax.hs src/Finance/Accounting.hs | head -20
+            echo "::warning::LiquidHaskell unavailable in this runner — refinement specs kept for documentation."
+            echo "Annotation coverage:"
+            grep -rl "{-@" src/Finance src/Inventory | sed "s/^/  /"
           fi
 
   docker:
