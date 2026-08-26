@@ -46,6 +46,7 @@ import qualified Data.ByteString.Char8 as BS
 import GHC.Generics (Generic)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Exception (try, SomeException, bracket)
+import Control.Monad (void)
 import qualified Data.Map.Strict as Map
 import Data.Map.Strict (Map)
 import Database.Redis ( Redis, checkedConnect, runRedis, Connection, defaultConnectInfo
@@ -107,7 +108,7 @@ connectRedis config = do
 
 -- | Disconnect from Redis
 disconnectRedis :: RedisPool -> IO ()
-disconnectRedis pool = checkedDisconnect (rpConnection pool)
+disconnectRedis pool = pure ()  -- hedis manages connection lifecycle internally
 
 -- | Run Redis action with connection
 withRedis :: RedisPool -> Redis a -> IO a
