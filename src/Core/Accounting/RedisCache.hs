@@ -213,8 +213,8 @@ publishAccountEventToStream pool accountId eventData = do
 subscribeToAccountEventStream :: RedisPool -> (Value -> IO ()) -> IO ()
 subscribeToAccountEventStream pool handler = do
   let streamName = rccEventStreamName (rpConfig pool)
-  -- Note: hedis doesn't support blocking subscribe, use a loop instead
-  withRedis pool $ void $ subscribe [TE.encodeUtf8 streamName]
+  -- hedis pub/sub requires the dedicated PubSub monad; not wired yet (stub)
+  putStrLn $ "subscribeToAccountEventStream: pub/sub not wired for stream " <> T.unpack streamName
 
 -- | Process Redis event stream and update cache
 processRedisEventStream :: RedisPool -> ReadModelCache -> IO ()
