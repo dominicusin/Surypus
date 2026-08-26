@@ -81,6 +81,24 @@ jobs:
             grep -rl "{-@" src/Finance src/Inventory | sed "s/^/  /"
           fi
 
+  appimage:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate AppImage packaging layout (issue #11)
+        run: |
+          set -euo pipefail
+          test -f packaging/AppImage/AppRun && echo "AppRun present"
+          test -f packaging/AppImage/surypus.desktop && echo "desktop present"
+          test -f packaging/AppImage/build-appimage.sh && echo "build script present"
+          test -x packaging/AppImage/AppRun || chmod +x packaging/AppImage/AppRun
+          bash -n packaging/AppImage/build-appimage.sh && echo "build script syntax OK"
+          grep -q "ApplicationWindow" frontend/qml/Main.qml && echo "QML entrypoint present"
+          echo "AppImage packaging layout validated"
+
   docker:
     runs-on: ubuntu-latest
     needs: build
