@@ -17,7 +17,6 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Aeson (ToJSON, FromJSON, Value, object, (.=), parseJSON, withObject, (.:))
 import GHC.Generics (Generic)
-import Control.Monad.IO.Class (liftIO)
 import Data.Time.Clock (getCurrentTime, UTCTime)
 
 -- | AI Provider configuration
