@@ -1,0 +1,16 @@
+#!/bin/bash
+# AppRun for Surypus QML desktop (issue #11)
+# Launches the QtQuick frontend. Prefers `qml` (Qt 5/6) then `qmlscene`.
+HERE="$(dirname "$(readlink -f "${0}")")"
+export QML2_IMPORT_PATH="${HERE}/usr/share/surypus/qml:${QML2_IMPORT_PATH}"
+export QT_QPA_PLATFORM_PLUGIN_PATH="${HERE}/usr/lib/qt5/plugins:${QT_QPA_PLATFORM_PLUGIN_PATH}"
+export LD_LIBRARY_PATH="${HERE}/usr/lib:${LD_LIBRARY_PATH}"
+
+if command -v qml >/dev/null 2>&1; then
+  exec qml "${HERE}/usr/share/surypus/qml/Main.qml" "$@"
+elif command -v qmlscene >/dev/null 2>&1; then
+  exec qmlscene "${HERE}/usr/share/surypus/qml/Main.qml" "$@"
+else
+  echo "Qt runtime (qml/qmlscene) not found in AppImage." >&2
+  exit 1
+fi
