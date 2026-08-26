@@ -48,7 +48,7 @@ import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Exception (try, SomeException, bracket)
 import qualified Data.Map.Strict as Map
 import Data.Map.Strict (Map)
-import Database.Redis ( checkedConnect, runRedis, Connection, defaultConnectInfo
+import Database.Redis ( Redis, checkedConnect, runRedis, Connection, defaultConnectInfo
                        , ConnectInfo(..), PortID(..) )
 
 import Core.Accounting.Cache (ReadModelCache, getCachedAccountReadModel, invalidateCache)
