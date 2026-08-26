@@ -19,6 +19,7 @@ library
     DAL.Conversion
     DAL.Database
     DAL.EventStore
+    DAL.UUIDOrphans
     DAL.Migration
     DAL.Mutations
     DAL.MutationsORM
