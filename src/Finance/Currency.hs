@@ -8,18 +8,15 @@ import qualified Data.Text as T
 import Test.QuickCheck
 
 -- | Non-negative amount
-
 {-@ type NonNeg = {v:Double | v >= 0} @-}
 
 -- | Positive precision
-
 {-@ type Precision = {v:Int | v >= 0 && v <= 6} @-}
 
 -- | Exchange rate must be positive
-
 {-@ type Rate = {v:Double | v > 0} @-}
 
--- | Currency - Currency
+-- | Currency
 data Currency = Currency
   { curId :: Int64,
     curCode :: Text, -- ISO code (RUB, USD, EUR)
@@ -50,7 +47,6 @@ data ExchangeRate = ExchangeRate
 
 -- | Convert amount between currencies
 -- = Invariant: result >= 0 if input >= 0
-
 {-@ convertAmount :: Currency -> Currency -> NonNeg -> NonNeg @-}
 convertAmount :: Currency -> Currency -> Double -> Double
 convertAmount from to amount
@@ -59,7 +55,6 @@ convertAmount from to amount
 
 --- | Round to currency precision
 --- = Invariant: result is bounded by input ± 0.5 * 10^(-precision)
-
 {-@ roundToCurrency :: Currency -> NonNeg -> NonNeg @-}
 roundToCurrency :: Currency -> Double -> Double
 roundToCurrency cur amount =
@@ -73,8 +68,7 @@ roundToCurrency cur amount =
 
 -- | Format amount with currency symbol
 -- = Invariant: result is non-empty
-
-{-@ formatAmount :: Currency -> NonNeg -> NonEmpty Text @-}
+{-@ formatAmount :: Currency -> NonNeg -> {v:Text | len v > 0} @-}
 formatAmount :: Currency -> Double -> Text
 formatAmount cur amount =
   let rounded = roundToCurrency cur amount
