@@ -207,7 +207,7 @@ publishAccountEventToStream pool accountId eventData = do
   now <- getCurrentTime
   let eventId = "account:" <> T.pack (show accountId) <> ":" <> T.pack (show now)
       eventDataStr = BL.toStrict $ encode eventData
-  withRedis pool $ void $ xadd (TE.encodeUtf8 streamName) eventId [("*", eventDataStr)]
+  withRedis pool $ void $ xadd (TE.encodeUtf8 streamName) (TE.encodeUtf8 eventId) [("*", eventDataStr)]
 
 -- | Subscribe to account event stream
 subscribeToAccountEventStream :: RedisPool -> (Value -> IO ()) -> IO ()
