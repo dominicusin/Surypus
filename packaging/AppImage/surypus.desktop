@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Surypus ERP
+Comment=Enterprise resource planning with AI-assisted reporting
+Exec=surypus
+Icon=surypus
+Terminal=false
+Categories=Office;Finance;Qt;
+Keywords=ERP;accounting;inventory;
