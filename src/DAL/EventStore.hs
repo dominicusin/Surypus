@@ -6,8 +6,6 @@ module DAL.EventStore
    ( Event (..),
      Snapshot (..),
      Broadcaster,
-     AccountingEvent (..),
-     AccountBalance (..),
      currentEventSchemaVersion,
      appendEvent,
      appendEventBroadcast,
