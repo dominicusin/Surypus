@@ -17,7 +17,6 @@ module DAL.EventStore
      getLatestSnapshot,
      replayFromSnapshot,
      upgradeEvent,
-     getAccountingEvents,
      newBroadcaster,
      subscribe,
      unsubscribe,
