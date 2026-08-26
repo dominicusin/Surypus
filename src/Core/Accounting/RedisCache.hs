@@ -49,8 +49,7 @@ import Control.Exception (try, SomeException, bracket)
 import Control.Monad (void)
 import qualified Data.Map.Strict as Map
 import Data.Map.Strict (Map)
-import Database.Redis ( Redis, checkedConnect, runRedis, Connection, defaultConnectInfo
-                       , ConnectInfo(..), PortID(..) )
+import Database.Redis
 
 import Core.Accounting.Cache (ReadModelCache, getCachedAccountReadModel, invalidateCache)
 import qualified Core.Accounting.ReadModel as RM
