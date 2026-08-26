@@ -130,10 +130,12 @@ getRedisCachedBalance pool accountId = do
   now <- getCurrentTime
   let key = "account:balance:" <> T.pack (show accountId)
   result <- try $ withRedis pool $ do
-    val <- get (TE.encodeUtf8 key)
-    case val of
-      Just bs -> decode (BL.fromStrict bs)
-      Nothing -> return Nothing
+    ev <- get (TE.encodeUtf8 key)
+    case ev of
+      Left _reply -> return Nothing
+      Right mbs -> case mbs of
+        Just bs -> return (decode (BL.fromStrict bs))
+        Nothing -> return Nothing
   case result of
     Left (_ :: SomeException) -> do
       -- Redis error, return miss
@@ -158,10 +160,12 @@ getRedisAccountFromCache pool accountId = do
   now <- getCurrentTime
   let key = "account:full:" <> T.pack (show accountId)
   result <- try $ withRedis pool $ do
-    val <- get (TE.encodeUtf8 key)
-    case val of
-      Just bs -> decode (BL.fromStrict bs)
-      Nothing -> return Nothing
+    ev <- get (TE.encodeUtf8 key)
+    case ev of
+      Left _reply -> return Nothing
+      Right mbs -> case mbs of
+        Just bs -> return (decode (BL.fromStrict bs))
+        Nothing -> return Nothing
   case result of
     Left (_ :: SomeException) -> do
       pure $ RedisCacheResult Nothing False False 0 now
