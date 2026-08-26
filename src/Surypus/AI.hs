@@ -2,25 +2,26 @@
 {-# LANGUAGE DeriveGeneric #-}
 
 -- | AI Infrastructure Module - LLM integration and document parsing
--- Phase 22 of v3.0 roadmap
+-- Phase 22 of v3.0 roadmap (issue #9)
 module Surypus.AI
   ( AIConfig   (..)
-  , AIProvider   (..)
-  , LLMRequest   (..)
-  , LLMResponse   (..)
+  , AIProvider (..)
+  , LLMRequest (..)
+  , LLMResponse (..)
   , parseDocument
   , getRecommendations
+  , extractKeyInsights
   ) where
 
 import Data.Text (Text)
 import qualified Data.Text as T
-import Data.Aeson (ToJSON, FromJSON, Value, object, parseJSON, withObject)
+import Data.Aeson (ToJSON, FromJSON, Value, object, (.=), parseJSON, withObject, (.:))
 import GHC.Generics (Generic)
-import Control.Monad.IO.Class (MonadIO, liftIO)
+import Control.Monad.IO.Class (liftIO)
 import Data.Time.Clock (getCurrentTime, UTCTime)
 
 -- | AI Provider configuration
-data AIProvider 
+data AIProvider
   = OpenAI
   | Anthropic
   | LocalLLM
@@ -32,8 +33,8 @@ instance FromJSON AIProvider
 -- | AI Configuration
 data AIConfig = AIConfig
   { aiProvider :: AIProvider
-  , aiModel :: Text
-  , aiApiKey :: Text
+  , aiModel    :: Text
+  , aiApiKey   :: Text
   , aiEndpoint :: Text
   } deriving (Show, Eq, Generic)
 
@@ -42,23 +43,30 @@ instance FromJSON AIConfig
 
 -- | LLM Request
 data LLMRequest = LLMRequest
-  { reqModel :: Text
-  , reqMessages :: [Value]
-  , reqMaxTokens :: Int
-  , reqTemperature :: Double
+  { reqModel        :: Text
+  , reqMessages     :: [Value]
+  , reqMaxTokens    :: Int
+  , reqTemperature  :: Double
   } deriving (Show, Eq, Generic)
 
 instance ToJSON LLMRequest
+instance FromJSON LLMRequest
 
 -- | LLM Response
 data LLMResponse = LLMResponse
-  { respId :: Text
-  , respContent :: Text
-  , respModel :: Text
+  { respId        :: Text
+  , respContent   :: Text
+  , respModel     :: Text
   , respCreatedAt :: UTCTime
   } deriving (Show, Eq, Generic)
 
-instance FromJSON LLMResponse
+instance ToJSON LLMResponse
+instance FromJSON LLMResponse where
+  parseJSON = withObject "LLMResponse" $ \o -> LLMResponse
+    <$> o .: "id"
+    <*> o .: "content"
+    <*> o .: "model"
+    <*> o .: "created_at"
 
 -- | Parse a document using AI
 parseDocument :: Text -> IO (Either Text LLMResponse)
@@ -73,7 +81,7 @@ parseDocument docContent = do
 
 -- | Get recommendations using AI
 getRecommendations :: Text -> IO (Either Text [Text])
-getRecommendations query = do
+getRecommendations _query = do
   pure $ Right
     [ "Analyze the current quarter's financial data"
     , "Generate a budget variance analysis"
