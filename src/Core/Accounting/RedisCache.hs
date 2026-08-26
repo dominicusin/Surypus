@@ -151,7 +151,7 @@ getRedisCachedBalance pool accountId = do
 setRedisCachedBalance :: RedisPool -> Int64 -> Double -> IO ()
 setRedisCachedBalance pool accountId balance = do
   let key = "account:balance:" <> T.pack (show accountId)
-      ttlSecs = floor (rccDefaultTTL (rpConfig pool)) :: Int
+      ttlSecs = floor (rccDefaultTTL (rpConfig pool)) :: Integer
   withRedis pool $ void $ setex (TE.encodeUtf8 key) ttlSecs (BL.toStrict $ encode balance)
 
 -- | Get full account from Redis cache
@@ -184,7 +184,7 @@ getRedisAccountFromCache pool accountId = do
 setRedisAccountInCache :: RedisPool -> RedisAccountCache -> IO ()
 setRedisAccountInCache pool account = do
   let key = "account:full:" <> T.pack (show (racAccountId account))
-      ttlSecs = floor (rccDefaultTTL (rpConfig pool)) :: Int
+      ttlSecs = floor (rccDefaultTTL (rpConfig pool)) :: Integer
   withRedis pool $ void $ setex (TE.encodeUtf8 key) ttlSecs (BL.toStrict $ encode account)
   -- Also cache balance separately for faster access
   setRedisCachedBalance pool (racAccountId account) (racBalance account)
