@@ -48,7 +48,8 @@ import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Exception (try, SomeException, bracket)
 import qualified Data.Map.Strict as Map
 import Data.Map.Strict (Map)
-import Database.Redis (checkedConnect, runRedis, Connection, defaultConnectInfo)
+import Database.Redis ( checkedConnect, runRedis, Connection, defaultConnectInfo
+                       , ConnectInfo(..), PortID(..) )
 
 import Core.Accounting.Cache (ReadModelCache, getCachedAccountReadModel, invalidateCache)
 import qualified Core.Accounting.ReadModel as RM
@@ -100,10 +101,8 @@ data RedisPool = RedisPool
 -- | Connect to Redis using hedis
 connectRedis :: RedisCacheConfig -> IO RedisPool
 connectRedis config = do
-  let hostname = "127.0.0.1" :: Hostname
-      portNum = 6379 :: Port
-      redisPort = PortNumber portNum
-  conn <- checkedConnect redisPort hostname
+  let ci = defaultConnectInfo { connectHost = "127.0.0.1", connectPort = PortNumber 6379 }
+  conn <- checkedConnect ci
   pure $ RedisPool conn config
 
 -- | Disconnect from Redis
