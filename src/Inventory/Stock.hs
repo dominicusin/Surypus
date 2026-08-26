@@ -9,6 +9,9 @@ module Inventory.Stock
 
 import Data.Int (Int64)
 
+-- | Non-negative quantity
+{-@ type NonNeg = {v:Double | v >= 0} @-}
+
 -- | Stock - Current stock balance
 -- Invariant: quantity cannot be negative unless negativeAllowed flag is set
 data Stock = Stock
@@ -24,6 +27,12 @@ data Stock = Stock
 
 -- | Smart constructor for Stock that validates invariants
 -- Returns Nothing if quantity is negative and negativeAllowed is false
+{-@ mkStock ::
+      Int64 -> Int64
+   -> q:Double -> r:Double -> o:Double -> c:Double -> p:Double
+   -> StockFlags
+   -> Maybe {v:Stock | sQtty v >= 0 && sResrvQtty v >= 0 && sOrderedQtty v >= 0
+                     && sCost v >= 0 && sPrice v >= 0} @-}
 mkStock :: Int64 -> Int64 -> Double -> Double -> Double -> Double -> Double -> StockFlags -> Maybe Stock
 mkStock goodsId locId qtty resrv ordered cost price flags
   | qtty < 0 && not (sfNegativeAllowed flags) = Nothing
@@ -34,6 +43,7 @@ mkStock goodsId locId qtty resrv ordered cost price flags
   | otherwise = Just $ Stock goodsId locId qtty resrv ordered cost price
 
 -- | Validate stock invariants
+{-@ validateStock :: s:Stock -> StockFlags -> {v:Bool | v => (sQtty s >= 0 || sfNegativeAllowed sflags)} @-}
 validateStock :: Stock -> StockFlags -> Bool
 validateStock stock flags =
   (sQtty stock >= 0 || sfNegativeAllowed flags) &&
