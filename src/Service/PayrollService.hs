@@ -11,9 +11,14 @@ module Service.PayrollService
   , calcVacationPay
   , calcSickPay
   , calculateYearEndSummary
+  , PayrollEvent(..)
+  , applyPayrollEvent
+  , replayPayroll
+  , toPayrollEvent
+  , emptyPayrollState
   ) where
 
-import Data.Aeson (ToJSON, FromJSON, object, (.=))
+import Data.Aeson (ToJSON, FromJSON, object, (.=), toJSON, Value)
 import qualified Data.Aeson as A
 import Data.Decimal (Decimal)
 import Data.Int (Int64)
@@ -22,8 +27,8 @@ import Data.Time (Day)
 import Database.Persist.Postgresql (ConnectionPool)
 import Core.Payroll.Calculation
 import DAL.Payroll (savePayrollResult)
-import DAL.Types (QueryResult(..))
-import qualified DAL.Types as DAL
+import DAL.EventStore (appendEvent, currentEventSchemaVersion)
+import DAL.Types (QueryResult(..), PayrollResult(..))
 
 -- | Payroll calculation request
 data PayrollRequest = PayrollRequest
@@ -103,26 +108,49 @@ calculatePayroll req =
     , prCurrency = "RUB"
     }
 
--- | Calculate and persist payroll result (PYR-01)
-calculateAndSavePayroll :: ConnectionPool -> PayrollRequest -> Int64 -> IO (QueryResult DAL.PayrollResult)
+-- | Calculate and persist payroll result, emitting a PayrollCalculated
+-- domain event for the event-sourced read model (PYR-01 + event sourcing).
+calculateAndSavePayroll :: ConnectionPool -> PayrollRequest -> Int64 -> IO (QueryResult PayrollResult)
 calculateAndSavePayroll pool req userId =
   let result = calculatePayroll req
-  in savePayrollResult pool
-    (prCalcTenantId result)
-    (prCalcPeriod result)
-    (prCalcEmployeeId result)
-    (prGrossSalary result)
-    (prDeductions result)
-    (prNetSalary result)
-    (prIncomeTax result)
-    (prSocialTax result)
-    (prAdvance result)
-    (prBonusAmount result)
-    (prVacationPay result)
-    (prSickPay result)
-    (prTotalToPay result)
-    (prCurrency result)
-    userId
+  in do
+    dbRes <- savePayrollResult pool
+      (prCalcTenantId result)
+      (prCalcPeriod result)
+      (prCalcEmployeeId result)
+      (prGrossSalary result)
+      (prDeductions result)
+      (prNetSalary result)
+      (prIncomeTax result)
+      (prSocialTax result)
+      (prAdvance result)
+      (prBonusAmount result)
+      (prVacationPay result)
+      (prSickPay result)
+      (prTotalToPay result)
+      (prCurrency result)
+      userId
+    -- Emit the domain event. The payroll aggregate is keyed by employee id;
+    -- the event carries the full calculated result plus who triggered it.
+    let eventData = toJSON result
+        eventMeta = object
+          [ "userId"   .= userId
+          , "tenantId" .= prCalcTenantId result
+          , "period"   .= show (prCalcPeriod result)
+          ]
+    _ <- appendEvent pool
+      (prCalcEmployeeId result)   -- aggregate id (per-employee stream)
+      "payroll"                   -- aggregate type
+      "PayrollCalculated"         -- event type
+      1                           -- event version
+      currentEventSchemaVersion  -- schema version
+      eventData
+      (Just eventMeta)
+      (prCalcEmployeeId result)   -- sequence number (one stream per employee)
+    -- The DB write is authoritative for the response; event emission is
+    -- best-effort here (a production system would wrap both in one transaction
+    -- or use the event as the source of truth and project from it).
+    pure dbRes
 
 -- | Calculate vacation pay (avg daily * days * 1.0)
 calcVacationPay :: Int -> Decimal -> Decimal
@@ -141,3 +169,34 @@ calcSickPay days monthlySalary
 calculateYearEndSummary :: [PayrollResult] -> Decimal
 calculateYearEndSummary results =
   sum (map prTotalToPay results)
+
+--------------------------------------------------------------------------------
+-- Event sourcing: fold payroll events back into the latest state.
+--
+-- The authoritative write still goes to the relational table, but every run
+-- emits a PayrollCalculated event (see calculateAndSavePayroll). The fold below
+-- lets a read model be rebuilt purely from the event stream, which is the core
+-- promise of event sourcing: current state = fold(empty, events).
+
+-- | A payroll domain event.
+data PayrollEvent
+  = PayrollCalculated PayrollResult  -- ^ a calculated payroll run
+  deriving (Show, Eq)
+
+-- | Initial (empty) payroll aggregate state for a single employee stream.
+emptyPayrollState :: Maybe PayrollResult
+emptyPayrollState = Nothing
+
+-- | Apply one event to the running payroll aggregate, keeping only the latest
+-- calculation (payroll is a snapshot per period; the newest event wins).
+applyPayrollEvent :: Maybe PayrollResult -> PayrollEvent -> Maybe PayrollResult
+applyPayrollEvent _ (PayrollCalculated r) = Just r
+
+-- | Replay an ordered event stream into the latest payroll state.
+replayPayroll :: [PayrollEvent] -> Maybe PayrollResult
+replayPayroll = foldl applyPayrollEvent emptyPayrollState
+
+-- | Project a 'PayrollResult' into a 'PayrollEvent' (used when re-emitting or
+-- testing the fold without a live event store).
+toPayrollEvent :: PayrollResult -> PayrollEvent
+toPayrollEvent = PayrollCalculated
