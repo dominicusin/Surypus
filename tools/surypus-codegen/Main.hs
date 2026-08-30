@@ -864,7 +864,7 @@ check = do
   _ <- pure $ generateRefinementDoc schema
   hPutStrLn stderr "Checking generated files against DSL..."
   let nQml = length (generateQmlCrud schema)
-  putStrLn $ "[OK] Checked " ++ show (5 + nQml) ++ " generated files against DSL"
+  putStrLn $ "[OK] Checked " ++ show (6 + nQml) ++ " generated files against DSL"
 
 -- | Freeze: write a snapshot of current schema
 freeze :: IO ()
