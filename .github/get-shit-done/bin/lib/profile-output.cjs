@@ -431,10 +431,19 @@ function generateSkillsSection(cwd) {
 
   const lines = ['| Skill | Description | Path |', '|-------|-------------|------|'];
   for (const skill of discovered) {
-    // Sanitize table cell content (escape pipes)
-    const desc = skill.description.replace(/\|/g, '\\|').replace(/\n/g, ' ').trim();
-    const safeName = skill.name.replace(/\|/g, '\\|');
-    lines.push(`| ${safeName} | ${desc} | \`${skill.path}/SKILL.md\` |`);
+    // Sanitize table cell content for Markdown (escape pipes, newlines, and HTML metacharacters).
+    const escapeTableCell = (s) => String(s)
+      .replace(/\\/g, '\\\\')
+      .replace(/\|/g, '\\|')
+      .replace(/\n/g, ' ')
+      .replace(/\r/g, ' ')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/&/g, '&amp;')
+      .trim();
+    const desc = escapeTableCell(skill.description);
+    const safeName = escapeTableCell(skill.name);
+    lines.push(`| ${safeName} | ${desc} | \`${escapeTableCell(skill.path)}/SKILL.md\` |`);
   }
 
   return { content: lines.join('\n'), source: 'skills/', hasFallback: false };

@@ -362,10 +362,15 @@ function setConfigValue(cwd, keyPath, parsedValue) {
 
     // Set nested value using dot notation (e.g., "workflow.research")
     const keys = keyPath.split('.');
+    // Guard against prototype pollution (CWE-1321): reject dangerous keys.
+    const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+    if (keys.some((k) => DANGEROUS_KEYS.has(k))) {
+      error('Invalid config key path: contains a reserved property name', ERROR_REASON.CONFIG_INVALID_KEY);
+    }
     let current = config;
     for (let i = 0; i < keys.length - 1; i++) {
       const key = keys[i];
-      if (current[key] === undefined || typeof current[key] !== 'object') {
+      if (current[key] === undefined || typeof current[key] !== 'object' || current[key] === null) {
         current[key] = {};
       }
       current = current[key];

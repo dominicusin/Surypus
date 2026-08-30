@@ -867,7 +867,7 @@ function renameDecimalPhases(phasesDir, baseInt, removedDecimal) {
     renamedDirs.push({ from: item.dir, to: newDirName });
     for (const f of fs.readdirSync(path.join(phasesDir, newDirName))) {
       if (f.includes(oldPhaseId)) {
-        const newFileName = f.replace(oldPhaseId, newPhaseId);
+        const newFileName = f.split(oldPhaseId).join(newPhaseId);
         fs.renameSync(path.join(phasesDir, newDirName, f), path.join(phasesDir, newDirName, newFileName));
         renamedFiles.push({ from: f, to: newFileName });
       }
@@ -962,7 +962,31 @@ function updateRoadmapAfterPhaseRemoval(roadmapPath, targetPhase, isDecimal, rem
     // The `(?!#)` negative lookahead after the backreference prevents the
     // depth-3 match from being satisfied by a depth-4+ header that starts
     // with the same three hashes.
-    content = content.replace(new RegExp(`\\n?(?<h>#{2,4})\\s*Phase\\s+${escaped}\\s*:[\\s\\S]*?(?=\\n\\k<h>(?!#)\\s+Phase\\s+[^\\n:]+\\s*:|$)`, 'i'), '');
+    // Remove the matching Phase section. Avoid backreferences and unbounded
+    // `[\s\S]*?` lookahead (ReDoS risk): split on headers and drop the block.
+    const escapedLocal = escaped;
+    const lines = content.split('\n');
+    const kept = [];
+    let skip = false;
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const headerMatch = line.match(/^(#{2,4})\s*Phase\s+([^\n:]+?)\s*:/i);
+      if (headerMatch && phaseTokenMatches(headerMatch[2], escapedLocal)) {
+        skip = true;
+        continue;
+      }
+      if (skip) {
+        // End of skipped section: next Phase header (any depth) or end of file.
+        if (/^#{2,4}\s*Phase\s+/i.test(line)) {
+          skip = false;
+          // fall through to keep this header line
+        } else {
+          continue;
+        }
+      }
+      kept.push(line);
+    }
+    content = kept.join('\n');
     content = content.replace(new RegExp(`\\n?-\\s*\\[[ x]\\]\\s*.*Phase\\s+${escaped}[:\\s][^\\n]*`, 'gi'), '');
     content = content.replace(new RegExp(`\\n?\\|\\s*${escaped}\\.?\\s[^|]*\\|[^\\n]*`, 'gi'), '');
 

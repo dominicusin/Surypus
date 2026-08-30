@@ -1,0 +1,28 @@
+version: 1.0.0
+domain: SurypusERP
+database: postgresql
+generator: surypus-codegen
+generator_version: 0.1.0
+
+entities:
+  - name: PersonEntity
+    sql_table: person
+    fields:
+      - name: code
+        type: Text
+        nullable: true
+      - name: name
+        type: Text
+        nullable: false
+      - name: inn
+        type: Text
+        nullable: true
+      - name: kpp
+        type: Text
+        nullable: true
+      - name: personType
+        type: Int
+        nullable: false
+      - name: status
+        type: Int
+        nullable: true

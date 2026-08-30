@@ -5,7 +5,7 @@
 # Single unified library project (no sub-packages)
 
 # Stage 1: Build environment
-FROM haskell:9.6 AS builder
+FROM haskell:9.6.6 AS builder
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
@@ -38,7 +38,7 @@ COPY web ./web
 RUN stack build --install-ghc --copy-bins --ghc-options="-O2 -j4"
 
 # Stage 2: Production runtime (minimal)
-FROM debian:bookworm-slim
+FROM debian:bookworm-20240812-slim
 
 # Install minimal runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \

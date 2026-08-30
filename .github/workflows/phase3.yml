@@ -4,6 +4,8 @@ on:
     branches: [ main, phase3 ]
   pull_request:
     branches: [ main, phase3 ]
+permissions:
+  contents: read
 jobs:
   build:
     runs-on: ubuntu-latest
