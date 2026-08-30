@@ -18,6 +18,7 @@ module Surypus.JWT
     rtUserId,
     rtExpiresAt,
     decodeAndValidateToken,
+    refreshAccessToken,
   ) where
 
 import Crypto.JOSE.Compact (encodeCompact)
@@ -108,9 +109,10 @@ generateTokenPair pool cfg userId username role _mPersonId = do
         addClaim "sub" (toJSON uid) $
           addClaim "name" (toJSON username) $
             addClaim "role" (toJSON role) $
-              emptyClaimsSet
-                & claimIat ?~ NumericDate now
-                & claimExp ?~ NumericDate expiresAt
+              addClaim "aud" (toJSON ("surypus-api" :: Text)) $
+                emptyClaimsSet
+                  & claimIat ?~ NumericDate now
+                  & claimExp ?~ NumericDate expiresAt
   result <- runJOSE @JWTError $ signClaims jwk header claims
   case result of
     Left err -> ioError $ userError $ "JWT signing failed: " ++ show err
@@ -146,7 +148,7 @@ validateAccessToken secret token = do
       tokenBs = LBS.fromStrict $ TE.encodeUtf8 token
   result <- runJOSE @JWTError $ do
     jwt <- decodeCompact tokenBs
-    verifyClaims (defaultJWTValidationSettings (const True)) jwk (jwt :: SignedJWT)
+    verifyClaims (defaultJWTValidationSettings (== "surypus-api")) jwk (jwt :: SignedJWT)
   case result of
     Left _ -> pure $ Left "Invalid or expired token"
     Right claimsSet -> do
@@ -168,7 +170,7 @@ decodeAndValidateToken secret token = do
       tokenBs = LBS.fromStrict $ TE.encodeUtf8 token
   result <- runJOSE @JWTError $ do
     jwt <- decodeCompact tokenBs
-    verifyClaims (defaultJWTValidationSettings (const True)) jwk (jwt :: SignedJWT)
+    verifyClaims (defaultJWTValidationSettings (== "surypus-api")) jwk (jwt :: SignedJWT)
   case result of
     Left _ -> pure $ Left AuthInvalid
     Right claimsSet -> do
@@ -189,3 +191,48 @@ decodeAndValidateToken secret token = do
              in pure $ Right (uidInt, fromMaybe "" mbName, expiresAt)
           Nothing -> pure $ Left AuthInvalid
         _ -> pure $ Left AuthInvalid
+
+--------------------------------------------------------------------------------
+-- Refresh-token rotation + access-token reissue
+--------------------------------------------------------------------------------
+
+-- | Validate a refresh token, rotate it (revoke the old one, store a new UUID),
+-- and issue a fresh access token. Proper rotation prevents refresh-token replay:
+-- a stolen token becomes useless after the first refresh, because the old token
+-- is deleted on rotation.
+refreshAccessToken :: ConnectionPool -> JWTConfig -> Text -> IO (Either Text TokenPair)
+refreshAccessToken pool cfg oldToken = do
+  validated <- RTRepo.validateRefreshToken pool oldToken
+  case validated of
+    Left err -> pure $ Left err
+    Right userId -> do
+      newRefreshUuid <- UUIDv4.nextRandom
+      let newRefreshTok = UUID.toText newRefreshUuid
+      now <- getCurrentTime
+      let refreshExpiresAt = addUTCTime (jwtRefreshExpiry cfg) now
+          refreshExpiresStr = T.pack (show refreshExpiresAt)
+          accessExpiresAt = addUTCTime (jwtExpiry cfg) now
+      rotated <- RTRepo.rotateStoredRefreshToken pool oldToken newRefreshTok refreshExpiresStr
+      case rotated of
+        Left err -> pure $ Left err
+        Right _ -> do
+          let jwk = fromOctets $ getSigningKey $ jwtSecret cfg
+              header = newJWSHeader ((), HS256)
+              uid = T.pack (show userId)
+              claims =
+                addClaim "sub" (toJSON uid) $
+                  addClaim "name" (toJSON ("" :: Text)) $
+                    addClaim "role" (toJSON ("" :: Text)) $
+                      addClaim "aud" (toJSON ("surypus-api" :: Text)) $
+                        emptyClaimsSet
+                          & claimIat ?~ NumericDate now
+                          & claimExp ?~ NumericDate accessExpiresAt
+          signed <- runJOSE @JWTError $ signClaims jwk header claims
+          case signed of
+            Left jwtErr -> pure $ Left $ T.pack $ "JWT signing failed: " ++ show jwtErr
+            Right signedJWT ->
+              pure $ Right TokenPair
+                { tpAccessToken = TE.decodeUtf8 $ LBS.toStrict $ encodeCompact signedJWT
+                , tpRefreshToken = newRefreshTok
+                , tpExpiresAt = accessExpiresAt
+                }

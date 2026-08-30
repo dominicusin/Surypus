@@ -85,9 +85,10 @@ generateToken _pool user = do
                     addClaim "name" (toJSON $ userName user) $
                         addClaim "role" (toJSON ([] :: [Text])) $
                             addClaim "tenant_id" (Number (fromIntegral realTenantId)) $
-                                emptyClaimsSet
-                                    & claimIat ?~ NumericDate now
-                                    & claimExp ?~ NumericDate (addUTCTime 3600 now)
+                                addClaim "aud" (toJSON ("surypus-api" :: Text)) $
+                                    emptyClaimsSet
+                                        & claimIat ?~ NumericDate now
+                                        & claimExp ?~ NumericDate (addUTCTime 3600 now)
         signClaims jwk header claims
     case result of
         Left jwtErr -> throwIO $ userError $ "JWT signing failed: " ++ show jwtErr
@@ -104,7 +105,7 @@ verifyToken tokenStr = do
             -- IN PRODUCTION: replace (const True) with actual audience/issuer validation:
             -- let expectedAudience = "surypus-api"
             --     config = defaultJWTValidationSettings (== expectedAudience)
-            config = defaultJWTValidationSettings (const True)
+            config = defaultJWTValidationSettings (== "surypus-api")
         jwt <- decodeCompact tokenBs
         verifyClaims config jwk (jwt :: SignedJWT)
     case result of

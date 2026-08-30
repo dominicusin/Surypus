@@ -667,6 +667,18 @@ BEGIN
 
     UPDATE bill SET status = 1 WHERE id = p_bill_id;
 
+    -- Audit trail: record the posting action so the mutation is traceable.
+    -- (entity_id is the BIGINT bill id; the event-sourced aggregate layer
+    --  emits the BillPosted domain event separately via cmd_bill_post.)
+    INSERT INTO audit_log (user_id, username, action, entity_type, entity_id,
+                           before_state, after_state, description)
+    VALUES (NULL, 'system', 'BILL_POSTED', 'bill', p_bill_id,
+            jsonb_build_object('status', 0),
+            jsonb_build_object('status', 1,
+                               'amount', v_bill_amount,
+                               'vat', v_vat_amount),
+            'Bill posted: accounting entries created');
+
     RETURN TRUE;
 END;
 $$ LANGUAGE plpgsql;

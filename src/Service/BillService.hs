@@ -14,12 +14,13 @@ LiquidHaskell refinement types for correctness:
 module Service.BillService where
 
 import Control.Monad.IO.Class (liftIO)
+import Data.Aeson (Value, object, (.=))
 import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Time (Day)
-import qualified Data.Text as T
 import DAL.DB
-import DAL.EventStore (appendEvent)
+import DAL.EventStore (appendEvent, currentEventSchemaVersion)
+import DAL.Pool (ConnectionPool)
 import Finance.Types (AccTurn   (..))
 
 --------------------------------------------------------------------------------
@@ -82,8 +83,8 @@ Laws:
 - sum lineAmounts = billTotal
 - sum Debit = sum Credit (double-entry invariant)
 -}
-postBill :: Database -> BillId -> Day -> Text -> Double -> Double -> Double -> [BillLine] -> IO (ServiceResult PostResult)
-postBill db bid bdate currencyId exchangeRate total discount billLines = do
+postBill :: Database -> ConnectionPool -> Text -> BillId -> Day -> Text -> Double -> Double -> Double -> [BillLine] -> IO (ServiceResult PostResult)
+postBill db pool correlationId bid bdate currencyId exchangeRate total discount billLines = do
    case validateBill total billLines of
      Left err -> pure (Left err)
      Right calculatedLines -> do
@@ -94,8 +95,8 @@ postBill db bid bdate currencyId exchangeRate total discount billLines = do
        let accTurns = createAccountingEntries bid bdate total discount calculatedLines
        -- Step 3: Update stock levels
        let stockUpdates = updateStockLevels calculatedLines
-       -- Step 4: Emit event
-       emitEvent <- emitBillPostedEvent bid calculatedLines
+       -- Step 4: Emit BillPosted domain event (event-sourced) with correlation id
+       emitEvent <- emitBillPostedEvent pool correlationId bid calculatedLines
        case emitEvent of
          Left err -> pure (Left err)
          Right _ -> pure (Right (PostSuccess
@@ -187,12 +188,32 @@ updateStockLevels billLines =
 -- Event Functions
 --------------------------------------------------------------------------------
 
-emitBillPostedEvent :: BillId -> [BillLine] -> IO (ServiceResult ())
-emitBillPostedEvent bid billLines = do
+-- | Emit a BillPosted domain event to the append-only event store.
+-- The event carries the bill aggregate id, the posted line totals, and a
+-- correlation id so the whole request can be traced end-to-end.
+emitBillPostedEvent :: ConnectionPool -> Text -> BillId -> [BillLine] -> IO (ServiceResult ())
+emitBillPostedEvent pool correlationId bid billLines = do
   let totalAmount = sum (map blAmount billLines)
-      descText = T.pack ("Bill " ++ show bid ++ " posted")
-  -- Simplified: just return success for now - event store integration to be done properly
-  pure (Right ())
+      evData = object
+        [ "billId"      .= bid
+        , "totalAmount" .= totalAmount
+        , "lineCount"   .= length billLines
+        , "lines"       .= map (\l -> object
+            [ "goodsId" .= blGoodsId l
+            , "qty"     .= blQty l
+            , "price"   .= blPrice l
+            , "discount".= blDiscount l
+            , "amount"  .= blAmount l
+            ]) billLines
+        ]
+      evMeta = object
+        [ "correlationId" .= correlationId
+        , "source"        .= ("Service.BillService" :: Text)
+        ]
+  result <- liftIO $ appendEvent pool bid "Bill" "BillPosted" 1 currentEventSchemaVersion evData (Just evMeta) bid
+  case result of
+    Left err -> pure (Left $ "Failed to emit BillPosted event: " <> err)
+    Right _  -> pure (Right ())
 
 --------------------------------------------------------------------------------
 -- Utility Functions
