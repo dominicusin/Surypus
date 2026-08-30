@@ -3,26 +3,79 @@ domain: SurypusERP
 database: postgresql
 generator: surypus-codegen
 generator_version: 0.1.0
-
 entities:
-  - name: PersonEntity
-    sql_table: person
-    fields:
-      - name: code
-        type: Text
-        nullable: true
-      - name: name
-        type: Text
-        nullable: false
-      - name: inn
-        type: Text
-        nullable: true
-      - name: kpp
-        type: Text
-        nullable: true
-      - name: personType
-        type: Int
-        nullable: false
-      - name: status
-        type: Int
-        nullable: true
+- name: PersonEntity
+  sql_table: person
+  fields:
+  - name: code
+    type: Text
+    nullable: true
+  - name: name
+    type: Text
+    nullable: false
+  - name: inn
+    type: Text
+    nullable: true
+  - name: kpp
+    type: Text
+    nullable: true
+  - name: personType
+    type: Int
+    nullable: false
+  - name: status
+    type: Int
+    nullable: true
+- name: CustomerEntity
+  sql_table: customer
+  fields:
+  - name: code
+    type: Text
+    nullable: false
+  - name: name
+    type: Text
+    nullable: false
+  - name: email
+    type: Text
+    nullable: true
+  - name: creditLimit
+    type: Numeric
+    nullable: true
+  - name: active
+    type: Boolean
+    nullable: false
+  - name: createdAt
+    type: Date
+    nullable: true
+- name: ProductionOrderEntity
+  sql_table: production_order
+  fields:
+  - name: number
+    type: Text
+    nullable: false
+  - name: productId
+    type: BigInt
+    nullable: false
+  - name: qty
+    type: BigInt
+    nullable: false
+  - name: dueDate
+    type: Date
+    nullable: true
+  - name: status
+    type: Int
+    nullable: false
+- name: ReportConfigEntity
+  sql_table: report_config
+  fields:
+  - name: title
+    type: Text
+    nullable: false
+  - name: query
+    type: Text
+    nullable: false
+  - name: refreshMinutes
+    type: Int
+    nullable: true
+  - name: enabled
+    type: Boolean
+    nullable: false
