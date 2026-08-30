@@ -61,17 +61,46 @@ Page {
         }
     }
 
-    ListModel { id: billsModel
-        ListElement { number: "INV-2026-089"; date: "27.03.2026"; type: "Счёт"; customer: "ООО ТехноСтрой"; total: "50 000"; vat: "8 333"; location: "Основной"; status: "Проведён"; author: "admin" }
-        ListElement { number: "INV-2026-088"; date: "26.03.2026"; type: "Счёт"; customer: "ИП Иванов"; total: "25 000"; vat: "4 167"; location: "Основной"; status: "На утвержд."; author: "admin" }
-        ListElement { number: "INV-2026-087"; date: "25.03.2026"; type: "Счёт"; customer: "ООО МегаТрейд"; total: "75 000"; vat: "12 500"; location: "Розничный"; status: "Черновик"; author: "buh" }
+    ListModel { id: billsModel }
+
+    function refreshBills() {
+        restClient.loadBills(1, 50)
+    }
+
+    function populateBills(items) {
+        billsModel.clear()
+        if (!items) return
+        for (var i = 0; i < items.length; i++) {
+            var b = items[i]
+            billsModel.append({
+                number:   b.number   || b.billCode || ("#" + b.id),
+                date:     b.date     || b.billDate || "",
+                type:     b.type     || b.billType || "",
+                customer: b.customer || b.personName || b.personId || "",
+                total:    b.total    || b.amount || "0",
+                vat:      b.vat      || b.taxAmount || "0",
+                location: b.location || b.locationId || "",
+                status:   b.status   || (b.billStatus !== undefined ? b.billStatus : ""),
+                author:   b.author   || b.userName || ""
+            })
+        }
+    }
+
+    Component.onCompleted: {
+        refreshBills()
+        restClient.billsLoaded.connect(populateBills)
     }
 
     BillDialog {
         id: billDialog
         onSaved: function(data) {
-            console.log("Bill saved:", JSON.stringify(data));
-            if (restClient) restClient.createBill(data, function() { console.log("Bill created") });
+            console.log("Bill saved:", JSON.stringify(data))
+            if (restClient) {
+                restClient.createBill(data, function() {
+                    console.log("Bill created — reloading list")
+                    refreshBills()
+                })
+            }
         }
     }
 }

@@ -42,15 +42,12 @@ Dialog {
                 text: editData ? "Сохранить" : "Создать"
                 onClicked: {
                     var payload = {
-                        billCode: numberField.text,
-                        billType: typeCombo.currentIndex,
-                        billStatus: 0,
-                        billDate: dateField.text,
-                        billPersonId: parseInt(personField.text) || null,
-                        billLocationId: parseInt(locationField.text) || null,
-                        billTotal: 0,
-                        billDiscount: 0,
-                        billTaxAmount: 0
+                        number: numberField.text,
+                        amount: 0,
+                        status: 0,
+                        person_id: parseInt(personField.text) || null,
+                        location_id: parseInt(locationField.text) || null,
+                        lines: []
                     };
                     saved(payload);
                     billDialog.close();
