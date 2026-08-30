@@ -79,3 +79,69 @@ entities:
   - name: enabled
     type: Boolean
     nullable: false
+refinements:
+- name: amount_non_negative
+  description: "\u0421\u0443\u043C\u043C\u0430 \u0434\u043E\u043A\u0443\u043C\u0435\
+    \u043D\u0442\u0430 \u043D\u0435\u043E\u0442\u0440\u0438\u0446\u0430\u0442\u0435\
+    \u043B\u044C\u043D\u0430."
+  applies_to:
+  - Bill
+  - Goods
+  - Customer
+  expr: '{v:Amount | v >= 0}'
+- name: vat_calculated
+  description: "\u041D\u0414\u0421 = \u043D\u0435\u0442\u0442\u043E * 0.20 \u0434\u043B\
+    \u044F \u0440\u043E\u0441\u0441\u0438\u0439\u0441\u043A\u043E\u0433\u043E \u041D\
+    \u0414\u0421."
+  applies_to:
+  - Bill
+  expr: '{v:VatAmount | v == net * 0.20}'
+- name: stock_available_nonneg
+  description: "\u0414\u043E\u0441\u0442\u0443\u043F\u043D\u044B\u0439 \u043E\u0441\
+    \u0442\u0430\u0442\u043E\u043A >= 0."
+  applies_to:
+  - InventoryItem
+  expr: '{q:AvailableQty | q >= 0}'
+- name: reserved_le_quantity
+  description: "\u0417\u0430\u0440\u0435\u0437\u0435\u0440\u0432\u0438\u0440\u043E\
+    \u0432\u0430\u043D\u043E <= \u0444\u0430\u043A\u0442\u0438\u0447\u0435\u0441\u043A\
+    \u043E\u0435 \u043A\u043E\u043B\u0438\u0447\u0435\u0441\u0442\u0432\u043E."
+  applies_to:
+  - InventoryItem
+  expr: '{r:ReservedQty, q:Qtty | r <= q}'
+events:
+- name: BillPosted
+  aggregate: Bill
+  description: "\u0421\u0447\u0451\u0442 \u043F\u0440\u043E\u0432\u0435\u0434\u0451\
+    \u043D: \u0441\u043E\u0437\u0434\u0430\u043D\u044B \u043F\u0440\u043E\u0432\u043E\
+    \u0434\u043A\u0438 \u0438 \u0437\u0430\u043F\u0438\u0441\u044C \u0430\u0443\u0434\
+    \u0438\u0442\u0430."
+  fields:
+  - billId
+  - amount
+  - vat
+- name: CustomerCreated
+  aggregate: Customer
+  description: "\u041A\u043B\u0438\u0435\u043D\u0442 \u0441\u043E\u0437\u0434\u0430\
+    \u043D (CRM)."
+  fields:
+  - customerId
+  - code
+  - name
+- name: CustomerCreditLimitChanged
+  aggregate: Customer
+  description: "\u0418\u0437\u043C\u0435\u043D\u0451\u043D \u043A\u0440\u0435\u0434\
+    \u0438\u0442\u043D\u044B\u0439 \u043B\u0438\u043C\u0438\u0442 \u043A\u043B\u0438\
+    \u0435\u043D\u0442\u0430."
+  fields:
+  - customerId
+  - creditLimit
+- name: GoodsCreated
+  aggregate: Goods
+  description: "\u0422\u043E\u0432\u0430\u0440/\u0443\u0441\u043B\u0443\u0433\u0430\
+    \ \u0441\u043E\u0437\u0434\u0430\u043D\u044B."
+  fields:
+  - goodsId
+  - code
+  - name
+  - price

@@ -42,6 +42,8 @@ data DslSchema = DslSchema
   , dsDatabase          :: !T.Text
   , dsGenerator         :: !T.Text
   , dsGeneratorVersion  :: !T.Text
+  , dsRefinements       :: ![Refinement]
+  , dsEvents            :: ![DomainEvent]
   , dsEntities          :: ![Entity]
   } deriving (Show, Generic)
 
@@ -52,6 +54,8 @@ instance FromJSON DslSchema where
     database <- o .: "database"
     generator <- o .: "generator"
     genVer  <- o .: "generator_version"
+    refinements <- o .:? "refinements" .!= []
+    events <- o .:? "events" .!= []
     entities <- o .: "entities"
     pure DslSchema
       { dsVersion = version
@@ -59,6 +63,8 @@ instance FromJSON DslSchema where
       , dsDatabase = database
       , dsGenerator = generator
       , dsGeneratorVersion = genVer
+      , dsRefinements = refinements
+      , dsEvents = events
       , dsEntities = entities
       }
 
@@ -69,8 +75,50 @@ instance ToJSON DslSchema where
     , "database"         .= dsDatabase
     , "generator"        .= dsGenerator
     , "generator_version" .= dsGeneratorVersion
+    , "refinements"      .= dsRefinements
+    , "events"           .= dsEvents
     , "entities"         .= dsEntities
     ]
+
+-- | Refinement predicate (domain invariant), encoded in the DSL (Phase 12).
+data Refinement = Refinement
+  { rfName        :: !T.Text
+  , rfDescription :: !T.Text
+  , rfAppliesTo   :: ![T.Text]
+  , rfExpr        :: !T.Text
+  } deriving (Show, Eq, Generic)
+
+instance FromJSON Refinement where
+  parseJSON = withObject "Refinement" $ \o -> do
+    name <- o .: "name"
+    desc <- o .:? "description" .!= T.empty
+    applies <- o .:? "applies_to" .!= []
+    expr <- o .: "expr"
+    pure Refinement { rfName = name, rfDescription = desc, rfAppliesTo = applies, rfExpr = expr }
+
+instance ToJSON Refinement where
+  toJSON Refinement{..} = object
+    [ "name" .= rfName, "description" .= rfDescription, "applies_to" .= rfAppliesTo, "expr" .= rfExpr ]
+
+-- | Domain event (event-sourced), encoded in the DSL (Phase 12).
+data DomainEvent = DomainEvent
+  { evName        :: !T.Text
+  , evAggregate   :: !T.Text
+  , evDescription :: !T.Text
+  , evFields      :: ![T.Text]
+  } deriving (Show, Eq, Generic)
+
+instance FromJSON DomainEvent where
+  parseJSON = withObject "DomainEvent" $ \o -> do
+    name <- o .: "name"
+    agg <- o .:? "aggregate" .!= T.empty
+    desc <- o .:? "description" .!= T.empty
+    fs <- o .:? "fields" .!= []
+    pure DomainEvent { evName = name, evAggregate = agg, evDescription = desc, evFields = fs }
+
+instance ToJSON DomainEvent where
+  toJSON DomainEvent{..} = object
+    [ "name" .= evName, "aggregate" .= evAggregate, "description" .= evDescription, "fields" .= evFields ]
 
 -- | Entity model
 data Entity = Entity
@@ -727,6 +775,44 @@ generateQmlDialog e@Entity{entityName, entityFields} =
       let (_, _, expr) = qmlFieldControl f in expr
 
 -- | Build all generated files
+-- | Generate refinement-predicate + event documentation from the DSL (Phase 12).
+generateRefinementDoc :: DslSchema -> String
+generateRefinementDoc schema =
+  let refLines = concatMap (\r ->
+        [ "### " ++ T.unpack (rfName r)
+        , ""
+        , "**Applies to:** " ++ (if null (rfAppliesTo r) then "(global)" else intercalate ", " (map T.unpack (rfAppliesTo r)))
+        , ""
+        , if T.null (rfDescription r) then "" else T.unpack (rfDescription r)
+        , ""
+        , "```liquidhaskell"
+        , T.unpack (rfExpr r)
+        , "```"
+        , ""
+        ]) (dsRefinements schema)
+      evLines = concatMap (\e ->
+        [ "### " ++ T.unpack (evName e)
+        , ""
+        , "**Aggregate:** " ++ (if T.null (evAggregate e) then "(unspecified)" else T.unpack (evAggregate e))
+        , ""
+        , if T.null (evDescription e) then "" else T.unpack (evDescription e)
+        , ""
+        , "**Fields:** " ++ (if null (evFields e) then "(none)" else intercalate ", " (map T.unpack (evFields e)))
+        , ""
+        ]) (dsEvents schema)
+  in unlines $
+     [ "# Surypus DSL — Refinement Predicates & Domain Events"
+     , ""
+     , "This document is **generated** by `surypus-codegen doc` from `dsl/schema.yaml`."
+     , "Do not edit by hand; edit the DSL `refinements:` / `events:` sections and re-run `build`."
+     , ""
+     , "## Refinement predicates (" ++ show (length (dsRefinements schema)) ++ ")"
+     , ""
+     ] ++ (if null (dsRefinements schema) then ["_No refinements declared in the DSL yet._",""] else refLines)
+     ++ [ "## Domain events (" ++ show (length (dsEvents schema)) ++ ")"
+     , ""
+     ] ++ (if null (dsEvents schema) then ["_No events declared in the DSL yet._",""] else evLines)
+
 build :: IO ()
 build = do
   schema <- loadSchema
@@ -753,6 +839,10 @@ build = do
     createDirectoryIfMissing True (takeDirectory outPath)
     writeFile outPath content
 
+  -- Generate refinement/event documentation from DSL (Phase 12)
+  createDirectoryIfMissing True (repoRoot </> "docs")
+  writeFile (repoRoot </> "docs" </> "refinements.md") (generateRefinementDoc schema)
+
   hPutStrLn stderr "Generated: src/DAL/Schema.hs"
   hPutStrLn stderr "Generated: src/DAL/Types.hs"
   hPutStrLn stderr "Generated: sql/migrations/V001__generated_orm.sql"
@@ -771,6 +861,7 @@ check = do
   _ <- pure $ generateDatalogRules schema
   _ <- pure $ generateQmlSchema schema
   _ <- pure $ generateQmlCrud schema
+  _ <- pure $ generateRefinementDoc schema
   hPutStrLn stderr "Checking generated files against DSL..."
   let nQml = length (generateQmlCrud schema)
   putStrLn $ "[OK] Checked " ++ show (5 + nQml) ++ " generated files against DSL"
@@ -834,6 +925,16 @@ diff oldPath newPath = do
       hPutStrLn stderr "Use --allow-breaking to bypass this check"
       exitWith (ExitFailure 1)
 
+-- | Doc: generate docs/refinements.md from the DSL (refinements + events).
+doc :: IO ()
+doc = do
+  schema <- loadSchema
+  repoRoot <- findRepoRoot
+  createDirectoryIfMissing True (repoRoot </> "docs")
+  writeFile (repoRoot </> "docs" </> "refinements.md") (generateRefinementDoc schema)
+  hPutStrLn stderr "Generated: docs/refinements.md"
+  putStrLn "[OK] Refinement documentation generated from DSL"
+
 showHelp :: IO ()
 showHelp = do
   programName <- getProgName
@@ -842,6 +943,7 @@ showHelp = do
   putStrLn "Commands:"
   putStrLn "  build     Generate all artifacts from dsl/schema.yaml"
   putStrLn "  check     Verify generated files match DSL"
+  putStrLn "  doc       Generate docs/refinements.md from DSL (refinements + events)"
   putStrLn "  freeze    Write a snapshot of current schema to surypus.freeze"
   putStrLn "  diff      Compare two schemas for breaking changes"
   putStrLn "  version   Print version"
@@ -862,6 +964,7 @@ main = do
     [] -> showHelp
     ("build":_) -> build
     ("check":_) -> check
+    ("doc":_) -> doc
     ("freeze":_) -> freeze
     ("diff":old:new:_) -> diff old new
     ("diff":old:_) -> do
