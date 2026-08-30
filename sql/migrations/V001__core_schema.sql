@@ -1,6 +1,16 @@
 -- Migration V001: Core schema (RBAC, Accounts, Journals, Bills, Payments, Taxes, Event Store)
 -- Consolidated from original V001 and Phase 2 tables
 
+-- Sequences referenced by DEFAULT NEXTVAL(...) clauses below.
+CREATE SEQUENCE IF NOT EXISTS users_id_seq;
+CREATE SEQUENCE IF NOT EXISTS roles_id_seq;
+CREATE SEQUENCE IF NOT EXISTS permissions_id_seq;
+CREATE SEQUENCE IF NOT EXISTS accounts_id_seq;
+CREATE SEQUENCE IF NOT EXISTS journal_entries_id_seq;
+CREATE SEQUENCE IF NOT EXISTS bills_id_seq;
+CREATE SEQUENCE IF NOT EXISTS payments_id_seq;
+CREATE SEQUENCE IF NOT EXISTS accounting_events_id_seq;
+
 -- RBAC Canon basic schema
 CREATE TABLE IF NOT EXISTS rbac_canon (
   id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,

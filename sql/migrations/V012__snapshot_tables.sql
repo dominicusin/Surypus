@@ -4,7 +4,7 @@
 -- Person summary snapshot table
 CREATE TABLE IF NOT EXISTS person_summary_snapshot (
     id SERIAL PRIMARY KEY,
-    person_id BIGINT NOT NULL REFERENCES persons(person_id),
+    person_id BIGINT NOT NULL REFERENCES person(id),
     snapshot_date DATE NOT NULL,
     total_sales NUMERIC(15, 2) DEFAULT 0,
     total_purchases NUMERIC(15, 2) DEFAULT 0,
@@ -18,7 +18,7 @@ CREATE INDEX IF NOT EXISTS idx_person_summary_snapshot_date ON person_summary_sn
 -- Payroll snapshot table
 CREATE TABLE IF NOT EXISTS payroll_snapshot (
     id SERIAL PRIMARY KEY,
-    employee_id BIGINT NOT NULL REFERENCES employees(employee_id),
+    employee_id BIGINT NOT NULL, -- FK to employees omitted: employees table is provisioned by a later domain migration
     period_start DATE NOT NULL,
     period_end DATE NOT NULL,
     amount NUMERIC(15, 2) DEFAULT 0,

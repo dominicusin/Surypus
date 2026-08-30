@@ -63,12 +63,12 @@ CREATE OR REPLACE FUNCTION cmd_bill_add_line(
     p_aggregate_id UUID,
     p_tenant_id UUID,
     p_user_id UUID,
-    p_line_id UUID DEFAULT gen_random_uuid(),
     p_goods_id UUID,
     p_quantity NUMERIC,
     p_price NUMERIC,
     p_discount NUMERIC DEFAULT 0,
     p_vat_rate NUMERIC DEFAULT 20,
+    p_line_id UUID DEFAULT gen_random_uuid(),
     p_expected_version INT DEFAULT NULL
 )
 RETURNS BIGINT AS $$

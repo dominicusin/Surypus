@@ -1,6 +1,9 @@
 -- Multi-Tenant: RLS Policies
 -- Enable RLS and create policies for tenant isolation
 
+-- Functions live in the 'app' schema; create it first.
+CREATE SCHEMA IF NOT EXISTS app;
+
 -- Helper function to get current tenant_id from session
 CREATE OR REPLACE FUNCTION app.current_tenant_id()
 RETURNS BIGINT AS $$

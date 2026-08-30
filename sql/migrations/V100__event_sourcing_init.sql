@@ -1,43 +1,17 @@
 -- ============================================================================
 -- Surypus Event Sourcing Migration Runner
 -- ============================================================================
--- Apply all Event Sourcing migrations in order
+-- NOTE: The Event Sourcing schema (event_store, event_append, kafka streams,
+-- RBAC, aggregates, projections) is applied by the individual migration files
+-- (sql/event/V001, sql/core/V001__rbac_schema, sql/aggregate/V001-V002,
+-- sql/projection/V001) which are versioned BELOW V100 and therefore applied
+-- earlier in the ordered migration run. This file no longer re-\i includes them
+-- (re-including would re-create triggers without IF NOT EXISTS and fail on a
+-- second apply). It only verifies the objects exist.
 -- ============================================================================
-
-\set ON_ERROR_STOP on
 
 -- Enable UUID extension if not already enabled
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
--- ============================================================================
--- CORE MIGRATIONS
--- ============================================================================
-
--- Event Store (must be first)
-\i ../event/V001__event_store.sql
-
--- Kafka Streams
-\i ../event/V002__kafka_streams.sql
-
--- RBAC Schema
-\i ../core/V001__rbac_schema.sql
-
--- ============================================================================
--- AGGREGATE MIGRATIONS
--- ============================================================================
-
--- Inventory Aggregate
-\i ../aggregate/V001__inventory_aggregate.sql
-
--- Bill Aggregate
-\i ../aggregate/V002__bill_aggregate.sql
-
--- ============================================================================
--- PROJECTION MIGRATIONS
--- ============================================================================
-
--- FIFO Projection
-\i ../projection/V001__fifo_projection.sql
 
 -- ============================================================================
 -- VERIFICATION

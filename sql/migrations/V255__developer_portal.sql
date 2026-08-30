@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS api_docs (
 CREATE TABLE IF NOT EXISTS developer_apps (
     id SERIAL PRIMARY KEY,
     app_name TEXT NOT NULL,
-    developer_id UUID REFERENCES users(user_id),
+    developer_id UUID REFERENCES users(id),
     app_key TEXT UNIQUE NOT NULL,
     app_secret_hash TEXT,
     scopes TEXT[],

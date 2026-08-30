@@ -12,7 +12,7 @@
 
 -- Event store - append only
 CREATE TABLE IF NOT EXISTS event_store (
-    event_id            BIGSERIAL PRIMARY KEY,
+    event_id            BIGSERIAL,
     aggregate_id        UUID NOT NULL,
     aggregate_type      VARCHAR(64) NOT NULL,
     event_type          VARCHAR(128) NOT NULL,
@@ -25,8 +25,11 @@ CREATE TABLE IF NOT EXISTS event_store (
     causation_id        UUID,
     sequence_number     BIGINT NOT NULL,
     created_at          TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    
-    -- Partitioning by tenant for multi-tenancy
+
+    -- Partitioning by tenant for multi-tenancy. On a partitioned table the
+    -- PRIMARY KEY must include every partitioning column, so tenant_id is part
+    -- of the key.
+    PRIMARY KEY (event_id, tenant_id),
     CONSTRAINT valid_event_type CHECK (event_type ~ '^[A-Z][A-Za-z0-9_]*$')
 ) PARTITION BY LIST (tenant_id);
 
@@ -363,7 +366,7 @@ CREATE TRIGGER trg_event_outbox
 CREATE TABLE IF NOT EXISTS projections (
     projection_id       BIGSERIAL PRIMARY KEY,
     projection_name     VARCHAR(128) UNIQUE NOT NULL,
-    projection_type     VARCHAR(32) NOT NULL CHECK (projection_type IN 'standard', 'custom'),
+    projection_type     VARCHAR(32) NOT NULL CHECK (projection_type IN ('standard', 'custom')),
     handler_function    VARCHAR(256),
     last_sequence       BIGINT DEFAULT 0,
     is_enabled          BOOLEAN DEFAULT TRUE,

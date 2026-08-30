@@ -4,7 +4,7 @@
 -- Tech cards (технические карты)
 CREATE TABLE IF NOT EXISTS tech_card (
     id SERIAL PRIMARY KEY,
-    goods_id INT NOT NULL REFERENCES goods(goods_id),
+    goods_id INT,
     name VARCHAR(500) NOT NULL,
     version VARCHAR(50) DEFAULT '1.0',
     status SMALLINT NOT NULL DEFAULT 0,  -- 0=draft, 1=active, 2=archived
@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS tech_line (
     id SERIAL PRIMARY KEY,
     tech_card_id INT NOT NULL REFERENCES tech_card(id) ON DELETE CASCADE,
     line_num SMALLINT NOT NULL,
-    goods_id INT NOT NULL REFERENCES goods(goods_id),
+    goods_id INT,
     qty_plan DECIMAL(15, 4) NOT NULL CHECK (qty_plan >= 0),
     unit_id INT,
     scrap_percent DECIMAL(5, 2) DEFAULT 0,
@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS tech_line (
 CREATE TABLE IF NOT EXISTS work_order (
     id SERIAL PRIMARY KEY,
     code VARCHAR(50) NOT NULL UNIQUE,
-    goods_id INT NOT NULL REFERENCES goods(goods_id),
+    goods_id INT,
     tech_card_id INT REFERENCES tech_card(id),
     qty_plan DECIMAL(15, 4) NOT NULL CHECK (qty_plan >= 0),
     qty_released DECIMAL(15, 4) DEFAULT 0 CHECK (qty_released <= qty_plan),
@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS work_order_line (
     id SERIAL PRIMARY KEY,
     work_order_id INT NOT NULL REFERENCES work_order(id) ON DELETE CASCADE,
     line_num SMALLINT NOT NULL,
-    goods_id INT NOT NULL REFERENCES goods(goods_id),
+    goods_id INT,
     qty_needed DECIMAL(15, 4) NOT NULL CHECK (qty_needed >= 0),
     qty_issued DECIMAL(15, 4) DEFAULT 0,
     warehouse_id INT

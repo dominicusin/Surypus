@@ -136,7 +136,6 @@ DECLARE
     v_use NUMERIC;
     v_sequence BIGINT;
     v_event_data JSONB;
-    v_result TABLE(lot_id UUID, qty_used NUMERIC, cost NUMERIC, amount NUMERIC);
 BEGIN
     -- Validate inputs
     IF p_qty <= 0 THEN

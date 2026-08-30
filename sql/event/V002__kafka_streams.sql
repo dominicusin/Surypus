@@ -75,7 +75,7 @@ CREATE TABLE IF NOT EXISTS kafka_messages (
     value               JSONB NOT NULL,
     headers             JSONB DEFAULT '{}',
     partition           INT DEFAULT 0,
-    offset              BIGINT,
+    msg_offset          BIGINT,
     created_at          TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -92,12 +92,12 @@ DECLARE
     v_message_id BIGINT;
 BEGIN
     -- Get next offset for topic
-    SELECT COALESCE(MAX(offset), 0) + 1 INTO v_offset
+    SELECT COALESCE(MAX(msg_offset), 0) + 1 INTO v_offset
     FROM kafka_messages
     WHERE topic = p_topic;
     
     -- Insert message
-    INSERT INTO kafka_messages (topic, key, value, headers, offset)
+    INSERT INTO kafka_messages (topic, key, value, headers, msg_offset)
     VALUES (p_topic, p_key, p_value, p_headers, v_offset)
     RETURNING message_id INTO v_message_id;
     
@@ -117,7 +117,7 @@ RETURNS TABLE (
     key TEXT,
     value JSONB,
     headers JSONB,
-    offset BIGINT,
+    msg_offset BIGINT,
     created_at TIMESTAMP WITH TIME ZONE
 ) AS $$
 BEGIN
@@ -127,13 +127,13 @@ BEGIN
         km.key,
         km.value,
         km.headers,
-        km.offset,
+        km.msg_offset,
         km.created_at
     FROM kafka_messages km
     WHERE km.topic = p_topic
       AND km.partition = p_partition
-      AND km.offset >= p_offset
-    ORDER BY km.offset ASC
+      AND km.msg_offset >= p_offset
+    ORDER BY km.msg_offset ASC
     LIMIT p_limit;
 END;
 $$ LANGUAGE plpgsql;

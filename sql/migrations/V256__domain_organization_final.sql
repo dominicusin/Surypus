@@ -300,7 +300,7 @@ CREATE TABLE IF NOT EXISTS persons (
 
 -- Employee details
 CREATE TABLE IF NOT EXISTS employee_details (
-    person_id UUID REFERENCES persons(id) ON DELETE CASCADE,
+    person_id UUID REFERENCES person(id) ON DELETE CASCADE,
     employee_id TEXT UNIQUE,
     department TEXT,
     position TEXT,
@@ -345,7 +345,7 @@ CREATE TABLE IF NOT EXISTS role_permissions (
 
 -- User roles
 CREATE TABLE IF NOT EXISTS user_roles_v2 (
-    user_id UUID REFERENCES users(user_id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     role_id UUID REFERENCES roles(role_id) ON DELETE CASCADE,
     tenant_id UUID REFERENCES tenants(tenant_id),
     granted_at TIMESTAMPTZ DEFAULT NOW(),

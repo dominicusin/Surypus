@@ -6,7 +6,7 @@
 CREATE TABLE IF NOT EXISTS data_mesh_domains (
     id SERIAL PRIMARY KEY,
     domain_name TEXT UNIQUE NOT NULL,
-    domain_owner UUID REFERENCES users(user_id),
+    domain_owner UUID REFERENCES users(id),
     data_products JSONB DEFAULT '[]',
     is_published BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT NOW()

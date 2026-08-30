@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS notification_templates (
 
 -- Notification preferences
 CREATE TABLE IF NOT EXISTS user_notification_prefs (
-    user_id UUID REFERENCES users(user_id),
+    user_id UUID REFERENCES users(id),
     channel TEXT,
     enabled BOOLEAN DEFAULT TRUE,
     quiet_hours_start TIME,
