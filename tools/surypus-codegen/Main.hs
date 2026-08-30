@@ -454,6 +454,7 @@ entityToSQL :: Entity -> [String]
 entityToSQL Entity{entityName, entitySqlTable, entityFields} =
   [ "-- Entity: " ++ T.unpack entityName
   , "CREATE TABLE IF NOT EXISTS " ++ T.unpack entitySqlTable ++ " ("
+  , "    id BIGSERIAL NOT NULL,"
   ]
   ++ map generateColumnSQL entityFields
   ++ ["    PRIMARY KEY (id)"
@@ -479,7 +480,7 @@ entityToSQL Entity{entityName, entitySqlTable, entityFields} =
       in case indexed of
            [] -> ["    -- No indexes generated (no suitable columns)"]
            _ -> map (\f -> "CREATE INDEX IF NOT EXISTS idx_" ++ T.unpack entityName' ++ "_" ++ T.unpack (fieldName f)
-                            ++ " ON " ++ T.unpack entitySqlTable ++ " (" ++ T.unpack (fieldName f) ++ ";") indexed
+                            ++ " ON " ++ T.unpack entitySqlTable ++ " (" ++ T.unpack (fieldName f) ++ ");") indexed
 
 sqlColumnType :: FieldType -> String
 sqlColumnType FTInteger     = "INTEGER"
