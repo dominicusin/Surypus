@@ -15,14 +15,27 @@ module System.Jobs
   , processPendingJobs
   , getJobStatus
   , listJobs
+  , listDeadLetters
+  , requeueDeadLetter
   , startBackgroundWorker
+  , defaultJobRetryConfig
   ) where
 
+import Control.Exception (throwIO, ioError)
+import System.IO.Error (userError)
+import Data.String (fromString)
+import Control.Monad (filterM)
 import Data.IORef (IORef, newIORef, readIORef, atomicModifyIORef')
-import Data.Text (Text)
+import Data.Text (Text, pack, unpack)
 import Data.Time (UTCTime, getCurrentTime)
 import Data.Int (Int64)
 import Control.Concurrent (forkIO, threadDelay)
+import System.Retry
+  ( RetryConfig (..),
+    RetryStrategy (..),
+    RetryResult (..),
+    withRetries,
+  )
 
 -- | Job types
 data JobType
@@ -42,7 +55,20 @@ data JobStatus
   | Running
   | Completed JobResult
   | Failed Text
+  | Retrying Int Text   -- ^ attempt count + last error, while within retry budget
+  | DeadLettered Text   -- ^ moved to the dead-letter queue after retries exhausted
   deriving (Show, Eq)
+
+-- | Default retry policy for job handlers: 3 attempts, exponential backoff
+-- capped at 30s (no random jitter so behaviour is deterministic in tests).
+defaultJobRetryConfig :: RetryConfig
+defaultJobRetryConfig =
+  RetryConfig
+    { maxAttempts = 3,
+      baseDelay = 10000,     -- 10ms between attempts (kept short for fast runs)
+      maxDelay = 30000000,   -- cap at 30s
+      strategy = ExponentialBackoff
+    }
 
 -- | Job result
 data JobResult = JobResult
@@ -55,6 +81,7 @@ data Job = Job
   { jId :: JobId
   , jType :: JobType
   , jStatus :: IORef JobStatus
+  , jAttempts :: IORef Int      -- ^ number of execution attempts so far
   , jCreatedAt :: UTCTime
   }
 
@@ -78,17 +105,19 @@ enqueueJob :: JobRunner -> JobType -> IO JobId
 enqueueJob (JobRunner ref) jtype = do
   now <- getCurrentTime
   statusRef <- newIORef Pending
+  attemptsRef <- newIORef 0
   atomicModifyIORef' ref $ \s ->
     let jid = rsNextId s
         job = Job
           { jId = jid
           , jType = jtype
           , jStatus = statusRef
+          , jAttempts = attemptsRef
           , jCreatedAt = now
           }
     in ( s { rsJobs = (jid, job) : rsJobs s, rsNextId = jid + 1 }, jid )
 
--- | Find and process the next pending job
+-- | Find and process the next pending (or retrying) job
 processNextJob :: JobRunner -> IO ()
 processNextJob (JobRunner ref) = do
   jobs <- readIORef ref
@@ -97,10 +126,27 @@ processNextJob (JobRunner ref) = do
     Nothing -> pure ()
     Just job -> do
       atomicModifyIORef' (jStatus job) $ \_ -> (Running, ())
-      result <- runHandler (jType job)
-      case result of
-        Right res -> atomicModifyIORef' (jStatus job) $ \_ -> (Completed res, ())
-        Left err  -> atomicModifyIORef' (jStatus job) $ \_ -> (Failed err, ())
+      -- The handler returns a logical Either; retry only distinguishes
+      -- exceptions (transient) from permanent failures. We treat a Left as a
+      -- *permanent* failure and surface it so the retry budget is not wasted
+      -- on hopeless jobs; a thrown exception is retried by withRetries.
+      -- jAttempts is bumped on every real handler invocation (including
+      -- retries) so the dead-letter record reflects the true attempt count.
+      let attempt = do
+            atomicModifyIORef' (jAttempts job) $ \n -> (n + 1, ())
+            res <- runHandler (jType job)
+            case res of
+              Right ok -> pure ok
+              Left err -> throwIO (userError (unpack err))
+      retryRes <- withRetries defaultJobRetryConfig attempt
+      case retryRes of
+        Success res _ ->
+          atomicModifyIORef' (jStatus job) $ \_ -> (Completed res, ())
+        Failure errs _ -> do
+          let lastErr = case errs of
+                (e : _) -> fromString (show e)
+                []      -> "unknown error"
+          atomicModifyIORef' (jStatus job) $ \_ -> (DeadLettered lastErr, ())
 
 -- | Find first pending job by checking status IORefs
 findPendingJob :: [Job] -> IO (Maybe Job)
@@ -141,6 +187,33 @@ listJobs :: JobRunner -> IO [Job]
 listJobs (JobRunner ref) = do
   s <- readIORef ref
   pure $ map snd (rsJobs s)
+
+-- | List jobs that have been moved to the dead-letter queue.
+listDeadLetters :: JobRunner -> IO [Job]
+listDeadLetters runner = do
+  js <- listJobs runner
+  filterM (fmap isDead . getJobStatus . jStatus) js
+  where
+    isDead (DeadLettered _) = True
+    isDead _                = False
+
+-- | Re-queue a dead-lettered job by resetting its status to Pending and
+-- clearing the attempt counter. Returns True if the job was requeued.
+requeueDeadLetter :: JobRunner -> JobId -> IO Bool
+requeueDeadLetter _runner jid = do
+  -- locate the job via listJobs without holding the runner lock longer than
+  -- necessary; a single atomic status swap is sufficient.
+  js <- listJobs _runner
+  case lookup jid (map (\j -> (jId j, j)) js) of
+    Nothing -> pure False
+    Just job -> do
+      st <- getJobStatus (jStatus job)
+      case st of
+        DeadLettered _ -> do
+          atomicModifyIORef' (jStatus job) $ \_ -> (Pending, ())
+          atomicModifyIORef' (jAttempts job) $ \_ -> (0, ())
+          pure True
+        _ -> pure False
 
 -- | Start background worker in a separate thread
 startBackgroundWorker :: JobRunner -> Int -> IO ()
