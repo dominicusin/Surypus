@@ -34,10 +34,25 @@ ApplicationWindow {
     property string companyName: ""
     property string currentPage: "dashboard"
 
+    // Generated-screen list models (Phase 13/14). The codegen screens bind their
+    // ListView `model` to <Entity>sModel; these properties are populated from the
+    // corresponding RestClient signals.
+    property var customerEntitysModel: []
+    property var productionOrderEntitysModel: []
+    property var reportConfigEntitysModel: []
+
     // Service instance for API calls
     AppState { id: appState }
     RestClient { id: restClient }
     WsClient { id: wsClient; authToken: restClient.jwtToken }
+
+    // Populate generated-screen models from RestClient load signals.
+    Connections {
+        target: restClient
+        function onCustomersLoaded(data) { customerEntitysModel = data }
+        function onProductionOrdersLoaded(data) { productionOrderEntitysModel = data }
+        function onReportConfigsLoaded(data) { reportConfigEntitysModel = data }
+    }
 
     // Load user data on startup
     Component.onCompleted: {
@@ -186,12 +201,15 @@ ApplicationWindow {
         id: navigationModel
         ListElement { title: "📊 Главная"; page: "Dashboard"; badge: 0 }
         ListElement { title: "👥 Контрагенты"; page: "Persons"; badge: 5 }
+        ListElement { title: "🤝 Клиенты (CRM)"; page: "Customers"; badge: 0 }
         ListElement { title: "📦 Товары и услуги"; page: "Goods"; badge: 0 }
         ListElement { title: "🏭 Склады"; page: "Locations"; badge: 0 }
+        ListElement { title: "🏗️ Производство"; page: "ProductionOrders"; badge: 0 }
         ListElement { title: "📋 Документы"; page: "Bills"; badge: 12 }
         ListElement { title: "💰 Бухгалтерия"; page: "Accounting"; badge: 0 }
         ListElement { title: "👨‍💼 Зарплата"; page: "Payroll"; badge: 0 }
         ListElement { title: "📊 Отчёты"; page: "Reports"; badge: 0 }
+        ListElement { title: "📈 Аналитика"; page: "ReportConfigs"; badge: 0 }
         ListElement { title: "✅ Задачи"; page: "Jobs"; badge: 3 }
         ListElement { title: "⚙️ Настройки"; page: "Settings"; badge: 0 }
     }
@@ -204,12 +222,24 @@ ApplicationWindow {
 
     Component { id: dashboardComponent; Dashboard { onNavigateToPage: navigateTo(page) } }
     Component { id: personsComponent; Persons {} }
+    Component { id: customersComponent; CustomerEntityScreen {
+        onLoadRequested: restClient.loadCustomers()
+        onCreateRequested: function(payload) { restClient.createCustomer(payload) }
+    } }
     Component { id: goodsComponent; Goods {} }
-    Component { id: billsComponent; Bills {} }
     Component { id: locationsComponent; Locations {} }
+    Component { id: productionOrdersComponent; ProductionOrderEntityScreen {
+        onLoadRequested: restClient.loadProductionOrders()
+        onCreateRequested: function(payload) { restClient.createProductionOrder(payload) }
+    } }
+    Component { id: billsComponent; Bills {} }
     Component { id: accountingComponent; Accounting {} }
     Component { id: payrollComponent; Payroll {} }
     Component { id: reportsComponent; Reports {} }
+    Component { id: reportConfigsComponent; ReportConfigEntityScreen {
+        onLoadRequested: restClient.loadReportConfigs()
+        onCreateRequested: function(payload) { restClient.createReportConfig(payload) }
+    } }
     Component { id: jobsComponent; Jobs {} }
     Component { id: settingsComponent; Settings {} }
 
@@ -270,12 +300,15 @@ ApplicationWindow {
         switch (page) {
             case "Dashboard": contentStack.push(dashboardComponent); break
             case "Persons": contentStack.push(personsComponent); break
+            case "Customers": contentStack.push(customersComponent); break
             case "Goods": contentStack.push(goodsComponent); break
-            case "Bills": contentStack.push(billsComponent); break
             case "Locations": contentStack.push(locationsComponent); break
+            case "ProductionOrders": contentStack.push(productionOrdersComponent); break
+            case "Bills": contentStack.push(billsComponent); break
             case "Accounting": contentStack.push(accountingComponent); break
             case "Payroll": contentStack.push(payrollComponent); break
             case "Reports": contentStack.push(reportsComponent); break
+            case "ReportConfigs": contentStack.push(reportConfigsComponent); break
             case "Jobs": contentStack.push(jobsComponent); break
             case "Settings": contentStack.push(settingsComponent); break
         }

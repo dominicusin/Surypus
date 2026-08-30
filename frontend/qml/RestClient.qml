@@ -16,6 +16,9 @@ QtObject {
     signal stockLoaded(var data)
     signal accountsLoaded(var data)
     signal employeesLoaded(var data)
+    signal customersLoaded(var data)
+    signal productionOrdersLoaded(var data)
+    signal reportConfigsLoaded(var data)
 
     function setToken(token) {
         jwtToken = token
@@ -125,4 +128,26 @@ QtObject {
 
     function createBill(data, onSuccess) { post("/bills", data, onSuccess, function(s,e) { errorOccurred("Failed to create bill") }) }
     function postBill(id, onSuccess) { post("/bills/" + id + "/post", {}, onSuccess, function(s,e) { errorOccurred("Failed to post bill") }) }
+
+    // --- Phase 14 ERP domains: CRM / Production-MRP / Analytics ---
+    function loadCustomers(page, pageSize) {
+        var path = "/customers"
+        if (page !== undefined) path += "?page=" + page + "&pageSize=" + (pageSize || 50)
+        get(path, function(resp) { customersLoaded(resp) }, function(status, err) { errorOccurred("Failed to load customers") })
+    }
+    function createCustomer(data, onSuccess) { post("/customers", data, onSuccess, function(s,e) { errorOccurred("Failed to create customer") }) }
+
+    function loadProductionOrders(page, pageSize) {
+        var path = "/production-orders"
+        if (page !== undefined) path += "?page=" + page + "&pageSize=" + (pageSize || 50)
+        get(path, function(resp) { productionOrdersLoaded(resp) }, function(status, err) { errorOccurred("Failed to load production orders") })
+    }
+    function createProductionOrder(data, onSuccess) { post("/production-orders", data, onSuccess, function(s,e) { errorOccurred("Failed to create production order") }) }
+
+    function loadReportConfigs(page, pageSize) {
+        var path = "/report-configs"
+        if (page !== undefined) path += "?page=" + page + "&pageSize=" + (pageSize || 50)
+        get(path, function(resp) { reportConfigsLoaded(resp) }, function(status, err) { errorOccurred("Failed to load report configs") })
+    }
+    function createReportConfig(data, onSuccess) { post("/report-configs", data, onSuccess, function(s,e) { errorOccurred("Failed to create report config") }) }
 }
