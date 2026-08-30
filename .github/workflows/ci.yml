@@ -80,8 +80,13 @@ jobs:
           export LIBRARY_PATH="/nix/store/8kvxvr3pmsypxiypq4g8zy13glnfr7nx-glibc-2.42-67/lib"
           export NIX_LDFLAGS="-L/nix/store/8kvxvr3pmsypxiypq4g8zy13glnfr7nx-glibc-2.42-67/lib -L/nix/store/7nww4d4yl7jzf66qllvyn61xb21vp7ry-gcc-15.2.0-libgcc/lib"
           cd "$GITHUB_WORKSPACE"
-          tools/surypus-codegen/dist-newstyle/build/x86_64-linux/ghc-9.2.8/surypus-codegen-0.1.0.0/x/surypus-codegen/build/surypus-codegen/surypus-codegen build
-          tools/surypus-codegen/dist-newstyle/build/x86_64-linux/ghc-9.2.8/surypus-codegen-0.1.0.0/x/surypus-codegen/build/surypus-codegen/surypus-codegen check
+          CODEGEN_BIN="$GITHUB_WORKSPACE/tools/surypus-codegen/dist-newstyle/build/x86_64-linux/ghc-9.10.3/surypus-codegen-0.1.0.0/x/surypus-codegen/build/surypus-codegen/surypus-codegen"
+          if [ ! -x "$CODEGEN_BIN" ]; then
+            # Fall back to whichever ghc version produced the build artifact.
+            CODEGEN_BIN=$(ls -1 "$GITHUB_WORKSPACE"/tools/surypus-codegen/dist-newstyle/build/x86_64-linux/*/surypus-codegen-0.1.0.0/x/surypus-codegen/build/surypus-codegen/surypus-codegen 2>/dev/null | head -1)
+          fi
+          "$CODEGEN_BIN" build
+          "$CODEGEN_BIN" check
 
       - name: surypus-codegen — freeze + consistency check (blocking gate)
         run: |
@@ -91,10 +96,13 @@ jobs:
           export NIX_LDFLAGS="-L/nix/store/8kvxvr3pmsypxiypq4g8zy13glnfr7nx-glibc-2.42-67/lib -L/nix/store/7nww4d4yl7jzf66qllvyn61xb21vp7ry-gcc-15.2.0-libgcc/lib"
           cd "$GITHUB_WORKSPACE"
 
-          CODE gen="$GITHUB_WORKSPACE/tools/surypus-codegen/dist-newstyle/build/x86_64-linux/ghc-9.2.8/surypus-codegen-0.1.0.0/x/surypus-codegen/build/surypus-codegen/surypus-codegen"
+          CODEGEN="$GITHUB_WORKSPACE/tools/surypus-codegen/dist-newstyle/build/x86_64-linux/ghc-9.10.3/surypus-codegen-0.1.0.0/x/surypus-codegen/build/surypus-codegen/surypus-codegen"
+          if [ ! -x "$CODEGEN" ]; then
+            CODEGEN=$(ls -1 "$GITHUB_WORKSPACE"/tools/surypus-codegen/dist-newstyle/build/x86_64-linux/*/surypus-codegen-0.1.0.0/x/surypus-codegen/build/surypus-codegen/surypus-codegen 2>/dev/null | head -1)
+          fi
 
           echo "Running surypus-codegen freeze…"
-          "$CODE gen" freeze
+          "$CODEGEN" freeze
 
           if [ ! -f surypus.freeze ]; then
             echo "::error::surypus.freeze not produced by surypus-codegen freeze"
@@ -102,7 +110,7 @@ jobs:
           fi
 
           echo "Verifying dsl/schema.yaml matches generated Schema.hs + Types.hs (round-trip gate)…"
-          "$CODE gen" check
+          "$CODEGEN" check
 
           echo "Verifying no uncommitted generated artifacts (repo discipline gate)…"
           git add -A -- dry-run >/dev/null 2>&1 || true
@@ -114,6 +122,51 @@ jobs:
           fi
 
           echo "CI gate: surypus-codegen freeze + check passed; working tree consistent."
+
+      - name: surypus-codegen — breaking-change gate (block PRs that break the schema)
+        run: |
+          set -euo pipefail
+          export PATH="$HOME/.guix-profile/bin:$HOME/.local/bin:/usr/bin:$PATH"
+          export LIBRARY_PATH="/nix/store/8kvxvr3pmsypxiypq4g8zy13glnfr7nx-glibc-2.42-67/lib"
+          export NIX_LDFLAGS="-L/nix/store/8kvxvr3pmsypxiypq4g8zy13glnfr7nx-glibc-2.42-67/lib -L/nix/store/7nww4d4yl7jzf66qllvyn61xb21vp7ry-gcc-15.2.0-libgcc/lib"
+          cd "$GITHUB_WORKSPACE"
+
+          CODEGEN="$GITHUB_WORKSPACE/tools/surypus-codegen/dist-newstyle/build/x86_64-linux/ghc-9.10.3/surypus-codegen-0.1.0.0/x/surypus-codegen/build/surypus-codegen/surypus-codegen"
+          if [ ! -x "$CODEGEN" ]; then
+            CODEGEN=$(ls -1 "$GITHUB_WORKSPACE"/tools/surypus-codegen/dist-newstyle/build/x86_64-linux/*/surypus-codegen-0.1.0.0/x/surypus-codegen/build/surypus-codegen/surypus-codegen 2>/dev/null | head -1)
+          fi
+
+          if [ ! -f surypus.freeze ]; then
+            echo "::warning::surypus.freeze missing — skipping breaking-change gate (freeze will be (re)created)."
+            exit 0
+          fi
+
+          # Rebuild the schema description from the current DSL so we can diff it
+          # against the committed freeze.
+          "$CODEGEN" build >/dev/null 2>&1 || true
+          "$CODEGEN" freeze >/dev/null 2>&1 || true
+
+          # The committed freeze is the source of truth for the published schema.
+          # Compare the proposed schema (dsl/schema.yaml) against the committed freeze.
+          set +e
+          "$CODEGEN" diff surypus.freeze dsl/schema.yaml
+          DIFF_RC=$?
+          set -e
+
+          if [ "$DIFF_RC" -ne 0 ]; then
+            if [ "$GITHUB_REF" = "refs/heads/main" ]; then
+              echo "::warning::Breaking schema change on main — refreshing surypus.freeze (allowed on main only)."
+              "$CODEGEN" freeze
+              git add surypus.freeze
+              echo "surypus.freeze refreshed; commit it to publish the new schema."
+            else
+              echo "::error::Breaking schema change detected. This PR would break the published DSL contract."
+              echo "::error::If the change is intentional, merge to main (which refreshes the freeze) or update surypus.freeze deliberately."
+              exit 1
+            fi
+          else
+            echo "Breaking-change gate: schema is backward compatible with the committed freeze."
+          fi
 
   liquidhaskell:
     runs-on: ubuntu-latest

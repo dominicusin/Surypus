@@ -75,7 +75,7 @@ data Entity = Entity
   { entityName    :: !T.Text
   , entitySqlTable :: !T.Text
   , entityFields  :: ![Field]
-  } deriving (Show, Generic)
+  } deriving (Show, Eq, Generic)
 
 instance FromJSON Entity where
   parseJSON = withObject "Entity" $ \o -> do
@@ -102,7 +102,7 @@ data Field = Field
   , fieldSqlType  :: !T.Text
   , fieldDefault  :: !(Maybe T.Text)
   , fieldNullable :: !Bool
-  } deriving (Show, Generic)
+  } deriving (Show, Eq, Generic)
 
 instance FromJSON Field where
   parseJSON = withObject "Field" $ \o -> do
@@ -150,7 +150,7 @@ data FieldType
   | FTInet
   | FTMacAddr
   | FTGeometry
-  deriving (Show, Generic)
+  deriving (Show, Eq, Generic)
 
 instance FromJSON FieldType where
   parseJSON = withText "FieldType" $ \t -> case t of
@@ -637,9 +637,21 @@ diff oldPath newPath = do
       newEntities = dsEntities newSchema
       oldNames = map entityName oldEntities
       newNames = map entityName newEntities
+      oldByName = [(entityName e, e) | e <- oldEntities]
       removedEntities = filter (not . (`elem` newNames) . entityName) oldEntities
       addedEntities = filter (not . (`elem` oldNames) . entityName) newEntities
-      modifiedEntities = filter (\e -> entityName e `elem` oldNames && entityName e `elem` newNames) newEntities
+      -- A common entity is MODIFIED only if its content (sql table or fields)
+      -- actually differs from the committed freeze — not merely because it
+      -- exists in both (the previous name-membership test flagged every shared
+      -- entity as modified, which made the gate useless).
+      modifiedEntities = [ e | e <- newEntities
+                         , let nm = entityName e
+                         , nm `elem` oldNames
+                         , case lookup nm oldByName of
+                             Just oe -> entitySqlTable oe /= entitySqlTable e
+                                       || entityFields oe /= entityFields e
+                             Nothing -> False
+                         ]
   if null removedEntities && null addedEntities && null modifiedEntities
     then putStrLn "[OK] No breaking changes detected"
     else do
