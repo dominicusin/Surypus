@@ -163,11 +163,19 @@ CREATE OR REPLACE FUNCTION projection_handle_stock_released(
     p_event_data JSONB
 )
 RETURNS VOID AS $$
+DECLARE
+    v_goods_id UUID := (p_event_data->>'goods_id')::UUID;
+    v_location_id UUID := (p_event_data->>'location_id')::UUID;
+    v_qty NUMERIC := (p_event_data->>'qty')::NUMERIC;
 BEGIN
-    -- In a real implementation, would need to look up the original reservation
-    -- to know the quantity. For now, this is a placeholder.
-    -- In production, maintain a separate reservations table.
-    NULL;
+    -- Release the reservation: free the reserved quantity and make it
+    -- available again. Uses GREATEST to guard against underflow if the
+    -- quantity was already partially released.
+    UPDATE projection_stock_balance
+    SET reserved_qty = GREATEST(0, reserved_qty - v_qty),
+        available_qty = available_qty + v_qty,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE goods_id = v_goods_id AND location_id = v_location_id;
 END;
 $$ LANGUAGE plpgsql;
 
