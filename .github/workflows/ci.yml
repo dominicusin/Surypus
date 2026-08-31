@@ -317,8 +317,8 @@ jobs:
       - name: Generate documentation inventory
         run: |
           set -euo pipefail
-          mkdir -p docs/generated/inventory
-          echo '{"project":"Surypus","version":"0.1.0.0","generator":"surypus-codegen"}' > docs/generated/inventory/modules.json
+          python3 tools/documentation/generate-inventory.py
+          cat docs/generated/inventory/coverage.json
           ls docs/generated/inventory/
 
       - name: Upload docs artifact
