@@ -44,6 +44,17 @@ nav:
   - Хранилище данных: DATABASE.md
   - Развёртывание: DEPLOYMENT.md
   - Руководство: GUIDE.md
+  - Руководства:
+      - Как работает бухгалтерия: guides/accounting.md
+      - Как работает инвентарь: guides/inventory.md
+      - Как работает RBAC: guides/rbac.md
+      - Как работает JWT-аутентификация: guides/jwt.md
+      - Как работает персистентность: guides/persistence.md
+      - Как работает Event Store: guides/event-store.md
+  - ADR:
+      - "ADR-001: Haskell как основной язык": adr/0001-haskell-primary-language.md
+      - "ADR-002: PostgreSQL для персистентности": adr/0002-mkdocs-site.md
+  - Архитектура событий: architecture/EVENT_SOURCING.md
   - Инженерные модули:
       - api-conventions.md: engineering/api-conventions.md
       - bill-module.md: engineering/bill-module.md
