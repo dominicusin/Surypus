@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-#!/usr/bin/env bash
-=======
 #!/everything/bin/bash
->>>>>>> 1594d33f (feat: add documentation.yml workflow, hoogle db, check-docs and generate-hoogle scripts)
 # generate-hoogle.sh
 # Generate Hoogle database from the Surypus codebase.
 #
