@@ -1,0 +1,36 @@
+name: "Surypus CodeQL"
+
+languages:
+  - javascript
+  - yaml
+  - dockerfile
+
+ql:
+  # Use default security queries plus custom ones
+  suites:
+    - security-extended
+    - security-and-quality
+
+disable-default-queries: false
+
+# Path-based query exclusion for generated/vendor files
+paths-ignore:
+  - 'node_modules/'
+  - '.git/'
+  - 'site/'
+
+# Path-based query inclusion for specific files
+paths:
+  - 'src/'
+  - 'web/'
+  - 'get-shit-done/'
+  - '.github/'
+  - 'Dockerfile'
+
+queries:
+  - uses: github/codeql-action/csharp-autobuild
+  - uses: github/codeql-action/javascript-autobuild
+
+# Suppressions file
+default-qls:
+  - .github/codeql-suppressions.yaml
