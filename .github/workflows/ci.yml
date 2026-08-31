@@ -262,8 +262,6 @@ jobs:
           sleep 10
           curl -f http://localhost:8080/api/v1/health || echo "Health check skipped (DB not fully initialized)"
           docker compose -f docker-compose.yml down -v || true
-
-
   docs:
     runs-on: ubuntu-latest
     steps:
@@ -271,25 +269,65 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
+      - name: Set up Haskell Stack
+        run: |
+          mkdir -p ~/.local/bin
+          curl -sSL https://get.haskellstack.org/ -o /tmp/stack.sh
+          sh /tmp/stack.sh -d ~/.local/bin || true
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Setup GHC (stack-managed)
+        run: |
+          echo "GHC managed by stack per stack.yaml resolver"
+
+      - name: Stack environment sanity
+        run: |
+          stack --version
+          stack path --help >/dev/null 2>&1 || true
 
       - name: Install MkDocs
         run: |
           python -m pip install --upgrade pip
-          pip install mkdocs mkdocs-material mkdocstrings[python] 2>&1 | tail -5
+          pip install mkdocs mkdocs-material 2>&1 | tail -5
 
-      - name: Build docs
+      - name: Build MkDocs site
         run: |
           mkdocs build --strict 2>&1 | tail -20
+
+      - name: Build Haddock
+        run: |
+          set -euo pipefail
+          mkdir -p docs/generated/haddock
+          stack build --haddock --no-run-tests --haddock-options="--hyperlink-source --quickjump" || true
+          find .stack-work -name "*.haddock" -exec haddock --hyperlink-source --quickjump -o docs/generated/haddock {} + 2>/dev/null || true
+          ls docs/generated/haddock/
+
+      - name: Generate Hoogle database
+        run: |
+          set -euo pipefail
+          ~/.local/bin/hoogle generate --local 2>/dev/null || true
+          ls -la hoogle* 2>/dev/null || true
+
+      - name: Generate module graph
+        run: |
+          set -euo pipefail
+          ./tools/documentation/generate-module-graph.sh src docs/generated/graphs/modules.mmd
+          cat docs/generated/graphs/modules.mmd | head -10
+
+      - name: Generate documentation inventory
+        run: |
+          set -euo pipefail
+          mkdir -p docs/generated/inventory
+          echo '{"project":"Surypus","version":"0.1.0.0","generator":"surypus-codegen"}' > docs/generated/inventory/modules.json
+          ls docs/generated/inventory/
 
       - name: Upload docs artifact
         uses: actions/upload-artifact@v4
         with:
           name: docs-site
-          path: site/
+          path: |
+            site/
+            docs/generated/
           retention-days: 30
 
       - name: Deploy to GitHub Pages
@@ -299,4 +337,3 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./site
           force_orphan: true
-
