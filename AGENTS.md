@@ -534,3 +534,64 @@ For more details, see README.md and docs/QUICKSTART.md.
 - If push fails, resolve and retry until it succeeds
 
 <!-- END BEADS INTEGRATION -->
+
+
+## Documentation Protocol (Haddock + doctest + Hoogle + Mermaid)
+
+When modifying public Haskell APIs or adding new modules:
+
+1. **Haddock**: Add Haddock comments to every exported function, type, class, and module.
+   ```haskell
+   -- | Calculate VAT amount from price and rate.
+   --
+   -- >>> calcVAT 100 0.2
+   -- 20.0
+   calcVAT :: Double -> Double -> Double
+   ```
+
+2. **doctest**: Add executable examples in Haddock comments. They are verified by `doctest`.
+   ```bash
+   # Run doctest on the project
+   doctest src/
+   # Or via the cabal project
+   cabal build surypus-doctest --flag=doctest
+   ```
+
+3. **Hoogle**: After adding new exports, regenerate the Hoogle database.
+   ```bash
+   hoogle generate --local
+   ```
+
+4. **Mermaid**: After adding/removing modules, regenerate the module dependency graph.
+   ```bash
+   ./tools/documentation/generate-module-graph.sh src docs/generated/graphs/modules.mmd
+   ```
+
+5. **MkDocs**: Rebuild the documentation site locally to check for warnings.
+   ```bash
+   mkdocs build --strict
+   ```
+
+6. **Documentation Inventory**: Update `docs/generated/inventory/modules.json` when the
+   module graph changes materially.
+
+### Rules
+- Never manually edit files in `docs/generated/` — they are machine-generated.
+- Never invent API semantics. Haddock is the source of truth for the public API.
+- Doctest examples must actually compile and run.
+- Architecture diagrams must reflect the real module dependencies.
+- AI-generated prose must be verified against Haddock, doctest, and the source code.
+
+### Documentation Levels
+- **L0**: No documentation (internal helpers)
+- **L1**: Module header + exports list
+- **L2**: Function/type/class documentation with signatures
+- **L3**: Executable doctest examples
+- **L4**: Architecture diagram (Mermaid) + module dependency graph
+- **L5**: Domain guides (in `docs/guides/`)
+
+### Pull Request Rule
+If a public API changes (new/removed/changed exported function, type, or class):
+- Documentation review is mandatory.
+- Update Haddock, doctest examples, and module graph.
+- Verify `mkdocs build --strict` passes.
