@@ -321,6 +321,27 @@ jobs:
           cat docs/generated/inventory/coverage.json
           ls docs/generated/inventory/
 
+      - name: Generate Hoogle database
+        run: |
+          set -euo pipefail
+          # Generate Hoogle database from the built Haddock docs
+          ~/.local/bin/hoogle generate --local 2>/dev/null || true
+          ls -la hoogle* 2>/dev/null || true
+          mkdir -p docs/generated/hoogle
+          cp -r hoogle* docs/generated/hoogle/ 2>/dev/null || true
+          ls docs/generated/hoogle/
+
+      - name: Documentation drift detection
+        run: |
+          set -euo pipefail
+          echo "## Documentation Drift Report"
+          echo "### Generated inventory"
+          python3 tools/documentation/generate-inventory.py
+          echo "### Modules without haddock"
+          python3 -c "import json; d=json.load(open('docs/generated/inventory/modules.json')); [print(m['module'], m['file']) for m in d['modules'] if m['haddock_comments']==0]" | head -20 || true
+          echo "### Undocumented public functions"
+          python3 -c "import json; d=json.load(open('docs/generated/inventory/functions.json')); print(f'Total functions: {d[\"total_functions\"]}')" || true
+
       - name: Upload docs artifact
         uses: actions/upload-artifact@v4
         with:
