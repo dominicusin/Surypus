@@ -30,7 +30,7 @@ ON CONFLICT (error_pattern) DO NOTHING;
 -- Error handler registry
 CREATE TABLE IF NOT EXISTS error_handlers (
     handler_id SERIAL PRIMARY KEY,
-    error_category TEXT NOT NULL,
+    error_category TEXT NOT NULL UNIQUE,
     retry_allowed BOOLEAN DEFAULT TRUE,
     max_retries INT DEFAULT 3,
     backoff_multiplier NUMERIC DEFAULT 2.0,

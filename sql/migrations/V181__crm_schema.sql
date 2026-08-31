@@ -2,6 +2,14 @@
 -- CRM Schema: Deals, Pipeline Stages, Activities
 -- ============================================================================
 
+-- Ensure the companies table exists (it is formally defined in V182); provide a
+-- minimal schema so the crm_deals FK below resolves at this load order.
+CREATE TABLE IF NOT EXISTS companies (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID,
+    name TEXT
+);
+
 -- Pipeline stages definition
 CREATE TABLE IF NOT EXISTS crm_pipeline_stages (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -21,7 +29,7 @@ CREATE TABLE IF NOT EXISTS crm_deals (
     deal_name TEXT NOT NULL,
     deal_value NUMERIC NOT NULL DEFAULT 0,
     stage_id UUID REFERENCES crm_pipeline_stages(id),
-    person_id UUID REFERENCES person(id),
+    person_id BIGINT REFERENCES person(id),
     company_id UUID REFERENCES companies(id),
     contact_id UUID,
     owner_id UUID,
@@ -43,7 +51,7 @@ CREATE TABLE IF NOT EXISTS crm_activities (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL,
     deal_id UUID REFERENCES crm_deals(id) ON DELETE CASCADE,
-    person_id UUID REFERENCES person(id),
+    person_id BIGINT REFERENCES person(id),
     activity_type TEXT NOT NULL,
     subject TEXT NOT NULL,
     description TEXT,

@@ -6,7 +6,7 @@
 CREATE TABLE IF NOT EXISTS storage_tiers (
     tier_name TEXT PRIMARY KEY,
     tier_type TEXT CHECK (tier_type IN ('hot', 'warm', 'cold', 'archive')),
-    storage_engine TEXT CHECK (storage_engine IN ('postgres', 'redis', 's3', 'gcs', 'minio', 'snowflake')),
+    storage_engine TEXT CHECK (storage_engine IN ('postgres', 'redis', 's3', 'gcs', 'minio', 'snowflake', 'glacier')),
     retention_policy JSONB,
     cost_per_gb NUMERIC DEFAULT 0.0
 );

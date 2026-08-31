@@ -8,15 +8,18 @@ DECLARE
   last_run TIMESTAMPTZ;
   last_run_updated INTEGER;
   last_batch_id BIGINT;
+  last_batch_size BIGINT;
   last_batch_started TIMESTAMPTZ;
   last_batch_ended TIMESTAMPTZ;
+  last_status TEXT;
+  last_details JSONB;
   details JSONB;
 BEGIN
   SELECT count(*) INTO pending_count FROM rbac.canon_queue WHERE status = 'pending';
   SELECT count(*) INTO inprogress_count FROM rbac.canon_queue WHERE status = 'in_progress';
   SELECT count(*) INTO completed_batches FROM rbac.canon_batch_runs WHERE ended_at IS NOT NULL;
   SELECT run_at, updated_rows, details INTO last_run, last_run_updated, details FROM rbac.canon_metrics ORDER BY run_at DESC LIMIT 1;
-  SELECT id, started_at, ended_at, batch_size, total_updated, status, details INTO last_batch_id, last_batch_started, last_batch_ended, /* batch_size */ NULL, last_run_updated, /* status/dets left for compatibility */ NULL, NULL FROM rbac.canon_batch_runs ORDER BY ended_at DESC LIMIT 1;
+  SELECT id, started_at, ended_at, batch_size, total_updated, status, details INTO last_batch_id, last_batch_started, last_batch_ended, last_batch_size, last_run_updated, last_status, last_details FROM rbac.canon_batch_runs ORDER BY ended_at DESC LIMIT 1;
   RETURN jsonb_build_object(
     'snapshot', jsonb_build_object(
       'pending', pending_count,

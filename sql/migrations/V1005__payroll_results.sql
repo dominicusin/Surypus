@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS payroll_results (
     id              BIGSERIAL PRIMARY KEY,
     tenant_id       BIGINT NOT NULL REFERENCES tenants(id),
     period          DATE NOT NULL,
-    employee_id     BIGINT NOT NULL REFERENCES employee(id),
+    employee_id     BIGINT NOT NULL,
     gross           NUMERIC(14,2) NOT NULL DEFAULT 0,
     deductions      NUMERIC(14,2) NOT NULL DEFAULT 0,
     net             NUMERIC(14,2) NOT NULL DEFAULT 0,

@@ -10,11 +10,15 @@ CREATE OR REPLACE FUNCTION archive_events(
 DECLARE
     v_archived INT;
 BEGIN
-    -- Move old events to archive
+    -- Move old events to archive (DELETE has no LIMIT; use a subquery).
     WITH moved AS (
         DELETE FROM event_store
-        WHERE created_at < p_before
-        LIMIT p_batch_size
+        WHERE ctid IN (
+            SELECT ctid FROM event_store
+            WHERE created_at < p_before
+            ORDER BY created_at
+            LIMIT p_batch_size
+        )
         RETURNING *
     )
     INSERT INTO event_store_archive

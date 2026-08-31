@@ -41,8 +41,8 @@ CREATE OR REPLACE FUNCTION begin_timed_transaction(
     p_timeout_ms INT DEFAULT 30000
 ) RETURNS VOID AS $$
 BEGIN
-    SET LOCAL statement_timeout = p_timeout_ms || 'ms';
-    SET LOCAL idle_in_transaction_session_timeout = p_timeout_ms || 'ms';
+    SET LOCAL statement_timeout = p_timeout_ms;
+    SET LOCAL idle_in_transaction_session_timeout = p_timeout_ms;
 END;
 $$ LANGUAGE plpgsql;
 

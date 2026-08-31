@@ -1,4 +1,15 @@
 -- API key validation table (enhanced)
+-- Ensure the referenced api_keys table exists (it may be created by a later
+-- domain migration); provide a minimal schema so the FK/function below resolve.
+CREATE TABLE IF NOT EXISTS api_keys (
+    key_id UUID PRIMARY KEY,
+    user_id UUID,
+    key_hash TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
+    expires_at TIMESTAMP WITH TIME ZONE,
+    last_used_at TIMESTAMP WITH TIME ZONE
+);
+
 CREATE TABLE IF NOT EXISTS api_keys_audit (
     audit_id BIGSERIAL PRIMARY KEY,
     key_id UUID REFERENCES api_keys(key_id),

@@ -39,6 +39,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Mark as read
+DROP FUNCTION IF EXISTS notification_mark_read(BIGINT);
 CREATE OR REPLACE FUNCTION notification_mark_read(p_notification_id BIGINT) RETURNS VOID AS $$
 BEGIN
     UPDATE notifications SET is_read = TRUE WHERE notification_id = p_notification_id;

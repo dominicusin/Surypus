@@ -4,20 +4,13 @@
 
 -- Inventory read model
 CREATE MATERIALIZED VIEW IF NOT EXISTS mv_inventory_state AS
-SELECT 
+SELECT
     a.aggregate_id,
     a.tenant_id,
     a.aggregate_type,
     a.current_version,
     a.event_count,
-    (SELECT jsonb_object_agg(e.key, e.value) FROM 
-        (SELECT e.key, e.value FROM 
-            (SELECT jsonb_each(e.event_data) FROM event_store e 
-             WHERE e.aggregate_id = a.aggregate_id AND e.event_type IN ('LotCreated', 'StockReceived')
-             ORDER BY e.event_version DESC LIMIT 1) t1,
-            jsonb_each_text(t1.event_data) 
-        ) e
-    ) as latest_data,
+    NULL::JSONB as latest_data,
     MAX(e.created_at) as last_event,
     COUNT(DISTINCT CASE WHEN e.event_type = 'LotCreated' THEN e.event_id END) as lots_created,
     COUNT(DISTINCT CASE WHEN e.event_type = 'LotConsumed' THEN e.event_id END) as lots_consumed
@@ -46,11 +39,11 @@ GROUP BY a.aggregate_id, a.tenant_id, a.current_version;
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_mv_bill_state ON mv_bill_state(aggregate_id);
 
--- Tenant summary read model
+-- Tenant summary read model (aggregates over aggregates.tenant_id UUID directly;
+-- tenants.id is BIGINT so we do not join the tenants table here)
 CREATE MATERIALIZED VIEW IF NOT EXISTS mv_tenant_dashboard AS
-SELECT 
-    t.tenant_id,
-    t.tenant_name,
+SELECT
+    a.tenant_id,
     COUNT(DISTINCT a.aggregate_id) as total_aggregates,
     SUM(a.event_count) as total_events,
     COUNT(DISTINCT e.user_id) as active_users,
@@ -58,10 +51,9 @@ SELECT
     COUNT(DISTINCT CASE WHEN e.created_at > NOW() - INTERVAL '1 day' THEN e.aggregate_id END) as active_aggregates_24h,
     (SELECT COUNT(*) FROM event_outbox WHERE published = FALSE) as pending_outbox,
     (SELECT COUNT(*) FROM event_dlq WHERE resolved = FALSE) as dlq_count
-FROM tenants t
-LEFT JOIN aggregates a ON a.tenant_id = t.tenant_id
-LEFT JOIN event_store e ON e.tenant_id = t.tenant_id
-GROUP BY t.tenant_id, t.tenant_name;
+FROM aggregates a
+LEFT JOIN event_store e ON e.tenant_id = a.tenant_id
+GROUP BY a.tenant_id;
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_mv_tenant_dashboard ON mv_tenant_dashboard(tenant_id);
 

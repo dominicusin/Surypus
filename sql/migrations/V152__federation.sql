@@ -18,6 +18,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Tenant export helper
+DROP FUNCTION IF EXISTS export_tenant_data(UUID, TEXT[]);
 CREATE OR REPLACE FUNCTION export_tenant_data(
     p_tenant_id UUID,
     p_tables TEXT[] DEFAULT ARRAY['event_store', 'aggregates']

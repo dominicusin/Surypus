@@ -13,6 +13,11 @@ CREATE INDEX IF NOT EXISTS idx_integration_config_tenant ON integration_config(t
 CREATE INDEX IF NOT EXISTS idx_integration_config_type ON integration_config(adapter_type);
 CREATE INDEX IF NOT EXISTS idx_integration_config_enabled ON integration_config(enabled);
 
--- Grant permissions
+-- Grant permissions (role may not exist on a fresh database; create it idempotently)
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'surypus_app') THEN
+    CREATE ROLE surypus_app;
+  END IF;
+END $$;
 GRANT SELECT, INSERT, UPDATE, DELETE ON integration_config TO surypus_app;
-GRANT USAGE, SELECT ON SEQUENCE integration_config_id_seq TO surypus_app;

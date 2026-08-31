@@ -65,6 +65,7 @@ $$ LANGUAGE plpgsql;
 -- ============================================================================
 -- 4. notification_mark_read function
 -- ============================================================================
+DROP FUNCTION IF EXISTS notification_mark_read(BIGINT);
 CREATE OR REPLACE FUNCTION notification_mark_read(p_id BIGINT)
 RETURNS VOID AS $$
 BEGIN

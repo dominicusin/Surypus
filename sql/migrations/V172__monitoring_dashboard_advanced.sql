@@ -2,43 +2,66 @@
 -- Advanced Monitoring Dashboard
 -- ============================================================================
 
+-- Ensure referenced tables exist (they may be created by later domain migrations);
+-- provide minimal schemas so the views/materialized views/functions below resolve.
+CREATE TABLE IF NOT EXISTS projection_audit (
+    id BIGSERIAL PRIMARY KEY,
+    projection_name TEXT,
+    event_type TEXT,
+    status TEXT,
+    duration_ms INT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+CREATE TABLE IF NOT EXISTS cache_tiers (
+    id BIGSERIAL PRIMARY KEY,
+    hits BIGINT DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS notifications (
+    id BIGSERIAL PRIMARY KEY,
+    tenant_id UUID,
+    user_id UUID,
+    title TEXT,
+    body TEXT,
+    notification_type TEXT
+);
+
 -- Dashboard metrics view
 CREATE OR REPLACE VIEW v_dashboard_advanced AS
-SELECT 
+SELECT
     -- Events
     (SELECT COUNT(*) FROM event_store) as total_events,
     (SELECT COUNT(*) FROM event_store WHERE created_at > NOW() - INTERVAL '1 hour') as events_1h,
     (SELECT COUNT(*) FROM event_store WHERE created_at > NOW() - INTERVAL '24 hours') as events_24h,
-    
+
     -- Aggregates
     (SELECT COUNT(DISTINCT aggregate_id) FROM event_store) as total_aggregates,
     (SELECT COUNT(*) FROM aggregates) as aggregate_count,
-    
+
     -- Projections
     (SELECT COUNT(*) FROM projection_audit WHERE created_at > NOW() - INTERVAL '1 hour') as projections_1h,
     (SELECT AVG(duration_ms)::INT FROM projection_audit WHERE created_at > NOW() - INTERVAL '1 hour') as avg_projection_ms,
     (SELECT COUNT(*) FROM projection_audit WHERE status = 'failure' AND created_at > NOW() - INTERVAL '1 hour') as failed_projections,
-    
+
     -- Outbox
     (SELECT COUNT(*) FROM event_outbox WHERE published = FALSE) as pending_outbox,
     (SELECT COUNT(*) FROM event_outbox WHERE created_at < NOW() - INTERVAL '1 hour' AND published = FALSE) as stuck_outbox,
-    
+
     -- DLQ
     (SELECT COUNT(*) FROM event_dlq WHERE resolved = FALSE) as dlq_pending,
     (SELECT MAX(retry_count) FROM event_dlq WHERE resolved = FALSE) as max_dlq_retries,
-    
+
     -- Performance
     (SELECT AVG(duration_ms) FROM projection_audit WHERE created_at > NOW() - INTERVAL '1 hour') as avg_projection_duration,
     (SELECT MAX(duration_ms) FROM projection_audit WHERE created_at > NOW() - INTERVAL '1 hour') as max_projection_duration,
-    
+
     -- Cache
     (SELECT COUNT(*) FROM cache_tiers) as cache_keys,
     (SELECT SUM(hits) FROM cache_tiers) as cache_hits,
-    
+
     -- Connections
     (SELECT COUNT(*) FROM pg_stat_activity WHERE datname = current_database()) as active_connections,
     (SELECT COUNT(*) FROM pg_stat_activity WHERE state = 'idle' AND datname = current_database()) as idle_connections,
-    
+
     -- Health
     NOW() as current_time;
 

@@ -4,7 +4,7 @@
 
 -- Presence tracking
 CREATE TABLE IF NOT EXISTS user_presence (
-    user_id UUID REFERENCES users(id),
+    user_id UUID REFERENCES users(user_id),
     tenant_id UUID REFERENCES tenants(tenant_id),
     current_page TEXT,
     last_seen_at TIMESTAMPTZ DEFAULT NOW(),
@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS user_presence (
 CREATE TABLE IF NOT EXISTS collaborative_cursors (
     id BIGSERIAL PRIMARY KEY,
     document_id TEXT NOT NULL,
-    user_id UUID REFERENCES users(id),
+    user_id UUID REFERENCES users(user_id),
     cursor_position JSONB,
     selection_range JSONB,
     updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS collaborative_cursors (
 -- Document locks
 CREATE TABLE IF NOT EXISTS document_locks (
     document_id TEXT PRIMARY KEY,
-    user_id UUID REFERENCES users(id),
+    user_id UUID REFERENCES users(user_id),
     lock_type TEXT CHECK (lock_type IN ('edit', 'view', 'comment')),
     acquired_at TIMESTAMPTZ DEFAULT NOW(),
     expires_at TIMESTAMPTZ

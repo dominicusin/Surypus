@@ -1,5 +1,8 @@
 -- V309__rbac_canonical_finalization_logging.sql
--- Create a simple log for canonicalization runs to aid observability
+-- Create a simple log for canonicalization runs to aid observability.
+-- Ensure the rbac schema exists (idempotent).
+CREATE SCHEMA IF NOT EXISTS rbac;
+
 DO $$
 BEGIN
   -- Create log table if missing

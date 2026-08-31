@@ -2,19 +2,19 @@
 -- Original files: V105__idx_event_store_agg_ver.sql, V105__rbac_finalize.sql
 
 -- Event store aggregation index
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_event_store_agg_ver ON event_store (
+CREATE INDEX IF NOT EXISTS idx_event_store_agg_ver ON event_store (
     aggregate_id,
     aggregate_type,
-    version
+    event_version
 );
 
 -- RBAC Finalize: Add remaining permissions and roles for complete coverage
 DO $$ BEGIN
     -- Ensure core permissions exist
-    INSERT INTO permissions (code, description) VALUES 
-        ('accounting_view', 'View accounting records'),
-        ('accounting_edit', 'Edit accounting records')
-    ON CONFLICT (code) DO NOTHING;
+    INSERT INTO permissions (name, code, description) VALUES
+        ('accounting_view', 'accounting_view', 'View accounting records'),
+        ('accounting_edit', 'accounting_edit', 'Edit accounting records')
+    ON CONFLICT (name) DO NOTHING;
     
     -- Grant to admin role if exists
     IF EXISTS (SELECT 1 FROM roles WHERE name = 'admin') THEN

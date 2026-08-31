@@ -21,6 +21,7 @@ VALUES
 ON CONFLICT (query_pattern) DO NOTHING;
 
 -- Query plan analyzer
+DROP FUNCTION IF EXISTS analyze_query_plan(p_sql TEXT);
 CREATE OR REPLACE FUNCTION analyze_query_plan(
     p_sql TEXT
 ) RETURNS TABLE(
@@ -49,6 +50,7 @@ CREATE TABLE IF NOT EXISTS slow_query_log (
 );
 
 -- Log slow query
+DROP FUNCTION IF EXISTS log_slow_query(p_query TEXT, p_execution_time NUMERIC);
 CREATE OR REPLACE FUNCTION log_slow_query(
     p_query TEXT,
     p_execution_time NUMERIC
@@ -69,6 +71,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Get slow queries
+DROP FUNCTION IF EXISTS get_slow_queries(INT);
 CREATE OR REPLACE FUNCTION get_slow_queries(p_limit INT DEFAULT 10)
 RETURNS TABLE(query_text TEXT, call_count INT, avg_time NUMERIC, total_time NUMERIC) AS $$
 BEGIN

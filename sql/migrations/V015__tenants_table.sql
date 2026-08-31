@@ -1,6 +1,7 @@
 -- Multi-Tenant: Tenants table
 CREATE TABLE IF NOT EXISTS tenants (
   id BIGSERIAL PRIMARY KEY,
+  tenant_id UUID UNIQUE,
   name TEXT NOT NULL,
   slug TEXT NOT NULL UNIQUE,
   schema_name TEXT NOT NULL DEFAULT 'public',

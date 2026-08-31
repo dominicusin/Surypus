@@ -1,16 +1,17 @@
 -- Lock monitoring view
 CREATE OR REPLACE VIEW v_active_locks AS
-SELECT 
-    pg.blocking_locks.locktype,
-    pg.blocking_locks.relation::regclass as table_name,
-    pg.blocking_locks.mode,
-    pg.blocking_locks.granted,
-    pg.blocking_locks.pid,
-    pg.blocking_locks.username,
-    pg.blocking_locks.query
-FROM pg_locks pg
-WHERE NOT pg.locksrelation IS NULL
-ORDER BY pg.blocking_locks.granted, pg.blocking_locks.pid;
+SELECT
+    l.locktype,
+    l.relation::regclass as table_name,
+    l.mode,
+    l.granted,
+    l.pid,
+    a.usename as username,
+    a.query
+FROM pg_locks l
+LEFT JOIN pg_stat_activity a ON a.pid = l.pid
+WHERE l.relation IS NOT NULL
+ORDER BY l.granted, l.pid;
 
 -- Long-running query detection
 CREATE OR REPLACE VIEW v_long_queries AS
@@ -35,7 +36,7 @@ CREATE OR REPLACE FUNCTION set_transaction_timeout(
     p_timeout_ms INT DEFAULT 30000
 ) RETURNS VOID AS $$
 BEGIN
-    SET LOCAL statement_timeout = p_timeout_ms || 'ms';
+    SET LOCAL statement_timeout = p_timeout_ms;
 END;
 $$ LANGUAGE plpgsql;
 

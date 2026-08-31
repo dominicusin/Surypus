@@ -5,7 +5,7 @@
 -- Data classification
 CREATE TABLE IF NOT EXISTS data_classifications (
     id SERIAL PRIMARY KEY,
-    classification_level TEXT CHECK (classification_level IN ('public', 'internal', 'confidential', 'restricted')) NOT NULL,
+    classification_level TEXT CHECK (classification_level IN ('public', 'internal', 'confidential', 'restricted')) NOT NULL UNIQUE,
     description TEXT,
     color_code VARCHAR(7)
 );

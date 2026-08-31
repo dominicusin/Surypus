@@ -43,6 +43,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Get slow queries
+DROP FUNCTION IF EXISTS get_slow_queries(INTEGER);
 CREATE OR REPLACE FUNCTION get_slow_queries(p_min_avg_ms INT DEFAULT 1000)
 RETURNS TABLE(query_template TEXT, avg_time_ms NUMERIC, execution_count BIGINT) AS $$
 BEGIN

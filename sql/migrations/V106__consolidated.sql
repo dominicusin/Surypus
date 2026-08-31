@@ -2,7 +2,7 @@
 -- Original files: V106__idx_event_store_tenant_seq.sql, V106__partition_enforcement.sql
 
 -- Event store tenant sequence index
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_event_store_tenant_seq ON event_store (
+CREATE INDEX IF NOT EXISTS idx_event_store_tenant_seq ON event_store (
     tenant_id,
     sequence_number
 );
@@ -18,6 +18,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS audit_log_partition_trigger ON audit_log;
 CREATE TRIGGER audit_log_partition_trigger
     BEFORE INSERT ON audit_log
     FOR EACH ROW EXECUTE FUNCTION audit_log_partition_check();

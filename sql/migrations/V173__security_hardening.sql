@@ -19,8 +19,8 @@ BEGIN
     INSERT INTO ddl_audit_log (operation, object_type, object_name, session_info)
     VALUES (
         TG_TAG,
-        TG_OBJECT_TYPE,
-        COALESCE(TG_RELNAME, TG_TABLE_NAME),
+        TG_TAG,
+        NULL,
         jsonb_build_object(
             'current_user', current_user,
             'application_name', current_setting('application_name', TRUE),
@@ -30,6 +30,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP EVENT TRIGGER IF EXISTS audit_ddl_trigger;
 CREATE EVENT TRIGGER audit_ddl_trigger
 ON DDL_COMMAND_END
 EXECUTE FUNCTION audit_ddl();

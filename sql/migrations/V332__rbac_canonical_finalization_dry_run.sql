@@ -7,12 +7,12 @@ DECLARE
     cnt INTEGER;
 BEGIN
     FOR t IN
-        SELECT table_schema, table_name
+        SELECT c1.table_schema, c1.table_name
         FROM information_schema.columns c1
         JOIN information_schema.columns c2 ON c1.table_schema = c2.table_schema AND c1.table_name = c2.table_name
           AND c1.column_name = 'path' AND c2.column_name = 'canonical_path'
         WHERE c1.table_schema = 'rbac'
-        GROUP BY table_schema, table_name
+        GROUP BY c1.table_schema, c1.table_name
         HAVING SUM(CASE WHEN column_name = 'path' THEN 1 ELSE 0 END) > 0
            AND SUM(CASE WHEN column_name = 'canonical_path' THEN 1 ELSE 0 END) > 0
     LOOP

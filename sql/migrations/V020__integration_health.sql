@@ -20,9 +20,9 @@ CREATE TABLE IF NOT EXISTS integration_health (
 );
 
 -- Index for quick health status queries
-CREATE INDEX idx_integration_health_tenant_adapter ON integration_health(tenant_id, adapter_type);
-CREATE INDEX idx_integration_health_status ON integration_health(status);
-CREATE INDEX idx_integration_health_failure_count ON integration_health(failure_count);
+CREATE INDEX IF NOT EXISTS idx_integration_health_tenant_adapter ON integration_health(tenant_id, adapter_type);
+CREATE INDEX IF NOT EXISTS idx_integration_health_status ON integration_health(status);
+CREATE INDEX IF NOT EXISTS idx_integration_health_failure_count ON integration_health(failure_count);
 
 -- Function to update health on successful integration
 CREATE OR REPLACE FUNCTION record_integration_success(
@@ -129,6 +129,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS integration_health_updated_at_trigger ON integration_health;
 CREATE TRIGGER integration_health_updated_at_trigger
     BEFORE UPDATE ON integration_health
     FOR EACH ROW

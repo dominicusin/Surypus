@@ -43,6 +43,7 @@ CREATE OR REPLACE FUNCTION validate_contract(
 DECLARE
     v_contract RECORD;
     v_valid BOOLEAN := TRUE;
+    rec RECORD;
 BEGIN
     SELECT * INTO v_contract FROM data_contracts WHERE contract_name = p_contract_name AND is_active = TRUE;
     
@@ -51,12 +52,12 @@ BEGIN
     END IF;
     
     -- Simplified validation - check required fields
-    FOR key, value IN SELECT * FROM jsonb_each_text(v_contract.schema->'required')
+    FOR rec IN SELECT key, value FROM jsonb_each_text(v_contract.schema->'required')
     LOOP
-        IF NOT (p_data ? key) THEN
+        IF NOT (p_data ? rec.key) THEN
             v_valid := FALSE;
             INSERT INTO contract_violations (contract_id, record_id, violation_type, violation_details)
-            VALUES (v_contract.id, NULL, 'missing_field', jsonb_build_object('field', key));
+            VALUES (v_contract.id, NULL, 'missing_field', jsonb_build_object('field', rec.key));
         END IF;
     END LOOP;
     

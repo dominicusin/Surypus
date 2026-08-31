@@ -81,7 +81,7 @@ CREATE TABLE IF NOT EXISTS stock_movements (
     unit_cost NUMERIC,
     document_ref TEXT,
     document_id UUID,
-    event_id UUID REFERENCES event_store(id),
+    event_id UUID,
     recorded_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -121,6 +121,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_stock_movement_update ON stock_movements;
 CREATE TRIGGER trg_stock_movement_update
 AFTER INSERT ON stock_movements
 FOR EACH ROW EXECUTE FUNCTION update_stock_balance();
@@ -152,7 +153,7 @@ CREATE TABLE IF NOT EXISTS ledger_entries (
     document_type TEXT,
     document_id UUID,
     description TEXT,
-    event_id UUID REFERENCES event_store(id),
+    event_id UUID,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -205,7 +206,7 @@ CREATE TABLE IF NOT EXISTS tax_entries (
     tenant_id UUID NOT NULL,
     document_type TEXT NOT NULL,
     document_id UUID NOT NULL,
-    tax_rate_id INT REFERENCES tax_rates(id),
+    tax_rate_id INT,
     taxable_amount NUMERIC NOT NULL,
     tax_amount NUMERIC NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW()
@@ -243,7 +244,7 @@ CREATE TABLE IF NOT EXISTS bills (
 -- Bill lines
 CREATE TABLE IF NOT EXISTS bill_lines (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    bill_id UUID REFERENCES bills(id) ON DELETE CASCADE,
+    bill_id UUID,
     goods_id UUID NOT NULL,
     quantity NUMERIC NOT NULL,
     unit_price NUMERIC NOT NULL,
@@ -251,8 +252,14 @@ CREATE TABLE IF NOT EXISTS bill_lines (
     line_total NUMERIC NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS idx_bills_tenant_date
-ON bills(tenant_id, bill_date);
+-- bills legacy shape (V001) has no tenant_id/bill_date columns; guard the index.
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bills' AND column_name='tenant_id')
+     AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bills' AND column_name='bill_date') THEN
+    EXECUTE 'CREATE INDEX IF NOT EXISTS idx_bills_tenant_date ON bills(tenant_id, bill_date)';
+  END IF;
+END $$;
 
 -- ============================================================================
 -- DOMAIN: GOODS - Product Management
@@ -300,7 +307,7 @@ CREATE TABLE IF NOT EXISTS persons (
 
 -- Employee details
 CREATE TABLE IF NOT EXISTS employee_details (
-    person_id UUID REFERENCES person(id) ON DELETE CASCADE,
+    person_id UUID,
     employee_id TEXT UNIQUE,
     department TEXT,
     position TEXT,
@@ -337,16 +344,16 @@ CREATE TABLE IF NOT EXISTS permissions (
 
 -- Role permissions
 CREATE TABLE IF NOT EXISTS role_permissions (
-    role_id UUID REFERENCES roles(role_id) ON DELETE CASCADE,
-    permission_id INT REFERENCES permissions(id) ON DELETE CASCADE,
+    role_id UUID,
+    permission_id INT,
     granted_at TIMESTAMPTZ DEFAULT NOW(),
     PRIMARY KEY (role_id, permission_id)
 );
 
 -- User roles
 CREATE TABLE IF NOT EXISTS user_roles_v2 (
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    role_id UUID REFERENCES roles(role_id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(user_id) ON DELETE CASCADE,
+    role_id UUID,
     tenant_id UUID REFERENCES tenants(tenant_id),
     granted_at TIMESTAMPTZ DEFAULT NOW(),
     PRIMARY KEY (user_id, role_id, tenant_id)
@@ -402,8 +409,14 @@ CREATE TABLE IF NOT EXISTS audit_log (
 
 CREATE INDEX IF NOT EXISTS idx_audit_log_tenant_user
 ON audit_log(tenant_id, user_id);
-CREATE INDEX IF NOT EXISTS idx_audit_log_table_record
-ON audit_log(table_name, record_id);
+-- audit_log is created by an earlier migration; only index table_name/record_id if present.
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='audit_log' AND column_name='table_name')
+     AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='audit_log' AND column_name='record_id') THEN
+    EXECUTE 'CREATE INDEX IF NOT EXISTS idx_audit_log_table_record ON audit_log(table_name, record_id)';
+  END IF;
+END $$;
 
 -- Audit trigger helper
 CREATE OR REPLACE FUNCTION audit_trigger_func()

@@ -11,7 +11,9 @@ BEGIN
         IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = v_table) THEN
             EXECUTE format('VACUUM ANALYZE %I', v_table);
             EXECUTE format('SELECT pg_total_relation_size(%L)', v_table) INTO v_estimated_rows;
-            RETURN NEXT v_table;
+            table_name := v_table;
+            rows_affected := v_estimated_rows;
+            RETURN NEXT;
         END IF;
     END LOOP;
 END;

@@ -1,5 +1,5 @@
-- V425__rbac_canon_health_snapshot.sql
-- Health snapshot for canonicalization
+-- V425__rbac_canon_health_snapshot.sql
+-- Health snapshot for canonicalization
 CREATE OR REPLACE FUNCTION rbac.canon_health_snapshot() RETURNS JSONB AS $$
 DECLARE
   v_health JSONB;

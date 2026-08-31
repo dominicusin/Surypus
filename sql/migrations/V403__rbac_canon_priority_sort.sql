@@ -1,6 +1,6 @@
 -- V403__rbac_canon_priority_sort.sql
 -- Ensure the canonical queue dequeue uses priority ordering when selecting items
-CREATE OR REPLACE FUNCTION rbac.dequeue_canon_batch_priority(_limit INT) RETURNS TABLE (id BIGINT, table_schema TEXT, table_name TEXT) AS $$
+CREATE OR REPLACE FUNCTION rbac.dequeue_canon_batch_priority(_limit INT) RETURNS TABLE (id BIGINT, schema_name TEXT, table_name TEXT) AS $$
 BEGIN
   RETURN QUERY
   SELECT id, table_schema, table_name

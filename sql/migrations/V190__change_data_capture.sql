@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS cdc_log (
     id BIGSERIAL PRIMARY KEY,
     lsn pg_lsn,
     txid BIGINT,
-    timestamp TIMESTAMPTZ NOT NULL,
+    captured_at TIMESTAMPTZ NOT NULL,
     operation TEXT NOT NULL,
     old_data JSONB,
     new_data JSONB,
@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS cdc_log (
 -- Create trigger for CDC
 CREATE OR REPLACE FUNCTION cdc_capture() RETURNS TRIGGER AS $$
 BEGIN
-    INSERT INTO cdc_log (txid, timestamp, operation, old_data, new_data, table_name, primary_key)
+    INSERT INTO cdc_log (txid, captured_at, operation, old_data, new_data, table_name, primary_key)
     VALUES (
         txid_current(),
         NOW(),
@@ -53,7 +53,7 @@ CREATE OR REPLACE FUNCTION cdc_get_changes(
     table_name TEXT,
     old_data JSONB,
     new_data JSONB,
-    timestamp TIMESTAMPTZ
+    captured_at TIMESTAMPTZ
 ) AS $$
 DECLARE
     v_last_lsn pg_lsn;
@@ -61,7 +61,7 @@ BEGIN
     SELECT last_lsn INTO v_last_lsn FROM cdc_consumer_offset WHERE consumer_group = p_consumer_group;
     
     RETURN QUERY
-    SELECT cdc.id, cdc.operation, cdc.table_name, cdc.old_data, cdc.new_data, cdc.timestamp
+    SELECT cdc.id, cdc.operation, cdc.table_name, cdc.old_data, cdc.new_data, cdc.captured_at
     FROM cdc_log cdc
     WHERE v_last_lsn IS NULL OR cdc.lsn > v_last_lsn
     ORDER BY cdc.lsn

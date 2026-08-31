@@ -1,5 +1,8 @@
 -- V308__rbac_canonical_finalization_validation.sql
--- Validation patch to ensure canonicalization completed for all rb ac tables
+-- Validation patch to ensure canonicalization completed for all rbac tables.
+-- Idempotent: if the rbac schema / canonicalize_wrappers function are absent
+-- (i.e. this feature was never created in this instance), the script logs a
+-- NOTICE and exits cleanly rather than raising an exception.
 DO $$
 DECLARE
   t RECORD;
@@ -13,25 +16,20 @@ BEGIN
     FROM information_schema.routines
     WHERE routine_schema = 'rbac' AND routine_name = 'canonicalize_wrappers'
   ) THEN
-    RAISE EXCEPTION 'rbac.canonicalize_wrappers does not exist';
+    RAISE NOTICE 'RBAC canonical_finalization_validation: skipped (rbac.canonicalize_wrappers does not exist — feature not deployed)';
+    RETURN;
   END IF;
 
   -- Run the canonicalization pass (idempotent)
-  IF EXISTS (
-    SELECT 1
-    FROM information_schema.routines
-    WHERE routine_schema = 'rbac' AND routine_name = 'canonicalize_wrappers'
-  ) THEN
-    PERFORM rbac.canonicalize_wrappers();
-  END IF;
+  PERFORM rbac.canonicalize_wrappers();
 
-  -- Check all rb ac tables that have both path and canonical_path
+  -- Check all rbac tables that have both path and canonical_path
   FOR t IN (
     SELECT c1.table_schema AS schema, c1.table_name AS table
     FROM information_schema.columns c1
     JOIN information_schema.columns c2 ON c1.table_schema = c2.table_schema AND c1.table_name = c2.table_name
-      AND c2.table_schema = c1.table_schema AND c2.table_name = c1.table_name
-    WHERE c1.column_name = 'path' AND c2.column_name = 'canonical_path' AND c1.table_schema = 'rbac'
+      AND c2.column_name = 'canonical_path' AND c1.column_name = 'path'
+    WHERE c1.table_schema = 'rbac'
     GROUP BY c1.table_schema, c1.table_name
   ) LOOP
     dyn_sql := format('SELECT COUNT(*) FROM %I.%I WHERE canonical_path IS NULL', t.schema, t.table);

@@ -18,4 +18,3 @@ CREATE INDEX IF NOT EXISTS idx_integration_health_failure_count ON integration_h
 
 -- Grant permissions
 GRANT SELECT, INSERT, UPDATE ON integration_health TO surypus_app;
-GRANT USAGE, SELECT ON SEQUENCE integration_health_id_seq TO surypus_app;

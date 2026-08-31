@@ -13,7 +13,7 @@ DECLARE
     v_projection_count BIGINT;
 BEGIN
     -- Check event_store exists
-    IF NOT safe_table_exists('event_store') THEN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'event_store') THEN
         RAISE EXCEPTION 'event_store table is missing';
     END IF;
 
@@ -116,13 +116,14 @@ SELECT
     jsonb_build_object(
         'count', (SELECT COUNT(*) FROM pg_tables WHERE schemaname = 'public'),
         'tables', (
-            SELECT jsonb_agg(row_to_json(t))
+            SELECT jsonb_agg(row_to_json(x))
             FROM (
-                SELECT tablename, 
-                       (SELECT COUNT(*) FROM pg_stat_user_tables WHERE relname = t.tablename) AS row_count
-                FROM pg_tables WHERE schemaname = 'public'
-                ORDER BY tablename
-            ) t
+                SELECT p.tablename, COALESCE(s.n_live_tup, 0) AS row_count
+                FROM pg_tables p
+                LEFT JOIN pg_stat_user_tables s ON s.relname = p.tablename
+                WHERE p.schemaname = 'public'
+                ORDER BY p.tablename
+            ) x
         )
     ) AS details
 ON CONFLICT (section) DO UPDATE SET details = EXCLUDED.details;
@@ -140,6 +141,13 @@ SELECT
         )
     ) AS details
 ON CONFLICT (section) DO UPDATE SET details = EXCLUDED.details;
+
+-- Ensure schema_migrations tracking table exists (idempotent)
+CREATE TABLE IF NOT EXISTS schema_migrations (
+    version TEXT PRIMARY KEY,
+    applied_at TIMESTAMPTZ DEFAULT NOW(),
+    description TEXT
+);
 
 -- Document migrations status
 INSERT INTO system_documentation (section, description, details)

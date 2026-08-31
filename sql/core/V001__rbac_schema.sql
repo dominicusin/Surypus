@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS api_keys (
     key_id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id           UUID NOT NULL REFERENCES tenants(tenant_id),
-    user_id             UUID REFERENCES users(id),
+    user_id             UUID REFERENCES users(user_id),
     key_hash            TEXT NOT NULL,
     key_name            TEXT,
     scopes              TEXT[] DEFAULT '{}',
@@ -103,7 +103,7 @@ CREATE TABLE IF NOT EXISTS user_roles (
     user_id             UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     role_id             UUID NOT NULL REFERENCES roles(role_id) ON DELETE CASCADE,
     tenant_id           UUID REFERENCES tenants(tenant_id),  -- NULL = global role
-    granted_by          UUID REFERENCES users(id),
+    granted_by          UUID REFERENCES users(user_id),
     expires_at          TIMESTAMP WITH TIME ZONE,
     created_at          TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     

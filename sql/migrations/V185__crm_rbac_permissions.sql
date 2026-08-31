@@ -5,12 +5,12 @@ INSERT INTO permissions (code, name, description) VALUES
   ('crm.contacts.read',    'CRM: View contacts',       'Read access to CRM contacts'),
   ('crm.contacts.write',   'CRM: Manage contacts',     'Create/update/delete CRM contacts'),
   ('crm.companies.read',   'CRM: View companies',      'Read access to CRM companies'),
-  ('crm.companies.write',  'CRM: Manage companies',    'Create/update/delete CRM companies'),
+  ('crm.companies.write',   'CRM: Manage companies',    'Create/update/delete CRM companies'),
   ('crm.deals.read',       'CRM: View deals',          'Read access to CRM deals and pipeline'),
-  ('crm.deals.write',      'CRM: Manage deals',        'Create/update/delete CRM deals'),
-  ('crm.pipeline.manage',  'CRM: Manage pipeline',     'Configure pipeline stages and rules'),
+  ('crm.deals.write',       'CRM: Manage deals',        'Create/update/delete CRM deals'),
+  ('crm.pipeline.manage',  'CRM: Manage pipeline',      'Configure pipeline stages and rules'),
   ('crm.activities.write', 'CRM: Log activities',      'Create activities on contacts and deals')
-ON CONFLICT (code) DO NOTHING;
+ON CONFLICT (name) DO NOTHING;
 
 -- Assign all CRM permissions to the 'sales' role (create if missing)
 INSERT INTO roles (name, description) VALUES

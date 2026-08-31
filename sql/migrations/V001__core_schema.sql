@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS rbac_canon_perms (
 -- Users and Roles
 CREATE TABLE IF NOT EXISTS users (
   id BIGINT PRIMARY KEY DEFAULT NEXTVAL('users_id_seq'),
+  user_id UUID UNIQUE,
   username TEXT UNIQUE NOT NULL,
   password_hash TEXT NOT NULL,
   email TEXT,

@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS healing_rules (
 -- Register healing rules
 INSERT INTO healing_rules (condition_type, condition_pattern, action_type, action_definition)
 VALUES 
-    ('query_timeout', '> 30000', 'index_recommend', '{"action": "CREATE INDEX CONCURRENTLY"}'::JSONB),
+    ('query_timeout', '> 30000', 'index_recommend', '{"action": "CREATE INDEX"}'::JSONB),
     ('connection_saturation', '> 80%', 'connection_cleanup', '{"action": "kill_idle_connections"}'::JSONB)
 ON CONFLICT DO NOTHING;
 

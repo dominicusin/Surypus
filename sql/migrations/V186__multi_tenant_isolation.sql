@@ -4,7 +4,7 @@
 
 -- Tenant isolation levels
 CREATE TABLE IF NOT EXISTS tenant_isolation_levels (
-    tenant_id UUID PRIMARY KEY REFERENCES tenants(tenant_id),
+    tenant_id UUID PRIMARY KEY,
     isolation_level TEXT CHECK (isolation_level IN ('shared', 'schema', 'database')) DEFAULT 'shared',
     dedicated_resources BOOLEAN DEFAULT FALSE,
     max_connections INT DEFAULT 100,
@@ -29,7 +29,7 @@ $$ LANGUAGE plpgsql;
 
 -- Tenant resource usage
 CREATE TABLE IF NOT EXISTS tenant_resource_usage (
-    tenant_id UUID REFERENCES tenants(tenant_id),
+    tenant_id UUID,
     period_start TIMESTAMP WITH TIME ZONE,
     period_end TIMESTAMP WITH TIME ZONE,
     connections_used INT DEFAULT 0,

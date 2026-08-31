@@ -2,19 +2,18 @@
 -- Materialized Views for Common Queries
 -- ============================================================================
 
--- Tenant summary MV
+-- Tenant summary MV (aggregates directly over event_store/aggregates tenant_id,
+-- which are UUID; tenants.id is BIGINT so we do not join the tenants table here)
 CREATE MATERIALIZED VIEW IF NOT EXISTS mv_tenant_summary AS
-SELECT 
-    t.tenant_id,
-    t.tenant_name,
+SELECT
+    a.tenant_id,
     COUNT(DISTINCT a.aggregate_id) as aggregates,
     COUNT(e.event_id) as total_events,
     MAX(e.created_at) as last_event,
     COUNT(DISTINCT CASE WHEN e.created_at > NOW() - INTERVAL '24 hours' THEN e.aggregate_id END) as active_24h
-FROM tenants t
-LEFT JOIN aggregates a ON a.tenant_id = t.tenant_id
-LEFT JOIN event_store e ON e.tenant_id = t.tenant_id
-GROUP BY t.tenant_id, t.tenant_name;
+FROM aggregates a
+LEFT JOIN event_store e ON e.tenant_id = a.tenant_id
+GROUP BY a.tenant_id;
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_mv_tenant_summary ON mv_tenant_summary(tenant_id);
 

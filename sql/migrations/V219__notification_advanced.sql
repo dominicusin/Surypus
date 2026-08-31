@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS notification_templates (
 
 -- Notification preferences
 CREATE TABLE IF NOT EXISTS user_notification_prefs (
-    user_id UUID REFERENCES users(id),
+    user_id UUID REFERENCES users(user_id),
     channel TEXT,
     enabled BOOLEAN DEFAULT TRUE,
     quiet_hours_start TIME,
@@ -41,6 +41,7 @@ DECLARE
     v_title TEXT;
     v_body TEXT;
     v_notification_id BIGINT;
+    rec RECORD;
 BEGIN
     SELECT * INTO v_template FROM notification_templates 
     WHERE template_name = p_template_name AND is_active = TRUE;
@@ -54,10 +55,10 @@ BEGIN
     v_body := v_template.body_template;
     
     -- Replace variables (simplified)
-    FOR key, value IN SELECT * FROM jsonb_each_text(p_variables)
+    FOR rec IN SELECT key, value FROM jsonb_each_text(p_variables)
     LOOP
-        v_title := replace(v_title, '{{' || key || '}}', value);
-        v_body := replace(v_body, '{{' || key || '}}', value);
+        v_title := replace(v_title, '{{' || rec.key || '}}', rec.value);
+        v_body := replace(v_body, '{{' || rec.key || '}}', rec.value);
     END LOOP;
     
     -- Get user preferences

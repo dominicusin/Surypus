@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS metrics_aggregation (
 
 -- Index for time-series queries
 CREATE INDEX IF NOT EXISTS idx_metrics_time ON metrics_aggregation(time_bucket DESC, metric_name);
-CREATE INDEX IF NOT EXISTS idx_metrics_labels ON metrics_aggregation((metric_labels->>tenant_id), metric_name);
+CREATE INDEX IF NOT EXISTS idx_metrics_labels ON metrics_aggregation((metric_labels->>'tenant_id'), metric_name);
 
 -- Record metric
 CREATE OR REPLACE FUNCTION metrics_record(

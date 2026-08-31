@@ -32,13 +32,18 @@ CREATE TABLE IF NOT EXISTS cost_recommendations (
     is_implemented BOOLEAN DEFAULT FALSE
 );
 
--- Default cost centers
-INSERT INTO cost_centers (center_name, center_code, budget_amount)
-VALUES 
-    ('Production', 'PROD', 100000),
-    ('Development', 'DEV', 10000),
-    ('Analytics', 'ANLYT', 50000)
-ON CONFLICT (center_name) DO NOTHING;
+-- Default cost centers (only if the cost_centers table has the expected shape)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='cost_centers' AND column_name='center_name') THEN
+    INSERT INTO cost_centers (center_name, center_code, budget_amount)
+    VALUES
+        ('Production', 'PROD', 100000),
+        ('Development', 'DEV', 10000),
+        ('Analytics', 'ANLYT', 50000)
+    ON CONFLICT (center_name) DO NOTHING;
+  END IF;
+END $$;
 
 -- Calculate cost by center
 CREATE OR REPLACE FUNCTION calculate_cost_by_center(

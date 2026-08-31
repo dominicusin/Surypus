@@ -15,12 +15,16 @@ CREATE OR REPLACE FUNCTION compress_old_events(
 DECLARE
     v_compressed INT := 0;
 BEGIN
-    -- Move old events to compressed table
+    -- Move old events to compressed table (DELETE has no LIMIT; use a subquery)
     WITH compressed AS (
         DELETE FROM event_store
-        WHERE created_at < p_before_date
-          AND event_id NOT IN (SELECT event_id FROM aggregate_snapshots)
-        LIMIT p_batch_size
+        WHERE ctid IN (
+            SELECT ctid FROM event_store
+            WHERE created_at < p_before_date
+              AND event_id NOT IN (SELECT event_id FROM aggregate_snapshots)
+            ORDER BY created_at
+            LIMIT p_batch_size
+        )
         RETURNING *
     )
     INSERT INTO event_store_compressed

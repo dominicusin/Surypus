@@ -3,7 +3,7 @@
 CREATE OR REPLACE FUNCTION rbac.list_can_path_tables() RETURNS TABLE(schema_name text, table_name text) AS $$
 BEGIN
   RETURN QUERY
-  SELECT c1.table_schema AS schema_name, c1.table_name AS table_name
+  SELECT c1.table_schema::text AS schema_name, c1.table_name::text AS table_name
   FROM information_schema.columns c1
   JOIN information_schema.columns c2
     ON c1.table_schema = c2.table_schema AND c1.table_name = c2.table_name

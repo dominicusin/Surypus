@@ -13,15 +13,15 @@ CREATE TABLE IF NOT EXISTS query_whitelist (
 );
 
 -- Default allowed patterns
-INSERT INTO query_whitelist (query_template, description, is_enabled)
-VALUES 
-    ('SELECT * FROM event_store WHERE aggregate_id = %', 'Event store by aggregate', TRUE),
-    ('SELECT * FROM event_store WHERE tenant_id = %', 'Event store by tenant', TRUE),
-    ('SELECT * FROM aggregates WHERE tenant_id = %', 'Aggregates by tenant', TRUE),
-    ('SELECT COUNT(*) FROM %', 'Count queries', TRUE),
-    ('INSERT INTO event_store%', 'Event append', TRUE),
-    ('UPDATE aggregates SET%', 'Aggregate update', TRUE)
-ON CONFLICT (query_template) DO NOTHING;
+INSERT INTO query_whitelist (query_hash, query_template, description, is_enabled)
+VALUES
+    (md5('SELECT * FROM event_store WHERE aggregate_id = %'), 'SELECT * FROM event_store WHERE aggregate_id = %', 'Event store by aggregate', TRUE),
+    (md5('SELECT * FROM event_store WHERE tenant_id = %'), 'SELECT * FROM event_store WHERE tenant_id = %', 'Event store by tenant', TRUE),
+    (md5('SELECT * FROM aggregates WHERE tenant_id = %'), 'SELECT * FROM aggregates WHERE tenant_id = %', 'Aggregates by tenant', TRUE),
+    (md5('SELECT COUNT(*) FROM %'), 'SELECT COUNT(*) FROM %', 'Count queries', TRUE),
+    (md5('INSERT INTO event_store%'), 'INSERT INTO event_store%', 'Event append', TRUE),
+    (md5('UPDATE aggregates SET%'), 'UPDATE aggregates SET%', 'Aggregate update', TRUE)
+ON CONFLICT (query_hash) DO NOTHING;
 
 -- Validate query against whitelist
 CREATE OR REPLACE FUNCTION validate_query_allowed(

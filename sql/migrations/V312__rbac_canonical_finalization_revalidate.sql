@@ -11,12 +11,12 @@ BEGIN
   END IF;
   -- Post-check: ensure no NULL canonical_path remain in rbac paths
   FOR t IN (
-    SELECT table_schema, table_name
+    SELECT c1.table_schema, c1.table_name
     FROM information_schema.columns c1
     JOIN information_schema.columns c2 ON c1.table_schema = c2.table_schema AND c1.table_name = c2.table_name
       AND c1.column_name = 'path' AND c2.column_name = 'canonical_path'
     WHERE c1.table_schema = 'rbac'
-    GROUP BY table_schema, table_name
+    GROUP BY c1.table_schema, c1.table_name
   ) LOOP
     EXECUTE format('SELECT COUNT(*) FROM %I.%I WHERE canonical_path IS NULL', t.table_schema, t.table_name) INTO cnt;
     IF cnt > 0 THEN

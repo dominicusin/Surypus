@@ -39,8 +39,8 @@ $$ LANGUAGE plpgsql;
 
 -- Tenant replication status
 CREATE TABLE IF NOT EXISTS tenant_replication (
-    source_tenant_id UUID REFERENCES tenants(tenant_id),
-    target_tenant_id UUID REFERENCES tenants(tenant_id),
+    source_tenant_id UUID,
+    target_tenant_id UUID,
     replication_type TEXT CHECK (replication_type IN ('full', 'incremental', 'snapshot')),
     status TEXT CHECK (status IN ('idle', 'syncing', 'synced', 'error')),
     last_sync_at TIMESTAMPTZ,

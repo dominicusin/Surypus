@@ -1,6 +1,6 @@
 -- V367__rbac_self_heal_incremental.sql
 -- Incremental self-heal: fix a subset of tables instead of all
-CREATE OR REPLACE FUNCTION rbac.self_heal_incremental(_limit INTEGER DEFAULT 5) RETURNS VOID AS $${
+CREATE OR REPLACE FUNCTION rbac.self_heal_incremental(_limit INTEGER DEFAULT 5) RETURNS VOID AS $$
 DECLARE
   rec RECORD;
   updated INTEGER;

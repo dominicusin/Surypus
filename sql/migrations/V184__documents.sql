@@ -11,4 +11,3 @@ CREATE TABLE IF NOT EXISTS documents (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TYPE doc_status AS ENUM ('draft', 'finalized', 'archived');

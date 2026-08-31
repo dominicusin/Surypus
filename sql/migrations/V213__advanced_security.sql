@@ -5,7 +5,7 @@
 -- Session management
 CREATE TABLE IF NOT EXISTS active_sessions (
     session_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES users(id),
+    user_id UUID REFERENCES users(user_id),
     tenant_id UUID REFERENCES tenants(tenant_id),
     ip_address INET,
     user_agent TEXT,

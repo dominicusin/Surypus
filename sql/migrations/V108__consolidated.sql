@@ -1,18 +1,20 @@
 -- Migration V108: Consolidated projection FIFO aggregation and RBAC seed unify
 -- Original files: V108__projection_fifo_agg_index.sql, V108__rbac_seed_unify.sql
 
--- Projection FIFO Aggregation Index
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_projection_fifo_agg ON projection_fifo (
-    tenant_id,
-    created_at DESC
-);
+-- Projection FIFO Aggregation Index (guarded: projection table is projection_fifo_lots)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'projection_fifo_lots') THEN
+    EXECUTE 'CREATE INDEX IF NOT EXISTS idx_projection_fifo_agg ON projection_fifo_lots (goods_id, location_id)';
+  END IF;
+END $$;
 
 -- RBAC Seed Unify v2 (different approach from v1)
 DO $$ BEGIN
     -- Ensure permissions exist
-    INSERT INTO permissions (code, description)
-    SELECT pm.permission_code, pm.description
-    FROM (VALUES 
+    INSERT INTO permissions (name, code, description)
+    SELECT pm.permission_code, pm.permission_code, pm.description
+    FROM (VALUES
         ('read_basic', 'Read basic data'),
         ('write_basic', 'Write basic data'),
         ('admin_all', 'Full admin access')

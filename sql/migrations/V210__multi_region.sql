@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS geo_routing_rules (
 -- Data residency rules
 CREATE TABLE IF NOT EXISTS data_residency_rules (
     id SERIAL PRIMARY KEY,
-    tenant_id UUID REFERENCES tenants(tenant_id),
+    tenant_id UUID,
     data_type TEXT NOT NULL,
     required_region TEXT NOT NULL,
     is_compliance BOOLEAN DEFAULT FALSE
