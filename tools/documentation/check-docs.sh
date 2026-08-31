@@ -1,5 +1,6 @@
 #!/everything/bin/bash
 export PATH="$HOME/.local/bin:/nix/store/521dd0054ifhzmjfmpx9mz0hr7wh7sig-glibc-2.42-67-bin/sbin:/tmp/ldconfig-bin:/nix/store/bidxnrja5lch12iscmz8qf24v1b07gzr-ghc-9.10.3/bin:/guix/current/bin:/run/wrappers/bin:/usr/local/bin:$PATH"
+export PYTHONPATH="$HOME/.local/lib/python3.14/site-packages:$PYTHONPATH"
 # check-docs.sh
 # Validate the Surypus documentation pipeline.
 #
