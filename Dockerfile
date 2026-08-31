@@ -11,12 +11,12 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # Install build dependencies and PostgreSQL dev libraries
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    wget \
-    build-essential \
-    libssl-dev \
-    libreadline-dev \
-    zlib1g-dev \
-    libpq-dev \
+    wget=1.21.4-1+deb12u1 \
+    build-essential=12.9 \
+    libssl-dev=3.0.15-1~deb12u1 \
+    libreadline-dev=8.2-1.3 \
+    zlib1g-dev=1:1.2.13.dfsg-1 \
+    libpq-dev=15.14-0+deb12u1 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
@@ -42,10 +42,10 @@ FROM debian:bookworm-20240812-slim
 
 # Install minimal runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq5 \
-    ca-certificates \
-    curl \
-    dumb-init \
+    libpq5=15.14-0+deb12u1 \
+    ca-certificates=20230311+deb12u1 \
+    curl=7.88.1-10+deb12u1 \
+    dumb-init=1.2.5-2 \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
