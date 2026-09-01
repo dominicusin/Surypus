@@ -5,6 +5,12 @@ build:
   tools:
     python: "3.11"
     mkdocs: "1.6.1"
+  commands:
+    - pip install --upgrade pip
+    - pip install -r docs/requirements.txt
+    - python -m pip install --upgrade pip
+    - pip install mkdocs mkdocs-material
+    - mkdocs build --strict
 
 python:
   version: 3.11
