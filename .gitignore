@@ -75,3 +75,7 @@ logs/
 # GSD planning artifacts
 .planning/
 src/.planning/
+
+# ReadTheDocs / secrets
+.readthedocs-api-key
+*readthedocs*

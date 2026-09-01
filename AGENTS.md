@@ -595,3 +595,11 @@ If a public API changes (new/removed/changed exported function, type, or class):
 - Documentation review is mandatory.
 - Update Haddock, doctest examples, and module graph.
 - Verify `mkdocs build --strict` passes.
+
+## Secrets Policy
+
+Never commit API keys, tokens, passwords, or credentials to the repository.
+ReadTheDocs API keys must remain secret. If discovered, treat as leaked:
+1. Rotate the key immediately on ReadTheDocs.
+2. Remove it from any config or environment file.
+3. Document the rotation in docs/ai/CHANGELOG.md.

@@ -1,6 +1,3 @@
-# ReadTheDocs configuration for Surypus
-# https://docs.readthedocs.io/en/stable/config-file/v2.html
-
 version: 2
 
 build:
