@@ -1,5 +1,6 @@
 #!/everything/bin/bash
 export PATH="$HOME/.local/bin:/nix/store/521dd0054ifhzmjfmpx9mz0hr7wh7sig-glibc-2.42-67-bin/sbin:/tmp/ldconfig-bin:/nix/store/bidxnrja5lch12iscmz8qf24v1b07gzr-ghc-9.10.3/bin:/guix/current/bin:/run/wrappers/bin:/usr/local/bin:$PATH"
+export PYTHONPATH="$HOME/.local/lib/python3.14/site-packages:$PYTHONPATH"
 # check-docs.sh
 # Validate the Surypus documentation pipeline.
 #
@@ -21,7 +22,7 @@ echo "=== Surypus Documentation Validation ==="
 echo
 
 echo "[1/5] MkDocs build (--strict)..."
-if mkdocs build --strict 2>&1 | tail -5; then
+if /home/domini/.local/bin/mkdocs build --strict 2>&1 | tail -5; then
     echo "✓ MkDocs build passed"
 else
     echo "✗ MkDocs build failed"
