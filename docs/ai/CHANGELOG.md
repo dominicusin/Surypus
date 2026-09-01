@@ -28,3 +28,14 @@ This file tracks changes to the documentation infrastructure itself.
 - **AI не является источником истины.** GHC, Cabal, Haddock, исходный код и исполняемые тесты — источники истины.
 - `docs/generated/` — не редактируется человеком.
 - Every public API change requires documentation review.
+
+## 2026-09-01 — Secrets Policy + CI Guard
+
+### Added
+- AGENTS.md Secrets Policy section
+- .github/workflows/secret-guard.yml: CI scan for high-entropy secrets
+- .gitignore guards for ReadTheDocs API keys and secret files
+
+### Security
+- Removed accidental documentation of exposed ReadTheDocs API key
+- Added rotation reminder in CHANGELOG
