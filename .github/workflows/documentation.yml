@@ -43,7 +43,7 @@ jobs:
 
       - name: Build MkDocs site (strict)
         run: |
-          mkdocs build --strict 2>&1 | tail -20
+          /home/domini/.local/bin/mkdocs build --strict 2>&1 | tail -20
 
       - name: Build Haddock
         run: |
@@ -109,6 +109,6 @@ jobs:
           # This ensures the .readthedocs.yml configuration is valid
           python -m pip install --upgrade pip 2>/dev/null || true
           pip install mkdocs mkdocs-material 2>&1 | tail -5 || true
-          mkdocs build --strict 2>&1 | tail -10 || true
+          /home/domini/.local/bin/mkdocs build --strict 2>&1 | tail -10 || true
           echo "ReadTheDocs build validated successfully"
           ls -la site/ 2>/dev/null || true
