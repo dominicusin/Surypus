@@ -100,7 +100,9 @@ jobs:
         run: |
           pip install readthedocs-sphinx-docfx yarl 2>/dev/null || true
           echo "ReadTheDocs configuration validated"
-          cat .readthedocs.yml || true
+          echo "ReadTheDocs configuration:"
+          cat .readthedocs.yml
+          python3 -c "import yaml; yaml.safe_load(open('.readthedocs.yml'))" 2>/dev/null && echo "YAML valid" || echo "YAML parse failed"
 
       - name: Build documentation for ReadTheDocs
         run: |
