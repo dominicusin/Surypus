@@ -24,6 +24,8 @@ theme:
 
 plugins:
   - search
+  - git-revision-date-localized:
+      fallback_to_build_date: true
 
 markdown_extensions:
   - admonition
@@ -53,7 +55,7 @@ nav:
       - Как работает Event Store: guides/event-store.md
   - ADR:
       - "ADR-001: Haskell как основной язык": adr/0001-haskell-primary-language.md
-      - "ADR-002: PostgreSQL для персистентности": adr/0002-mkdocs-site.md
+      - "ADR-002: MkDocs для сайта документации": adr/0002-mkdocs-site.md
   - Архитектура событий: architecture/EVENT_SOURCING.md
   - Инженерные модули:
       - api-conventions.md: engineering/api-conventions.md
