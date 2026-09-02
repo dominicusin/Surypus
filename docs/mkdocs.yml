@@ -24,8 +24,6 @@ theme:
 
 plugins:
   - search
-  - git-revision-date-localized:
-      fallback_to_build_date: true
 
 markdown_extensions:
   - admonition
