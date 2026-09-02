@@ -354,7 +354,11 @@ jobs:
       - name: Security: Verify no hardcoded secrets
         run: |
           echo "Checking for exposed tokens/keys..."
-          grep -rInE "(ghp_[A-Za-z0-9_]{36,}|github_pat_[A-Za-z0-9_]{20,}|readthedocs.*api.*key)" . --include="*.yml" --include="*.yaml" --include="*.md" 2>/dev/null && echo "SECURITY WARNING: Potential secret found!" && exit 1 || echo "No hardcoded secrets found in tracked files."
+          if grep -RIn --include="*.yml" --include="*.yaml" --include="*.md" -E "ghp_[A-Za-z0-9_]{36,}|github_pat_[A-Za-z0-9_]{20,}|readthedocs.*api.*key" . 2>/dev/null; then
+            echo "SECURITY WARNING: Potential secret found!"
+            exit 1
+          fi
+          echo "No hardcoded secrets found in tracked files."
 
       - name: Deploy to GitHub Pages
         if: github.ref == 'refs/heads/main'
