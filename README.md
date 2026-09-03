@@ -269,6 +269,28 @@ Please see our [Security Policy](SECURITY.md) for reporting vulnerabilities.
 
 For commercial support, consulting, or custom development, please contact the maintainers.
 
+## Sponsors
+
+Surypus is supported by our amazing sponsors. Thank you! ❤️
+
+### Corporate Sponsors
+
+- (No corporate sponsors yet - be the first!)
+
+### Individual Supporters
+
+- (No individual supporters yet - be the first!)
+
+### Become a Sponsor
+
+If you find Surypus useful, please consider supporting us:
+
+- [GitHub Sponsors](https://github.com/sponsors/dominicusin)
+- [Open Collective](https://opencollective.com/surypus)
+- [Corporate Sponsorship](SPONSORSHIP.md)
+
+See [FUNDING.md](FUNDING.md) for all ways to support Surypus.
+
 ---
 
 ## Acknowledgments

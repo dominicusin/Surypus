@@ -1,0 +1,6 @@
+# GitHub Sponsors configuration
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings/customizing-your-repositorys-settings/displaying-a-sponsor-button-in-your-repository
+
+github: [dominicusin]
+open_collective: surypus
+custom: ['https://opencollective.com/surypus', 'https://github.com/sponsors/dominicusin']
