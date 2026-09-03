@@ -1,0 +1,26 @@
+name: Haskell Linting (HLint)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  hlint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run HLint
+        uses: haskell-actions/hlint-action@v2
+        with:
+          pattern: |
+            src/**/*.hs
+            test/**/*.hs
+            app/**/*.hs
+            tools/**/*.hs

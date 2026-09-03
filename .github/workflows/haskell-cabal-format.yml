@@ -1,0 +1,40 @@
+name: Haskell Cabal Formatting (Gild)
+
+on:
+  push:
+    branches: [main]
+    paths: ['**/*.cabal']
+  pull_request:
+    branches: [main]
+    paths: ['**/*.cabal']
+
+permissions:
+  contents: read
+
+jobs:
+  gild:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Gild
+        uses: haskell-actions/setup@v2
+        with:
+          enable-stack: true
+          stack-version: 'latest'
+
+      - name: Format cabal files
+        run: |
+          stack install gild
+          gild --inplace Surypus.cabal
+
+      - name: Check for changes
+        run: |
+          if git diff --quiet; then
+            echo "✅ Cabal files are properly formatted"
+          else
+            echo "❌ Cabal files need formatting. Run 'gild --inplace Surypus.cabal'"
+            git diff --stat
+            exit 1
+          fi

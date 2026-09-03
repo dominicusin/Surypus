@@ -1,0 +1,26 @@
+name: Haskell Formatting (Fourmolu)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  fourmolu:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Fourmolu
+        uses: haskell-actions/run-fourmolu@v10
+        with:
+          pattern: |
+            src/**/*.hs
+            test/**/*.hs
+            app/**/*.hs
+            tools/**/*.hs
