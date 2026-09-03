@@ -13,7 +13,6 @@ permissions:
 jobs:
   deploy-documentation:
     name: Deploy documentation to GitHub Pages
-    environment: github-pages
     runs-on: ubuntu-latest
     concurrency:
       group: docs-pages
