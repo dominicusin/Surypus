@@ -1,0 +1,101 @@
+name: Advanced Monitoring
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # Every 6 hours
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  monitoring:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check CI health
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: runs } = await github.rest.actions.listWorkflowRunsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 20
+            });
+            
+            const failedRuns = runs.workflow_runs.filter(r => r.conclusion === 'failure');
+            const successRate = ((runs.workflow_runs.length - failedRuns.length) / runs.workflow_runs.length * 100).toFixed(1);
+            
+            console.log(`CI Health: ${successRate}% success rate`);
+            console.log(`Failed runs: ${failedRuns.length}`);
+            
+            if (successRate < 80) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `🚨 CI Health Alert - ${successRate}% success rate`,
+                body: `CI success rate has dropped to ${successRate}%.\n\nFailed runs:\n${failedRuns.slice(0, 5).map(r => `- ${r.workflow.name}: ${r.html_url}`).join('\n')}`,
+                labels: ['bug', 'priority: critical', 'status: needs-triage']
+              });
+            }
+
+      - name: Check for stale issues
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100
+            });
+            
+            const now = new Date();
+            const staleThreshold = 30 * 24 * 60 * 60 * 1000; // 30 days
+            
+            const staleIssues = issues.filter(i => {
+              const lastUpdate = new Date(i.updated_at);
+              return (now - lastUpdate) > staleThreshold && !i.pull_request;
+            });
+            
+            console.log(`Stale issues (>30 days): ${staleIssues.length}`);
+            
+            if (staleIssues.length > 10) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `📋 Stale Issues Report - ${staleIssues.length} issues need attention`,
+                body: `${staleIssues.length} open issues haven't been updated in 30+ days.\n\nConsider triaging or closing them.`,
+                labels: ['documentation', 'status: needs-triage']
+              });
+            }
+
+      - name: Check Dependabot status
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: alerts } = await github.rest.dependabot.listAlertsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100
+            });
+            
+            console.log(`Open Dependabot alerts: ${alerts.length}`);
+            
+            if (alerts.length > 0) {
+              const highSeverity = alerts.filter(a => a.security_advisory.severity === 'high' || a.security_advisory.severity === 'critical');
+              
+              if (highSeverity.length > 0) {
+                await github.rest.issues.create({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  title: `🔒 High Severity Dependabot Alerts - ${highSeverity.length} require immediate attention`,
+                  body: `${highSeverity.length} high/critical severity Dependabot alerts need immediate attention.`,
+                  labels: ['security', 'priority: critical', 'status: needs-triage']
+                });
+              }
+            }

@@ -1,0 +1,66 @@
+name: 'Haskell Lint'
+description: 'Lint and format Haskell code with HLint and Fourmolu for Surypus projects'
+author: 'Surypus Team'
+
+inputs:
+  hlint-mode:
+    description: 'HLint mode: check (fail on warnings) or report (always pass)'
+    required: false
+    default: 'check'
+  fourmolu-mode:
+    description: 'Fourmolu mode: check (fail on unformatted) or format (auto-fix)'
+    required: false
+    default: 'check'
+  fail-on-hlint:
+    description: 'Fail the build on HLint warnings'
+    required: false
+    default: 'false'
+  fail-on-fourmolu:
+    description: 'Fail the build on unformatted code'
+    required: false
+    default: 'true'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install HLint
+      shell: bash
+      run: |
+        stack install hlint
+
+    - name: Install Fourmolu
+      shell: bash
+      run: |
+        stack install fourmolu
+
+    - name: Run HLint
+      shell: bash
+      run: |
+        if [ "${{ inputs.hlint-mode }}" = "check" ]; then
+          ~/.local/bin/hlint src/ test/ app/ tools/ --report=hlint-report.html || \
+          [ "${{ inputs.fail-on-hlint }}" = "false" ] || exit 1
+        else
+          ~/.local/bin/hlint src/ test/ app/ tools/ --report=hlint-report.html || true
+        fi
+
+    - name: Run Fourmolu
+      shell: bash
+      run: |
+        if [ "${{ inputs.fourmolu-mode }}" = "check" ]; then
+          ~/.local/bin/fourmolu --mode check src/ test/ app/ tools/ || \
+          [ "${{ inputs.fail-on-fourmolu }}" = "false" ] || exit 1
+        else
+          ~/.local/bin/fourmolu --mode inplace src/ test/ app/ tools/
+        fi
+
+    - name: Upload HLint report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: hlint-report
+        path: hlint-report.html
+        retention-days: 7
+
+branding:
+  icon: 'shield'
+  color: 'blue'
