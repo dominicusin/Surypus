@@ -1,0 +1,180 @@
+name: Project Metrics
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'  # Weekly on Monday at 9 AM
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  metrics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Collect project metrics
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const metrics = {};
+            
+            // Repository stats
+            const { data: repo } = await github.rest.repos.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+            metrics.stars = repo.stargazers_count;
+            metrics.forks = repo.forks_count;
+            metrics.watchers = repo.watchers_count;
+            metrics.openIssues = repo.open_issues_count;
+            
+            // Traffic (views)
+            const { data: views } = await github.rest.repos.getViews({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+            metrics.views = views.count;
+            metrics.uniqueVisitors = views.uniques;
+            
+            // Traffic (clones)
+            const { data: clones } = await github.rest.repos.getClones({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+            metrics.clones = clones.count;
+            metrics.uniqueCloners = clones.uniques;
+            
+            // Referrers
+            const { data: referrers } = await github.rest.repos.getTopReferrers({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+            metrics.referrers = referrers.slice(0, 5).map(r => ({
+              referrer: r.referrer,
+              count: r.count,
+              uniques: r.uniques
+            }));
+            
+            // Popular content
+            const { data: popular } = await github.rest.repos.getTopPaths({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+            metrics.popular = popular.slice(0, 5).map(p => ({
+              path: p.path,
+              count: p.count,
+              uniques: p.uniques
+            }));
+            
+            // Contributors
+            const { data: contributors } = await github.rest.repos.listContributors({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100
+            });
+            metrics.totalContributors = contributors.length;
+            metrics.topContributors = contributors.slice(0, 10).map(c => ({
+              login: c.login,
+              contributions: c.contributions
+            }));
+            
+            // Commits activity
+            const { data: commits } = await github.rest.repos.listCommits({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100
+            });
+            metrics.recentCommits = commits.length;
+            
+            // Issue metrics
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'all',
+              per_page: 100
+            });
+            const openIssues = issues.filter(i => i.state === 'open' && !i.pull_request);
+            const closedIssues = issues.filter(i => i.state === 'closed' && !i.pull_request);
+            const openPRs = issues.filter(i => i.state === 'open' && i.pull_request);
+            const closedPRs = issues.filter(i => i.state === 'closed' && i.pull_request);
+            
+            metrics.openIssues = openIssues.length;
+            metrics.closedIssues = closedIssues.length;
+            metrics.openPRs = openPRs.length;
+            metrics.closedPRs = closedPRs.length;
+            
+            // Calculate average time to close issues
+            if (closedIssues.length > 0) {
+              const totalTime = closedIssues.reduce((sum, i) => {
+                const created = new Date(i.created_at);
+                const closed = new Date(i.closed_at);
+                return sum + (closed - created);
+              }, 0);
+              metrics.avgIssueCloseTime = Math.round(totalTime / closedIssues.length / (1000 * 60 * 60 * 24));
+            }
+            
+            // Calculate average time to merge PRs
+            if (closedPRs.length > 0) {
+              const totalTime = closedPRs.reduce((sum, pr) => {
+                const created = new Date(pr.created_at);
+                const merged = new Date(pr.closed_at);
+                return sum + (merged - created);
+              }, 0);
+              metrics.avgPRMergeTime = Math.round(totalTime / closedPRs.length / (1000 * 60 * 60 * 24));
+            }
+            
+            // Create issue with metrics
+            const body = `## 📊 Project Metrics Report
+            
+            **Date**: ${new Date().toISOString().split('T')[0]}
+            
+            ### Discoverability
+            | Metric | Value |
+            |--------|-------|
+            | ⭐ Stars | ${metrics.stars} |
+            | 🍴 Forks | ${metrics.forks} |
+            | 👥 Watchers | ${metrics.watchers} |
+            | 👀 Views | ${metrics.views} |
+            | 👤 Unique Visitors | ${metrics.uniqueVisitors} |
+            | 📥 Clones | ${metrics.clones} |
+            | 👤 Unique Cloners | ${metrics.uniqueCloners} |
+            
+            ### Top Referrers
+            ${metrics.referrers.map(r => `- ${r.referrer}: ${r.count} (${r.uniques} unique)`).join('\n')}
+            
+            ### Popular Content
+            ${metrics.popular.map(p => `- ${p.path}: ${p.count} (${p.uniques} unique)`).join('\n')}
+            
+            ### Contributors
+            | Metric | Value |
+            |--------|-------|
+            | Total Contributors | ${metrics.totalContributors} |
+            | Recent Commits | ${metrics.recentCommits} |
+            
+            ### Issues & PRs
+            | Metric | Value |
+            |--------|-------|
+            | Open Issues | ${metrics.openIssues} |
+            | Closed Issues | ${metrics.closedIssues} |
+            | Open PRs | ${metrics.openPRs} |
+            | Closed PRs | ${metrics.closedPRs} |
+            | Avg Issue Close Time | ${metrics.avgIssueCloseTime || 'N/A'} days |
+            | Avg PR Merge Time | ${metrics.avgPRMergeTime || 'N/A'} days |
+            
+            ---
+            *This issue was automatically generated by the Project Metrics workflow.*`;
+            
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `📊 Weekly Metrics Report - ${new Date().toISOString().split('T')[0]}`,
+              body: body,
+              labels: ['documentation', 'status: needs-triage']
+            });
+            
+            console.log('Metrics collected and issue created');
+            console.log(JSON.stringify(metrics, null, 2));
