@@ -1,0 +1,36 @@
+name: Copilot Code Review
+
+on:
+  pull_request:
+    types: [opened, ready_for_review]
+  pull_request_review:
+    types: [submitted]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  copilot-review:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Copilot Code Review
+        uses: github/copilot-code-review-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          openai_api_key: ${{ secrets.OPENAI_API_KEY }}
+          model: gpt-4
+          prompt: |
+            Review this pull request for:
+            - Code quality and best practices
+            - Security vulnerabilities
+            - Performance issues
+            - Haskell-specific patterns (type safety, purity, performance)
+            - LiquidHaskell refinement types coverage
+            - Test coverage
+            - Documentation completeness
+          comment_on_pr: true
+          approve_on_review: false
