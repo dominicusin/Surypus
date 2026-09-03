@@ -10,6 +10,7 @@ This document describes the governance structure for the Surypus project.
 - [Contribution Process](#contribution-process)
 - [Release Process](#release-process)
 - [Code of Conduct](#code-of-conduct)
+- [Shared Ownership](#shared-ownership)
 - [License](#license)
 
 ## Project Overview
@@ -239,6 +240,33 @@ Surypus is licensed under the [Mozilla Public License 2.0](LICENSE).
 - **SECURITY.md** - Security policy
 - **CHANGELOG.md** - Version history
 - **docs/** - Detailed documentation
+
+## Shared Ownership
+
+We believe in shared ownership of the project. The more you contribute, the more say you have in the project direction.
+
+### How to Gain Ownership
+
+1. **Start contributing** - Make quality contributions consistently
+2. **Help others** - Answer questions, review PRs, mentor new contributors
+3. **Take ownership** - Own features, modules, or areas of the project
+4. **Become a maintainer** - After demonstrating commitment and skill
+
+### Ownership Benefits
+
+- **Commit access** - Direct access to the repository
+- **Decision making** - Vote on project direction
+- **Mentorship** - Guide new contributors
+- **Recognition** - Listed as maintainer in project docs
+
+### What We Share
+
+- **Code** - All code is open source and available to all
+- **Documentation** - All documentation is public
+- **Decision making** - Major decisions are made transparently
+- **Credit** - All contributors are recognized
+
+---
 
 ## Amendments
 

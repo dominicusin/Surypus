@@ -1,0 +1,110 @@
+name: Welcome New Contributors
+
+on:
+  pull_request:
+    types: [opened]
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  welcome:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check if first-time contributor
+        uses: actions/github-script@v7
+        id: check-first-time
+        with:
+          script: |
+            const { data: contributions } = await github.rest.repos.listCommits({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              author: context.payload.sender.login,
+              per_page: 2
+            });
+            
+            const isFirstTime = contributions.length <= 1;
+            console.log(`First time contributor: ${isFirstTime}`);
+            return isFirstTime;
+
+      - name: Welcome new contributor (PR)
+        if: |
+          github.event_name == 'pull_request' &&
+          steps.check-first-time.outputs.result == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = github.event.pull_request;
+            const body = `## 🎉 Welcome to Surypus, @${pr.user.login}!
+            
+            Thank you for your first pull request! We're excited to have you contribute to the project.
+            
+            ### What happens next?
+            
+            - 🔍 **Review**: A maintainer will review your PR within **48 hours**
+            - 💬 **Feedback**: We'll provide constructive feedback if changes are needed
+            - 🎉 **Merge**: Once approved, your PR will be merged
+            
+            ### While you wait
+            
+            - Check our [Contributing Guidelines](CONTRIBUTING.md)
+            - Review the [Code Review Guidelines](CODE_REVIEW_GUIDELINES.md)
+            - Join our [Community](COMMUNITY.md)
+            
+            ### Need help?
+            
+            - Ask questions in the PR comments
+            - Check our [Support](SUPPORT.md) resources
+            
+            ---
+            *Thank you for contributing to Surypus! We appreciate your time and effort.*`;
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              body: body
+            });
+
+      - name: Welcome new contributor (Issue)
+        if: |
+          github.event_name == 'issues' &&
+          steps.check-first-time.outputs.result == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = github.event.issue;
+            const body = `## 👋 Welcome to Surypus, @${issue.user.login}!
+            
+            Thank you for opening your first issue! We're glad you're here.
+            
+            ### What happens next?
+            
+            - 🔍 **Triage**: A maintainer will review and triage this issue within **48 hours**
+            - 💬 **Discussion**: We may ask for clarification or additional details
+            - 🏷️ **Labeling**: The issue will be labeled appropriately
+            
+            ### While you wait
+            
+            - Check our [Contributing Guidelines](CONTRIBUTING.md)
+            - Review existing issues to avoid duplicates
+            - Join our [Community](COMMUNITY.md)
+            
+            ### Need help?
+            
+            - Check our [Support](SUPPORT.md) resources
+            - Ask questions in the issue comments
+            
+            ---
+            *Thank you for being part of the Surypus community!*`;
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              body: body
+            });

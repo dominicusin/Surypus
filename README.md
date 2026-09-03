@@ -223,6 +223,23 @@ This project adheres to a [Code of Conduct](CODE_OF_CONDUCT.md). By participatin
 
 ---
 
+## Community
+
+Surypus is more than just code - it's a community of developers, users, and contributors who believe in the power of formal verification and type safety.
+
+### Getting Involved
+
+- 📖 Read our [Community Guide](COMMUNITY.md)
+- 💬 Join [GitHub Discussions](https://github.com/surypus/surypus/discussions)
+- 🐛 Report bugs via [GitHub Issues](https://github.com/surypus/surypus/issues)
+- 🤝 Contribute using our [Contributing Guidelines](CONTRIBUTING.md)
+
+### Code of Conduct
+
+This project adheres to a [Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code.
+
+---
+
 ## License
 
 Surypus is licensed under the [Mozilla Public License 2.0](LICENSE).
