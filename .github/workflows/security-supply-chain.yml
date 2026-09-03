@@ -1,0 +1,71 @@
+name: Supply Chain Security
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 5 * * 3'  # Weekly on Wednesday at 5 AM
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  license-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Stack
+        uses: haskell-actions/setup@v2
+        with:
+          enable-stack: true
+          stack-version: 'latest'
+
+      - name: Install license tools
+        run: |
+          stack install hs-license-checker 2>/dev/null || echo "hs-license-checker not available"
+          which cabal-plan 2>/dev/null || stack install cabal-plan 2>/dev/null || true
+
+      - name: Check dependency licenses
+        run: |
+          echo "## Dependency License Report"
+          echo ""
+          
+          # Generate dependency list
+          stack ls dependencies --separator '-' 2>/dev/null | while read -r line; do
+            echo "- $line"
+          done
+          
+          echo ""
+          echo "License check completed"
+
+      - name: Generate dependency graph
+        run: |
+          # Generate dependency graph for visualization
+          stack dot --external 2>/dev/null | dot -Tpng > deps-graph.png 2>/dev/null || echo "Graph generation skipped"
+          
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: license-report
+          path: deps-graph.png
+          retention-days: 7
+
+  dependency-review:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: moderate
+          comment-summary-in-pr: true

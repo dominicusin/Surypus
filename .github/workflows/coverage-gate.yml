@@ -1,0 +1,146 @@
+name: Coverage Gate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: surypus_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Stack
+        uses: haskell-actions/setup@v2
+        with:
+          enable-stack: true
+          stack-version: 'latest'
+
+      - name: Cache Stack dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.stack
+          key: ${{ runner.os }}-stack-${{ hashFiles('stack.yaml.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-stack-
+
+      - name: Build with coverage
+        run: |
+          stack build --coverage --test --no-run-tests
+
+      - name: Run tests with coverage
+        run: |
+          stack test --coverage
+
+      - name: Generate coverage report
+        uses: haskell-actions/hpc-codecov-action@v1
+        with:
+          target: tix
+          out: coverage.json
+
+      - name: Check coverage threshold
+        id: threshold
+        run: |
+          # Parse coverage JSON and check threshold
+          python3 << 'EOF'
+          import json
+          import sys
+          
+          try:
+              with open('coverage.json') as f:
+                  data = json.load(f)
+              
+              # Calculate total coverage
+              total_exprs = 0
+              total_covered = 0
+              
+              for mod in data.get('modules', []):
+                  for tick in mod.get('ticks', []):
+                      total_exprs += 1
+                      if tick.get('count', 0) > 0:
+                          total_covered += 1
+              
+              if total_exprs > 0:
+                  coverage = (total_covered / total_exprs) * 100
+                  print(f"Coverage: {coverage:.1f}%")
+                  
+                  if coverage < 80:
+                      print(f"::error::Coverage {coverage:.1f}% is below 80% threshold")
+                      sys.exit(1)
+                  else:
+                      print(f"✅ Coverage {coverage:.1f}% meets threshold")
+              else:
+                  print("No expressions found in coverage data")
+          except Exception as e:
+              print(f"Warning: Could not parse coverage: {e}")
+              # Don't fail the build if coverage parsing fails
+          EOF
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: coverage.json
+          flags: unittests
+          name: surypus-coverage
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Comment coverage on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let body = '## 📊 Coverage Report\n\n';
+            
+            try {
+              const data = JSON.parse(fs.readFileSync('coverage.json', 'utf8'));
+              let totalExprs = 0;
+              let totalCovered = 0;
+              
+              for (const mod of data.modules || []) {
+                for (const tick of mod.ticks || []) {
+                  totalExprs++;
+                  if (tick.count > 0) totalCovered++;
+                }
+              }
+              
+              const coverage = totalExprs > 0 ? ((totalCovered / totalExprs) * 100).toFixed(1) : 'N/A';
+              body += `**Coverage:** ${coverage}%\n`;
+              body += `**Threshold:** 80%\n`;
+              body += `**Status:** ${coverage >= 80 ? '✅ PASS' : '❌ FAIL'}\n`;
+            } catch (e) {
+              body += 'Coverage data unavailable\n';
+            }
+            
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: body
+            });

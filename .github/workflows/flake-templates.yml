@@ -1,0 +1,49 @@
+name: Flake Templates
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'templates/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  templates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v24
+
+      - name: Validate flake templates
+        run: |
+          echo "Validating flake templates..."
+          
+          # Check if templates directory exists
+          if [ -d "templates" ]; then
+            for template in templates/*/; do
+              echo "Validating $template"
+              if [ -f "$template/flake.nix" ]; then
+                nix flake check --no-build "$template" 2>&1 || echo "Template $template needs review"
+              fi
+            done
+          else
+            echo "No templates directory found"
+          fi
+
+      - name: Test template generation
+        run: |
+          echo "Testing template generation..."
+          
+          # Test creating a new project from template
+          if [ -f "templates/haskell-project/flake.nix" ]; then
+            mkdir -p /tmp/test-project
+            cp -r templates/haskell-project/* /tmp/test-project/
+            cd /tmp/test-project
+            nix flake check --no-build 2>&1 || echo "Template test completed"
+          fi

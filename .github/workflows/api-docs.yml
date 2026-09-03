@@ -1,0 +1,82 @@
+name: API Documentation
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Stack
+        uses: haskell-actions/setup@v2
+        with:
+          enable-stack: true
+          stack-version: 'latest'
+
+      - name: Cache Stack dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.stack
+          key: ${{ runner.os }}-stack-${{ hashFiles('stack.yaml.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-stack-
+
+      - name: Generate Haddock docs
+        run: |
+          mkdir -p docs/api
+          stack build --haddock --no-run-tests --haddock-options="--html --hyperlink-source --quickjump"
+          find .stack-work -name "*.html" -exec cp {} docs/api/ \; 2>/dev/null || true
+          ls -la docs/api/
+
+      - name: Generate OpenAPI spec
+        run: |
+          # Generate OpenAPI from Scotty routes
+          stack exec surypus -- --generate-openapi > docs/api/openapi.json 2>/dev/null || echo "OpenAPI generation skipped"
+
+      - name: Create docs index
+        run: |
+          cat > docs/api/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head><title>Surypus API Docs</title></head>
+          <body>
+          <h1>Surypus API Documentation</h1>
+          <ul>
+          <li><a href="haddock/index.html">Haddock Documentation</a></li>
+          <li><a href="openapi.json">OpenAPI Spec</a></li>
+          </ul>
+          </body>
+          </html>
+          EOF
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-docs
+          path: docs/api/
+
+      - name: Deploy to GitHub Pages
+        if: github.ref == 'refs/heads/main'
+        id: deployment
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs/api
+          destination_dir: api
