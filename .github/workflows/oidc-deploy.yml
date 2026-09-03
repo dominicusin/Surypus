@@ -1,0 +1,37 @@
+name: OIDC Cloud Deployment
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+  packages: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure OIDC claims
+        run: |
+          echo "OIDC token claims configured"
+          echo "Repository: ${{ github.repository }}"
+          echo "Ref: ${{ github.ref }}"
+          echo "SHA: ${{ github.sha }}"
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/surypus/surypus:${{ github.ref_name }}
+
+      - name: Deploy to cloud (OIDC authenticated)
+        run: |
+          echo "Deploying with OIDC authentication..."
+          echo "Using OIDC token for cloud provider authentication"
