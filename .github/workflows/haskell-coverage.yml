@@ -9,9 +9,14 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   coverage:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     services:
       postgres:
         image: postgres:16
@@ -35,7 +40,6 @@ jobs:
         with:
           enable-stack: true
           stack-version: 'latest'
-          stack-no-global: false
 
       - name: Cache Stack dependencies
         uses: actions/cache@v4

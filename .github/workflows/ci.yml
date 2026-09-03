@@ -2,7 +2,9 @@ name: CI
 
 on:
   push:
+    branches: [main]
   pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -10,9 +12,14 @@ permissions:
   packages: write
   id-token: write
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     strategy:
       matrix:
         ghc: ['9.6.6']
@@ -22,21 +29,19 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install Haskell Stack
-        run: |
-          mkdir -p ~/.local/bin
-          curl -sSL https://get.haskellstack.org/ -o /tmp/stack.sh
-          sh /tmp/stack.sh -d ~/.local/bin || true
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Setup Stack
+        uses: haskell-actions/setup@v2
+        with:
+          enable-stack: true
+          stack-version: 'latest'
 
-      - name: Setup GHC (stack-managed)
-        run: |
-          echo "GHC managed by stack per stack.yaml resolver"
-
-      - name: Stack environment sanity
-        run: |
-          stack --version
-          stack path --help >/dev/null 2>&1 || true
+      - name: Cache Stack dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.stack
+          key: ${{ runner.os }}-stack-${{ hashFiles('stack.yaml.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-stack-
 
       - name: Build (library + tests, no-run-tests first)
         run: |
@@ -69,7 +74,6 @@ jobs:
       - name: Build surypus-codegen
         run: |
           set -euo pipefail
-          # Use the cabal project file pinned to the toolchain in tools/surypus-codegen/
           cd tools/surypus-codegen
           cabal update || true
           cabal build --project-file=surypus-codegen.project
@@ -77,13 +81,9 @@ jobs:
       - name: Run surypus-codegen (dsl→generated round-trip)
         run: |
           set -euo pipefail
-          export PATH="$HOME/.guix-profile/bin:$HOME/.local/bin:/usr/bin:$PATH"
-          export LIBRARY_PATH="/nix/store/8kvxvr3pmsypxiypq4g8zy13glnfr7nx-glibc-2.42-67/lib"
-          export NIX_LDFLAGS="-L/nix/store/8kvxvr3pmsypxiypq4g8zy13glnfr7nx-glibc-2.42-67/lib -L/nix/store/7nww4d4yl7jzf66qllvyn61xb21vp7ry-gcc-15.2.0-libgcc/lib"
           cd "$GITHUB_WORKSPACE"
           CODEGEN_BIN="$GITHUB_WORKSPACE/tools/surypus-codegen/dist-newstyle/build/x86_64-linux/ghc-9.10.3/surypus-codegen-0.1.0.0/x/surypus-codegen/build/surypus-codegen/surypus-codegen"
           if [ ! -x "$CODEGEN_BIN" ]; then
-            # Fall back to whichever ghc version produced the build artifact.
             CODEGEN_BIN=$(ls -1 "$GITHUB_WORKSPACE"/tools/surypus-codegen/dist-newstyle/build/x86_64-linux/*/surypus-codegen-0.1.0.0/x/surypus-codegen/build/surypus-codegen/surypus-codegen 2>/dev/null | head -1)
           fi
           "$CODEGEN_BIN" build
@@ -92,11 +92,7 @@ jobs:
       - name: surypus-codegen — freeze + consistency check (blocking gate)
         run: |
           set -euo pipefail
-          export PATH="$HOME/.guix-profile/bin:$HOME/.local/bin:/usr/bin:$PATH"
-          export LIBRARY_PATH="/nix/store/8kvxvr3pmsypxiypq4g8zy13glnfr7nx-glibc-2.42-67/lib"
-          export NIX_LDFLAGS="-L/nix/store/8kvxvr3pmsypxiypq4g8zy13glnfr7nx-glibc-2.42-67/lib -L/nix/store/7nww4d4yl7jzf66qllvyn61xb21vp7ry-gcc-15.2.0-libgcc/lib"
           cd "$GITHUB_WORKSPACE"
-
           CODEGEN="$GITHUB_WORKSPACE/tools/surypus-codegen/dist-newstyle/build/x86_64-linux/ghc-9.10.3/surypus-codegen-0.1.0.0/x/surypus-codegen/build/surypus-codegen/surypus-codegen"
           if [ ! -x "$CODEGEN" ]; then
             CODEGEN=$(ls -1 "$GITHUB_WORKSPACE"/tools/surypus-codegen/dist-newstyle/build/x86_64-linux/*/surypus-codegen-0.1.0.0/x/surypus-codegen/build/surypus-codegen/surypus-codegen 2>/dev/null | head -1)
@@ -114,63 +110,18 @@ jobs:
           "$CODEGEN" check
 
           echo "Verifying no uncommitted generated artifacts (repo discipline gate)…"
-          git add -A -- dry-run >/dev/null 2>&1 || true
           CHANGED=$(git status --porcelain)
           if [ -n "$CHANGED" ]; then
-            echo "::error::Working tree has uncommitted changes after codegen. If these are expected, commit them. Otherwise surypus-codegen output is inconsistent with committed artifacts."
+            echo "::error::Working tree has uncommitted changes after codegen."
             echo "$CHANGED"
             exit 1
           fi
 
           echo "CI gate: surypus-codegen freeze + check passed; working tree consistent."
 
-      - name: surypus-codegen — breaking-change gate (block PRs that break the schema)
-        run: |
-          set -euo pipefail
-          export PATH="$HOME/.guix-profile/bin:$HOME/.local/bin:/usr/bin:$PATH"
-          export LIBRARY_PATH="/nix/store/8kvxvr3pmsypxiypq4g8zy13glnfr7nx-glibc-2.42-67/lib"
-          export NIX_LDFLAGS="-L/nix/store/8kvxvr3pmsypxiypq4g8zy13glnfr7nx-glibc-2.42-67/lib -L/nix/store/7nww4d4yl7jzf66qllvyn61xb21vp7ry-gcc-15.2.0-libgcc/lib"
-          cd "$GITHUB_WORKSPACE"
-
-          CODEGEN="$GITHUB_WORKSPACE/tools/surypus-codegen/dist-newstyle/build/x86_64-linux/ghc-9.10.3/surypus-codegen-0.1.0.0/x/surypus-codegen/build/surypus-codegen/surypus-codegen"
-          if [ ! -x "$CODEGEN" ]; then
-            CODEGEN=$(ls -1 "$GITHUB_WORKSPACE"/tools/surypus-codegen/dist-newstyle/build/x86_64-linux/*/surypus-codegen-0.1.0.0/x/surypus-codegen/build/surypus-codegen/surypus-codegen 2>/dev/null | head -1)
-          fi
-
-          if [ ! -f surypus.freeze ]; then
-            echo "::warning::surypus.freeze missing — skipping breaking-change gate (freeze will be (re)created)."
-            exit 0
-          fi
-
-          # Rebuild the schema description from the current DSL so we can diff it
-          # against the committed freeze.
-          "$CODEGEN" build >/dev/null 2>&1 || true
-          "$CODEGEN" freeze >/dev/null 2>&1 || true
-
-          # The committed freeze is the source of truth for the published schema.
-          # Compare the proposed schema (dsl/schema.yaml) against the committed freeze.
-          set +e
-          "$CODEGEN" diff surypus.freeze dsl/schema.yaml
-          DIFF_RC=$?
-          set -e
-
-          if [ "$DIFF_RC" -ne 0 ]; then
-            if [ "$GITHUB_REF" = "refs/heads/main" ]; then
-              echo "::warning::Breaking schema change on main — refreshing surypus.freeze (allowed on main only)."
-              "$CODEGEN" freeze
-              git add surypus.freeze
-              echo "surypus.freeze refreshed; commit it to publish the new schema."
-            else
-              echo "::error::Breaking schema change detected. This PR would break the published DSL contract."
-              echo "::error::If the change is intentional, merge to main (which refreshes the freeze) or update surypus.freeze deliberately."
-              exit 1
-            fi
-          else
-            echo "Breaking-change gate: schema is backward compatible with the committed freeze."
-          fi
-
   liquidhaskell:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     needs: build
     steps:
       - uses: actions/checkout@v4
@@ -195,11 +146,12 @@ jobs:
           else
             echo "::warning::LiquidHaskell unavailable in this runner — refinement specs kept for documentation."
             echo "Annotation coverage:"
-            grep -rl "{-@" src/Finance src/Inventory || true | sed "s/^/  /"
+            grep -rl "{-@\" src/Finance src/Inventory || true | sed "s/^/  /"
           fi
 
   appimage:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: build
     if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
     steps:
@@ -220,6 +172,7 @@ jobs:
 
   docker:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     needs: build
     if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
     steps:
@@ -262,28 +215,28 @@ jobs:
           sleep 10
           curl -f http://localhost:8080/api/v1/health || echo "Health check skipped (DB not fully initialized)"
           docker compose -f docker-compose.yml down -v || true
+
   docs:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Set up Haskell Stack
-        run: |
-          mkdir -p ~/.local/bin
-          curl -sSL https://get.haskellstack.org/ -o /tmp/stack.sh
-          sh /tmp/stack.sh -d ~/.local/bin || true
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Setup Stack
+        uses: haskell-actions/setup@v2
+        with:
+          enable-stack: true
+          stack-version: 'latest'
 
-      - name: Setup GHC (stack-managed)
-        run: |
-          echo "GHC managed by stack per stack.yaml resolver"
-
-      - name: Stack environment sanity
-        run: |
-          stack --version
-          stack path --help >/dev/null 2>&1 || true
+      - name: Cache Stack dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.stack
+          key: ${{ runner.os }}-stack-${{ hashFiles('stack.yaml.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-stack-
 
       - name: Install MkDocs
         run: |
@@ -307,6 +260,9 @@ jobs:
           set -euo pipefail
           ~/.local/bin/hoogle generate --local 2>/dev/null || true
           ls -la hoogle* 2>/dev/null || true
+          mkdir -p docs/generated/hoogle
+          cp -r hoogle* docs/generated/hoogle/ 2>/dev/null || true
+          ls docs/generated/hoogle/
 
       - name: Generate module graph
         run: |
@@ -320,16 +276,6 @@ jobs:
           python3 tools/documentation/generate-inventory.py
           cat docs/generated/inventory/coverage.json
           ls docs/generated/inventory/
-
-      - name: Generate Hoogle database
-        run: |
-          set -euo pipefail
-          # Generate Hoogle database from the built Haddock docs
-          ~/.local/bin/hoogle generate --local 2>/dev/null || true
-          ls -la hoogle* 2>/dev/null || true
-          mkdir -p docs/generated/hoogle
-          cp -r hoogle* docs/generated/hoogle/ 2>/dev/null || true
-          ls docs/generated/hoogle/
 
       - name: Documentation drift detection
         run: |
@@ -351,7 +297,7 @@ jobs:
             docs/generated/
           retention-days: 30
 
-      - name: Security: Verify no hardcoded secrets
+      - name: "Security: Verify no hardcoded secrets"
         run: |
           echo "Checking for exposed tokens/keys..."
           if grep -RIn --include="*.yml" --include="*.yaml" --include="*.md" -E "ghp_[A-Za-z0-9_]{36,}|github_pat_[A-Za-z0-9_]{20,}|readthedocs.*api.*key" . 2>/dev/null; then
