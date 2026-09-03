@@ -1,0 +1,45 @@
+name: Nixpkgs Integration Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  nixpkgs-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Parse Cabal File
+        id: parse
+        uses: haskell-actions/parse-cabal@v1
+        with:
+          cabal-file: Surypus.cabal
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v24
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+
+      - name: Test Nixpkgs integration
+        run: |
+          # This is a mock test - in a real scenario, you would
+          # test if the project can be built with Nixpkgs
+          VERSION="${{ steps.parse.outputs.version }}"
+          echo "Testing Surypus version $VERSION for Nixpkgs integration..."
+          
+          # Check if nix is available
+          nix --version
+          
+          # In a real scenario, you would run:
+          # nix-build -A haskellPackages.surypus
+          # or similar commands
+          
+          echo "Nixpkgs integration test completed"

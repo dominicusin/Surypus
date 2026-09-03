@@ -1,0 +1,44 @@
+name: Haskell Autotag
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  autotag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Parse Cabal File
+        id: parse
+        uses: haskell-actions/parse-cabal@v1
+        with:
+          cabal-file: Surypus.cabal
+
+      - name: Create Git tag on version bump
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/main')
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          VERSION="${{ steps.parse.outputs.version }}"
+          TAG="v${VERSION}"
+          
+          # Check if tag already exists
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists, skipping..."
+            exit 0
+          fi
+          
+          # Check if commit message contains version bump
+          if echo "$COMMIT_MSG" | grep -qiE "(version bump|bump version|release|v[0-9]+\.[0-9]+\.[0-9]+)"; then
+            echo "Creating tag $TAG"
+            git tag "$TAG"
+            git push origin "$TAG"
+          else
+            echo "No version bump detected, skipping"
