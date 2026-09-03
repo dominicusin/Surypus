@@ -1,0 +1,48 @@
+name: PR Review Automation
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, ready_for_review]
+  pull_request_review:
+    types: [submitted]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check PR title format
+        uses: deepakputhraya/action-pr-title@master
+        with:
+          regex: '^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?: .+'
+          allowed_prefixes: ['feat', 'fix', 'docs', 'style', 'refactor', 'perf', 'test', 'build', 'ci', 'chore', 'revert']
+          prefix_case_sensitive: false
+          min_length: 10
+          max_length: 72
+
+      - name: Assign reviewers
+        if: github.event.action == 'opened'
+        uses: kentaro-m/auto-assign-action@v2
+        with:
+          configuration-path: .github/auto-assign.yml
+
+      - name: Check for CHANGELOG update
+        if: github.event.pull_request.draft == false
+        run: |
+          if git diff --name-only HEAD^..HEAD | grep -q "CHANGELOG.md"; then
+            echo "✅ CHANGELOG.md updated"
+          else
+            echo "::warning::CHANGELOG.md not updated. Please add an entry."
+          fi
+
+      - name: Label PR based on files
+        uses: actions/labeler@v5
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          configuration-path: .github/labeler.yml
+          sync-labels: true

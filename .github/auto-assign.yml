@@ -1,0 +1,30 @@
+# Auto-assign reviewers based on file paths
+# https://github.com/kentaro-m/auto-assign-action
+
+# Add reviewers when specific files are changed
+addReviewers: true
+addAssignees: author
+
+reviewers:
+  - dominicusin
+
+# Number of reviewers to add
+numberOfReviewers: 1
+# Number of assignees to add
+numberOfAssignees: 1
+
+# Use review groups
+useReviewGroups: false
+reviewGroups: {}
+
+# Use assignee groups
+useAssigneeGroups: false
+assigneeGroups: {}
+
+# Skip keywords in title
+skipKeywords:
+  - wip
+  - draft
+
+# Users to skip
+runOnDraft: false

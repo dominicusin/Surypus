@@ -1,0 +1,68 @@
+name: Release Automation
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+  attestations: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Parse Cabal File
+        id: parse
+        uses: haskell-actions/parse-cabal@v1
+        with:
+          cabal-file: Surypus.cabal
+
+      - name: Setup Stack
+        uses: haskell-actions/setup@v2
+        with:
+          enable-stack: true
+          stack-version: 'latest'
+
+      - name: Cache Stack dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.stack
+          key: ${{ runner.os }}-stack-${{ hashFiles('stack.yaml.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-stack-
+
+      - name: Build package
+        run: |
+          stack build --haddock --no-haddock-deps
+
+      - name: Run tests
+        run: |
+          stack test
+
+      - name: Generate source distribution
+        run: |
+          stack sdist
+
+      - name: Upload to Hackage
+        uses: haskell-actions/release-haskell-package@v1
+        with:
+          token: ${{ secrets.HACKAGE_TOKEN }}
+          package-path: .
+          publish: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          generate_release_notes: true
+          files: |
+            ${{ steps.parse.outputs.name }}-${{ steps.parse.outputs.version }}.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
