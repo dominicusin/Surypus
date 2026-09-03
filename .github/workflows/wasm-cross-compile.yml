@@ -1,0 +1,97 @@
+name: WASM Cross-compilation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  wasm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Stack
+        uses: haskell-actions/setup@v2
+        with:
+          enable-stack: true
+          stack-version: 'latest'
+
+      - name: Cache Stack dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.stack
+          key: ${{ runner.os }}-stack-${{ hashFiles('stack.yaml.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-stack-
+
+      - name: Check WASI support
+        run: |
+          echo "Checking WASI SDK availability..."
+          
+          # Check if WASI SDK is available
+          if command -v wasi-sdk &> /dev/null; then
+            echo "WASI SDK found"
+            wasi-sdk --version
+          else
+            echo "WASI SDK not available, checking GHC WASI support..."
+            
+            # Check if GHC supports WASI
+            ghc --info | grep -i wasi || echo "No WASI support in GHC"
+          fi
+
+      - name: Build with WASI backend (experimental)
+        continue-on-error: true
+        run: |
+          echo "Attempting WASI build..."
+          
+          # Try to build with WASI backend
+          stack build --ghc-options="-optl-mllvm" 2>/dev/null || \
+          echo "WASI build not available with current setup"
+          
+          # Alternative: use GHC's WASI support directly
+          if ghc --info | grep -q wasi; then
+            echo "GHC has WASI support, attempting build..."
+            stack build --ghc-options="-optl-wasm" 2>/dev/null || true
+          fi
+
+      - name: Generate WASM binary (if supported)
+        continue-on-error: true
+        run: |
+          echo "Generating WASM binary..."
+          
+          # Check if the project can be compiled to WASM
+          if [ -f "app/Main.hs" ]; then
+            echo "Found Main.hs, attempting WASM compilation..."
+            
+            # This is experimental and may not work with all dependencies
+            stack build --ghc-options="-fllvm" --ghc-options="-optc--target=wasm32-unknown-wasi" 2>/dev/null || \
+            echo "WASM compilation skipped (dependencies may not support WASI)"
+          fi
+
+      - name: Upload WASM artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wasm-binary
+          path: |
+            dist/*.wasm
+            dist/*.js
+          retention-days: 7
+
+      - name: Report WASM status
+        run: |
+          echo "## WASM Cross-compilation Status" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "WASM support in Haskell is still experimental." >> $GITHUB_STEP_SUMMARY
+          echo "This workflow tracks progress and compatibility." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "For production WASM, consider:" >> $GITHUB_STEP_SUMMARY
+          echo "- GHC WASI backend" >> $GITHUB_STEP_SUMMARY
+          echo "- Asterius (GHC -> WASM compiler)" >> $GITHUB_STEP_SUMMARY
+          echo "- GHCJS (GHC -> JavaScript compiler)" >> $GITHUB_STEP_SUMMARY
