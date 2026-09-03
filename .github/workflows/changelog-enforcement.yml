@@ -1,0 +1,26 @@
+name: Changelog Enforcement
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, ready_for_review]
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  changelog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check CHANGELOG.md updated
+        if: github.event.pull_request.draft == false
+        run: |
+          if git diff --name-only HEAD^..HEAD | grep -q "CHANGELOG.md"; then
+            echo "✅ CHANGELOG.md updated"
+          else
+            echo "::error::CHANGELOG.md not updated. Please add an entry describing your changes."
+            exit 1
+          fi

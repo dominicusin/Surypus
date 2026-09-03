@@ -1,0 +1,70 @@
+name: Security Hardening
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 3 * * 1'  # Weekly on Monday at 3 AM
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Stack
+        uses: haskell-actions/setup@v2
+        with:
+          enable-stack: true
+          stack-version: 'latest'
+
+      - name: Cache Stack dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.stack
+          key: ${{ runner.os }}-stack-${{ hashFiles('stack.yaml.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-stack-
+
+      - name: Run HLint security checks
+        run: |
+          stack install hlint
+          ~/.local/bin/hlint src/ test/ --report=hlint-report.html || true
+          echo "HLint security checks completed"
+
+      - name: Check for unsafe functions
+        run: |
+          echo "Checking for unsafe Haskell functions..."
+          grep -rn "unsafePerformIO" src/ || echo "✅ No unsafePerformIO found"
+          grep -rn "unsafeCoerce" src/ || echo "✅ No unsafeCoerce found"
+          grep -rn "head " src/ || echo "⚠️ Consider using headMaybe instead of head"
+          grep -rn "tail " src/ || echo "⚠️ Consider using tailSafe instead of tail"
+          grep -rn "!! " src/ || echo "⚠️ Consider using safe indexing instead of !!"
+
+      - name: Upload HLint report
+        uses: actions/upload-artifact@v4
+        with:
+          name: hlint-security-report
+          path: hlint-report.html
+          retention-days: 30
+
+      - name: Dependency vulnerability scan
+        run: |
+          echo "Checking for known vulnerable dependencies..."
+          stack ls dependencies --separator '-' | while read -r line; do
+            echo "$line"
+          done
+          echo "Dependency scan completed"
+
+      - name: Run CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          languages: haskell

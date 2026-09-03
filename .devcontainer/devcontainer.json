@@ -1,0 +1,74 @@
+{
+  "name": "Surypus Development Environment",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+
+  "features": {
+    "ghcr.io/devcontainers/features/haskell:1": {
+      "ghcupVersion": "latest",
+      "ghcVersion": "9.6.6",
+      "cabalVersion": "latest",
+      "stackVersion": "latest"
+    },
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/nix:1": {
+      "extraNixConfig": "experimental-features = nix-command flakes"
+    }
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "haskell.haskell",
+        "justusadam.language-haskell",
+        "dramforever.vscode-ghc-simple",
+        "ms-azuretools.vscode-docker",
+        "github.copilot",
+        "github.copilot-chat",
+        "eamodio.gitlens",
+        "mhutchie.git-graph"
+      ],
+      "settings": {
+        "haskell.manageHLS": "GHCup",
+        "haskell.serverExecutablePath": "haskell-language-server-wrapper",
+        "haskell.formattingProvider": "fourmolu",
+        "haskell.indentOn": true,
+        "haskell.openDocumentationInHackage": true,
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "editor.formatOnSave": true,
+        "editor.tabSize": 2
+      }
+    }
+  },
+
+  "forwardPorts": [
+    8080,
+    5432,
+    3000
+  ],
+
+  "portsAttributes": {
+    "8080": {
+      "label": "Surypus API",
+      "onAutoForward": "notify"
+    },
+    "5432": {
+      "label": "PostgreSQL",
+      "onAutoForward": "silent"
+    },
+    "3000": {
+      "label": "Development Server",
+      "onAutoForward": "notify"
+    }
+  },
+
+  "postCreateCommand": "stack build && stack test",
+
+  "remoteUser": "vscode",
+
+  "hostRequirements": {
+    "cpus": 4,
+    "memory": "8gb",
+    "storage": "32gb"
+  }
+}
