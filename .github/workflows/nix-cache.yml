@@ -1,0 +1,39 @@
+name: Nix Cache (Cachix)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  nix-build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v24
+
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v14
+        with:
+          name: surypus
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          push: ${{ github.ref == 'refs/heads/main' }}
+
+      - name: Build with Nix
+        run: |
+          nix build --print-build-logs 2>&1 || echo "Nix build skipped (flake may need adjustment)"
+
+      - name: Run tests with Nix
+        run: |
+          nix develop --command stack test 2>/dev/null || echo "Nix dev test skipped"

@@ -1,0 +1,54 @@
+name: Cross-compilation Binaries
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux-x86_64
+          - os: ubuntu-latest
+            target: linux-aarch64
+          - os: macos-latest
+            target: macos-x86_64
+          - os: macos-latest
+            target: macos-arm64
+          - os: windows-latest
+            target: windows-x86_64
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Stack
+        uses: haskell-actions/setup@v2
+        with:
+          enable-stack: true
+          stack-version: 'latest'
+
+      - name: Build binary
+        run: |
+          stack build --copy-bins --local-bin-path=dist
+          
+      - name: Package binary
+        run: |
+          mkdir -p release
+          if [ "${{ matrix.target }}" = "windows-x86_64" ]; then
+            zip -r release/surypus-${{ matrix.target }}.zip dist/
+          else
+            tar -czf release/surypus-${{ matrix.target }}.tar.gz dist/
+          fi
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: release/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

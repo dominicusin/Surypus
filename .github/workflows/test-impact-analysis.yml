@@ -1,0 +1,63 @@
+name: Test Impact Analysis
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test-impact:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Stack
+        uses: haskell-actions/setup@v2
+        with:
+          enable-stack: true
+          stack-version: 'latest'
+
+      - name: Cache Stack dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.stack
+          key: ${{ runner.os }}-stack-${{ hashFiles('stack.yaml.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-stack-
+
+      - name: Determine changed modules
+        id: changed
+        run: |
+          # Get changed Haskell files
+          CHANGED=$(git diff --name-only HEAD^..HEAD -- '*.hs' '*.lhs' || echo "")
+          echo "Changed files: $CHANGED"
+          
+          # Map changed files to test suites
+          TESTS=""
+          for f in $CHANGED; do
+            case $f in
+              src/Finance/*) TESTS="$TESTS --match Finance" ;;
+              src/Inventory/*) TESTS="$TESTS --match Inventory" ;;
+              src/Core/*) TESTS="$TESTS --match Core" ;;
+              src/DAL/*) TESTS="$TESTS --match DAL" ;;
+              src/API/*) TESTS="$TESTS --match API" ;;
+              test/*) TESTS="$TESTS --match Test" ;;
+            esac
+          done
+          
+          echo "tests=$TESTS" >> $GITHUB_OUTPUT
+
+      - name: Run targeted tests
+        run: |
+          if [ -n "${{ steps.changed.outputs.tests }}" ]; then
+            echo "Running targeted tests..."
+            stack test ${{ steps.changed.outputs.tests }}
+          else
+            echo "No specific test targets, running all tests"
+            stack test
+          fi

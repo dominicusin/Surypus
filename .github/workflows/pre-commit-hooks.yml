@@ -1,0 +1,68 @@
+name: Pre-commit Hooks
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Stack
+        uses: haskell-actions/setup@v2
+        with:
+          enable-stack: true
+          stack-version: 'latest'
+
+      - name: Cache Stack dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.stack
+          key: ${{ runner.os }}-stack-${{ hashFiles('stack.yaml.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-stack-
+
+      - name: Install pre-commit tools
+        run: |
+          stack install fourmolu hlint
+
+      - name: Check formatting (Fourmolu)
+        run: |
+          ~/.local/bin/fourmolu --mode check src/ test/ app/ tools/ || {
+            echo "::error::Code is not formatted. Run 'fourmolu -i src/ test/ app/ tools/'"
+            exit 1
+          }
+
+      - name: Run HLint
+        run: |
+          ~/.local/bin/hlint src/ test/ app/ tools/ --report=hlint-report.html || true
+          # Don't fail the build for HLint warnings, just report them
+
+      - name: Check trailing whitespace
+        run: |
+          if grep -rn ' $' src/ test/ app/ tools/ --include='*.hs' 2>/dev/null; then
+            echo "::warning::Found trailing whitespace"
+          fi
+
+      - name: Check for TODO/FIXME in main branch
+        if: github.ref == 'refs/heads/main'
+        run: |
+          if grep -rn 'TODO\|FIXME\|XXX\|HACK' src/ test/ --include='*.hs' 2>/dev/null; then
+            echo "::warning::Found TODO/FIXME comments in main branch"
+          fi
+
+      - name: Upload HLint report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hlint-report
+          path: hlint-report.html
+          retention-days: 7
