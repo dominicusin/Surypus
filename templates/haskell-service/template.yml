@@ -1,0 +1,14 @@
+name: Haskell Service Template
+description: Production-ready Haskell service with Stack, CI/CD, and GitHub best practices
+omit:
+  - README.md
+  - CHANGELOG.md
+  - LICENSE
+  - .github/workflows/ci.yml
+  - .github/dependabot.yml
+  - .github/labels.yml
+  - .github/CODEOWNERS
+  - docs/adr/
+  - .devcontainer/
+  - flake.nix
+  - .gitignore
