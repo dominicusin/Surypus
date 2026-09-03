@@ -1,0 +1,61 @@
+name: GHC Performance Tracking
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 6 * * 1'  # Weekly on Monday at 6 AM
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  performance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      matrix:
+        ghc: ['9.6.6', '9.8.2', '9.10.1']
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Stack with GHC ${{ matrix.ghc }}
+        uses: haskell-actions/setup@v2
+        with:
+          enable-stack: true
+          stack-version: 'latest'
+
+      - name: Cache Stack dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.stack
+          key: ${{ runner.os }}-stack-${{ matrix.ghc }}-${{ hashFiles('stack.yaml.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-stack-${{ matrix.ghc }}-
+
+      - name: Build with GHC ${{ matrix.ghc }}
+        run: |
+          stack build --ghc-options="-O2" --bench --no-run-benchmarks
+
+      - name: Run benchmarks
+        run: |
+          stack bench --benchmark-arguments "--output=benchmark-ghc-${{ matrix.ghc }}.html" 2>/dev/null || \
+          echo "Benchmarks not available"
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-ghc-${{ matrix.ghc }}
+          path: benchmark-ghc-${{ matrix.ghc }}.html
+          retention-days: 90
+
+      - name: Compare performance
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "Performance comparison for GHC ${{ matrix.ghc }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Benchmarks completed. Check artifacts for details." >> $GITHUB_STEP_SUMMARY

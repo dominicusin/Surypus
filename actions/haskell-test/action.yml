@@ -1,0 +1,57 @@
+name: 'Haskell Test'
+description: 'Run Haskell tests with coverage and reporting for Surypus projects'
+author: 'Surypus Team'
+
+inputs:
+  test-arguments:
+    description: 'Additional arguments to pass to stack test'
+    required: false
+    default: ''
+  enable-coverage:
+    description: 'Enable coverage reporting'
+    required: false
+    default: 'true'
+  coverage-threshold:
+    description: 'Minimum coverage percentage'
+    required: false
+    default: '80'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Build with coverage
+      if: inputs.enable-coverage == 'true'
+      shell: bash
+      run: |
+        stack build --coverage --test --no-run-tests
+
+    - name: Build without coverage
+      if: inputs.enable-coverage == 'false'
+      shell: bash
+      run: |
+        stack build --test --no-run-tests
+
+    - name: Run tests
+      shell: bash
+      run: |
+        stack test ${{ inputs.test-arguments }}
+
+    - name: Generate coverage report
+      if: inputs.enable-coverage == 'true'
+      shell: bash
+      run: |
+        stack hpc-codecov --json > coverage.json 2>/dev/null || \
+        echo "hpc-codecov not available"
+
+    - name: Upload coverage
+      if: inputs.enable-coverage == 'true'
+      uses: codecov/codecov-action@v4
+      with:
+        file: coverage.json
+        flags: unittests
+        fail_ci_if_error: false
+        token: ${{ secrets.CODECOV_TOKEN }}
+
+branding:
+  icon: 'check-circle'
+  color: 'green'

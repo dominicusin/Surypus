@@ -1,0 +1,85 @@
+name: 'Haskell Setup'
+description: 'Set up GHC, Stack, and Cabal with caching for Surypus projects'
+author: 'Surypus Team'
+
+inputs:
+  ghc-version:
+    description: 'GHC version to install'
+    required: false
+    default: '9.6.6'
+  stack-version:
+    description: 'Stack version to install'
+    required: false
+    default: 'latest'
+  cabal-version:
+    description: 'Cabal version to install'
+    required: false
+    default: 'latest'
+  enable-stack:
+    description: 'Enable Stack'
+    required: false
+    default: 'true'
+  enable-nix:
+    description: 'Enable Nix'
+    required: false
+    default: 'false'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Stack
+      if: inputs.enable-stack == 'true'
+      uses: haskell-actions/setup@v2
+      with:
+        enable-stack: true
+        stack-version: ${{ inputs.stack-version }}
+
+    - name: Setup GHC (without Stack)
+      if: inputs.enable-stack == 'false'
+      uses: haskell-actions/setup@v2
+      with:
+        ghc-version: ${{ inputs.ghc-version }}
+        cabal-version: ${{ inputs.cabal-version }}
+
+    - name: Install Nix
+      if: inputs.enable-nix == 'true'
+      uses: cachix/install-nix-action@v24
+
+    - name: Cache Stack dependencies
+      if: inputs.enable-stack == 'true'
+      uses: actions/cache@v4
+      with:
+        path: ~/.stack
+        key: ${{ runner.os }}-stack-${{ hashFiles('stack.yaml.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-stack-
+
+    - name: Cache Cabal dependencies
+      if: inputs.enable-stack == 'false'
+      uses: actions/cache@v4
+      with:
+        path: ~/.cabal/store
+        key: ${{ runner.os }}-cabal-${{ hashFiles('**/*.cabal', 'cabal.project*') }}
+        restore-keys: |
+          ${{ runner.os }}-cabal-
+
+    - name: Verify installation
+      shell: bash
+      run: |
+        echo "=== Haskell Toolchain ==="
+        if command -v stack &> /dev/null; then
+          echo "Stack: $(stack --version)"
+        fi
+        if command -v ghc &> /dev/null; then
+          echo "GHC: $(ghc --version)"
+        fi
+        if command -v cabal &> /dev/null; then
+          echo "Cabal: $(cabal --version)"
+        fi
+        if command -v nix &> /dev/null; then
+          echo "Nix: $(nix --version)"
+        fi
+
+branding:
+  icon: 'code'
+  color: 'purple'
