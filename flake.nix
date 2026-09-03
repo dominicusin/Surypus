@@ -20,7 +20,7 @@
         ghcVersion = "966";
 
         stack-wrapped = pkgs.stack.override {
-          ghc = pkgs.haskell.compiler.ghc${ghcVersion};
+          ghc = builtins.getAttr "ghc${ghcVersion}" pkgs.haskell.compiler;
         };
 
       in
@@ -31,7 +31,7 @@
           buildInputs = with pkgs; [
             # Haskell toolchain
             stack-wrapped
-            haskell.compiler.ghc${ghcVersion}
+            (builtins.getAttr "ghc${ghcVersion}" pkgs.haskell.compiler)
             cabal-install
             haskell-language-server
             hlint
@@ -86,15 +86,15 @@
             echo ""
           '';
 
-          LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [
+          LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath (with pkgs; [
             zlib
             gmp
             pcre
             libffi
             ncurses
             openssl
-            pkgs.stdenv.cc.cc.lib
-          ];
+            stdenv.cc.cc.lib
+          ]);
         };
 
         # Docker image for CI/CD
