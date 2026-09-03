@@ -1,0 +1,47 @@
+# Labeler v5 configuration
+# https://github.com/actions/labeler
+
+# Labels based on file paths changed
+documentation:
+  - changed-files:
+      --any-glob-to-any-file:
+          - 'docs/**'
+          - '**/*.md'
+          - 'LICENSE'
+
+bug:
+  - head-branch:
+      - '^fix/'
+      - '^bugfix/'
+      - '^hotfix/'
+
+feature:
+  - head-branch:
+      - '^feat/'
+      - '^feature/'
+
+performance:
+  - head-branch:
+      - '^perf/'
+      - '^performance/'
+
+refactor:
+  - head-branch:
+      - '^refactor/'
+      - '^refactoring/'
+
+packaging:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'packaging/**'
+          - '**/Dockerfile'
+          - '.dockerignore'
+
+javascript:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'web/**'
+          - '**/*.js'
+          - '**/*.jsx'
+          - '**/*.ts'
+          - '**/*.jsx'
