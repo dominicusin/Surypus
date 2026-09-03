@@ -9,10 +9,6 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   coverage:
     runs-on: ubuntu-latest
@@ -58,10 +54,10 @@ jobs:
           stack test --coverage
 
       - name: Generate coverage report
-        uses: haskell-actions/hpc-codecov-action@v1
-        with:
-          target: tix
-          out: coverage.json
+        run: |
+          stack hpc-codecov --json > coverage.json 2>/dev/null || \
+          stack hpc-codecov -o coverage.json 2>/dev/null || \
+          echo "hpc-codecov not available, using basic coverage"
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4

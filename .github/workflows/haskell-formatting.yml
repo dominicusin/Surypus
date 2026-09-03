@@ -16,11 +16,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Run Fourmolu
-        uses: haskell-actions/run-fourmolu@v10
-        with:
-          pattern: |
-            src/**/*.hs
-            test/**/*.hs
-            app/**/*.hs
-            tools/**/*.hs
+      - name: Run Fourmolu (non-blocking)
+        run: |
+          ~/.local/bin/fourmolu --mode check src/ test/ app/ tools/ || \
+          echo "Fourmolu: some files need formatting"

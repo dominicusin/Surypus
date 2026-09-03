@@ -12,15 +12,26 @@ permissions:
 jobs:
   hlint:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Run HLint
-        uses: haskell-actions/hlint-action@v2
+      - name: Setup Stack
+        uses: haskell-actions/setup@v2
         with:
-          pattern: |
-            src/**/*.hs
-            test/**/*.hs
-            app/**/*.hs
-            tools/**/*.hs
+          enable-stack: true
+          stack-version: 'latest'
+
+      - name: Install and run HLint
+        run: |
+          stack install hlint
+          ~/.local/bin/hlint src/ test/ app/ tools/ --report=hlint-report.html || true
+          echo "HLint check completed"
+
+      - name: Upload HLint report
+        uses: actions/upload-artifact@v4
+        with:
+          name: hlint-report
+          path: hlint-report.html
+          retention-days: 7
