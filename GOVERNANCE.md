@@ -51,6 +51,22 @@ People who contribute code, documentation, or other improvements.
 - Participate in code reviews
 - Help other contributors
 
+### Committers
+
+Contributors who have demonstrated commitment and have direct commit access.
+
+**How to become a Committer:**
+1. Make consistent quality contributions for at least 3 months
+2. Have at least 10 merged PRs
+3. Demonstrate good understanding of the project
+4. Be nominated by an existing maintainer
+
+**Responsibilities:**
+- All Contributor responsibilities
+- Direct commit access to the repository
+- Review pull requests from other contributors
+- Help maintain code quality
+
 ### Maintainers
 
 People who have commit access and are responsible for the project direction.
@@ -77,6 +93,13 @@ Experienced contributors who have demonstrated commitment to the project.
 - Make decisions on project direction
 
 ## Decision Making
+
+### Governance Model
+
+Surypus uses a **Liberal Contribution** model:
+- Influence is based on current work, not historical contribution
+- Major decisions are made through consensus-seeking (not direct voting)
+- The project lead has final say on strategic decisions
 
 ### Consensus-Based Decision Making
 
@@ -126,6 +149,13 @@ For significant architectural decisions, we use Architecture Decision Records (A
 4. **Make decision** based on consensus
 5. **Implement** the decision
 6. **Document** the outcome
+
+### When Consensus Cannot Be Reached
+
+If consensus cannot be reached after reasonable discussion:
+1. The project lead makes the final decision
+2. The decision is documented with reasoning
+3. The decision can be revisited if new information emerges
 
 ## Contribution Process
 
@@ -265,6 +295,42 @@ We believe in shared ownership of the project. The more you contribute, the more
 - **Documentation** - All documentation is public
 - **Decision making** - Major decisions are made transparently
 - **Credit** - All contributors are recognized
+
+## Corporate Participation
+
+### Corporate Contributors
+
+We welcome contributions from companies and corporate employees. Corporate contributors:
+
+- Are evaluated on technical merit, not their employer
+- Should disclose their corporate affiliation in PRs
+- May use Surypus in commercial products
+
+### Commercial Use
+
+Surypus is free for commercial use under MPL-2.0. Companies can:
+
+- Use Surypus in proprietary products
+- Offer commercial support for Surypus
+- Sponsor the project for visibility and influence
+
+### Corporate Sponsorship
+
+Companies that benefit from Surypus can become sponsors. See [SPONSORSHIP.md](SPONSORSHIP.md) for tiers and benefits.
+
+## Legal Entity
+
+### Current Status
+
+Surypus is not a registered nonprofit organization. Donations are not tax-deductible.
+
+### Fiscal Sponsorship
+
+For tax-deductible donations, we can work with a fiscal sponsor. Please contact us for details.
+
+### Future Structure
+
+As the project grows, we may establish a legal entity (e.g., nonprofit organization or foundation) to better support the community.
 
 ---
 
