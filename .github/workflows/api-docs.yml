@@ -73,7 +73,8 @@ jobs:
           path: docs/api/
 
       - name: Deploy to GitHub Pages
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        continue-on-error: true
         id: deployment
         uses: peaceiris/actions-gh-pages@v4
         with:
