@@ -17,9 +17,12 @@ jobs:
 
       - name: Parse Cabal File
         id: parse
-        uses: haskell-actions/parse-cabal@v1
-        with:
-          cabal-file: Surypus.cabal
+        run: |
+          VERSION=$(grep -E "^version:" Surypus.cabal | head -1 | sed 's/.*:\s*//')
+          NAME=$(grep -E "^name:" Surypus.cabal | head -1 | sed 's/.*:\s*//')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "name=$NAME" >> $GITHUB_OUTPUT
+          echo "Parsed: $NAME v$VERSION"
 
       - name: Create Git tag on version bump
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/main')

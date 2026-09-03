@@ -1,4 +1,4 @@
-name: Nix Cache (Cachix)
+name: Nix Cache
 
 on:
   push:
@@ -8,7 +8,10 @@ on:
 
 permissions:
   contents: read
-  id-token: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   nix-build:
@@ -23,12 +26,13 @@ jobs:
       - name: Install Nix
         uses: cachix/install-nix-action@v24
 
-      - name: Setup Cachix
-        uses: cachix/cachix-action@v14
+      - name: Cache Nix store
+        uses: actions/cache@v4
         with:
-          name: surypus
-          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
-          push: ${{ github.ref == 'refs/heads/main' }}
+          path: /nix/store
+          key: ${{ runner.os }}-nix-${{ hashFiles('flake.nix', 'flake.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-nix-
 
       - name: Build with Nix
         run: |
