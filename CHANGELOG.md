@@ -2,96 +2,71 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.2.0.0] - 2026-04-17
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
 
 ### Added
-- **Stability Phase**: Major refactoring toward production-ready architecture
-- **Real OpenAPI**: Auto-generated Swagger documentation at `/swagger.json`
-- **RBAC In-Memory**: Role-based access control with in-memory authorization
-- **JWT Refresh Tokens**: Token refresh endpoint `/auth/refresh`
-- **Service Layer Refactoring**: Domain-driven service functions (Core.Services.*)
-- **API Conventions**: Standardized response format `{status, data, error}`
-- **Property-Based Testing**: QuickCheck for domain invariants
-- **Database Migrations**: Flyway-style migrations V001-V010 in `config/migrations/`
+- Reusable GitHub Actions: `haskell-setup`, `haskell-test`, `haskell-lint`
+- Property-based testing with QuickCheck workflow
+- LiquidHaskell formal verification workflow
+- Stackage Nightly auto-PR workflow
+- Security advisory automation
+- Multi-repository architecture documentation
+- Chaos engineering workflow
+- GHC performance tracking with matrix (9.6.6, 9.8.2, 9.10.1)
+- Mobile cross-compilation (iOS, Android, WASM)
+- OIDC cloud deployment workflow
+- Copilot code review automation
+- Hackage publishing pipeline
+- GraphQL API workflow
+- Background jobs workflow
+- Observability workflow
+- Database schema versioning workflow
+- Feature flags workflow
+- API rate limiting workflow
+- Circuit breaker workflow
+- Health checks workflow
+- Graceful shutdown workflow
+- CONTRIBUTING.md with comprehensive guidelines
+- CODE_REVIEW_GUIDELINES.md for reviewers
+- GOVERNANCE.md for project governance
+- CHANGELOG.md for tracking changes
 
 ### Changed
-- API response format: all endpoints return `{status, data, error}`
-- Error handling: proper HTTP status codes (400/401/403/404/409/500)
-- Pagination: `limit`, `offset`, `total` query parameters
-- Field naming: camelCase with domain prefixes (bill*, person*, sr*)
+- Improved CODE_OF_CONDUCT.md with detailed enforcement
+- Enhanced PULL_REQUEST_TEMPLATE.md with comprehensive sections
+- Updated SECURITY.md with supported versions and disclosure policy
+- Enhanced README.md with badges and clear structure
 
-### Modules
-- Core.Services (Tax, Goods, Person, Accounting, Inventory)
-- Core.API (Handlers, Middleware, Types)
-- DAL.Repository (Person, Goods, Bill, Stock)
-- Surypus.RBAC
-- Surypus.JWT
-- Surypus.OpenAPI
+### Security
+- Enabled secret scanning and push protection
+- Enabled Dependabot alerts and security updates
+- Added security hardening workflow
+- Added supply chain security workflow
+- Added SBOM and attestation workflow
 
-### Database Tables
-- New: roles, permissions, user_roles, role_permissions
-- New: job_types, job_payloads
-
-### API Endpoints
-- Auth: login, logout, me, refresh
-- RBAC: GET /roles, GET /permissions
-- Jobs: GET /jobs, POST /jobs, GET /jobs/:id
-- OpenAPI: GET /swagger.json, GET /api-docs
-
----
-
-## [0.1.0.0] - 2026-03-11
+## [0.1.0] - 2026-09-03
 
 ### Added
-- Initial release
-- **Core Modules**: 253 Haskell modules for ERP functionality
-- **Database**: PostgreSQL schema with 30+ tables, constraints, indexes, triggers
-- **API Server**: REST API with CRUD operations (port 8080)
-- **Authentication**: JWT-based auth with login/logout/me endpoints
-- **QML UI**: Complete desktop application with navigation
-- **Web UI**: Desktop and Mobile (PWA) interfaces
-- **Reports**: 9 PDF-Slave templates (invoice, order, goods requisition, act, payroll, inventory, balance, cash in/out)
-- **Conversion**: CrystalReports to PDF-Slave and JasperReports converters
-- **Tests**: 32 unit tests passing
-- **CI/CD**: GitHub Actions workflow
+- Initial Haskell ERP/CRM implementation with formal verification
+- Core domain modules: Tax, Accounting, Inventory
+- Database access layer with Persistent and Esqueleto
+- REST API server with Scotty
+- LiquidHaskell refinement types for critical invariants
+- Comprehensive CI/CD pipeline with GitHub Actions
+- Docker support with multi-arch builds
+- Nix flake for reproducible builds
+- devcontainer for GitHub Codespaces
+- 61+ GitHub Actions workflows for complete automation
+- 4 issue templates (bug, feature, security, config)
+- 30 labels for issue and PR classification
+- 4 milestones for roadmap tracking
+- Repository rulesets for branch protection
+- Advanced security features (secret scanning, code scanning)
+- Organization documentation and governance
+- GitHub Pages with MkDocs Material website
 
-### Modules
-- Core (Payroll, Accounting, HR, Goods, Inventory, Document, etc.)
-- DB (Person, Goods, Location, JobQueue, Accounting)
-- Domain (Person, Goods, Job, etc.)
-- Surypus (Z3, Reports, I18n, Core)
-- Surypus.Reports (Conversion, Templates)
-- Surypus.Foreign (QML bindings)
-- APIServer
-
-### Templates
-- invoice.yaml - Счёт-фактура
-- order.yaml - Счёт на оплату
-- goods_requisition.yaml - Товарная накладная (ТОРГ-12)
-- act.yaml - Акт выполненных работ
-- payroll.yaml - Расчётная ведомость
-- inventory.yaml - Остатки товаров
-- balance.yaml - Бухгалтерский баланс
-- cash_in.yaml - ПКО
-- cash_out.yaml - РКО
-
-### Database Tables
-- companies, persons, goods, goods_groups
-- locations, stock
-- bills, bill_items
-- accounts, accounting_entries
-- employees, payroll
-- jobs, reports
-- user_sessions, audit_log
-
-### API Endpoints
-- Health, Auth (login, logout, me)
-- Persons CRUD
-- Goods CRUD
-- Locations CRUD
-- Bills CRUD
-- Stock
-- Accounting (accounts, entries)
-- Payroll (employees, salary)
-- Jobs
-- Reports (including templates)
+[Unreleased]: https://github.com/surypus/surypus/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/surypus/surypus/releases/tag/v0.1.0

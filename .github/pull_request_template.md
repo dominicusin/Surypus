@@ -1,79 +1,120 @@
 ## Summary
 
-Phase 1: Stabilize core infrastructure — CI gating, real OpenAPI, debug logging, test fixes.
+<!-- Provide a clear, concise summary of the changes -->
 
-## Motivation
+## Related Issue
 
-The CI pipeline was blocked by:
-1. **RBAC tests** failing in CI environment (RBAC store/state not fully initialized in test context)
-2. **Swagger tests** failing because the endpoint returned a placeholder string instead of a real OpenAPI spec
-3. **No debug capability** to diagnose auth/RBAC failures quickly in CI
-4. **Parse errors** in RBACSpec.hs from malformed indentation during previous patching
+<!-- Link to the issue this PR addresses -->
+Closes #
 
-## Changes
+## Type of Change
 
-### CI Gating
-- **`.github/workflows/ci.yml`**: Added `SURYPUS_SKIP_RBAC_TESTS=1` to test step. Swagger gating removed (real OpenAPI now served).
-- **`scripts/ci-runner.sh`**: Synced with CI workflow.
+<!-- Check all that apply -->
 
-### Real OpenAPI
-- **`src/Surypus/API/OpenApi.hs`** (NEW): Real OpenAPI 3.0.3 spec as a `Value` — covers auth, persons, goods, locations, bills, rbac, audit, health, metrics endpoints.
-- **`src/Surypus/API/Root.hs`**: `apiSwagger = apiSwaggerSpec` (was placeholder string).
-- **`Surypus.cabal`**: Added `Surypus.API.OpenApi` to `exposed-modules`.
+- [ ] 🐛 Bug fix (non-breaking change which fixes an issue)
+- [ ] ✨ New feature (non-breaking change which adds functionality)
+- [ ] 💥 Breaking change (fix or change that would cause existing functionality to not work as expected)
+- [ ] 📚 Documentation update
+- [ ] 🎨 Code style/refactoring (no functional changes)
+- [ ] ⚡ Performance improvement
+- [ ] ✅ Test addition or update
+- [ ] 🔧 Build/CI/CD change
+- [ ] 🔒 Security fix
 
-### Debug Logging
-- **`src/Surypus/Logging.hs`**: Added `debugLog :: Text -> IO ()` and `debugLogIf :: Bool -> Text -> IO ()` — check `SURYPUS_DEBUG=1`.
-- **`src/Surypus/API/AuthMiddleware.hs`**: Replaced local `debugLog` with centralized import from `Surypus.Logging`.
-- **`src/Surypus/API/Server.hs`**: Debug output on login success/failure, health check DB failure, server startup.
+## Motivation and Context
 
-### Test Fixes
-- **`test/RBACSpec.hs`**: Full rewrite — gating via `SURYPUS_SKIP_RBAC_TESTS` at `main` level; correct `describe "RBAC" $ do` indentation.
-- **`test/API/ServerSpec.hs`**: Restored 2 malformed `do` blocks ("active grants", "update dynamic role"); added `/swagger.json` to `publicPaths`; removed Swagger gating.
+<!-- Why is this change needed? What problem does it solve? -->
 
-### Documentation
-- **`README.md`**: Added "CI gating" and "Debug logging (SURYPUS_DEBUG)" sections.
+## Changes Made
+
+<!-- Describe the specific changes made -->
+
+### Added
+- 
+
+### Changed
+- 
+
+### Fixed
+- 
+
+### Removed
+- 
 
 ## Testing
 
-### Local test commands
+<!-- Describe the testing you performed -->
+
+### Test Environment
+- **OS**: 
+- **GHC Version**: 
+- **Stack Version**: 
+
+### Test Commands
 ```bash
-# Full test run (all 164 tests pass)
+# Run all tests
 stack test
 
-# Skip RBAC tests (CI-equivalent)
-SURYPUS_SKIP_RBAC_TESTS=1 stack test
+# Run specific tests
+stack test --test-arguments "--match TestName"
 
-# Verbose debug output
-SURYPUS_DEBUG=1 stack exec surypus
+# Run with coverage
+stack test --coverage
 ```
 
-### Results
-- **Without gating**: 164 examples, 0 failures
-- **With RBAC gating**: 164 examples, 0 failures
+### Test Results
+<!-- Summarize test results -->
 
-### Test groups
-- **Template Loading**: QuickCheck property tests (VAT, accounting, payroll, currency rounding)
-- **RBAC**: Permission resolution, dynamic roles, scoped permissions, delegation, audit
-- **API Endpoints**: Auth, persons, goods, bills, RBAC, health, Swagger/OpenAPI
-- **Domain**: Tax, accounting, payroll, inventory properties
+- [ ] All existing tests pass
+- [ ] New tests added for new functionality
+- [ ] Code coverage maintained or improved
 
-## Risks
+## Screenshots (if applicable)
 
-- **Swagger/OpenAPI**: Real spec covers major endpoints. Missing: goods/locations/bills CRUD details, stock, accounting, payroll, reports. Expand `src/Surypus/API/OpenApi.hs` as needed.
-
-## Environment Variables
-
-| Variable | Default | Purpose |
-|---|---|---|
-| `SURYPUS_SKIP_RBAC_TESTS` | (none) | Skip RBAC test suite locally |
-| `SURYPUS_DEBUG` | `0` | Enable verbose debug output |
+<!-- Add screenshots to help explain your changes -->
 
 ## Checklist
 
-- [x] All 164 tests pass locally (with and without RBAC gating)
-- [x] Build clean (`stack build --fast`, no errors, no warnings)
-- [x] CI workflow passes — all 164 tests (GitHub Actions)
-- [x] Swagger endpoint returns real OpenAPI 3.0.3 at `/swagger.json`
-- [x] `SURYPUS_DEBUG=1` produces debug output
-- [x] RBAC gating removed from CI (all tests pass)
-- [x] PR description updated with changelog
+<!-- Check all that apply -->
+
+### Code Quality
+- [ ] Code follows project style guidelines
+- [ ] Self-reviewed own code
+- [ ] Added Haddock comments for public functions
+- [ ] No compiler warnings
+- [ ] Formatted with `fourmolu`
+- [ ] Linted with `hlint`
+
+### Testing
+- [ ] Added tests for new functionality
+- [ ] All tests pass locally
+- [ ] Integration tests pass (if applicable)
+- [ ] Property-based tests added (if applicable)
+
+### Documentation
+- [ ] Updated README.md (if applicable)
+- [ ] Updated CHANGELOG.md
+- [ ] Updated inline documentation
+- [ ] Updated architecture docs (if applicable)
+
+### Breaking Changes
+- [ ] No breaking changes
+- [ ] Breaking changes documented below
+- [ ] Migration guide provided (if applicable)
+
+## Breaking Changes
+
+<!-- If applicable, describe breaking changes and migration steps -->
+
+## Additional Notes
+
+<!-- Any additional information reviewers should know -->
+
+## Reviewer Checklist (for reviewers)
+
+- [ ] Code follows project conventions
+- [ ] Tests are adequate and pass
+- [ ] Documentation is clear and complete
+- [ ] No security vulnerabilities introduced
+- [ ] Performance impact considered
+- [ ] Breaking changes are acceptable
