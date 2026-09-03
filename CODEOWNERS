@@ -1,2 +1,21 @@
-contributors
-maintainers
+# CODEOWNERS for Surypus
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings/customizing-code-ownership/about-code-owners
+
+# Global owner
+* @dominicusin
+
+# CI/CD changes
+.github/ @dominicusin
+
+# Documentation
+docs/ @dominicusin
+*.md @dominicusin
+
+# Database migrations
+sql/migrations/ @dominicusin
+
+# Core library code
+src/ @dominicusin
+
+# Tests
+test/ @dominicusin
