@@ -4,11 +4,12 @@
 # Labels based on file paths changed
 documentation:
   - changed-files:
-      --any-glob-to-any-file:
+      - any-glob-to-any-file:
           - 'docs/**'
           - '**/*.md'
           - 'LICENSE'
 
+# Labels based on branch name
 bug:
   - head-branch:
       - '^fix/'
@@ -30,6 +31,36 @@ refactor:
       - '^refactor/'
       - '^refactoring/'
 
+# Labels based on file paths
+security:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/workflows/secret-guard.yml'
+          - '.github/workflows/codeql.yml'
+          - 'SECURITY.md'
+
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/Dockerfile'
+          - '**/package.json'
+          - '**/yarn.lock'
+          - '**/stack.yaml'
+          - '**/stack.yaml.lock'
+          - '**/cabal.project'
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/workflows/*.yml'
+
+testing:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'test/**'
+          - '**/*Spec.hs'
+          - '**/*Test.hs'
+
 packaging:
   - changed-files:
       - any-glob-to-any-file:
@@ -44,4 +75,4 @@ javascript:
           - '**/*.js'
           - '**/*.jsx'
           - '**/*.ts'
-          - '**/*.jsx'
+          - '**/*.tsx'
