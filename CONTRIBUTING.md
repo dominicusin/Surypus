@@ -297,6 +297,43 @@ Contributors will be recognized in:
 - **CONTRIBUTORS.md** file (coming soon)
 - **GitHub contributors** page
 
+## Maintainers
+
+### Becoming a Maintainer
+
+We welcome contributors who want to become maintainers. To be considered:
+
+1. Make consistent quality contributions for at least 3 months
+2. Demonstrate good communication and collaboration skills
+3. Show understanding of the project vision and goals
+3. Help review other contributors' PRs
+4. Mentor new contributors
+
+### Responsibilities
+
+- Review PRs within 48 hours
+- Triage issues within 48 hours
+- Maintain code quality and standards
+- Support the community
+- Make decisions in the best interest of the project
+
+### Time Commitment
+
+We understand maintainers are volunteers. We ask for:
+
+- **Minimum**: 2-3 hours per week
+- **Ideal**: 5 hours per week
+- **Flexibility**: We accommodate different schedules and availability
+
+### Support
+
+Maintainers have access to:
+
+- [MAINTAINER_GUIDE.md](MAINTAINER_GUIDE.md) - Detailed maintainer guide
+- [GOVERNANCE.md](GOVERNANCE.md) - Project governance
+- [ENFORCEMENT.md](ENFORCEMENT.md) - Code of Conduct enforcement
+- Private maintainer discussions (coming soon)
+
 ## Questions?
 
 If you have questions not covered here:
