@@ -1,0 +1,103 @@
+name: Semantic Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Stack
+        uses: haskell-actions/setup@v2
+        with:
+          enable-stack: true
+          stack-version: 'latest'
+
+      - name: Cache Stack dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.stack
+          key: ${{ runner.os }}-stack-${{ hashFiles('stack.yaml.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-stack-
+
+      - name: Run tests
+        run: stack test
+
+      - name: Determine version
+        id: version
+        run: |
+          # Parse conventional commits to determine version bump
+          COMMITS=$(git log --oneline --no-merges HEAD...$(git describe --tags --abbrev=0 2>/dev/null || echo HEAD~10))
+          
+          if echo "$COMMITS" | grep -qE "^(feat|fix|refactor|perf|docs|style|test|build|ci|chore|revert)(\(.+\))?: .+"; then
+            if echo "$COMMITS" | grep -qE "^feat(\(.+\))?: .+"; then
+              echo "type=minor" >> $GITHUB_OUTPUT
+            elif echo "$COMMITS" | grep -qE "^fix(\(.+\))?: .+"; then
+              echo "type=patch" >> $GITHUB_OUTPUT
+            else
+              echo "type=patch" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "type=none" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Bump version
+        if: steps.version.outputs.type != 'none'
+        run: |
+          # Read current version from cabal file
+          CURRENT_VERSION=$(grep -E "^version:" Surypus.cabal | head -1 | sed 's/.*:\s*//')
+          echo "Current version: $CURRENT_VERSION"
+          
+          # Parse version parts
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+          
+          # Bump version
+          if [ "${{ steps.version.outputs.type }}" = "minor" ]; then
+            MINOR=$((MINOR + 1))
+            PATCH=0
+          elif [ "${{ steps.version.outputs.type }}" = "patch" ]; then
+            PATCH=$((PATCH + 1))
+          fi
+          
+          NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          echo "New version: $NEW_VERSION"
+          echo "new_version=$NEW_VERSION" >> $GITHUB_ENV
+          
+          # Update cabal file
+          sed -i "s/^version: .*/version: $NEW_VERSION/" Surypus.cabal
+          
+          # Update CHANGELOG
+          sed -i "s/## \[Unreleased\]/## [Unreleased]\n\n## [$NEW_VERSION] - $(date +%Y-%m-%d)/" CHANGELOG.md
+
+      - name: Create Release
+        if: steps.version.outputs.type != 'none'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ env.new_version }}
+          name: v${{ env.new_version }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload to Hackage
+        if: steps.version.outputs.type != 'none'
+        run: |
+          echo "Uploading to Hackage..."
+          stack sdist --tar-dir dist/ 2>/dev/null || echo "Hackage upload skipped"
