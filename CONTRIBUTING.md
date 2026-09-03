@@ -20,6 +20,8 @@ Thank you for your interest in contributing to Surypus! This document provides g
 
 This project and everyone participating in it is governed by our [Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to the maintainers.
 
+For details on how we enforce the Code of Conduct, see our [Enforcement Guide](ENFORCEMENT.md).
+
 ## Getting Started
 
 ### Prerequisites

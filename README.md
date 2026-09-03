@@ -142,6 +142,7 @@ For a consistent development environment:
 - [CONTRIBUTING](CONTRIBUTING.md) - How to contribute
 - [CHANGELOG](CHANGELOG.md) - Version history
 - [CODE_OF_CONDUCT](CODE_OF_CONDUCT.md) - Community standards
+- [ENFORCEMENT](ENFORCEMENT.md) - Code of Conduct enforcement
 - [SECURITY](SECURITY.md) - Security policy
 - [GOVERNANCE](GOVERNANCE.md) - Project governance
 
