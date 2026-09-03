@@ -1,99 +1,66 @@
 name: Bug Report
-description: Report a bug to help us improve
-title: "[BUG] "
-labels: ["bug", "status: needs-triage"]
+description: Сообщить об ошибке
+title: "[BUG]: "
+labels:
+  - "bug"
+  - "status: needs-triage"
+
 body:
-  - type: markdown
-    attributes:
-      value: |
-        Thanks for taking the time to fill out this bug report!
-
-  - type: input
-    id: summary
-    attributes:
-      label: Summary
-      description: A clear and concise description of what the bug is
-      placeholder: "The bug is..."
-    validations:
-      required: true
-
   - type: dropdown
     id: severity
     attributes:
-      label: Severity
-      description: How severe is this bug?
+      label: Критичность
       options:
-        - Critical (system down, data loss)
-        - High (major feature broken)
-        - Medium (feature partially broken)
-        - Low (cosmetic, minor issue)
+        - Critical
+        - High
+        - Medium
+        - Low
     validations:
       required: true
 
-  - type: dropdown
+  - type: input
     id: component
     attributes:
-      label: Component
-      description: Which component is affected?
-      options:
-        - API Server
-        - Database / DAL
-        - Authentication / RBAC
-        - Frontend / QML
-        - Build / CI
-        - Documentation
-        - Other
+      label: Компонент / модуль
+      placeholder: "например, API, Core, CLI"
     validations:
       required: true
 
   - type: textarea
-    id: reproduction
+    id: steps
     attributes:
-      label: Steps to Reproduce
-      description: Steps to reproduce the behavior
+      label: Шаги для воспроизведения
       placeholder: |
-        1. Go to '...'
-        2. Click on '....'
-        3. Scroll down to '....'
-        4. See error
+        1. ...
+        2. ...
+        3. ...
     validations:
       required: true
 
   - type: textarea
     id: expected
     attributes:
-      label: Expected Behavior
-      description: What you expected to happen
+      label: Ожидаемое поведение
     validations:
       required: true
 
   - type: textarea
     id: actual
     attributes:
-      label: Actual Behavior
-      description: What actually happened
+      label: Фактическое поведение
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Окружение
+      description: "ОС, версия GHC/Cabal, commit/tag, способ запуска."
     validations:
       required: true
 
   - type: textarea
     id: logs
     attributes:
-      label: Logs / Stack Trace
-      description: Paste any relevant log output or stack trace
-      render: shell
-
-  - type: input
-    id: version
-    attributes:
-      label: Version
-      description: What version of Surypus are you running?
-      placeholder: "v1.0.0, main, commit hash..."
-
-  - type: checkboxes
-    id: terms
-    attributes:
-      label: Code of Conduct
-      description: By submitting this issue, you agree to follow our Code of Conduct
-      options:
-        - label: I agree to follow this project's Code of Conduct
-          required: true
+      label: Логи / трассировка
+      render: text

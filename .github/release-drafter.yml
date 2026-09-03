@@ -1,50 +1,35 @@
-name-template: 'v$RESOLVED_VERSION'
-tag-template: 'v$RESOLVED_VERSION'
-change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
-change-title-escapes: '\<*_&'
-version-resolver:
-  major:
-    labels:
-      - 'priority: critical'
-  minor:
-    labels:
-      - 'feature'
-      - 'priority: high'
-  patch:
-    labels:
-      - 'bug'
-      - 'documentation'
-      - 'refactor'
-      - 'performance'
-  default: patch
+name-template: "v$NEXT_PATCH_VERSION"
+tag-template: "v$NEXT_PATCH_VERSION"
+
 categories:
-  - title: '🚀 Features'
+  - title: "🚀 Features"
     labels:
-      - 'feature'
-  - title: '🐛 Bug Fixes'
+      - "feature"
+
+  - title: "🐛 Bug Fixes"
     labels:
-      - 'bug'
-  - title: '🔒 Security'
+      - "bug"
+
+  - title: "🧰 Refactoring & Performance"
     labels:
-      - 'security'
-  - title: '⚡ Performance'
+      - "refactor"
+      - "performance"
+
+  - title: "🔒 Security"
     labels:
-      - 'performance'
-  - title: '📚 Documentation'
+      - "security"
+
+  - title: "📚 Documentation"
     labels:
-      - 'documentation'
-  - title: '♻️ Refactoring'
-    labels:
-      - 'refactor'
-  - title: '🔧 Maintenance'
-    labels:
-      - 'dependencies'
-      - 'chore'
-exclude-labels:
-  - 'status: blocked'
+      - "documentation"
+
+change-template: "- $TITLE (#$NUMBER) @$AUTHOR"
+
 template: |
-  ## What's Changed
+  ## What’s Changed
 
   $CHANGES
-  
-  **Full Changelog**: https://github.com/surypus/surypus/compare/$PREVIOUS_TAG...v$RESOLVED_VERSION
+
+  ## Installation
+
+  See the project documentation for installation and upgrade instructions.

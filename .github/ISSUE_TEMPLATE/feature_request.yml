@@ -1,76 +1,54 @@
 name: Feature Request
-description: Suggest a new feature or enhancement
-title: "[FEATURE] "
-labels: ["feature", "status: needs-triage"]
+description: Предложить новую функцию
+title: "[FEAT]: "
+labels:
+  - "feature"
+  - "status: needs-triage"
+
 body:
-  - type: markdown
+  - type: dropdown
+    id: priority
     attributes:
-      value: |
-        Have an idea for a new feature? Let us know!
+      label: Приоритет
+      options:
+        - High
+        - Medium
+        - Low
+    validations:
+      required: true
 
   - type: input
-    id: summary
+    id: component
     attributes:
-      label: Summary
-      description: A clear and concise description of the feature
-      placeholder: "I want to be able to..."
+      label: Компонент / модуль
+      placeholder: "например, API, Core, CLI"
+
+  - type: textarea
+    id: user_story
+    attributes:
+      label: User Story
+      placeholder: "Как [роль], я хочу [действие], чтобы [результат]"
     validations:
       required: true
 
   - type: textarea
-    id: motivation
+    id: problem
     attributes:
-      label: Motivation / User Story
-      description: Why is this feature needed? Who benefits?
+      label: Проблема / мотивация
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: Критерии приемки
       placeholder: |
-        As a [type of user], I want [goal] so that [benefit].
-        
-        Currently, users have to... This change would...
-    validations:
-      required: true
-
-  - type: textarea
-    id: solution
-    attributes:
-      label: Proposed Solution
-      description: Describe the solution you'd like
+        - [ ] ...
+        - [ ] ...
     validations:
       required: true
 
   - type: textarea
     id: alternatives
     attributes:
-      label: Alternatives Considered
-      description: What alternative solutions have you considered?
-
-  - type: dropdown
-    id: priority
-    attributes:
-      label: Priority
-      description: How important is this feature?
-      options:
-        - Critical (blocking release)
-        - High (important for next release)
-        - Medium (nice to have)
-        - Low (future consideration)
-    validations:
-      required: true
-
-  - type: textarea
-    id: acceptance
-    attributes:
-      label: Acceptance Criteria
-      description: How will we know this feature is complete?
-      placeholder: |
-        - [ ] Criterion 1
-        - [ ] Criterion 2
-        - [ ] Criterion 3
-
-  - type: checkboxes
-    id: terms
-    attributes:
-      label: Code of Conduct
-      description: By submitting this issue, you agree to follow our Code of Conduct
-      options:
-        - label: I agree to follow this project's Code of Conduct
-          required: true
+      label: Рассмотренные альтернативы
