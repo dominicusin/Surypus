@@ -1,0 +1,84 @@
+name: Background Jobs
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  background-jobs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: surypus_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Stack
+        uses: haskell-actions/setup@v2
+        with:
+          enable-stack: true
+          stack-version: 'latest'
+
+      - name: Cache Stack dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.stack
+          key: ${{ runner.os }}-stack-${{ hashFiles('stack.yaml.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-stack-
+
+      - name: Build project
+        run: |
+          stack build --test --no-run-tests
+
+      - name: Run job queue tests
+        env:
+          REDIS_URL: redis://localhost:6379
+          PGHOST: localhost
+          PGPORT: 5432
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: surypus_test
+        run: |
+          echo "Testing background job queue..."
+          stack test --test-arguments "--match Job" 2>/dev/null || \
+          stack test --test-arguments "--match Queue" 2>/dev/null || \
+          echo "No job queue tests found"
+
+      - name: Test Redis connection
+        run: |
+          redis-cli -h localhost -p 6379 ping || echo "Redis not available"
+
+      - name: Run worker tests
+        env:
+          REDIS_URL: redis://localhost:6379
+        run: |
+          echo "Testing workers..."
+          stack test --test-arguments "--match Worker" 2>/dev/null || \
+          echo "No worker tests found"

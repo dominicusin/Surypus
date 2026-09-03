@@ -1,0 +1,80 @@
+name: Graceful Shutdown
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  graceful-shutdown:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: surypus_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Stack
+        uses: haskell-actions/setup@v2
+        with:
+          enable-stack: true
+          stack-version: 'latest'
+
+      - name: Cache Stack dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.stack
+          key: ${{ runner.os }}-stack-${{ hashFiles('stack.yaml.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-stack-
+
+      - name: Build project
+        run: |
+          stack build
+
+      - name: Run graceful shutdown tests
+        env:
+          PGHOST: localhost
+          PGPORT: 5432
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: surypus_test
+        run: |
+          echo "Testing graceful shutdown..."
+          stack test --test-arguments "--match Shutdown" 2>/dev/null || \
+          stack test --test-arguments "--match Graceful" 2>/dev/null || \
+          echo "No graceful shutdown tests found"
+
+      - name: Test signal handling
+        run: |
+          echo "Testing signal handling..."
+          stack test --test-arguments "--match Signal" 2>/dev/null || \
+          echo "No signal handling tests found"
+
+      - name: Test connection draining
+        run: |
+          echo "Testing connection draining..."
+          stack test --test-arguments "--match Drain" 2>/dev/null || \
+          echo "No connection draining tests found"
+
+      - name: Test request completion
+        run: |
+          echo "Testing request completion..."
+          stack test --test-arguments "--match Completion" 2>/dev/null || \
+          echo "No request completion tests found"

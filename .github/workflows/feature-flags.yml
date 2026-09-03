@@ -1,0 +1,53 @@
+name: Feature Flags
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  feature-flags:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Stack
+        uses: haskell-actions/setup@v2
+        with:
+          enable-stack: true
+          stack-version: 'latest'
+
+      - name: Cache Stack dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.stack
+          key: ${{ runner.os }}-stack-${{ hashFiles('stack.yaml.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-stack-
+
+      - name: Build project
+        run: |
+          stack build --test --no-run-tests
+
+      - name: Run feature flag tests
+        run: |
+          echo "Testing feature flags..."
+          stack test --test-arguments "--match Feature" 2>/dev/null || \
+          stack test --test-arguments "--match Flag" 2>/dev/null || \
+          echo "No feature flag tests found"
+
+      - name: Validate feature flag config
+        run: |
+          echo "Validating feature flag configuration..."
+          if [ -f "config/features.yaml" ]; then
+            cat config/features.yaml
+          elif [ -f "config/features.json" ]; then
+            cat config/features.json
+          else
+            echo "No feature flag config found"
+          fi

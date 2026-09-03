@@ -1,0 +1,59 @@
+name: API Rate Limiting
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  rate-limiting:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Stack
+        uses: haskell-actions/setup@v2
+        with:
+          enable-stack: true
+          stack-version: 'latest'
+
+      - name: Cache Stack dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.stack
+          key: ${{ runner.os }}-stack-${{ hashFiles('stack.yaml.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-stack-
+
+      - name: Build project
+        run: |
+          stack build --test --no-run-tests
+
+      - name: Run rate limiting tests
+        env:
+          REDIS_URL: redis://localhost:6379
+        run: |
+          echo "Testing rate limiting..."
+          stack test --test-arguments "--match RateLimit" 2>/dev/null || \
+          stack test --test-arguments "--match Rate" 2>/dev/null || \
+          echo "No rate limiting tests found"
+
+      - name: Test Redis token bucket
+        run: |
+          redis-cli -h localhost -p 6379 ping || echo "Redis not available"

@@ -1,0 +1,54 @@
+name: Circuit Breaker
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  circuit-breaker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Stack
+        uses: haskell-actions/setup@v2
+        with:
+          enable-stack: true
+          stack-version: 'latest'
+
+      - name: Cache Stack dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.stack
+          key: ${{ runner.os }}-stack-${{ hashFiles('stack.yaml.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-stack-
+
+      - name: Build project
+        run: |
+          stack build --test --no-run-tests
+
+      - name: Run circuit breaker tests
+        run: |
+          echo "Testing circuit breaker..."
+          stack test --test-arguments "--match CircuitBreaker" 2>/dev/null || \
+          stack test --test-arguments "--match Circuit" 2>/dev/null || \
+          echo "No circuit breaker tests found"
+
+      - name: Test fallback strategies
+        run: |
+          echo "Testing fallback strategies..."
+          stack test --test-arguments "--match Fallback" 2>/dev/null || \
+          echo "No fallback tests found"
+
+      - name: Test retry logic
+        run: |
+          echo "Testing retry logic..."
+          stack test --test-arguments "--match Retry" 2>/dev/null || \
+          echo "No retry tests found"

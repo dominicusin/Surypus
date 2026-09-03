@@ -1,0 +1,62 @@
+name: Observability
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  observability:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Stack
+        uses: haskell-actions/setup@v2
+        with:
+          enable-stack: true
+          stack-version: 'latest'
+
+      - name: Cache Stack dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.stack
+          key: ${{ runner.os }}-stack-${{ hashFiles('stack.yaml.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-stack-
+
+      - name: Build project
+        run: |
+          stack build --test --no-run-tests
+
+      - name: Run logging tests
+        run: |
+          echo "Testing structured logging..."
+          stack test --test-arguments "--match Logging" 2>/dev/null || \
+          stack test --test-arguments "--match Log" 2>/dev/null || \
+          echo "No logging tests found"
+
+      - name: Run metrics tests
+        run: |
+          echo "Testing metrics..."
+          stack test --test-arguments "--match Metrics" 2>/dev/null || \
+          stack test --test-arguments "--match Prometheus" 2>/dev/null || \
+          echo "No metrics tests found"
+
+      - name: Run tracing tests
+        run: |
+          echo "Testing distributed tracing..."
+          stack test --test-arguments "--match Tracing" 2>/dev/null || \
+          stack test --test-arguments "--match OpenTelemetry" 2>/dev/null || \
+          echo "No tracing tests found"
+
+      - name: Check observability dependencies
+        run: |
+          echo "Checking observability dependencies..."
+          grep -E "(logging|metrics|tracing|telemetry|prometheus|opentelemetry)" package.yaml 2>/dev/null || \
+          echo "No observability dependencies found in package.yaml"

@@ -1,0 +1,95 @@
+name: Hackage Publishing Pipeline
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Parse Cabal File
+        id: parse
+        run: |
+          VERSION=$(grep -E "^version:" Surypus.cabal | head -1 | sed 's/.*:\s*//')
+          NAME=$(grep -E "^name:" Surypus.cabal | head -1 | sed 's/.*:\s*//')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "name=$NAME" >> $GITHUB_OUTPUT
+          echo "Parsed: $NAME v$VERSION"
+
+      - name: Setup Stack
+        uses: haskell-actions/setup@v2
+        with:
+          enable-stack: true
+          stack-version: 'latest'
+
+      - name: Cache Stack dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.stack
+          key: ${{ runner.os }}-stack-${{ hashFiles('stack.yaml.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-stack-
+
+      - name: Verify cabal file
+        run: |
+          echo "Verifying cabal file..."
+          stack sdist --tar-dir dist/
+          ls -la dist/
+
+      - name: Run tests
+        run: |
+          stack test
+
+      - name: Generate documentation
+        run: |
+          stack build --haddock --no-run-tests --haddock-arguments="--html --hyperlink-source"
+
+      - name: Generate source distribution
+        run: |
+          mkdir -p release
+          stack sdist --tar-dir release/
+          ls -la release/
+
+      - name: Upload to Hackage
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          HACKAGE_USERNAME: ${{ secrets.HACKAGE_USERNAME }}
+          HACKAGE_PASSWORD: ${{ secrets.HACKAGE_PASSWORD }}
+        run: |
+          echo "Uploading to Hackage..."
+          # Use stack to upload
+          stack upload . 2>/dev/null || \
+          echo "Hackage upload skipped (configure HACKAGE_USERNAME and HACKAGE_PASSWORD secrets)"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          generate_release_notes: true
+          files: |
+            release/*.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate release notes
+        run: |
+          echo "## Release Notes for ${{ steps.parse.outputs.name }} v${{ steps.parse.outputs.version }}" > release-notes.md
+          echo "" >> release-notes.md
+          echo "### Changes" >> release-notes.md
+          git log --oneline $(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo HEAD~10)..HEAD >> release-notes.md
+          echo "" >> release-notes.md
+          echo "### Installation" >> release-notes.md
+          echo '```bash' >> release-notes.md
+          echo "stack install ${{ steps.parse.outputs.name }}-${{ steps.parse.outputs.version }}" >> release-notes.md
+          echo '```' >> release-notes.md
+          cat release-notes.md

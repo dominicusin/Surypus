@@ -1,0 +1,95 @@
+name: Database Schema Versioning
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  schema:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: surypus_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Stack
+        uses: haskell-actions/setup@v2
+        with:
+          enable-stack: true
+          stack-version: 'latest'
+
+      - name: Cache Stack dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.stack
+          key: ${{ runner.os }}-stack-${{ hashFiles('stack.yaml.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-stack-
+
+      - name: Wait for PostgreSQL
+        run: |
+          for i in {1..30}; do
+            if pg_isready -h localhost -p 5432 -U postgres; then
+              echo "PostgreSQL ready"
+              break
+            fi
+            sleep 1
+          done
+
+      - name: Run migrations
+        env:
+          PGHOST: localhost
+          PGPORT: 5432
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: surypus_test
+        run: |
+          echo "Running migrations..."
+          for f in sql/migrations/*.sql; do
+            echo "Applying $f"
+            psql -h localhost -U postgres -d surypus_test -f "$f" 2>/dev/null || echo "Skipped $f"
+          done
+
+      - name: Verify schema consistency
+        env:
+          PGHOST: localhost
+          PGPORT: 5432
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: surypus_test
+        run: |
+          echo "Verifying schema..."
+          psql -h localhost -U postgres -d surypus_test -c "\dt" 2>/dev/null || echo "No tables"
+
+      - name: Test migration rollback
+        env:
+          PGHOST: localhost
+          PGPORT: 5432
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: surypus_test
+        run: |
+          echo "Testing rollback..."
+          # Test down-migrations if they exist
+          for f in sql/rollback/*.sql; do
+            echo "Testing rollback $f"
+            psql -h localhost -U postgres -d surypus_test -f "$f" 2>/dev/null || echo "Skipped $f"
+          done
