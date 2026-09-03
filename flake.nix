@@ -10,35 +10,18 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
-
-        haskellPackages = pkgs.haskellPackages.override {
-          overrides = hself: hsuper: {
-            surypus = hself.callCabal2nix "surypus" ./. {};
-          };
-        };
-
-        ghcVersion = "966";
-
-        stack-wrapped = pkgs.stack.override {
-          ghc = builtins.getAttr "ghc${ghcVersion}" pkgs.haskell.compiler;
-        };
-
       in
       {
-        packages.default = haskellPackages.surypus;
-
         devShells.default = pkgs.mkShell {
           buildInputs = with pkgs; [
             # Haskell toolchain
-            stack-wrapped
-            (builtins.getAttr "ghc${ghcVersion}" pkgs.haskell.compiler)
+            stack
             cabal-install
             haskell-language-server
             hlint
             fourmolu
-            hpc-codecov
             ghcid
-            pkgs.haskellPackages.criterion
+            haskellPackages.criterion
 
             # Database
             postgresql_16
@@ -95,24 +78,6 @@
             openssl
             stdenv.cc.cc.lib
           ]);
-        };
-
-        # Docker image for CI/CD
-        dockerImage = pkgs.dockerTools.buildLayeredImage {
-          name = "surypus";
-          tag = "latest";
-          contents = [
-            pkgs.bashInteractive
-            pkgs.coreutils
-            pkgs.cacert
-            haskellPackages.surypus
-          ];
-          config = {
-            Cmd = [ "${haskellPackages.surypus}/bin/surypus" ];
-            ExposedPorts = {
-              "8080/tcp" = {};
-            };
-          };
         };
       }
     );

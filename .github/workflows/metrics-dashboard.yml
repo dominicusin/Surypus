@@ -1,0 +1,133 @@
+name: Metrics Dashboard
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'  # Weekly on Monday at 6 AM
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  metrics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Collect repository metrics
+        id: metrics
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: repo } = await github.rest.repos.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+
+            const { data: contributors } = await github.rest.repos.listContributors({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100
+            });
+
+            const { data: traffic } = await github.rest.repos.getViews({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+
+            const { data: clones } = await github.rest.repos.getClones({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+
+            const { data: releases } = await github.rest.repos.listReleases({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 5
+            });
+
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'all',
+              per_page: 100
+            });
+
+            const openIssues = issues.filter(i => i.state === 'open' && !i.pull_request).length;
+            const closedIssues = issues.filter(i => i.state === 'closed' && !i.pull_request).length;
+            const openPRs = issues.filter(i => i.state === 'open' && i.pull_request).length;
+            const closedPRs = issues.filter(i => i.state === 'closed' && i.pull_request).length;
+
+            const metrics = {
+              stars: repo.stargazers_count,
+              forks: repo.forks_count,
+              watchers: repo.watchers_count,
+              openIssues,
+              closedIssues,
+              openPRs,
+              closedPRs,
+              contributors: contributors.length,
+              views: traffic.count,
+              clones: clones.count,
+              releases: releases.length,
+              language: repo.language,
+              size: repo.size
+            };
+
+            console.log('Repository Metrics:');
+            console.log(JSON.stringify(metrics, null, 2));
+
+            return metrics;
+
+      - name: Create metrics issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const metrics = ${{ steps.metrics.outputs.result }};
+
+            const body = `# 📊 Repository Metrics Report
+
+            ## Overview
+            | Metric | Value |
+            |--------|-------|
+            | ⭐ Stars | ${metrics.stars} |
+            | 🍴 Forks | ${metrics.forks} |
+            | 👥 Contributors | ${metrics.contributors} |
+            | 👀 Watchers | ${metrics.watchers} |
+
+            ## Issues & PRs
+            | Type | Open | Closed |
+            |------|------|--------|
+            | Issues | ${metrics.openIssues} | ${metrics.closedIssues} |
+            | PRs | ${metrics.openPRs} | ${metrics.closedPRs} |
+
+            ## Traffic
+            | Metric | Value |
+            |--------|-------|
+            | Views (14d) | ${metrics.views} |
+            | Clones (14d) | ${metrics.clones} |
+
+            ## Releases
+            | Metric | Value |
+            |--------|-------|
+            | Total Releases | ${metrics.releases} |
+
+            ## Repository
+            | Metric | Value |
+            |--------|-------|
+            | Language | ${metrics.language} |
+            | Size | ${metrics.size} KB |
+
+            ---
+            *Generated on ${new Date().toISOString()}*
+            `;
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `📊 Weekly Metrics Report - ${new Date().toISOString().split('T')[0]}`,
+              body: body,
+              labels: ['documentation']
+            });
