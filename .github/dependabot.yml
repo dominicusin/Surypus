@@ -1,26 +1,39 @@
 version: 2
 updates:
-  - package-ecosystem: "docker"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 99
-    auto-merge: true
-    labels:
-      - "dependencies"
+  # GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 99
-    auto-merge: true
+      interval: "daily"
+      time: "06:00"
+      timezone: "Etc/UTC"
+    commit-message:
+      prefix: "ci(deps)"
+      include: "scope"
     labels:
       - "dependencies"
-  - package-ecosystem: "npm"
+      - "ci"
+      - "automated"
+    open-pull-requests-limit: 5
+
+  # Docker
+  - package-ecosystem: "docker"
     directory: "/"
     schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 99
-    auto-merge: true
+      interval: "daily"
+      time: "06:00"
+      timezone: "Etc/UTC"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
     labels:
       - "dependencies"
+      - "docker"
+      - "automated"
+    open-pull-requests-limit: 5
+    target-branch: "main"
+    ignore:
+      - dependency-name: "haskell"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "alpine"
+        update-types: ["version-update:semver-major"]

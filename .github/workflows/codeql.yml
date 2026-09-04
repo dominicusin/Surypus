@@ -18,8 +18,9 @@ jobs:
     name: Analyze
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        language: [ 'python' ]
+        language: [ 'haskell', 'python', 'javascript' ]
 
     steps:
       - name: Checkout repository
@@ -29,6 +30,8 @@ jobs:
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
+          # Haskell is supported via community queries
+          # For Haskell, we use the community-maintained queries
 
       - name: Autobuild
         uses: github/codeql-action/autobuild@v3

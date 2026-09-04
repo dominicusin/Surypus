@@ -280,6 +280,27 @@ Please see our [Security Policy](SECURITY.md) for reporting vulnerabilities.
 
 For commercial support, consulting, or custom development, please contact the maintainers.
 
+---
+
+## Maintainer Resources
+
+We're committed to supporting the wellbeing of our maintainers. If you're a maintainer or planning to become one, these resources are for you:
+
+| Resource | Description |
+|----------|-------------|
+| [Maintainer Wellbeing & Sustainability](MAINTAINER_WELLBEING.md) | Complete guide to sustainable maintainership |
+| [Self Care Guide](docs/maintainer/self-care-guide.md) | Burnout signs, motivation, energy management |
+| [Sustainability Guide](docs/maintainer/sustainability.md) | Time/energy expectations, delegation, funding, automation |
+| [Rest Policy](docs/maintainer/rest-policy.md) | Planned and unplanned breaks, coverage plans |
+| [Boundaries Guide](docs/maintainer/boundaries.md) | Time, scope, communication, emotional boundaries with templates |
+| [Blocking Issues](docs/maintainer/blocking-issues.md) | What to do when you're stuck, escalation paths |
+
+### Burnout Check
+
+Every Monday, a bot posts a [weekly check-in issue](../../issues?q=is%3Aissue+label%3Amaintainer-checkin) to help maintainers reflect on their wellbeing. Feel free to respond or ignore as you prefer.
+
+**Your wellbeing comes first. Take breaks when you need them. Set boundaries without guilt.**
+
 ## Sponsors
 
 Surypus is supported by our amazing sponsors. Thank you! ❤️

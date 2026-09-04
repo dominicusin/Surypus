@@ -1,0 +1,83 @@
+name: Maintainer Burnout Check
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'  # Weekly on Monday at 9 AM
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  burnout-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check-in with maintainers
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = `## 🧘 Weekly Maintainer Check-In
+            
+            Time for a quick check-in! How are you doing?
+            
+            ### Quick Self-Assessment
+            
+            Rate yourself on these statements (1 = Strongly Disagree, 5 = Strongly Agree):
+            
+            | Statement | Rating |
+            |-----------|--------|
+            | I feel energized about working on Surypus | \`?\` |
+            | I have a sustainable workload | \`?\` |
+            | I feel supported by the community | \`?\` |
+            | I'm taking regular breaks | \`?\` |
+            | I have clear boundaries | \`?\` |
+            
+            ### Remember
+            
+            - Take breaks when you need them
+            - Set boundaries without guilt
+            - Ask for help when needed
+            - Your wellbeing comes first
+            
+            ### Resources
+            
+            - [Maintainer Wellbeing Guide](https://github.com/surypus/surypus/blob/main/MAINTAINER_WELLBEING.md)
+            - [Self Care Guide](https://github.com/surypus/surypus/blob/main/docs/maintainer/self-care-guide.md)
+            - [Sustainability Guide](https://github.com/surypus/surypus/blob/main/docs/maintainer/sustainability.md)
+            - [Rest Policy](https://github.com/surypus/surypus/blob/main/docs/maintainer/rest-policy.md)
+            - [Boundaries Guide](https://github.com/surypus/surypus/blob/main/docs/maintainer/boundaries.md)
+            
+            ---
+            
+            _This is an automated reminder. Feel free to ignore or respond with how you're doing._`;
+            
+            // Create or update a check-in issue
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'maintainer-checkin'
+            });
+            
+            if (issues.length > 0) {
+              // Update existing issue
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issues[0].number,
+                body: body
+              });
+              console.log('Updated existing check-in issue #' + issues[0].number);
+            } else {
+              // Create new issue
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: '🧘 Weekly Maintainer Check-In',
+                body: body,
+                labels: ['maintainer-checkin', 'docs']
+              });
+              console.log('Created new check-in issue');
+            }
