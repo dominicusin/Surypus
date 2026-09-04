@@ -16,9 +16,10 @@ Thank you to all the amazing people who have contributed to Surypus!
 
 ### Code Contributors
 
-<a href="https://github.com/surypus/surypus/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=surypus/surypus" />
-</a>
+| Contributor | Contributions | GitHub |
+|-------------|---------------|--------|
+| @dominicusin | 696 | [@dominicusin](https://github.com/dominicusin) |
+| @dependabot[bot] | 1 | [dependabot](https://github.com/apps/dependabot) |
 
 ### Documentation Contributors
 
@@ -54,4 +55,4 @@ All contributors are also recognized in:
 
 ---
 
-*Last updated: 2026-09-03*
+*Last updated: 2026-09-04*
