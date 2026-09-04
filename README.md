@@ -30,6 +30,17 @@
 
 ---
 
+## Why Surypus?
+
+Traditional ERP systems are complex, error-prone, and expensive. Surypus offers a different approach:
+
+- **Correctness by construction** - Formal verification eliminates entire classes of bugs
+- **Type safety** - Haskell's type system prevents runtime errors
+- **Transparency** - Open source means no vendor lock-in
+- **Community-driven** - Built by the community, for the community
+
+---
+
 ## Overview
 
 Surypus is a production-ready ERP/CRM system written in Haskell with emphasis on formal verification, type safety, and software correctness. It demonstrates the power of functional programming and formal methods in real-world business software.
