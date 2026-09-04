@@ -5,18 +5,18 @@
 # Single unified library project (no sub-packages)
 
 # Stage 1: Build environment
-FROM haskell:9.14.1 AS builder
+FROM haskell:9.6.6 AS builder
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # Install build dependencies and PostgreSQL dev libraries
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    wget=1.21.4-1+deb12u1 \
-    build-essential=12.9 \
-    libssl-dev=3.0.15-1~deb12u1 \
-    libreadline-dev=8.2-1.3 \
-    zlib1g-dev=1:1.2.13.dfsg-1 \
-    libpq-dev=15.14-0+deb12u1 \
+    wget \
+    build-essential \
+    libssl-dev \
+    libreadline-dev \
+    zlib1g-dev \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
@@ -38,14 +38,14 @@ COPY web ./web
 RUN stack build --install-ghc --copy-bins --ghc-options="-O2 -j4"
 
 # Stage 2: Production runtime (minimal)
-FROM debian:bookworm-20260824-slim
+FROM debian:bookworm-slim
 
 # Install minimal runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq5=15.14-0+deb12u1 \
-    ca-certificates=20230311+deb12u1 \
-    curl=7.88.1-10+deb12u1 \
-    dumb-init=1.2.5-2 \
+    libpq5 \
+    ca-certificates \
+    curl \
+    dumb-init \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
@@ -61,14 +61,14 @@ COPY --from=builder /root/.local/bin/surypus-server /usr/local/bin/surypus-serve
 COPY --from=builder /build/web ./web
 
 # Environment variables
-ENV PORT=443
+ENV PORT=8080
 
 # Expose port
-EXPOSE 443
+EXPOSE 8080
 
 # Health check (liveness + readiness)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:443/api/v1/health || exit 1
+    CMD curl -f http://localhost:8080/api/v1/health || exit 1
 
 # Run with dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]

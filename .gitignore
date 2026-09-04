@@ -1,81 +1,40 @@
-# Stack
-.stack-work/
-dist/
-dist-newstyle/
-*.log
-
-# Build artifacts
-*.o
+# Haskell
+dist-newstyle
+.stack-work
+.cabal
 *.hi
-*.hc
-*.chi
-*.chs
-Cabal hc-files
+*.o
+.ghc.environment.*
 
-# Dependencies
-vendor/
-node_modules/
+# Local project config
+cabal.project.local
+cabal.project.local~
 
-# IDE
-.vscode/
-.idea/
+# Agent/editor artifacts
+.claude/
+.cursor/
+.aider/
+.codex/
+.gemini/
+.opencode/
+.windsurf/
+.kilocode/
+.kiro/
+.mux/
+.qwen/
+.trae/
+.junie/
+.hermes/
+.antigravitycli/
+.augment/
+.beads.backup/
+
+# Archives and sessions
+*.zip
+session_*
+
+# OS/editor junk
+.DS_Store
 *.swp
 *.swo
-.factory
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Package manager
-cabal-packages/
-*.tar.gz
-extra-src-files/
-
-# Build
-/build
-/dist
-
-# Beads / Dolt files (added by bd init)
-.dolt/
-*.db
-.beads-credential-key
-
-# Agent artifacts
-.agents/
-.poolside/
-skills-lock.json
-
-# Surypus local config
-src/.beads/
-src/config.yaml
-
-# ── GSD baseline (auto-generated) ──
-.gsd
-.gsd-id
-.mcp.json
-.bg-shell/
 *~
-*.code-workspace
-.env
-.env.*
-!.env.example
-.next/
-build/
-__pycache__/
-*.pyc
-.venv/
-venv/
-target/
-coverage/
-.cache/
-tmp/
-logs/
-
-# GSD planning artifacts
-.planning/
-src/.planning/
-
-# ReadTheDocs / secrets
-.readthedocs-api-key
-*readthedocs*
