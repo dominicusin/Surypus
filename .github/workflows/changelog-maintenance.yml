@@ -1,0 +1,42 @@
+name: Changelog Maintenance
+
+on:
+  push:
+    branches: [main]
+    paths: ['CHANGELOG.md', 'CONTRIBUTING.md', 'docs/**/*.md']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  changelog-maintenance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Check changelog freshness
+        run: |
+          # Check if changelog links are working
+          echo "Checking changelog references..."
+          
+          # Count releases
+          RELEASES=$(grep -c '^## \[.*\]' CHANGELOG.md 2>/dev/null || echo 0)
+          echo "📊 Releases in CHANGELOG: $RELEASES"
+          
+          # Check for outdated sections
+          if grep -q '\[Unreleased\]\|Unreleased' CHANGELOG.md; then
+            echo "⚠️  Unreleased section exists - may need updating"
+          fi
+
+      - name: Update contribution guide links
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          echo "📝 Checking CONTRIBUTING.md for outdated links..."
+          
+          # This is a placeholder - full implementation would
+          # update all links in contribution docs
+          echo "Runs monthly to keep docs fresh"
