@@ -1,0 +1,57 @@
+name: Discord & Slack Notifications
+
+on:
+  issues:
+    types: [opened, closed, reopened]
+  pull_request:
+    types: [opened, closed, merged, reopened]
+  release:
+    types: [published]
+  discussion:
+    types: [created, answered]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    outputs:
+      safe_title: ${{ steps.sanitize.outputs.safe_title }}
+      safe_url: ${{ steps.sanitize.outputs.safe_url }}
+    steps:
+      - name: Sanitize notification payload
+        id: sanitize
+        env:
+          TITLE: ${{ github.event.issue.title || github.event.pull_request.title || github.event.release.name || github.event.discussion.title || github.ref || github.event_name }}
+          URL: ${{ github.event.issue.html_url || github.event.pull_request.html_url || github.event.release.html_url || github.event.discussion.html_url || github.server_url || '' }}
+        run: |
+          sanitize() {
+            printf '%s' "$1" | tr -d '\n\r' | head -c 240
+          }
+          echo "safe_title=$(sanitize "$TITLE")" >> "$GITHUB_OUTPUT"
+          echo "safe_url=$(sanitize "$URL")" >> "$GITHUB_OUTPUT"
+
+      - name: Discord notification
+        if: ${{ secrets.DISCORD_WEBHOOK_URL != '' }}
+        uses: Ilshidur/action-discord@master
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        with:
+          args: >-
+            **${{ github.event_name }}** in ${{ github.repository }}
+            ${{ steps.sanitize.outputs.safe_title }}
+            ${{ steps.sanitize.outputs.safe_url }}
+
+      - name: Slack notification
+        if: ${{ secrets.SLACK_WEBHOOK_URL != '' }}
+        uses: slackapi/slack-github-action@v1
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        with:
+          slack-message: >-
+            *New ${{ github.event_name }}* in `${{ github.repository }}`
+            ${{ steps.sanitize.outputs.safe_title }}
+            ${{ steps.sanitize.outputs.safe_url }}
