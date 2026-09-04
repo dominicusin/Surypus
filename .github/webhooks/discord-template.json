@@ -1,0 +1,22 @@
+{
+  "content": "New event in {{repo}}: {{event}}",
+  "embeds": [
+    {
+      "title": "{{title}}",
+      "description": "{{description}}",
+      "color": 3066993,
+      "fields": [
+        {
+          "name": "Repository",
+          "value": "{{repo}}",
+          "inline": true
+        },
+        {
+          "name": "Event",
+          "value": "{{event}}",
+          "inline": true
+        }
+      ]
+    }
+  ]
+}

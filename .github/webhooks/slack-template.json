@@ -1,0 +1,25 @@
+{
+  "text": "New event in {{repo}}: {{event}}",
+  "blocks": [
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*{{title}}*\n{{description}}"
+      }
+    },
+    {
+      "type": "section",
+      "fields": [
+        {
+          "type": "mrkdwn",
+          "text": "*Repository:*\n{{repo}}"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Event:*\n{{event}}"
+        }
+      ]
+    }
+  ]
+}
