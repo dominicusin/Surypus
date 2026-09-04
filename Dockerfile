@@ -38,7 +38,7 @@ COPY web ./web
 RUN stack build --install-ghc --copy-bins --ghc-options="-O2 -j4"
 
 # Stage 2: Production runtime (minimal)
-FROM debian:bookworm-20240812-slim
+FROM debian:bookworm-20260824-slim
 
 # Install minimal runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
