@@ -1,0 +1,74 @@
+name: Auto-merge trusted PRs
+
+# Auto-approve is intentionally label-gated and non-interactive.
+# Untrusted PR metadata is only used in `if:` conditions and
+# compared against fixed strings; no shell interpolation of titles/bodies occurs.
+on:
+  pull_request_target:
+    types: [labeled, opened, synchronize, reopened]
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: write
+  pull-requests: write
+  statuses: write
+
+jobs:
+  auto-approve:
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'labeled' ||
+      (github.event_name == 'pull_request_target' && contains(github.event.pull_request.labels.*.name, 'auto-approve')) ||
+      (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'auto-approve'))
+
+    steps:
+      - name: Check PR is not draft
+        if: ${{ github.event.pull_request.draft == true }}
+        run: echo "Draft PR, skipping auto-approve" && exit 0
+
+      - name: Check branch protection
+        id: check
+        env:
+          HEAD: ${{ github.event.pull_request.head.ref }}
+        run: |
+          if [ "$HEAD" = "main" ]; then
+            echo "Skip: PR targets main"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Auto-approve
+        if: ${{ steps.check.outputs.skip != 'true' }}
+        uses: hmarr/auto-approve-action@v4
+        with:
+          pull-request-number: ${{ github.event.pull_request.number }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  enable-auto-merge:
+    runs-on: ubuntu-latest
+    needs: auto-approve
+    if: |
+      ${{ needs.auto-approve.result == 'success' && github.event_name != 'pull_request' }}
+
+    steps:
+      - name: Enable auto-merge
+        uses: peter-evans/enable-pull-request-automerge@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          pull-request-number: ${{ github.event.pull_request.number }}
+          merge-method: squash
+
+  disable-auto-merge:
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'pull_request' &&
+      github.event.action == 'closed'
+
+    steps:
+      - name: Disable auto-merge on close
+        uses: peter-evans/disable-pull-request-automerge@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          pull-request-number: ${{ github.event.pull_request.number }}
