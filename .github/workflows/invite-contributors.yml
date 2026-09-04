@@ -1,0 +1,68 @@
+name: Invite Contributors
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  invite:
+    runs-on: ubuntu-latest
+    if: |
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.author_association == 'NONE'
+    timeout-minutes: 5
+    steps:
+      - name: Check contributor count
+        uses: actions/github-script@v7
+        id: check
+        with:
+          script: |
+            const { data: contributors } = await github.rest.repos.listContributors({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100
+            });
+            
+            const contributor = contributors.find(c => c.login === context.payload.pull_request.user.login);
+            
+            if (contributor && contributor.contributions === 1) {
+              console.log('First time contributor!');
+              return true;
+            }
+            return false;
+
+      - name: Invite first-time contributor
+        if: steps.check.outputs.result == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = github.event.pull_request;
+            const body = `## 🎉 Congratulations on your first merged PR, @${pr.user.login}!
+            
+            Thank you for contributing to Surypus! We'd love to see more contributions from you.
+            
+            ### What's next?
+            
+            - 📖 Check out our [Contributing Guidelines](CONTRIBUTING.md)
+            - 🏷️ Look for issues labeled [good first issue](../../labels/good%20first%20issue)
+            - 💬 Join our [GitHub Discussions](https://github.com/surypus/surypus/discussions)
+            
+            ### Recognition
+            
+            You've been added to our [Contributors](CONTRIBUTORS.md) list.
+            
+            ---
+            *Thank you for being part of the Surypus community!*`;
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              body: body
+            });

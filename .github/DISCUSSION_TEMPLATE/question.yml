@@ -1,0 +1,32 @@
+title: "❓ Question / Help"
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have a question? Check our [FAQ](https://github.com/surypus/surypus/discussions/categories/q-a) first!
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: What's your question?
+      placeholder: I'm trying to...
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Provide any relevant context
+      placeholder: I'm using Surypus for...
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Code of Conduct
+      description: By posting, you agree to follow our Code of Conduct
+      options:
+        - label: I agree to follow this project's Code of Conduct
+          required: true

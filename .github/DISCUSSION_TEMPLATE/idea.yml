@@ -1,0 +1,41 @@
+title: "💡 Idea / Feature Request"
+labels: ["idea", "feature-request"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for sharing your idea! Please describe it in detail.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What problem are you trying to solve?
+      placeholder: I'm always frustrated when...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: What do you want to happen?
+      placeholder: It would be great if...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: What alternatives have you considered?
+      placeholder: I also thought about...
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Code of Conduct
+      description: By posting, you agree to follow our Code of Conduct
+      options:
+        - label: I agree to follow this project's Code of Conduct
+          required: true
