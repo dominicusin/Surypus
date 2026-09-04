@@ -1,0 +1,36 @@
+name: Community Notifications
+
+on:
+  issues:
+    types: [opened, labeled, closed]
+  pull_request:
+    types: [opened, closed, merged]
+  release:
+    types: [published]
+  discussion:
+    types: [created, answered]
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Discord Notification
+        if: ${{ secrets.DISCORD_WEBHOOK_URL != '' }}
+        uses: Ilshidur/action-discord@master
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        with:
+          args: |
+            **${{ github.event_name }}** in ${{ github.repository }}
+            ${{ github.event.issue.title || github.event.pull_request.title || github.event.release.name || github.event.discussion.title }}
+
+      - name: Slack Notification
+        if: ${{ secrets.SLACK_WEBHOOK_URL != '' }}
+        uses: slackapi/slack-github-action@v1
+        with:
+          slack-message: "New ${{ github.event_name }} in ${{ github.repository }}: ${{ github.event.issue.title || github.event.pull_request.title || github.event.release.name || github.event.discussion.title }}"
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
