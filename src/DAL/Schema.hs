@@ -8,7 +8,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
-module Schema where
+module DAL.Schema where
 
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Yaml (Value)

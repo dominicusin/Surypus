@@ -8,7 +8,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
-module Types where
+module DAL.Types where
 
 import Data.Aeson (FromJSON, ToJSON)
 import qualified Data.Text as T
