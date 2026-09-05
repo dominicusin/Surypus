@@ -6,7 +6,7 @@ packages:
 ghc-options:
   "$locals": -Wall
 
-allow-newer: false
+allow-newer: true
 
 flags:
   hashtables:
@@ -15,20 +15,3 @@ flags:
     unsafe-tricks: false
   warp:
     x509: false
-  wai-app-static:
-    crypton: false
-
-extra-deps:
-  - aeson-2.3.1.0
-  - persistent-2.14.3.0
-  - persistent-postgresql-2.14.3.0
-  - persistent-template-2.14.3.0
-  - resource-pool-0.2.3.2
-  - ekg-0.4.1.2
-  - ekg-core-0.1.1.7
-  - ekg-json-0.1.1.1
-  - cryptonite-0.30
-  - jose-0.10
-  - hashtables-1.4.2
-  - smtp-mail-0.4.0.2
-  - mime-mail-0.5.1
