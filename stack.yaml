@@ -1,4 +1,3 @@
-# stack.yaml for Surypus
 resolver: lts-22.21
 
 packages:
@@ -20,6 +19,11 @@ flags:
     crypton: false
 
 extra-deps:
+  - aeson-2.3.1.0
+  - persistent-2.14.3.0
+  - persistent-postgresql-2.14.3.0
+  - persistent-template-2.14.3.0
+  - resource-pool-0.2.3.2
   - ekg-0.4.1.2
   - ekg-core-0.1.1.7
   - ekg-json-0.1.1.1
