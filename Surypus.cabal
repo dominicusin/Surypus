@@ -13,58 +13,18 @@ library
   hs-source-dirs: src
   exposed-modules:
     Core.Payroll.Calculation
-    DAL.Classifiers
-    DAL.Conversion
     DAL.Database
-    DAL.EventStore
-    DAL.Mutations
-    DAL.MutationsORM
-    DAL.Payroll
     DAL.Pool
-    DAL.Procedures
-    DAL.Queries
-    DAL.QueriesORM
-    DAL.Repository.RBAC
     DAL.Schema
     DAL.Types
     Finance.Accounting
     Finance.Tax
-    MultiTenancy.Isolation
-    MultiTenancy.Middleware
-    Service.PayrollService
     Surypus
-    Surypus.API.Accounting
-    Surypus.API.AuthMiddleware
-    Surypus.API.Authorization
-    Surypus.API.BillTemplates
-    Surypus.API.Bills
-    Surypus.API.CRM
-    Surypus.API.Classifiers
-    Surypus.API.Dashboard
-    Surypus.API.Goods
-    Surypus.API.GraphQL
-    Surypus.API.Integrations
-    Surypus.API.Logger
-    Surypus.API.MetricsMiddleware
-    Surypus.API.Notifications
-    Surypus.API.Orders
-    Surypus.API.Payment
-    Surypus.API.Payroll
-    Surypus.API.Persons
-    Surypus.API.Push
-    Surypus.API.RateLimiter
-    Surypus.API.Reports
-    Surypus.API.Server
-    Surypus.API.Stock
-    Surypus.API.Workflow
-    Surypus.Core
     Surypus.CoreTypes
     Surypus.JWT
-    Surypus.JWT.Token
     Surypus.Metrics
     Surypus.RBAC
     Surypus.RefreshTokenRepo
-    Surypus.WebSocket
 
   build-depends:
     base >=4.12 && <5
