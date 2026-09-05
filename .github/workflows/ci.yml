@@ -28,7 +28,7 @@ jobs:
         with:
           enable-stack: true
           stack-version: 'latest'
-          ghc-version: '9.6.6'
+          ghc-version: '9.6.5'
 
       - name: Cache Stack dependencies
         uses: actions/cache@v4
