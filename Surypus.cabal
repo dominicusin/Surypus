@@ -28,9 +28,7 @@ library
     DAL.Schema
     DAL.Types
     Finance.Accounting
-    Finance.AccountingSpec
     Finance.Tax
-    Finance.TaxSpec
     MultiTenancy.Isolation
     MultiTenancy.Middleware
     Service.PayrollService
