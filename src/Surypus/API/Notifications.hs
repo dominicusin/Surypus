@@ -30,7 +30,6 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import Database.Persist.Sql (ConnectionPool, PersistValue (..), rawExecute, rawSql, runSqlPool, Single (..))
 import GHC.Generics (Generic)
-import qualified Infrastructure.Email as Email
 
 data NotificationPref = NotificationPref
     { npEmail :: !Bool
@@ -150,16 +149,8 @@ sendEmailNotification pool input = do
     case result of
         QuerySuccess _ -> do
             mbEmail <- lookupUserEmail pool (niUserId input)
-            let email = fromMaybe "user@surypus.local" mbEmail
-            _ <-
-                Email.loadEmailConfig >>= \case
-                    Right cfg ->
-                        Email.sendEmail
-                            cfg
-                            email
-                            (niTitle input)
-                            (niBody input)
-                    Left _ -> return $ Right ()
+            let _email = fromMaybe "user@surypus.local" mbEmail
+            -- Mock: email sending disabled in Phase 1 prototype
             return $ QuerySuccess ()
         QueryError err -> return $ QueryError err
 
