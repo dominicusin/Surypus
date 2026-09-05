@@ -98,11 +98,6 @@ library
     , servant
     , servant-server
     , resource-pool
-    , smtp-mail
-    , mime-mail
-    , ekg-core
-    , ekg
-    , ekg-json
     , hashtables
     , QuickCheck
     , hspec
