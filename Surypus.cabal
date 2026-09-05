@@ -66,13 +66,53 @@ library
     Surypus.RefreshTokenRepo
     Surypus.WebSocket
 
+  build-depends:
+    base >=4.12 && <5
+    , aeson
+    , bytestring
+    , text
+    , time
+    , Decimal
+    , persistent
+    , persistent-postgresql
+    , persistent-template
+    , esqueleto
+    , monad-logger
+    , wai
+    , wai-extra
+    , warp
+    , http-types
+    , directory
+    , filepath
+    , network
+    , containers
+    , transformers
+    , mtl
+    , stm
+    , uuid
+    , lens
+    , katip
+    , jose
+    , cryptonite
+    , yaml
+    , servant
+    , servant-server
+    , resource-pool
+    , smtp-mail
+    , mime-mail
+    , ekg-core
+    , ekg
+    , ekg-json
+    , hashtables
+    , QuickCheck
+    , hspec
+
 executable surypus-server
   default-language: Haskell2010
   hs-source-dirs: app
   main-is: Main.hs
   build-depends:
     base >=4.12 && <5
-    , Surypus
     , wai
     , wai-extra
     , warp
