@@ -30,7 +30,7 @@ data PersonEntity = PersonEntity
   , kpp :: !T.Text
   , personType :: !T.Text
   , status :: !T.Text
-  } deriving (Show, Generic)
+  } deriving (Show, Eq, Generic)
 
 instance FromJSON (PersonEntity)
 instance ToJSON (PersonEntity)
@@ -45,7 +45,7 @@ data CustomerEntity = CustomerEntity
   , creditLimit :: !T.Text
   , active :: !T.Text
   , createdAt :: !T.Text
-  } deriving (Show, Generic)
+  } deriving (Show, Eq, Generic)
 
 instance FromJSON (CustomerEntity)
 instance ToJSON (CustomerEntity)
@@ -59,7 +59,7 @@ data ProductionOrderEntity = ProductionOrderEntity
   , qty :: !T.Text
   , dueDate :: !T.Text
   , status :: !T.Text
-  } deriving (Show, Generic)
+  } deriving (Show, Eq, Generic)
 
 instance FromJSON (ProductionOrderEntity)
 instance ToJSON (ProductionOrderEntity)
@@ -72,7 +72,7 @@ data ReportConfigEntity = ReportConfigEntity
   , query :: !T.Text
   , refreshMinutes :: !T.Text
   , enabled :: !T.Text
-  } deriving (Show, Generic)
+  } deriving (Show, Eq, Generic)
 
 instance FromJSON (ReportConfigEntity)
 instance ToJSON (ReportConfigEntity)
@@ -85,7 +85,7 @@ data BillEntity = BillEntity
   , billEntityCustomerId :: !T.Text
   , billEntityTotal :: !T.Text
   , billEntityStatus :: !T.Text
-  } deriving (Show, Generic)
+  } deriving (Show, Eq, Generic)
 
 instance FromJSON (BillEntity)
 instance ToJSON (BillEntity)
@@ -97,7 +97,7 @@ data TaxEntity = TaxEntity
   , taxEntityCode :: !T.Text
   , taxEntityName :: !T.Text
   , taxEntityRate :: !T.Text
-  } deriving (Show, Generic)
+  } deriving (Show, Eq, Generic)
 
 instance FromJSON (TaxEntity)
 instance ToJSON (TaxEntity)
@@ -106,7 +106,7 @@ instance ToJSON (TaxEntity)
 data Pagination = Pagination
   { paginationOffset :: !Int
   , paginationLimit  :: !Int
-  } deriving (Show, Generic)
+  } deriving (Show, Eq, Generic)
 
 instance FromJSON Pagination
 instance ToJSON Pagination
@@ -115,7 +115,7 @@ instance ToJSON Pagination
 data QueryResult a = QueryResult
   { queryResultData  :: ![a]
   , queryResultTotal :: !Int
-  } deriving (Show, Generic)
+  } deriving (Show, Eq, Generic)
 
 instance FromJSON a => FromJSON (QueryResult a)
 instance ToJSON a => ToJSON (QueryResult a)
@@ -129,7 +129,7 @@ data Person = Person
   , personKPP :: !(Maybe T.Text)
   , personType :: !(Maybe Int)
   , personStatus :: !(Maybe Int)
-  } deriving (Show, Generic)
+  } deriving (Show, Eq, Generic)
 
 instance FromJSON Person
 instance ToJSON Person
@@ -151,7 +151,7 @@ data Goods = Goods
   , goodsVolume :: !(Maybe T.Text)
   , goodsCreatedAt :: !(Maybe T.Text)
   , goodsUpdatedAt :: !(Maybe T.Text)
-  } deriving (Show, Generic)
+  } deriving (Show, Eq, Generic)
 
 instance FromJSON Goods
 instance ToJSON Goods
@@ -168,7 +168,7 @@ data Bill = Bill
   , billTotal :: !Double
   , billDiscount :: !Double
   , billTaxAmount :: !Double
-  } deriving (Show, Generic)
+  } deriving (Show, Eq, Generic)
 
 instance FromJSON Bill
 instance ToJSON Bill
