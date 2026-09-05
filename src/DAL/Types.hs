@@ -21,7 +21,7 @@ import GHC.Generics (Generic)
 -- Entity: PersonEntity
 -- SQL table: person
 data PersonEntity = PersonEntity
-  { PersonEntityId :: !T.Text
+  { personEntityId :: !T.Text
   , code :: !T.Text
   , name :: !T.Text
   , inn :: !T.Text
@@ -36,7 +36,7 @@ instance ToJSON (PersonEntity)
 -- Entity: CustomerEntity
 -- SQL table: customer
 data CustomerEntity = CustomerEntity
-  { CustomerEntityId :: !T.Text
+  { customerEntityId :: !T.Text
   , code :: !T.Text
   , name :: !T.Text
   , email :: !T.Text
@@ -51,7 +51,7 @@ instance ToJSON (CustomerEntity)
 -- Entity: ProductionOrderEntity
 -- SQL table: production_order
 data ProductionOrderEntity = ProductionOrderEntity
-  { ProductionOrderEntityId :: !T.Text
+  { productionOrderEntityId :: !T.Text
   , number :: !T.Text
   , productId :: !T.Text
   , qty :: !T.Text
@@ -65,7 +65,7 @@ instance ToJSON (ProductionOrderEntity)
 -- Entity: ReportConfigEntity
 -- SQL table: report_config
 data ReportConfigEntity = ReportConfigEntity
-  { ReportConfigEntityId :: !T.Text
+  { reportConfigEntityId :: !T.Text
   , title :: !T.Text
   , query :: !T.Text
   , refreshMinutes :: !T.Text

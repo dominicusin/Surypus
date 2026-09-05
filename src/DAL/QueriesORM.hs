@@ -140,7 +140,7 @@ searchPersons pool query = do
       where_ $ (p ^. PersonEntityName `ilike` val valPattern
                ) ||. (p ^. PersonEntityInn `ilike` val (Just valPattern)
                ) ||. (p ^. PersonEntityCode `ilike` val (Just valPattern))
-      orderBy [asc $ p ^. PersonEntityId]
+      orderBy [asc $ p ^. personEntityId]
       return p)
     pool
   return $ QuerySuccess $ map personFromEntity entities
@@ -151,7 +151,7 @@ getPersonById pool pid = do
   result <- liftIO $ runSqlPool
     (selectOne $ do
       p <- from $ table @PersonEntity
-      where_ $ p ^. PersonEntityId ==. val (personKey pid)
+      where_ $ p ^. personEntityId ==. val (personKey pid)
       return p)
     pool
   return $ case result of
