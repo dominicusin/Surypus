@@ -168,7 +168,6 @@ library
     Analytics.Analytics
     Analytics.Chart
     Analytics.Dashboard
-    Analytics.Export
     Analytics.Prediction
     Audit.Persistence
     Audit.Trail
@@ -256,7 +255,6 @@ library
     Integration.BankStatement
     Integration.EDI.EDI
     Integration.Hub.Integration
-    Integration.ImportExport
     Integration.Integration
     Integration.Sync
     Integration.Webhook
@@ -341,7 +339,6 @@ library
     Service.Workflow
     Service.WorkflowEngine
     Shared.Common.Conflict
-    Shared.Export.Exporter
     Shared.Filter
     Shared.Grid
     Shared.Mesh.ServiceMesh
@@ -446,8 +443,8 @@ library
     , hspec >=2.11
     , resource-pool >=0.2 && <0.3
     , persistent >=2.14
-    , persistent-postgresql >=2.14
-    , persistent-template >=2.14
+    , persistent-postgresql >=2.13
+    , persistent-template >=2.12
     , esqueleto >=3.5
     , monad-logger >=0.3
     , wai-extra >=3.1
@@ -455,7 +452,6 @@ library
     , websockets >=0.12
     , wai-websockets >=0.2
     , cryptonite >=0.30
-    , ekg >=0.4.0
     , messagepack >=0.5
     , cborg >=0.2
     , hedis >=0.14
