@@ -10,59 +10,10 @@ packages:
       sha256: f6f8a09960708b63ccaafcd7120ae5d002ed0d8d57f211cd2b080b2d86aeef78
       size: 1495
   original:
-    hackage: ekg-0.4.1.2
-- completed:
-    hackage: ekg-core-0.1.1.7@sha256:2c05b37978f47bac48cc51aa9e7e0d565e2ebc1b46ce34832dd540b326e3f2bb,2046
-    pantry-tree:
-      sha256: 80003fd2cc8c9cf9c03a9b5551eb22dde2ec4f3622a3072c8b05e0248b344258
-      size: 1073
-  original:
-    hackage: ekg-core-0.1.1.7
-- completed:
-    hackage: ekg-json-0.1.1.1@sha256:e72b7d8a91997d4dc50eca7988f4cd81397df794235be5ce05c1e2a85e8a1fb7,1405
-    pantry-tree:
-      sha256: 6a21303e0b5953c3d27ec22877db0af06669d913152ebc1b3932b5f5165fae17
-      size: 265
-  original:
-    hackage: ekg-json-0.1.1.1
-- completed:
-    hackage: cryptonite-0.30@sha256:12c85dea7be63e5ad90bcb487eb3846bf3c413347f94336fa1dede7b28f9936a,18301
-    pantry-tree:
-      sha256: df1cbe4cc40d569cc75ffed40bc5deac43cb085653980b42b9b6a5d4b745a30a
-      size: 23323
-  original:
-    hackage: cryptonite-0.30
-- completed:
-    hackage: jose-0.10@sha256:fddc06fefe1ee2a7a5776d4cbc58f2ede6220d25fdeeb12c741c8c3477b6cbcc,3212
-    pantry-tree:
-      sha256: 55ba40a1c4c4bc816e70244cc11ad28a7323b5c475e7d3a4bf2e8cac2ae4d68c
-      size: 2154
-  original:
-    hackage: jose-0.10
-- completed:
-    hackage: hashtables-1.4.2@sha256:4940cab94a15d469845ccf5225f9cb3d354c15e8127ebb58425c8b681f7721d9,10386
-    pantry-tree:
-      sha256: 65107f0c970351b971ea1f676a5e00b61e37c298a4c83c867d937f2a774501eb
-      size: 2895
-  original:
-    hackage: hashtables-1.4.2
-- completed:
-    hackage: smtp-mail-0.4.0.2@sha256:5a7f2b55f2faba6031e1acba4642f8e550708682c3f0664383e9131888d0607d,1453
-    pantry-tree:
-      sha256: 3f5f15cb2a043fb1edb471428225c04b7b1c18050099792bcee12da224e37e12
-      size: 450
-  original:
-    hackage: smtp-mail-0.4.0.2
-- completed:
-    hackage: mime-mail-0.5.1@sha256:596938d4b17365129eccda3afe65e357331cfa407b68259252bdf34e5098ccb9,1629
-    pantry-tree:
-      sha256: 48c6d0cb621810964ca294df7e5c6d17a32b1041376123e3d6f41be107b8e368
-      size: 439
-  original:
-    hackage: mime-mail-0.5.1
+    hackage: ekg-0.4.1.2@sha256:df9815979134383dd8f33ae976e1270eb3918d11c3fd41c1cbf2b6c1ab41047f,2234
 snapshots:
 - completed:
-    sha256: b146f371d1a90abbd2aeae1da10f776951046be50eae55a6fe93548a74fcc0dd
-    size: 713338
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/22/21.yaml
-  original: lts-22.21
+    sha256: 5a59b2a405b3aba3c00188453be172b85893cab8ebc352b1ef58b0eae5d248a2
+    size: 650475
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/20/26.yaml
+  original: lts-20.26
