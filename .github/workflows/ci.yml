@@ -41,8 +41,8 @@ jobs:
 
       - name: Build library and tests
         run: |
-          stack build --test --no-run-tests --no-haddock-deps
+          stack --no-nix build --test --no-run-tests --no-haddock-deps
 
       - name: Run tests
         run: |
-          stack test --test-arguments --color
+          stack --no-nix test --test-arguments --color
