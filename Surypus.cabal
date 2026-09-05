@@ -81,7 +81,6 @@ library
      Finance.Journal
      Finance.Tax
      Finance.Types
-    Infrastructure.Email
     Infrastructure.EventStore.Accounting
     Infrastructure.EventStore.Inventory
     Infrastructure.Redis.TaskQueue
