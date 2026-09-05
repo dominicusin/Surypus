@@ -23,24 +23,18 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Setup Stack
-        uses: haskell-actions/setup@v2
-        with:
-          enable-stack: true
-          stack-version: 'latest'
-
-      - name: Setup GHC
-        run: |
-          stack setup --no-nix
-
       - name: Cache Stack dependencies
         uses: actions/cache@v4
         with:
           path: ~/.stack
-          # hashFiles is a built-in, not untrusted input — safe per GitHub Actions security guidance
           key: ${{ runner.os }}-stack-${{ hashFiles('stack.yaml') }}
           restore-keys: |
             ${{ runner.os }}-stack-
+
+      - name: Setup Stack and GHC
+        run: |
+          curl -sSL https://get.haskellstack.org/ | sh -s - -f
+          stack setup --no-nix
 
       - name: Build library and tests
         run: |
