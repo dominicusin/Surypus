@@ -13,6 +13,7 @@ module DAL.Types where
 
 import Data.Aeson (FromJSON, ToJSON)
 import qualified Data.Text as T
+import Data.Time (Day)
 import GHC.Generics (Generic)
 
 -- Generated from dsl/schema.yaml
@@ -126,6 +127,7 @@ data Person = Person
   , personName :: !T.Text
   , personINN :: !(Maybe T.Text)
   , personKPP :: !(Maybe T.Text)
+  , personType :: !(Maybe Int)
   , personStatus :: !(Maybe Int)
   } deriving (Show, Generic)
 
@@ -160,7 +162,7 @@ data Bill = Bill
   , billCode :: !(Maybe T.Text)
   , billType :: !(Maybe T.Text)
   , billStatus :: !(Maybe T.Text)
-  , billDate :: !T.Text
+  , billDate :: !Data.Time.Day
   , billPersonId :: !(Maybe Int)
   , billLocationId :: !(Maybe Int)
   , billTotal :: !Double
