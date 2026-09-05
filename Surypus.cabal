@@ -107,6 +107,7 @@ executable surypus-server
   main-is: Main.hs
   build-depends:
     base >=4.12 && <5
+    , Surypus
     , wai
     , wai-extra
     , warp
