@@ -21,6 +21,7 @@ library
     Finance.Bill
     Finance.Tax
     Commerce.BillStatusEx
+    Commerce.BillTaxDiffs
     Surypus
     Surypus.CoreTypes
     Surypus.JWT
