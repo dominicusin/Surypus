@@ -3,7 +3,6 @@
 module Finance.BillSpec (spec) where
 
 import Test.Hspec
-import Data.Decimal (Decimal)
 import Data.Time.Calendar (fromGregorian)
 import Finance.Bill
 
@@ -11,8 +10,8 @@ spec :: Spec
 spec = do
   describe "Finance.Bill" $ do
     let testDate = fromGregorian 2024 1 15
-        line1 = BillLine "Widget A" 2 (Decimal 50) 20
-        line2 = BillLine "Widget B" 1 (Decimal 100) 10
+        line1 = BillLine "Widget A" 2 50 20
+        line2 = BillLine "Widget B" 1 100 10
         testBill = createBill "BILL-001" testDate "Customer X" [line1, line2]
 
     it "creates a draft bill" $ do
@@ -24,8 +23,8 @@ spec = do
       let (total, tax) = calculateBillTotal [line1, line2]
       -- line1: 2*50 + 20% = 100 + 20 = 120
       -- line2: 1*100 + 10% = 100 + 10 = 110
-      total `shouldBe` (Decimal 230)
-      tax `shouldBe` (Decimal 30)
+      total `shouldBe` 230.0
+      tax `shouldBe` 30.0
 
     it "validates bill with lines" $ do
       validateBill testBill `shouldBe` Right ()

@@ -15,7 +15,6 @@ module Finance.Bill
   ) where
 
 import Data.Aeson (ToJSON, FromJSON)
-import Data.Decimal (Decimal)
 import Data.Text (Text)
 import Data.Time (Day)
 import GHC.Generics (Generic)
@@ -30,9 +29,9 @@ data BillStatus
 -- | Bill line item
 data BillLine = BillLine
   { billLineDescription :: Text
-  , billLineQuantity   :: Decimal
-  , billLineUnitPrice  :: Decimal
-  , billLineTaxRate    :: Decimal
+  , billLineQuantity   :: Double
+  , billLineUnitPrice  :: Double
+  , billLineTaxRate    :: Double
   } deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
 -- | Bill
@@ -43,8 +42,8 @@ data Bill = Bill
   , billDate        :: !Day
   , billCustomerName :: !Text
   , billLines       :: [BillLine]
-  , billTotal       :: !Decimal
-  , billTaxAmount   :: !Decimal
+  , billTotal       :: !Double
+  , billTaxAmount   :: !Double
   } deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
 -- | Bill posting result
@@ -77,7 +76,7 @@ validateBill bill
   | otherwise              = Right ()
 
 -- | Calculate total and tax for bill lines
-calculateBillTotal :: [BillLine] -> (Decimal, Decimal)
+calculateBillTotal :: [BillLine] -> (Double, Double)
 calculateBillTotal lines =
   let subtotal = sum [billLineQuantity l * billLineUnitPrice l | l <- lines]
       tax      = sum [billLineQuantity l * billLineUnitPrice l * billLineTaxRate l / 100 | l <- lines]
