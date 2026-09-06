@@ -22,6 +22,13 @@ library
     Finance.Bill
     Finance.Tax
     Commerce.Bonus
+    Commerce.BonusPoints
+    Commerce.CashRegister
+    Commerce.Notes.Comment
+    Commerce.Package
+    Commerce.PriceByTime
+    Commerce.PriceRule
+    Commerce.Promo
     Commerce.BillStatusEx
     Commerce.BillTaxDiffs
     Commerce.Loyalty
