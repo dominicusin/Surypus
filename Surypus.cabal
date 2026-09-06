@@ -20,6 +20,7 @@ library
     Finance.Accounting
     Finance.Bill
     Finance.Tax
+    Commerce.BillStatusEx
     Surypus
     Surypus.CoreTypes
     Surypus.JWT
