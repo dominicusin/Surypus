@@ -44,6 +44,10 @@ library
     External.EGais.EGais
     External.Jasper.Jasper
     External.Pentaho.Pentaho
+    External.EGAIS
+    External.UHTT.UhttStore
+    External.VETIS
+    DAL.Agent
     Commerce.BillStatusEx
     Commerce.BillTaxDiffs
     Commerce.Loyalty
