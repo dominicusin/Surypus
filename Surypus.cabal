@@ -38,7 +38,7 @@ library
     DAL.File
     DAL.Migration
     Domain.Accounting.Events
-    Exporter
+    Shared.Export.Exporter
     Commerce.BillStatusEx
     Commerce.BillTaxDiffs
     Commerce.Loyalty
