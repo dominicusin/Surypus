@@ -25,6 +25,7 @@ library
     HR.Activity
     HR.Contact
     HR.Employee
+    HR.Goals.Goal
     Commerce.Bonus
     Commerce.BonusPoints
     Commerce.CashRegister
