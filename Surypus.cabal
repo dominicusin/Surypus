@@ -32,6 +32,8 @@ library
     Commerce.PriceByQtty
     Core.Core
     Core.Inventory
+    Core
+    Core.Tax
     Surypus
     Surypus.CoreTypes
     Surypus.JWT
