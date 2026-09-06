@@ -32,6 +32,8 @@ library
     Commerce.ServiceBill
     Commerce.Visits.Visit
     Core.DSL
+    Core.DSL.AST
+    Core.DSL.Parser
     Core.Optimization
     DAL.Attachment
     DAL.Blockchain

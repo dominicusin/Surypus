@@ -1,18 +1,8 @@
--- | Core DSL (Phase 1: stub)
+-- | Core DSL - Domain Specific Language for Surypus
 module Core.DSL
-  ( DSLExpr(..)
-  , parseDSL
+  ( module Core.DSL.AST
+  , module Core.DSL.Parser
   ) where
 
-import Data.Text (Text)
-
--- | DSL expression
-data DSLExpr
-  = DSLSelect !Text
-  | DSLInsert !Text
-  | DSLUpdate !Text
-  deriving (Show, Eq)
-
--- | Parse DSL expression (stub)
-parseDSL :: Text -> Maybe DSLExpr
-parseDSL _ = Nothing
+import Core.DSL.AST
+import Core.DSL.Parser
