@@ -68,6 +68,9 @@ library
     Commerce.RetBill
     Commerce.Return
     Commerce.Shipment
+    Commerce.Orders.Order
+    Commerce.Orders.Quotation
+    Commerce.Price
     Core.Core
     Core.Inventory
     Core
