@@ -59,6 +59,10 @@ library
     Commerce.PaymentCard
     Commerce.PriceByAgent
     Commerce.PriceByQtty
+    Commerce.PriceList
+    Commerce.RetBill
+    Commerce.Return
+    Commerce.Shipment
     Core.Core
     Core.Inventory
     Core
