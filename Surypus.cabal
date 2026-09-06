@@ -21,6 +21,8 @@ library
     Finance.Accounting
     Finance.Bill
     Finance.Tax
+    HR.Address
+    HR.Activity
     Commerce.Bonus
     Commerce.BonusPoints
     Commerce.CashRegister
