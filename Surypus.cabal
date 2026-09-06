@@ -23,6 +23,8 @@ library
     Finance.Tax
     HR.Address
     HR.Activity
+    HR.Contact
+    HR.Employee
     Commerce.Bonus
     Commerce.BonusPoints
     Commerce.CashRegister
