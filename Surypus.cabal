@@ -21,6 +21,7 @@ library
     Finance.Accounting
     Finance.Bill
     Finance.Tax
+    Commerce.Bonus
     Commerce.BillStatusEx
     Commerce.BillTaxDiffs
     Commerce.Loyalty
