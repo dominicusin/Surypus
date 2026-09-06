@@ -29,6 +29,14 @@ library
     Commerce.PriceByTime
     Commerce.PriceRule
     Commerce.Promo
+    Commerce.ServiceBill
+    Commerce.Visits.Visit
+    Core.DSL
+    Core.Optimization
+    DAL.Attachment
+    DAL.Blockchain
+    DAL.File
+    DAL.Migration
     Commerce.BillStatusEx
     Commerce.BillTaxDiffs
     Commerce.Loyalty
