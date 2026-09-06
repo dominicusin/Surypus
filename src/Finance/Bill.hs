@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveAnyClass #-}
 
 -- | Bill posting business logic
 module Finance.Bill
@@ -24,10 +25,7 @@ data BillStatus
   = BillDraft
   | BillPosted
   | BillCancelled
-  deriving (Show, Eq, Generic)
-
-instance ToJSON BillStatus
-instance FromJSON BillStatus
+  deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
 -- | Bill line item
 data BillLine = BillLine
@@ -35,10 +33,7 @@ data BillLine = BillLine
   , billLineQuantity   :: Decimal
   , billLineUnitPrice  :: Decimal
   , billLineTaxRate    :: Decimal
-  } deriving (Show, Eq, Generic)
-
-instance ToJSON BillLine
-instance FromJSON BillLine
+  } deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
 -- | Bill
 data Bill = Bill
@@ -50,10 +45,7 @@ data Bill = Bill
   , billLines       :: [BillLine]
   , billTotal       :: !Decimal
   , billTaxAmount   :: !Decimal
-  } deriving (Show, Eq, Generic)
-
-instance ToJSON Bill
-instance FromJSON Bill
+  } deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
 -- | Bill posting result
 data BillPostingResult
