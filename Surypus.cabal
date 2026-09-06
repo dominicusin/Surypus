@@ -5,7 +5,7 @@ synopsis:       Formally verified ERP system core
 description:    Surypus - formally verified ERP system
 category:       Finance
 author:         Surypus Team
-license:        GPL-3.0-or-later
+license:        MPL-2.0
 build-type:     Simple
 
 library
