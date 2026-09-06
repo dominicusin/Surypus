@@ -41,6 +41,9 @@ library
     DAL.Migration
     Domain.Accounting.Events
     Shared.Export.Exporter
+    External.EGais.EGais
+    External.Jasper.Jasper
+    External.Pentaho.Pentaho
     Commerce.BillStatusEx
     Commerce.BillTaxDiffs
     Commerce.Loyalty
