@@ -48,6 +48,8 @@ library
     External.UHTT.UhttStore
     External.VETIS
     DAL.Agent
+    DAL.DAL
+    DAL.ORMPool
     Commerce.BillStatusEx
     Commerce.BillTaxDiffs
     Commerce.Loyalty
