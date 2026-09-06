@@ -37,6 +37,8 @@ library
     DAL.Blockchain
     DAL.File
     DAL.Migration
+    Domain.Accounting.Events
+    Exporter
     Commerce.BillStatusEx
     Commerce.BillTaxDiffs
     Commerce.Loyalty
