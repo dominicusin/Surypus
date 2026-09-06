@@ -1,7 +1,18 @@
+-- | Core DSL (Phase 1: stub)
 module Core.DSL
-  ( module Core.DSL.AST
-  , module Core.DSL.Parser
+  ( DSLExpr(..)
+  , parseDSL
   ) where
 
-import Core.DSL.AST
-import Core.DSL.Parser
+import Data.Text (Text)
+
+-- | DSL expression
+data DSLExpr
+  = DSLSelect !Text
+  | DSLInsert !Text
+  | DSLUpdate !Text
+  deriving (Show, Eq)
+
+-- | Parse DSL expression (stub)
+parseDSL :: Text -> Maybe DSLExpr
+parseDSL _ = Nothing

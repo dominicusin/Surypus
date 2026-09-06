@@ -9,11 +9,16 @@ module DAL.Migration
 import Data.Text (Text)
 import Database.Persist.Sql (SqlPersistT, runMigrationQuiet, runMigration)
 
+-- | Migrate all entities (Phase 1: no-op stub)
 migrateAll :: SqlPersistT IO ()
 migrateAll = return ()
 
+-- | Run migrations
 runMigrations :: SqlPersistT IO ()
-runMigrations = runMigration migrateAll
+runMigrations = migrateAll
 
+-- | Run migrations quietly
 runMigrationsQuiet :: SqlPersistT IO [Text]
-runMigrationsQuiet = runMigrationQuiet migrateAll
+runMigrationsQuiet = do
+  migrateAll
+  return []
