@@ -31,7 +31,9 @@ spec = do
 
     it "rejects empty bill" $ do
       let emptyBill = createBill "EMPTY" testDate "Nobody" []
-      validateBill emptyBill `shouldSatisfy` \case Left _ -> True; _ -> False
+      validateBill emptyBill `shouldSatisfy` \case
+        Left _ -> True
+        Right _ -> False
 
     it "posts a valid bill" $ do
       postBill testBill `shouldBe` BillPostedOk
