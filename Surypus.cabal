@@ -22,6 +22,13 @@ library
     Finance.Tax
     Commerce.BillStatusEx
     Commerce.BillTaxDiffs
+    Commerce.Loyalty
+    Commerce.Bundle
+    Commerce.CashSessionTemp
+    Commerce.Combo
+    Commerce.PaymentCard
+    Commerce.PriceByAgent
+    Commerce.PriceByQtty
     Surypus
     Surypus.CoreTypes
     Surypus.JWT
