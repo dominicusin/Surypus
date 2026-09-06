@@ -29,6 +29,8 @@ library
     Commerce.PaymentCard
     Commerce.PriceByAgent
     Commerce.PriceByQtty
+    Core.Core
+    Core.Inventory
     Surypus
     Surypus.CoreTypes
     Surypus.JWT
