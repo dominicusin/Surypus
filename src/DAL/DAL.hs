@@ -1,6 +1,6 @@
 -- | Database Access Layer
-module DAL.DAL where
+module DAL.DAL
+  ( module DAL.Types
+  ) where
 
 import DAL.Types
-import DAL.DB
-import DAL.EventStore
