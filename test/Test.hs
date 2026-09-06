@@ -9,12 +9,14 @@ import qualified Data.Aeson as A
 import Data.Time.Calendar (fromGregorian)
 import qualified Finance.TaxSpec
 import qualified Finance.AccountingSpec
+import qualified Finance.BillSpec
 import DAL.Types
 
 main :: IO ()
 main = hspec $ do
   Finance.TaxSpec.spec
   Finance.AccountingSpec.spec
+  Finance.BillSpec.spec
 
   describe "DAL.Types JSON roundtrip" $ do
     it "Person roundtrip" $ do

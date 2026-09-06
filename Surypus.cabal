@@ -18,6 +18,7 @@ library
     DAL.Schema
     DAL.Types
     Finance.Accounting
+    Finance.Bill
     Finance.Tax
     Surypus
     Surypus.CoreTypes
@@ -91,6 +92,7 @@ test-suite surypus-test
   other-modules:
       Finance.TaxSpec
       Finance.AccountingSpec
+      Finance.BillSpec
   build-depends:
       base >=4.12 && <5
       , Surypus
